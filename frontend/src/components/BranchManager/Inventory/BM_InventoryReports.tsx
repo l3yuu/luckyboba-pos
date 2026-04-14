@@ -33,7 +33,6 @@ interface Movement {
   created_at:   string;
 }
 
-interface Branch { id: number; name: string; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -180,6 +179,11 @@ const BM_InventoryReports: React.FC = () => {
   const [rows,          setRows]          = useState<UsageRow[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [search,        setSearch]        = useState('');
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedYear,  setSelectedYear]  = useState(now.getFullYear());
+  const [exporting,     setExporting]     = useState(false);
+  const [showGuide,     setShowGuide]     = useState(false);
+  const [drawerRow,     setDrawerRow]     = useState<UsageRow | null>(null);
   const PERIOD = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
 
   const fetchReport = useCallback(async () => {
@@ -204,7 +208,7 @@ const BM_InventoryReports: React.FC = () => {
       const url  = URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href     = url;
-      link.download = `usage-report-${period}.csv`;
+      link.download = `usage-report-${PERIOD}.csv`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) { console.error(e); }

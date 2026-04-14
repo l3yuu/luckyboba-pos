@@ -322,7 +322,7 @@ const SettingsTab: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Failed to clear logs');
       showToast('Audit logs cleared successfully.', 'success');
       setActiveModal('none');
-    } catch (e) {
+    } catch (e: unknown) {
       setModalError((e as Error).message || 'Failed to clear logs');
     } finally {
       setClearingLogs(false);
@@ -350,7 +350,7 @@ const SettingsTab: React.FC = () => {
       setActiveModal('none');
       // Reload page to reflect default settings
       setTimeout(() => window.location.reload(), 2000);
-    } catch (e) {
+    } catch (e: unknown) {
       setModalError((e as Error).message || 'System reset failed');
     } finally {
       setResettingSystem(false);
