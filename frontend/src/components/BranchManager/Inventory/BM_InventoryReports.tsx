@@ -178,12 +178,11 @@ const BM_InventoryReports: React.FC = () => {
   const [rows,          setRows]          = useState<UsageRow[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [search,        setSearch]        = useState('');
-  const [selectedYear,  setSelectedYear]  = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedYear,  setSelectedYear]  = useState(now.getFullYear());
   const [exporting,     setExporting]     = useState(false);
   const [showGuide,     setShowGuide]     = useState(false);
   const [drawerRow,     setDrawerRow]     = useState<UsageRow | null>(null);
-  
   const PERIOD = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
 
   const fetchReport = useCallback(async () => {
