@@ -11,9 +11,15 @@ import SalesDashboardPanel from '../components/TeamLeader/Reports/SalesDashboard
 import ItemsReportPanel    from '../components/TeamLeader/Reports/ItemsReportPanel';
 import XReadingPanel       from '../components/TeamLeader/Reports/XReadingPanel';
 import ZReadingPanel       from '../components/TeamLeader/Reports/ZReadingPanel';
-import InventoryListPanel  from '../components/TeamLeader/Inventory/InventoryListPanel';
+import RawMaterialsPanel   from '../components/TeamLeader/Inventory/RawMaterialsPanel';
+import RecipesPanel        from '../components/TeamLeader/Inventory/RecipesPanel';
+import UsageReportPanel    from '../components/TeamLeader/Inventory/UsageReportPanel';
 import ItemCheckerPanel    from '../components/TeamLeader/Inventory/ItemCheckerPanel';
 import SV_VoidLogsPanel    from '../components/Supervisor/Logging/SVVoidLogs';
+import TL_ExpensePanel      from '../components/TeamLeader/Inventory/TL_ExpensePanel';
+import TL_StockTransferPanel from '../components/TeamLeader/Inventory/TL_StockTransferPanel';
+import TL_PurchaseOrderPanel from '../components/TeamLeader/Inventory/TL_PurchaseOrderPanel';
+import BranchManagerAuditLogsTab from '../components/BranchManager/BranchManagerAuditLogsTab';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const DASHBOARD_STYLES = `
@@ -69,8 +75,14 @@ const TeamLeaderDashboard = () => {
       case 'items-report':    return <ItemsReportPanel    branchId={bId} />;
       case 'x-reading':       return <XReadingPanel       branchId={bId} />;
       case 'z-reading':       return <ZReadingPanel       branchId={bId} />;
-      case 'inventory-list':  return <InventoryListPanel  branchId={bId} />;
-      case 'item-checker':    return <ItemCheckerPanel    branchId={bId} />;
+      case 'raw-materials':   return <RawMaterialsPanel branchId={bId} />;
+      case 'recipes':         return <RecipesPanel />;
+      case 'usage-report':    return <UsageReportPanel  branchId={bId} />;
+      case 'item-checker':    return <ItemCheckerPanel  branchId={bId} />;
+      case 'expenses':        return <TL_ExpensePanel    branchId={bId} />;
+      case 'stock-transfer':  return <TL_StockTransferPanel branchId={bId} />;
+      case 'purchase-order':  return <TL_PurchaseOrderPanel branchId={bId} />;
+      case 'audit-logs':      return <BranchManagerAuditLogsTab />;
       default:                return <TL_DashboardPanel />;
     }
   };
@@ -99,7 +111,7 @@ const TeamLeaderDashboard = () => {
           />
 
           <div className="flex-1 overflow-auto bg-[#f1f5f9]/20">
-            <div className="p-4 md:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+            <div className="p-0 md:p-2 w-full animate-in fade-in duration-500">
               {renderContent()}
             </div>
           </div>

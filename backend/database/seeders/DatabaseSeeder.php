@@ -23,14 +23,13 @@ class DatabaseSeeder extends Seeder
             AddOnSeeder::class,
             DiscountSeeder::class,
             SettingSeeder::class,
+            RawMaterialSeeder::class,
             RecipeSeeder::class,
             CashCountSeeder::class,
-            RawMaterialSeeder::class,
             MenuItemOptionSeeder::class,
             CategoryDrinkSeeder::class,
             FeaturedDrinkSeeder::class,
             CardSeeder::class,
-            CustomerSeeder::class,
         ]);
     }
 }

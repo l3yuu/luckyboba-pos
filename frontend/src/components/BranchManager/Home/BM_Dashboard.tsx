@@ -351,28 +351,28 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
       <GlobalStyles />
       <div className="p-6 md:p-8 flex flex-col gap-6 fade-in">
 
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-[#1a0f2e]">Overview</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">Real-time summary for your branch today</p>
-          </div>
-          <div className="flex items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          <div className="flex rounded-xl overflow-hidden border border-zinc-200 shadow-sm shrink-0">
             {([
               { key: 'daily', label: 'Daily' },
               { key: 'weekly', label: 'Weekly' },
               { key: 'monthly', label: 'Monthly' },
             ] as const).map(({ key, label }) => (
               <button key={key} onClick={() => setTimeFilter(key)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${timeFilter === key ? 'bg-[#3b2063] text-white' : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}>
+                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${timeFilter === key ? 'bg-[#3b2063] text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}>
                 {label}
               </button>
             ))}
-            <Btn variant="secondary" onClick={fetchData} disabled={loading}>
-              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
+            <Btn variant="secondary" onClick={fetchData} disabled={loading} className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
             </Btn>
           </div>
         </div>
+      </div>
 
         {/* ── Stat Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

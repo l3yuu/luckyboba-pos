@@ -4,7 +4,7 @@ import {
   LogOut, ShieldCheck, Tag,
   UtensilsCrossed, Layers, List, Package,
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
-  Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
+  Truck, ShoppingCart, ArrowLeftRight,
   DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown, Monitor,
   CreditCard, AlertTriangle, Sparkles, UserCheck, Bell, ShoppingBag, Smartphone
 } from "lucide-react";
@@ -12,12 +12,11 @@ import {
 // ── Tab IDs ───────────────────────────────────────────────────────────────────
 export type TabId =
   | "overview" | "branches" | "users" | "devices" | "online_orders"
-  | "sales_report" | "analytics" | "items_report" | "staff_performance"
+  | "sales_report" | "analytics" | "items_report" | "staff_performance" | "branch_receipts"
   | "cross_branch_reports" | "x_reading" | "z_reading"
   | "menu_items" | "categories" | "subcategories"
   | "inv_overview" | "inventory_alerts" | "raw_materials" | "usage_report"
-  | "recipes" | "supplier" | "item_checker"
-  | "item_serials" | "purchase_order" | "stock_transfer"
+  | "recipes" | "supplier" | "purchase_order" | "stock_transfer"
   | "expenses"
   | "card_management" | "card_approvals"
   | "card_members"
@@ -191,6 +190,7 @@ const REPORTS_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "analytics",            label: "Analytics & Sales",    icon: <TrendingUp    size={13} /> },
   { id: "items_report",         label: "Items Report",         icon: <List          size={16} /> },
   { id: "staff_performance",    label: "Staff Performance",    icon: <Users            size={16} /> },
+  { id: "branch_receipts",      label: "Branch Receipt",       icon: <Receipt       size={13} /> },
   { id: "cross_branch_reports", label: "Cross-Branch Reports", icon: <BarChart2     size={13} /> },
   { id: "x_reading",            label: "X Reading",            icon: <Repeat2       size={13} /> },
   { id: "z_reading",            label: "Z Reading",            icon: <FileText      size={13} /> },
@@ -209,8 +209,6 @@ const INVENTORY_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "usage_report",     label: "Usage Report",   icon: <ClipboardList  size={13} /> },
   { id: "recipes",          label: "Recipes",        icon: <BookOpen       size={13} /> },
   { id: "supplier",         label: "Supplier",       icon: <Truck          size={13} /> },
-  { id: "item_checker",     label: "Item Checker",   icon: <ScanLine       size={13} /> },
-  { id: "item_serials",     label: "Item Serials",   icon: <Hash           size={13} /> },
   { id: "purchase_order",   label: "Purchase Order", icon: <ShoppingCart   size={13} /> },
   { id: "stock_transfer",   label: "Stock Transfer", icon: <ArrowLeftRight size={13} /> },
 ];

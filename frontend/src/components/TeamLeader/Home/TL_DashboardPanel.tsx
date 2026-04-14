@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, type ElementType } from 'react';
 import api from '../../../services/api';
 import {
-  Users, ShoppingBag, AlertTriangle, TrendingUp,
-  RefreshCw, CheckCircle2, Clock, Package, Search, 
+  Users, ShoppingBag, AlertTriangle, PhilippinePeso,
+  CheckCircle2, Clock, Package, Search,
   ArrowUpRight, ArrowDownRight, FileText
 } from 'lucide-react';
 import {
@@ -12,14 +12,16 @@ import {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface DashStats {
-  total_orders_today:  number;
-  total_sales_today:   number;
-  voided_sales_today:  number;
-  top_seller_today:    { product_name: string; total_qty: number }[];
+  total_orders_today: number;
+  total_sales_today: number;
+  voided_sales_today: number;
+  cash_in_today: number;
+  cash_out_today: number;
+  top_seller_today: { product_name: string; total_qty: number }[];
 }
-interface LowStockItem   { id: number; name: string; quantity: number; minimum: number; }
-interface PendingVoid    { id: number; invoice: string; amount: number; cashier_name?: string; cashier?: string; reason: string; created_at: string; }
-interface HourlyStat     { hour: number; total: number; count: number; }
+interface LowStockItem { id: number; name: string; quantity: number; minimum: number; }
+interface PendingVoid { id: number; invoice: string; amount: number; cashier_name?: string; cashier?: string; reason: string; created_at: string; }
+interface HourlyStat { hour: number; total: number; count: number; }
 
 interface StatTileProps {
   label: string;
@@ -69,11 +71,11 @@ const STYLES = `
 `;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const fmtS = (v?: number) => { 
-  const n = Number(v ?? 0); 
-  if (n >= 1_000_000) return `₱${(n/1_000_000).toFixed(1)}M`; 
-  if (n >= 1_000) return `₱${(n/1_000).toFixed(1)}K`; 
-  return `₱${n.toLocaleString()}`; 
+const fmtS = (v?: number) => {
+  const n = Number(v ?? 0);
+  if (n >= 1_000_000) return `₱${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `₱${(n / 1_000).toFixed(1)}K`;
+  return `₱${n.toLocaleString()}`;
 };
 
 // ── Components ───────────────────────────────────────────────────────────────
@@ -98,12 +100,12 @@ const StatTile = ({ label, value, icon: Icon, color, trend }: StatTileProps) => 
 );
 
 const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
-  const [stats,        setStats]        = useState<DashStats | null>(null);
-  const [lowStock,     setLowStock]     = useState<LowStockItem[]>([]);
+  const [stats, setStats] = useState<DashStats | null>(null);
+  const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
   const [pendingVoids, setPendingVoids] = useState<PendingVoid[]>([]);
-  const [hourly,       setHourly]       = useState<HourlyStat[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [refreshing,   setRefreshing]   = useState(false);
+  const [hourly, setHourly] = useState<HourlyStat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [, setRefreshing] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
   const load = useCallback(async (isRefresh = false) => {
@@ -114,72 +116,92 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
         api.get('/dashboard/stats', { params: { branch_id: branchId } }),
         api.get('/reports/hourly-sales', { params }),
         api.get('/raw-materials/low-stock', { params: { branch_id: branchId } }),
-        api.get('/reports/void-logs',    { params }),
+        api.get('/reports/void-logs', { params }),
       ]);
 
-      if (statsRes.status  === 'fulfilled') { 
-        const d = statsRes.value.data; 
-        setStats(d?.stats ?? d); 
+      if (statsRes.status === 'fulfilled') {
+        const d = statsRes.value.data;
+        setStats(d?.stats ?? d);
       }
       if (hourlyRes.status === 'fulfilled') {
-        const raw = hourlyRes.value.data; 
+        const raw = hourlyRes.value.data;
         const arr = Array.isArray(raw) ? raw : (raw?.hourly_data ?? []);
-        setHourly(arr.map((r: { hour?: number; total?: number; count?: number }) => ({ 
-          hour: Number(r.hour ?? 0), 
-          total: Number(r.total ?? 0), 
-          count: Number(r.count ?? 0) 
+        setHourly(arr.map((r: { hour?: number; total?: number; count?: number }) => ({
+          hour: Number(r.hour ?? 0),
+          total: Number(r.total ?? 0),
+          count: Number(r.count ?? 0)
         })));
       }
       if (stockRes.status === 'fulfilled') {
-        const raw = stockRes.value.data; 
+        const raw = stockRes.value.data;
         const arr = Array.isArray(raw) ? raw : (raw?.data ?? []);
-        setLowStock(arr.slice(0,5).map((r: { id?: number; name?: string; item_name?: string; quantity?: number; minimum?: number }) => ({ 
-          id: Number(r.id), 
-          name: String(r.name || r.item_name || ''), 
-          quantity: Number(r.quantity ?? 0), 
-          minimum: Number(r.minimum ?? 5) 
+        setLowStock(arr.slice(0, 5).map((r: { id?: number; name?: string; item_name?: string; quantity?: number; minimum?: number }) => ({
+          id: Number(r.id),
+          name: String(r.name || r.item_name || ''),
+          quantity: Number(r.quantity ?? 0),
+          minimum: Number(r.minimum ?? 5)
         })));
       }
       if (voidsRes.status === 'fulfilled') {
-        const raw = voidsRes.value.data; 
+        const raw = voidsRes.value.data;
         const arr = Array.isArray(raw) ? raw : (raw?.logs ?? []);
-        setPendingVoids(arr.slice(0,5).map((r: { id?: number; invoice?: string; amount?: number; cashier_name?: string; cashier?: string; reason?: string; created_at?: string }) => ({ 
-          id: Number(r.id || 0), 
-          invoice: String(r.invoice || ''), 
-          amount: Number(r.amount || 0), 
-          reason: String(r.reason || ''), 
-          created_at: String(r.created_at || ''), 
-          cashier_name: String(r.cashier_name || r.cashier || '') 
+        setPendingVoids(arr.slice(0, 5).map((r: { id?: number; invoice?: string; amount?: number; cashier_name?: string; cashier?: string; reason?: string; created_at?: string }) => ({
+          id: Number(r.id || 0),
+          invoice: String(r.invoice || ''),
+          amount: Number(r.amount || 0),
+          reason: String(r.reason || ''),
+          created_at: String(r.created_at || ''),
+          cashier_name: String(r.cashier_name || r.cashier || '')
         })));
       }
-    } catch (e) { 
-      console.error('TL load error', e); 
-    } finally { 
-      setLoading(false); 
-      setRefreshing(false); 
+    } catch (e) {
+      console.error('TL load error', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   }, [today, branchId]);
 
   useEffect(() => { load(); }, [load]);
 
   if (loading) return (
-    <div className="p-8 tl-dashboard animate-in fade-in duration-1000">
+    <div className="p-8 md:p-12 tl-dashboard animate-in fade-in duration-500">
       <style>{STYLES}</style>
-      <div className="h-10 w-48 tl-skeleton tl-pulse mb-10" />
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-        {[1,2,3,4].map(i => <div key={i} className="h-32 tl-skeleton tl-pulse" />)}
+      
+      {/* KPI Tiles Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-[140px] tl-skeleton tl-pulse border border-slate-100 bg-white/50" />
+        ))}
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 h-[450px] tl-skeleton tl-pulse" />
-        <div className="h-[450px] tl-skeleton tl-pulse" />
+        {/* Main Chart Skeleton */}
+        <div className="lg:col-span-2 h-[480px] tl-skeleton tl-pulse border border-slate-100 bg-white/50" />
+        
+        {/* Sidebar Skeletons */}
+        <div className="space-y-8">
+          <div className="h-[225px] tl-skeleton tl-pulse border border-slate-100 bg-white/50" />
+          <div className="h-[225px] tl-skeleton tl-pulse border border-slate-100 bg-white/50" />
+        </div>
+      </div>
+
+      {/* Quick Actions Skeleton */}
+      <div className="mt-12 pt-8 border-t border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-16 tl-skeleton tl-pulse border border-slate-100 bg-white/50" />
+        ))}
       </div>
     </div>
   );
 
-  const totalOrders = stats?.total_orders_today  ?? 0;
-  const totalSales  = stats?.total_sales_today   ?? 0;
-  const voidedSales = stats?.voided_sales_today  ?? 0;
-  
+  const totalOrders = stats?.total_orders_today ?? 0;
+  const totalSales = stats?.total_sales_today ?? 0;
+  const voidedSales = stats?.voided_sales_today ?? 0;
+  const cashIn = stats?.cash_in_today ?? 0;
+  const cashOut = stats?.cash_out_today ?? 0;
+  const overallCash = cashIn - cashOut;
+
   // Derive active staff from transactions/voids
   const activeStaffTodayCount = Array.from(new Set([
     ...pendingVoids.map(v => v.cashier_name || v.cashier),
@@ -187,47 +209,27 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
   ])).filter(Boolean).length;
 
   return (
-    <div className="p-8 md:p-12 tl-dashboard animate-in fade-in duration-1000">
+    <div className="p-4 md:p-6 lg:p-10 tl-dashboard animate-in fade-in duration-1000 w-full overflow-x-hidden">
       <style>{STYLES}</style>
 
-      {/* ── OFFICIAL OPERATIONAL HEADER ── */}
-      <div className="tl-report-header flex flex-col md:flex-row md:items-end justify-between gap-8">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-[#3b2063]" />
-            <p className="tl-label !text-[#3b2063]">Real-time Operations Monitoring</p>
-          </div>
-          <h1 className="text-[2.2rem] font-black text-[#0f172a] tracking-tight leading-none">
-            Operational Overview
-          </h1>
-          <p className="text-[0.75rem] font-bold text-slate-400 mt-3 flex items-center gap-2">
-            <Clock size={14} className="text-slate-300" />
-            Live sync with terminal aggregates for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button onClick={() => load(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-500 hover:text-[#3b2063] hover:border-[#3b206330] rounded-xl transition-all shadow-sm font-bold text-xs">
-            <RefreshCw size={14} className={refreshing ? 'tl-spin' : ''} />
-            {refreshing ? 'Syncing...' : 'Refresh Hub'}
-          </button>
-        </div>
-      </div>
 
       {/* ── EXECUTIVE KPI TILES ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <StatTile label="Today's Revenue" value={fmtS(totalSales)} icon={TrendingUp} color="#3b2063" />
-        <StatTile label="Transaction Volume" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#0891b2" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-5 mb-10">
+        <StatTile label="Today's Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#3b2063" />
+        <StatTile label="Cash In" value={fmtS(cashIn)} icon={ArrowUpRight} color="#059669" />
+        <StatTile label="Cash Out" value={fmtS(cashOut)} icon={ArrowDownRight} color="#be2525" />
+        <StatTile label="Net Cash" value={fmtS(overallCash)} icon={PhilippinePeso} color="#0891b2" />
+        <StatTile label="Transactions" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#0f172a" />
         <StatTile label="Void Risks" value={fmtS(voidedSales)} icon={AlertTriangle} color="#e11d48" />
-        <StatTile label="Personnel On-Duty" value={activeStaffTodayCount} icon={Users} color="#059669" />
+        <StatTile label="Staff On-Duty" value={activeStaffTodayCount} icon={Users} color="#6366f1" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* ── LIVE REVENUE TREND ── */}
         <div className="lg:col-span-2 tl-tile bg-white p-8 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-[#3b2063]" />
-          
+
           <div className="flex items-center justify-between mb-10">
             <div>
               <h3 className="font-black text-slate-800 tracking-tight uppercase text-xs">Hourly Revenue Distribution</h3>
@@ -243,32 +245,32 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={hourly} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="hour" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fontSize: 9, fontWeight: 800, fill: '#cbd5e1'}} 
+                <XAxis
+                  dataKey="hour"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 9, fontWeight: 800, fill: '#cbd5e1' }}
                   dy={15}
                   tickFormatter={(h) => `${h}:00`}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fontSize: 9, fontWeight: 800, fill: '#cbd5e1'}} 
-                  tickFormatter={(v) => `₱${v >= 1000 ? (v/1000).toFixed(1) + 'K' : v}`}
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 9, fontWeight: 800, fill: '#cbd5e1' }}
+                  tickFormatter={(v) => `₱${v >= 1000 ? (v / 1000).toFixed(1) + 'K' : v}`}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 20px 40px -8px rgba(0,0,0,0.2)', background: '#0f172a', padding: '12px 16px' }}
                   itemStyle={{ color: '#fff', fontSize: '11px', fontWeight: 700, padding: 0 }}
                   labelStyle={{ fontSize: '9px', color: '#6366f1', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.08em' }}
                   cursor={{ stroke: '#3b206320', strokeWidth: 1 }}
                   formatter={(v) => [`₱${Number(v).toLocaleString()}`, 'HOURLY SALES']}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="total" 
-                  stroke="#3b2063" 
-                  strokeWidth={3.5} 
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  stroke="#3b2063"
+                  strokeWidth={3.5}
                   dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#3b2063' }}
                   activeDot={{ r: 7, strokeWidth: 3, fill: '#fff', stroke: '#3b2063' }}
                 />
@@ -279,11 +281,11 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
 
         {/* ── OPERATIONAL MONITORING ── */}
         <div className="space-y-8">
-          
+
           <div className="tl-monitoring-card">
             <div className="tl-monitoring-head">
               <h3 className="font-black text-rose-600 tracking-tight uppercase text-[10px] flex items-center gap-2">
-                <AlertTriangle size={14}/> Low Stock Critical
+                <AlertTriangle size={14} /> Low Stock Critical
               </h3>
             </div>
             <div className="p-5 space-y-3">
@@ -304,14 +306,14 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
           <div className="tl-monitoring-card">
             <div className="tl-monitoring-head">
               <h3 className="font-black text-slate-800 tracking-tight uppercase text-[10px] flex items-center gap-2">
-                <Clock size={14} className="text-[#3b2063]"/> Recent Voids
+                <Clock size={14} className="text-[#3b2063]" /> Recent Voids
               </h3>
             </div>
             <div className="p-5 space-y-4">
               {pendingVoids.length > 0 ? pendingVoids.map(v => (
                 <div key={v.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400"><FileText size={14}/></div>
+                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400"><FileText size={14} /></div>
                     <div>
                       <p className="text-[0.75rem] font-black text-slate-900 leading-tight">{v.invoice}</p>
                       <p className="text-[0.6rem] font-bold text-slate-400 uppercase">{v.cashier_name || v.cashier || 'System'}</p>
@@ -347,11 +349,11 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
           </button>
         ))}
       </div>
-      
+
       <div className="mt-16 flex items-center justify-center gap-1.5 opacity-30 cursor-default">
-         <span className="w-8 h-px bg-slate-400" />
-         <p className="text-[0.6rem] font-bold tracking-[0.3em] uppercase">Operational Audit V2</p>
-         <span className="w-8 h-px bg-slate-400" />
+        <span className="w-8 h-px bg-slate-400" />
+        <p className="text-[0.6rem] font-bold tracking-[0.3em] uppercase">Operational Audit V2</p>
+        <span className="w-8 h-px bg-slate-400" />
       </div>
     </div>
   );

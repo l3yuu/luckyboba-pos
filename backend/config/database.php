@@ -38,10 +38,16 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-                PDO::ATTR_PERSISTENT => true,
-            ]) : [],
+            'options' => extension_loaded('pdo_mysql') ? array_filter(
+                env('MYSQL_ATTR_SSL_CA')
+                    ? [
+                        defined('Pdo\Mysql::ATTR_SSL_CA')
+                            ? \Pdo\Mysql::ATTR_SSL_CA
+                            : PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                        PDO::ATTR_PERSISTENT => true,
+                    ]
+                    : [PDO::ATTR_PERSISTENT => true]
+            ) : [],
         ],
 
         /*

@@ -361,6 +361,7 @@ const SalesOrder = () => {
     : 0
   const vatableSales = isVat ? round(vatableBase / 1.12) : 0
   const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
+  const lessVat      = isVat && hasPaxDiscount ? round(totalVatExemptSales * 0.12) : 0
 
   const amtDue = isVat
     ? Math.max(0, round(vatableBase + vatExemptSales))
@@ -1575,6 +1576,7 @@ const SalesOrder = () => {
             vatableSales={vatableSales}
             vatAmount={vatAmount}
             vatExemptSales={vatExemptSales}
+            lessVat={lessVat}
             change={change}
             totalDiscountDisplay={totalDiscountDisplay}
             orderCharge={orderCharge}

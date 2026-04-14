@@ -11,6 +11,7 @@ class StockMovement extends Model
         'quantity',
         'reason',
         'branch_id',
+        'user_id',
     ];
 
     public function rawMaterial()
@@ -21,5 +22,10 @@ class StockMovement extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

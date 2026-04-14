@@ -314,11 +314,22 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/',             [InventoryController::class,          'index']);
             Route::get('/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
             Route::get('/history',      [InventoryController::class,          'getTransactionHistory']);
+            
+            // Usage Report (Read Access for all roles)
+            Route::get('/usage-report',           [InventoryController::class, 'usageReport']);
+            Route::get('/usage-report/get-product-sales', [InventoryController::class, 'productSalesSummary']);
+            Route::get('/usage-report/breakdown/{id}', [InventoryController::class, 'usageBreakdown']);
+            Route::get('/usage-report/export',    [InventoryController::class, 'exportUsageReport']);
         });
 
         Route::get('/raw-materials/low-stock',             [RawMaterialController::class, 'lowStock']);
         Route::get('/raw-materials/movements',             [RawMaterialController::class, 'movements']);
         Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
+        
+        // Bulk Audit (Log physical counts)
+        Route::post('/raw-materials/bulk-audit',           [RawMaterialController::class, 'bulkAudit']);
+        Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
+        
         Route::apiResource('raw-materials', RawMaterialController::class)->only(['index', 'show']);
 
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
@@ -394,10 +405,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::patch('/{id}/quantity',         [InventoryController::class, 'updateQuantity']);
             Route::get ('/overview',               [InventoryController::class, 'overview']);
             Route::get ('/alerts',                 [InventoryController::class, 'alerts']);
-            Route::get ('/usage-report',           [InventoryController::class, 'usageReport']);
-            Route::get ('/usage-report/get-product-sales', [InventoryController::class, 'productSalesSummary']);
-            Route::get ('/usage-report/breakdown/{id}', [InventoryController::class, 'usageBreakdown']);
-            Route::get ('/usage-report/export',    [InventoryController::class, 'exportUsageReport']);
         });
 
         Route::prefix('purchase-orders')->group(function () {
@@ -473,7 +480,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
-        Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
         Route::apiResource('raw-materials', RawMaterialController::class)->except(['index', 'show']);
 
         Route::get  ('/recipes/by-menu-item/{menuItemId}', [RecipeController::class, 'byMenuItem']);
@@ -495,6 +501,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::delete('/audit/clear',     [SettingsController::class, 'clearAuditLogs']);
             Route::post('/reset',             [SettingsController::class, 'resetSystem']);
             Route::get ('/backup-status',     [BackupController::class,   'lastBackupStatus']);
+            Route::get ('/backups',           [BackupController::class,   'listBackups']);
+            Route::get ('/backups/download/{filename}', [BackupController::class, 'downloadBackup']);
+            Route::delete('/backups/{filename}', [BackupController::class, 'deleteBackup']);
             Route::post('/run-backup',        [BackupController::class,   'runBackup']);
             Route::post('/upload',            [UploadController::class,   'upload']);
             Route::get ('/import-history',    [UploadController::class,   'importHistory']);
