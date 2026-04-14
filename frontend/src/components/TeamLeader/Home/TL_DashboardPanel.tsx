@@ -48,12 +48,10 @@ const STYLES = `
   
   .tl-tile { 
     background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; 
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .tl-tile:hover { 
     border-color: #cbd5e1; 
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);
-    transform: translateY(-2px);
   }
 
   .tl-label { font-size: 0.62rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.12em; }
@@ -165,7 +163,7 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
   useEffect(() => { load(); }, [load]);
 
   if (loading) return (
-    <div className="p-8 md:p-12 tl-dashboard animate-in fade-in duration-500">
+    <div className="p-8 md:p-12 tl-dashboard">
       <style>{STYLES}</style>
       
       {/* KPI Tiles Skeleton */}
@@ -209,7 +207,7 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
   ])).filter(Boolean).length;
 
   return (
-    <div className="p-4 md:p-6 lg:p-10 tl-dashboard animate-in fade-in duration-1000 w-full overflow-x-hidden">
+    <div className="p-4 md:p-6 lg:p-10 tl-dashboard w-full overflow-x-hidden">
       <style>{STYLES}</style>
 
 
