@@ -83,11 +83,24 @@ const UsageReportPanel = ({ branchId }: { branchId: number | null }) => {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleSubmitAudit = async () => {
-    const items = Object.keys({ ...editBegs, ...editActuals }).map(id => ({
-      id: Number(id),
-      beg: editBegs[Number(id)] !== undefined ? Number(editBegs[Number(id)]) : undefined,
-      actual: editActuals[Number(id)] !== undefined ? Number(editActuals[Number(id)]) : undefined,
-    }));
+    // Sanitize items: only include if at least one field is set and is a valid number
+    const items = Object.keys({ ...editBegs, ...editActuals }).map(id => {
+      const bStr = editBegs[Number(id)];
+      const aStr = editActuals[Number(id)];
+      
+      const beg = (bStr !== undefined && bStr !== '') ? Number(bStr) : undefined;
+      const actual = (aStr !== undefined && aStr !== '') ? Number(aStr) : undefined;
+
+      // Only send if at least one value is successfully parsed as a number
+      if (beg === undefined && actual === undefined) return null;
+      if (isNaN(beg as number) || isNaN(actual as number)) return null;
+
+      return {
+        id: Number(id),
+        beg,
+        actual
+      };
+    }).filter(Boolean);
 
     if (items.length === 0) return;
 
@@ -99,9 +112,17 @@ const UsageReportPanel = ({ branchId }: { branchId: number | null }) => {
       setEditActuals({});
       setTimeout(() => setSuccessMsg(''), 3000);
       loadData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Audit submission failed', err);
-      alert('Failed to submit audit');
+      const msg = err.response?.data?.message || 'Failed to submit audit';
+      const errors = err.response?.data?.errors;
+      if (errors) {
+        // Just show the first validation error if any
+        const firstErr = Object.values(errors)[0] as string[];
+        alert(`${msg}: ${firstErr[0]}`);
+      } else {
+        alert(msg);
+      }
     } finally {
       setSaving(false);
     }
