@@ -92,9 +92,9 @@ const UsageReportPanel = ({ branchId }: { branchId: number | null }) => {
       const beg = (bStr !== undefined && bStr !== '') ? Number(bStr) : undefined;
       const actual = (aStr !== undefined && aStr !== '') ? Number(aStr) : undefined;
 
-      // Only send if at least one value is successfully parsed as a number
-      if (beg === undefined && actual === undefined) return null;
-      if (isNaN(beg as number) || isNaN(actual as number)) return null;
+      // Only send if the value is a valid number IF it was provided
+      if (beg !== undefined && isNaN(beg)) return null;
+      if (actual !== undefined && isNaN(actual)) return null;
 
       return {
         id: Number(id),

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RawMaterial;
 use App\Models\RawMaterialLog;
 use App\Models\StockMovement;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -113,8 +114,17 @@ class RawMaterialController extends Controller
             'branch_id'       => 'nullable|exists:branches,id',
         ]);
 
-        return DB::transaction(function() use ($validated) {
+        return DB::transaction(function() use ($validated, $request) {
             $material = RawMaterial::create($validated);
+
+            // ✅ Log Activity
+            AuditLog::create([
+                'user_id'    => auth()->id(),
+                'action'     => "Created Raw Material: {$material->name}",
+                'module'     => 'Inventory',
+                'details'    => "Category: {$material->category}, Initial Stock: {$material->current_stock} {$material->unit}",
+                'ip_address' => $request->ip(),
+            ]);
 
             // ✅ If this is a global material, auto-clone it for all existing branches
             if (empty($validated['branch_id'])) {
@@ -148,6 +158,15 @@ class RawMaterialController extends Controller
 
         $rawMaterial->update($validated);
 
+        // ✅ Log Activity
+        AuditLog::create([
+            'user_id'    => auth()->id(),
+            'action'     => "Updated Raw Material: {$rawMaterial->name}",
+            'module'     => 'Inventory',
+            'details'    => "Updated fields: " . implode(', ', array_keys($validated)),
+            'ip_address' => $request->ip(),
+        ]);
+
         return response()->json($rawMaterial);
     }
 
@@ -163,7 +182,17 @@ class RawMaterialController extends Controller
             ], 422);
         }
 
+        $materialName = $rawMaterial->name;
         $rawMaterial->delete();
+
+        // ✅ Log Activity
+        AuditLog::create([
+            'user_id'    => auth()->id(),
+            'action'     => "Deleted Raw Material: {$materialName}",
+            'module'     => 'Inventory',
+            'details'    => "Material was removed from the system.",
+            'ip_address' => request()->ip(),
+        ]);
 
         return response()->json(['message' => 'Deleted successfully.']);
     }
@@ -204,9 +233,19 @@ class RawMaterialController extends Controller
                 StockMovement::create([
                     'raw_material_id' => $rawMaterial->id,
                     'branch_id'       => $rawMaterial->branch_id,
+                    'user_id'         => auth()->id(),
                     'type'            => $validated['type'],
                     'quantity'        => $validated['quantity'],
                     'reason'          => $validated['reason'] ?? ucfirst($validated['type']) . ' (manual)',
+                ]);
+
+                // ✅ Log Activity
+                AuditLog::create([
+                    'user_id'    => auth()->id(),
+                    'action'     => "Manual Stock Adjustment",
+                    'module'     => 'Inventory',
+                    'details'    => "Material: {$rawMaterial->name}. Type: {$validated['type']}, Qty: {$validated['quantity']} {$rawMaterial->unit}. Reason: " . ($validated['reason'] ?? 'None'),
+                    'ip_address' => request()->ip(),
                 ]);
             });
 
@@ -264,7 +303,7 @@ class RawMaterialController extends Controller
      */
     public function movements(Request $request)
     {
-        $query = StockMovement::with(['rawMaterial:id,name,unit', 'branch:id,name']);
+        $query = StockMovement::with(['rawMaterial:id,name,unit', 'branch:id,name', 'user:id,name']);
         
         $branchId = $request->query('branch_id');
         $selectedBranchName = $branchId ? \App\Models\Branch::find($branchId)?->name : null;
@@ -272,6 +311,10 @@ class RawMaterialController extends Controller
         if ($branchId) {
             // Strict filtering for movements: only show results for the selected branch
             $query->where('branch_id', $branchId);
+        }
+
+        if ($request->filled('period')) {
+            $query->where('created_at', 'like', $request->period . '%');
         }
 
         if ($request->filled('raw_material_id')) {
@@ -290,7 +333,7 @@ class RawMaterialController extends Controller
                 'unit'         => $m->rawMaterial->unit ?? '',
                 'branch_name'  => $m->branch->name ?? ($selectedBranchName ?? 'Main Office'),
                 'reason'       => $m->reason,
-                'performed_by' => 'System', 
+                'performed_by' => $m->user->name ?? 'System', 
                 'created_at'   => $m->created_at,
             ]);
 
@@ -329,16 +372,33 @@ class RawMaterialController extends Controller
                     // 1. Check for manual BEG (Opening) adjust
                     if (isset($auditItem['beg'])) {
                         $begValue = $auditItem['beg'];
+                        
+                        // To make this "BEG" permanent in the report, we must update current_stock
+                        // Formula: New Current Stock = New BEG + (Movements since start of today)
+                        $todayStart = now()->startOfDay();
+                        $todayAdditions = StockMovement::where('raw_material_id', $material->id)
+                            ->where('created_at', '>=', $todayStart)
+                            ->where('type', 'add')
+                            ->sum('quantity');
+                        $todaySubtractions = StockMovement::where('raw_material_id', $material->id)
+                            ->where('created_at', '>=', $todayStart)
+                            ->where('type', 'subtract')
+                            ->sum('quantity');
+
+                        $material->current_stock = $begValue + $todayAdditions - $todaySubtractions;
+                        $material->save();
+
                         // Record a movement at the very start of today (00:00:01)
                         // This ensures the Usage Report's "BEG" calculation for "today"
                         // respects this manual entry.
                         StockMovement::create([
                             'raw_material_id' => $material->id,
                             'branch_id'       => $material->branch_id,
+                            'user_id'         => auth()->id(),
                             'type'            => 'set',
                             'quantity'        => $begValue,
                             'reason'          => 'Manual Opening Adjustment',
-                            'created_at'      => now()->startOfDay()->addSecond(),
+                            'created_at'      => $todayStart->copy()->addSecond(),
                         ]);
                     }
 
@@ -350,12 +410,22 @@ class RawMaterialController extends Controller
                         StockMovement::create([
                             'raw_material_id' => $material->id,
                             'branch_id'       => $material->branch_id,
+                            'user_id'         => auth()->id(),
                             'type'            => 'set',
                             'quantity'        => $actual,
                             'reason'          => $reason . " (Prev: " . round((float)$oldStock, 2) . ")",
                         ]);
                     }
                 }
+
+                // ✅ Log Activity
+                AuditLog::create([
+                    'user_id'    => $user->id,
+                    'action'     => "Bulk Physical Count Audit",
+                    'module'     => 'Usage Report',
+                    'details'    => "Submitted physical counts for " . count($validated['items']) . " materials. Reason: " . $reason,
+                    'ip_address' => request()->ip(),
+                ]);
 
                 return response()->json(['message' => 'Bulk inventory audit completed successfully.']);
             });

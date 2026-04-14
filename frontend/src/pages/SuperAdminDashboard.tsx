@@ -30,8 +30,6 @@ import RawMaterialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/RawMa
 import UsageReportTab from "../components/NewSuperAdmin/Sidebar/Inventory/UsageReportTab";
 import RecipesTab from "../components/NewSuperAdmin/Sidebar/Inventory/RecipesTab";
 import SupplierTab from "../components/NewSuperAdmin/Sidebar/Inventory/SupplierTab";
-import ItemCheckerTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemCheckerTab";
-import ItemSerialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemSerialsTab";
 import PurchaseOrderTab from "../components/NewSuperAdmin/Sidebar/Inventory/PurchaseOrderTab";
 import StockTransferTab from "../components/NewSuperAdmin/Sidebar/Inventory/StockTransferTab";
 import InventoryAlertsTab from "../components/NewSuperAdmin/Sidebar/Inventory/InventoryAlertsTab";
@@ -113,11 +111,9 @@ const SuperAdminDashboard: React.FC = () => {
       case "usage_report": return <UsageReportTab />;
       case "recipes": return <RecipesTab />;
       case "supplier": return <SupplierTab />;
-      case "item_checker": return <ItemCheckerTab />;
-      case "item_serials": return <ItemSerialsTab />;
       case "purchase_order": return <PurchaseOrderTab />;
       case "stock_transfer": return <StockTransferTab />;
-      case "inventory_alerts": return <InventoryAlertsTab />;
+      case "inventory_alerts": return <InventoryAlertsTab onNavigate={setActive} />;
 
       // ── Expenses ──────────────────────────────────────────────────────────
       case "expenses": return <ExpensesTab />;

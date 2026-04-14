@@ -7,6 +7,32 @@ import {
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
 
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
+  
+  .tl-staff-hub { font-family: 'DM Sans', sans-serif; background: #f8fafc; min-height: 100vh; color: #1e293b; }
+  
+  .tl-tile { 
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; 
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .tl-tile:hover { 
+    border-color: #cbd5e1; 
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);
+    transform: translateY(-2px);
+  }
+
+  .tl-label { font-size: 0.62rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.12em; }
+  .tl-value { font-size: 1.65rem; font-weight: 800; color: #0f172a; letter-spacing: -0.04em; line-height: 1.2; }
+
+  @keyframes tl-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .tl-pulse { animation: tl-pulse 1.5s ease-in-out infinite; }
+  .tl-skeleton { background: #f1f5f9; border-radius: 0.5rem; }
+  
+  @keyframes tl-spin { to { transform: rotate(360deg); } }
+  .tl-spin { animation: tl-spin 1s linear infinite; }
+`;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type VariantKey = 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -89,8 +115,8 @@ const Badge: React.FC<{ status: string }> = ({ status }) => {
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
       ${isActive
-        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-        : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
+        ? 'bg-[#10b981]10 text-[#059669] border border-[#10b981]20'
+        : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
       {status}
     </span>
   );
@@ -98,11 +124,11 @@ const Badge: React.FC<{ status: string }> = ({ status }) => {
 
 const DevicePill: React.FC<{ deviceNumber?: string | null }> = ({ deviceNumber }) =>
   deviceNumber ? (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#3b2063]08 text-[#3b2063] border border-[#3b2063]20 px-2 py-0.5 rounded-full">
       <MonitorCheck size={9} />{deviceNumber}
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded-full">
       <MonitorOff size={9} />None
     </span>
   );
@@ -120,9 +146,9 @@ const Btn: React.FC<BtnProps> = ({
   const sizes: Record<SizeKey, string> = { sm: 'px-3 py-2 text-xs', md: 'px-4 py-2.5 text-sm', lg: 'px-6 py-3 text-sm' };
   const variants: Record<VariantKey, string> = {
     primary: 'bg-[#3b2063] hover:bg-[#2a1647] text-white',
-    secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
-    danger: 'bg-red-600 hover:bg-red-700 text-white',
-    ghost: 'bg-transparent text-zinc-500 hover:bg-zinc-100',
+    secondary: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50',
+    danger: 'bg-rose-500 hover:bg-rose-600 text-white',
+    ghost: 'bg-transparent text-slate-500 hover:bg-slate-100',
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -132,6 +158,20 @@ const Btn: React.FC<BtnProps> = ({
   );
 };
 
+const StatTile: React.FC<{ label: string; value: string | number; icon: React.ElementType; color: string }> = ({ label, value, icon: Icon, color }) => (
+  <div className="tl-tile p-6 flex flex-col justify-between min-h-[140px]">
+    <div className="flex items-start justify-between">
+      <div className="p-2.5 rounded-lg" style={{ background: `${color}08`, color }}>
+        <Icon size={20} strokeWidth={2.5} />
+      </div>
+    </div>
+    <div className="mt-4">
+      <p className="tl-label mb-1">{label}</p>
+      <p className="tl-value">{value}</p>
+    </div>
+  </div>
+);
+
 // ─── Modal Shell ──────────────────────────────────────────────────────────────
 
 const ModalShell: React.FC<{
@@ -140,23 +180,23 @@ const ModalShell: React.FC<{
 }> = ({ onClose, icon, title, sub, children, footer, maxWidth = 'max-w-md' }) =>
     createPortal(
       <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-        style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+        style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', backgroundColor: 'rgba(15, 23, 42, 0.45)' }}>
         <div className="absolute inset-0" onClick={onClose} />
-        <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
-          <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
+        <div className={`relative bg-white w-full ${maxWidth} border border-slate-200 rounded-[1.25rem] shadow-2xl overflow-hidden`}>
+          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/30">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-[#3b2063]08 border border-[#3b2063]15 rounded-xl flex items-center justify-center text-[#3b2063]">{icon}</div>
               <div>
-                <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
-                <p className="text-[10px] text-zinc-400">{sub}</p>
+                <p className="text-sm font-bold text-slate-900">{title}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{sub}</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
-              <X size={16} />
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-slate-600">
+              <X size={18} />
             </button>
           </div>
-          <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
-          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
+          <div className="px-6 py-6 flex flex-col gap-5 max-h-[65vh] overflow-y-auto">{children}</div>
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/30">{footer}</div>
         </div>
       </div>,
       document.body
@@ -165,17 +205,17 @@ const ModalShell: React.FC<{
 // ─── Field helpers ────────────────────────────────────────────────────────────
 
 const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
-  <div>
-    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-      {label} {required && <span className="text-red-400">*</span>}
+  <div className="space-y-1.5">
+    <label className="tl-label block ml-1 text-slate-500">
+      {label} {required && <span className="text-rose-500">*</span>}
     </label>
     {children}
-    {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
+    {error && <p className="text-[10px] font-bold text-rose-500 ml-1">{error}</p>}
   </div>
 );
 
 const inputCls = (err?: string) =>
-  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
+  `w-full text-sm font-bold text-slate-700 bg-slate-50 border rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#3b2063]/10 focus:border-[#3b2063] focus:bg-white transition-all ${err ? 'border-rose-300 bg-rose-50' : 'border-slate-200'}`;
 
 // ─── View Modal ───────────────────────────────────────────────────────────────
 
@@ -684,72 +724,64 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
   const inactiveCount = staff.filter(u => u.status !== 'ACTIVE').length;
 
   return (
-    <div className="p-6 md:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="tl-staff-hub p-8 md:p-12">
+      <style>{STYLES}</style>
 
       {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-violet-50 border border-violet-200 flex items-center justify-center rounded-[0.4rem]">
-            <Users size={16} className="text-violet-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Staff</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : staff.length}</p>
-          </div>
-        </div>
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-50 border border-emerald-200 flex items-center justify-center rounded-[0.4rem]">
-            <UserCheck size={16} className="text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Active</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : activeCount}</p>
-          </div>
-        </div>
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-50 border border-red-200 flex items-center justify-center rounded-[0.4rem]">
-            <XCircle size={16} className="text-red-500" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Inactive</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : inactiveCount}</p>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+        <StatTile
+          icon={Users}
+          label="Total Staff"
+          value={loading ? '—' : staff.length}
+          color="#3b2063"
+        />
+        <StatTile
+          icon={UserCheck}
+          label="Active"
+          value={loading ? '—' : activeCount}
+          color="#10b981"
+        />
+        <StatTile
+          icon={XCircle}
+          label="Inactive"
+          value={loading ? '—' : inactiveCount}
+          color="#f43f5e"
+        />
       </div>
 
-      {/* ── Table ── */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-            <Search size={13} className="text-zinc-400" />
+      {/* ── Table Container ── */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex-1 flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2.5 shadow-sm transition-all focus-within:border-[#3b2063] focus-within:ring-1 focus-within:ring-[#3b2063]/10">
+            <Search size={14} className="text-slate-400" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400 font-bold"
+              className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 font-medium"
               placeholder="Search staff..."
             />
           </div>
-          <Btn onClick={() => setAddOpen(true)} disabled={loading} className="shrink-0">
-            <Plus size={13} /> Add Staff
+          <Btn onClick={() => setAddOpen(true)} disabled={loading} className="shrink-0 h-[42px]">
+            <Plus size={14} /> Add Staff
           </Btn>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-100">
+              <tr className="border-b border-slate-100">
                 {['Name', 'Email', 'Role', 'Device', 'Last Login', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                  <th key={h} className="px-6 py-4 text-left tl-label">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {/* Skeleton rows */}
               {loading && [...Array(4)].map((_, i) => (
-                <tr key={i} className="border-b border-zinc-50">
+                <tr key={i} className="border-b border-slate-50">
                   {[...Array(7)].map((_, j) => (
-                    <td key={j} className="px-5 py-4">
-                      <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${60 + (j * 7) % 40}%` }} />
+                    <td key={j} className="px-6 py-5">
+                      <div className="h-4 tl-skeleton tl-pulse" style={{ width: `${60 + (j * 7) % 40}%` }} />
                     </td>
                   ))}
                 </tr>
@@ -779,54 +811,54 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
 
               {/* Data rows */}
               {!loading && !fetchError && filtered.map(u => (
-                <tr key={u.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2.5">
+                <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
                       <Avatar name={u.name} />
-                      <span className="font-semibold text-[#1a0f2e]">{u.name}</span>
+                      <span className="font-bold text-slate-800 tracking-tight">{u.name}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-zinc-500">{u.email}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-6 py-4 text-slate-500 font-medium">{u.email}</td>
+                  <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${u.role === 'team_leader'
-                      ? 'bg-violet-50 text-violet-700 border border-violet-200'
-                      : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+                      ? 'bg-[#3b2063]08 text-[#3b2063] border border-[#3b2063]20'
+                      : 'bg-slate-100 text-slate-500 border border-slate-200'
                       }`}>
                       {u.role === 'team_leader' ? 'Team Leader' : 'Cashier'}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-6 py-4">
                     <DevicePill deviceNumber={u.device_number} />
                   </td>
-                  <td className="px-5 py-3.5 text-zinc-400 text-xs">{u.lastLogin ?? '—'}</td>
-                  <td className="px-5 py-3.5"><Badge status={u.status} /></td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-1">
+                  <td className="px-6 py-4 text-slate-400 text-xs font-bold tabular-nums">{u.lastLogin ?? '—'}</td>
+                  <td className="px-6 py-4 text-center"><Badge status={u.status} /></td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
                       <button onClick={() => setViewTarget(u)}
-                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="View">
-                        <Eye size={13} />
+                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-[#3b2063] transition-colors" title="View">
+                        <Eye size={14} />
                       </button>
                       <button onClick={() => setEditTarget(u)}
-                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
-                        <Edit2 size={13} />
+                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-[#3b2063] transition-colors" title="Edit">
+                        <Edit2 size={14} />
                       </button>
                       <button onClick={() => setToggleTarget(u)}
-                        className={`p-1.5 rounded-[0.4rem] transition-colors ${u.status === 'ACTIVE' ? 'hover:bg-amber-50 text-zinc-400 hover:text-amber-500' : 'hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600'}`}
+                        className={`p-1.5 rounded-lg transition-colors ${u.status === 'ACTIVE' ? 'hover:bg-amber-50 text-slate-400 hover:text-amber-500' : 'hover:bg-emerald-50 text-slate-400 hover:text-emerald-600'}`}
                         title={u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
-                        {u.status === 'ACTIVE' ? <Lock size={13} /> : <UserCheck size={13} />}
+                        {u.status === 'ACTIVE' ? <Lock size={14} /> : <UserCheck size={14} />}
                       </button>
                       <button onClick={() => setDelTarget(u)}
-                        className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
-                        <Trash2 size={13} />
+                        className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 transition-colors" title="Delete">
+                        <Trash2 size={14} />
                       </button>
                       <button
                         onClick={() => setDeviceTarget(u)}
-                        className={`p-1.5 rounded-[0.4rem] transition-colors ${u.device_number
-                          ? 'hover:bg-violet-50 text-violet-500 hover:text-violet-700'
-                          : 'hover:bg-amber-50 text-amber-400 hover:text-amber-600'
+                        className={`p-1.5 rounded-lg transition-colors ${u.device_number
+                          ? 'hover:bg-slate-100 text-[#3b2063] hover:text-[#2a1647]'
+                          : 'hover:bg-amber-50 text-amber-500 hover:text-amber-700'
                           }`}
                         title={u.device_number ? `Device: ${u.device_number} — click to change` : 'No device — click to assign'}>
-                        <Laptop size={13} />
+                        <Laptop size={14} />
                       </button>
                     </div>
                   </td>

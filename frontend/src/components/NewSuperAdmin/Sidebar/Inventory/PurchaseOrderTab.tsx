@@ -362,12 +362,13 @@ const PurchaseOrderTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [viewTarget, setViewTarget] = useState<PurchaseOrder | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const [ordersRes, suppRes, branchRes] = await Promise.allSettled([
         api.get('/purchase-orders'),
@@ -378,31 +379,30 @@ const PurchaseOrderTab: React.FC = () => {
       if (suppRes.status === 'fulfilled') { const d = suppRes.value.data; setSuppliers(Array.isArray(d) ? d : d?.data ?? []); }
       if (branchRes.status === 'fulfilled') { const d = branchRes.value.data; setBranches(Array.isArray(d) ? d : d?.data ?? []); }
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally { if (!isSilent) setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+    const interval = setInterval(() => fetchAll(true), 30000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
 
   const filtered = orders.filter(o => {
     const matchSearch = o.po_number.toLowerCase().includes(search.toLowerCase()) ||
       (o.supplier?.name ?? o.supplier_name ?? '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter ? o.status === statusFilter : true;
-    return matchSearch && matchStatus;
+    const matchBranch = branchFilter ? o.branch_id === Number(branchFilter) : true;
+    return matchSearch && matchStatus && matchBranch;
   });
 
   const counts = { Draft: 0, Approved: 0, Received: 0, Cancelled: 0 };
-  orders.forEach(o => { if (counts[o.status] !== undefined) counts[o.status]++; });
+  orders.filter(o => !branchFilter || o.branch_id === Number(branchFilter)).forEach(o => { 
+    if (counts[o.status] !== undefined) counts[o.status]++; 
+  });
 
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
-      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setAddOpen(true)} className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
-            <Plus size={13} /> New PO
-          </button>
-        </div>
-      </div>
-
       {/* Status stat cards */}
       <div className="grid grid-cols-4 gap-4 mb-5">
         {(Object.entries(counts) as [POStatus, number][]).map(([status, count]) => {
@@ -428,10 +428,19 @@ const PurchaseOrderTab: React.FC = () => {
             <input value={search} onChange={e => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400" placeholder="Search PO # or supplier..." />
             {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={13} /></button>}
           </div>
+
+          <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)} className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
+            <option value="">All Branches</option>
+            {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+          </select>
+
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
             <option value="">All Status</option>
             {PO_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
+          <button onClick={() => setAddOpen(true)} className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
+            <Plus size={13} /> New PO
+          </button>
           <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">{filtered.length} results</span>
         </div>
 

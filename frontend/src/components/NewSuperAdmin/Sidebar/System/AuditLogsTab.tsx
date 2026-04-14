@@ -459,7 +459,7 @@ const AuditLogsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["#", "User", "Action", "Details", "Module", "IP", "Date", "Time", "Action"].map(h => (
+                {["#", "User", "Action", "Details", "Module", "IP", "Date", "Time", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>

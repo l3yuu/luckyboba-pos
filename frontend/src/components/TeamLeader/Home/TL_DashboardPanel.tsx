@@ -15,6 +15,8 @@ interface DashStats {
   total_orders_today: number;
   total_sales_today: number;
   voided_sales_today: number;
+  cash_in_today: number;
+  cash_out_today: number;
   top_seller_today: { product_name: string; total_qty: number }[];
 }
 interface LowStockItem { id: number; name: string; quantity: number; minimum: number; }
@@ -196,6 +198,9 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
   const totalOrders = stats?.total_orders_today ?? 0;
   const totalSales = stats?.total_sales_today ?? 0;
   const voidedSales = stats?.voided_sales_today ?? 0;
+  const cashIn = stats?.cash_in_today ?? 0;
+  const cashOut = stats?.cash_out_today ?? 0;
+  const overallCash = cashIn - cashOut;
 
   // Derive active staff from transactions/voids
   const activeStaffTodayCount = Array.from(new Set([
@@ -204,16 +209,19 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
   ])).filter(Boolean).length;
 
   return (
-    <div className="p-8 md:p-12 tl-dashboard animate-in fade-in duration-1000">
+    <div className="p-4 md:p-6 lg:p-10 tl-dashboard animate-in fade-in duration-1000 w-full overflow-x-hidden">
       <style>{STYLES}</style>
 
 
       {/* ── EXECUTIVE KPI TILES ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-5 mb-10">
         <StatTile label="Today's Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#3b2063" />
-        <StatTile label="Transaction Volume" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#0891b2" />
-        <StatTile label="Void Risks" value={fmtS(voidedSales)} icon={PhilippinePeso} color="#e11d48" />
-        <StatTile label="Personnel On-Duty" value={activeStaffTodayCount} icon={Users} color="#059669" />
+        <StatTile label="Cash In" value={fmtS(cashIn)} icon={ArrowUpRight} color="#059669" />
+        <StatTile label="Cash Out" value={fmtS(cashOut)} icon={ArrowDownRight} color="#be2525" />
+        <StatTile label="Net Cash" value={fmtS(overallCash)} icon={PhilippinePeso} color="#0891b2" />
+        <StatTile label="Transactions" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#0f172a" />
+        <StatTile label="Void Risks" value={fmtS(voidedSales)} icon={AlertTriangle} color="#e11d48" />
+        <StatTile label="Staff On-Duty" value={activeStaffTodayCount} icon={Users} color="#6366f1" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

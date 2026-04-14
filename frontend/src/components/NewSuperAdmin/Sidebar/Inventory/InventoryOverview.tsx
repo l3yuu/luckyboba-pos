@@ -124,8 +124,8 @@ const InventoryOverview: React.FC = () => {
   const [branch, setBranch] = useState('');
   const [allBranches, setAllBranches] = useState<{ id: number; name: string }[]>([]);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const [overviewRes, alertsRes, movementsRes, branchListRes] = await Promise.allSettled([
         api.get('/inventory/overview', { params: branch ? { branch_id: branch } : {} }),
@@ -168,17 +168,28 @@ const InventoryOverview: React.FC = () => {
         })));
       }
       if (branchListRes.status === 'fulfilled') {
-        const bl = branchListRes.value.data;
-        setAllBranches(Array.isArray(bl) ? bl : bl?.data ?? []);
+        const bl = Array.isArray(branchListRes.value.data) ? branchListRes.value.data : branchListRes.value.data?.data ?? [];
+        setAllBranches(bl);
+        if (bl.length > 0 && !branch) {
+          setBranch(String(bl[0].id));
+        }
       }
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   }, [branch]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { 
+    fetchAll(); // Initial load
+
+    const interval = setInterval(() => {
+      fetchAll(true); // Silent update every 30s
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [fetchAll]);
 
   const moveDotColor = (type: string) => {
     if (type === 'add') return '#16a34a';
@@ -261,7 +272,6 @@ const InventoryOverview: React.FC = () => {
                 value={branch}
                 onChange={e => setBranch(e.target.value)}
                 className="bg-white border border-zinc-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-zinc-600 outline-none cursor-pointer focus:ring-2 focus:ring-[#e9d5ff]">
-                <option value="">All Branches</option>
                 {allBranches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
               </select>
               <Badge cls="badge-danger">{alerts.length} items</Badge>

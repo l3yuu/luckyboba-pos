@@ -493,6 +493,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::delete('/audit/clear',     [SettingsController::class, 'clearAuditLogs']);
             Route::post('/reset',             [SettingsController::class, 'resetSystem']);
             Route::get ('/backup-status',     [BackupController::class,   'lastBackupStatus']);
+            Route::get ('/backups',           [BackupController::class,   'listBackups']);
+            Route::get ('/backups/download/{filename}', [BackupController::class, 'downloadBackup']);
+            Route::delete('/backups/{filename}', [BackupController::class, 'deleteBackup']);
             Route::post('/run-backup',        [BackupController::class,   'runBackup']);
             Route::post('/upload',            [UploadController::class,   'upload']);
             Route::get ('/import-history',    [UploadController::class,   'importHistory']);
