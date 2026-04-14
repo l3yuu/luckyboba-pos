@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController };
+use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, CustomerController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchManagerAppController; // ✅ FIXED: now in Api namespace
@@ -454,6 +454,14 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::middleware(['role:superadmin'])->group(function () {
         Route::get('/search', [SearchController::class, 'index']);
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
+
+        // ── CUSTOMER MANAGEMENT (SuperAdmin) ────────────────────────────────
+        Route::prefix('customers')->group(function () {
+            Route::get('/',                    [CustomerController::class, 'index']);
+            Route::get('/stats',               [CustomerController::class, 'stats']);
+            Route::get('/{id}',                [CustomerController::class, 'show']);
+            Route::patch('/{id}/toggle-status', [CustomerController::class, 'toggleStatus']);
+        });
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
