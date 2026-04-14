@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import { 
-  Search, RefreshCw, BookOpen, Clock, 
+  Search, RefreshCw, BookOpen, 
   ChevronDown, ChevronUp, FlaskConical,
-  Filter, AlertCircle
+  AlertCircle
 } from 'lucide-react';
 
 interface RecipeItem {
@@ -45,7 +45,7 @@ const sizeLabel = (s?: string | null) => {
   return mapping[s] || s;
 };
 
-const RecipesPanel = ({ branchId }: { branchId: number | null }) => {
+const RecipesPanel = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
