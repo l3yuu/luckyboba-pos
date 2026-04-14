@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../../services/api';
 import { 
-  Search, RefreshCw, Package, Clock, 
-  TrendingUp, TrendingDown, AlertCircle,
-  Filter, ChevronRight
+  Search, RefreshCw, Package, 
+  Filter, Sliders, X, CheckCircle2,
+  Info
 } from 'lucide-react';
 
 interface RawMaterial {
@@ -24,6 +25,33 @@ const STYLES = `
   .tl-search-input { background: #f1f5f9; border: 1px solid transparent; transition: all 0.2s; }
   .tl-search-input:focus { background: #fff; border-color: #3b2063; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
   
+  .adjustment-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(8px);
+    z-index: 99999; display: flex; align-items: center; justify-content: center;
+    padding: 1.5rem;
+  }
+  .adjustment-modal {
+    background: #fff; border-radius: 1.5rem; width: 100%; max-width: 450px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    overflow: hidden; animation: modal-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modal-up { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  
+  .tl-btn-primary { 
+    background: #3b2063; color: #fff; border-radius: 0.75rem; 
+    font-weight: 800; font-size: 0.75rem; text-transform: uppercase; 
+    letter-spacing: 0.05em; transition: all 0.2s;
+  }
+  .tl-btn-primary:hover { background: #2d1851; transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgba(59, 32, 99, 0.2); }
+  
+  .tl-input {
+    width: 100%; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 0.75rem;
+    padding: 0.75rem 1rem; font-size: 0.875rem; font-weight: 600; outline: none; transition: all 0.2s;
+  }
+  .tl-input:focus { border-color: #3b2063; background: #fff; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
+
   @keyframes tl-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .animate-tl-fade { animation: tl-fade-in 0.4s ease-out forwards; }
 `;
@@ -55,6 +83,10 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  
+  const [adjModal, setAdjModal] = useState<RawMaterial | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
 
   const fetchMaterials = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -89,6 +121,32 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
     return { label: 'In Stock', color: '#10b981', bg: '#f0fdf4' };
   };
 
+  const handleAdjust = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!adjModal) return;
+    setSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+    const payload = {
+      type: formData.get('type') as string,
+      quantity: Number(formData.get('quantity')),
+      reason: formData.get('reason') as string
+    };
+
+    try {
+      await api.post(`/raw-materials/${adjModal.id}/adjust`, payload);
+      setStatusMsg('Stock updated successfully');
+      setTimeout(() => setStatusMsg(''), 3000);
+      setAdjModal(null);
+      fetchMaterials(true);
+    } catch (err) {
+      console.error(err);
+      alert('Adjustment failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+
   if (loading) return (
     <div className="p-8 flex items-center justify-center h-[400px]">
       <div className="flex flex-col items-center gap-4">
@@ -102,6 +160,14 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
     <div className="p-8 tl-inventory-panel animate-tl-fade">
       <style>{STYLES}</style>
 
+      {/* Status Alert */}
+      {statusMsg && (
+        <div className="fixed top-8 right-8 z-[100] bg-emerald-500 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-tl-fade">
+          <CheckCircle2 size={18} />
+          <p className="text-xs font-black uppercase tracking-widest">{statusMsg}</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
@@ -110,7 +176,7 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
             Raw Materials Ledger
           </h1>
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-            Read-only inventory monitoring for Branch #{branchId}
+            Real-time inventory for Branch #{branchId}
           </p>
         </div>
 
@@ -122,12 +188,12 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
               placeholder="Search items..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="tl-search-input pl-9 pr-4 py-2 rounded-xl text-xs font-bold w-full md:w-64 outline-none"
+              className="tl-search-input pl-9 pr-4 py-2.5 rounded-xl text-xs font-bold w-full md:w-64 outline-none"
             />
           </div>
           <button 
             onClick={() => fetchMaterials(true)}
-            className="p-2.5 bg-white border border-slate-200 rounded-xl hover:border-[#3b206330] hover:text-[#3b2063] transition-all"
+            className="p-3 bg-white border border-slate-200 rounded-xl hover:border-[#3b206330] hover:text-[#3b2063] transition-all"
           >
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
           </button>
@@ -163,6 +229,7 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
                 <th className="px-6 py-4 tl-label-caps">Stock Status</th>
                 <th className="px-6 py-4 tl-label-caps whitespace-nowrap text-center">7D Trend</th>
                 <th className="px-6 py-4 tl-label-caps text-right">On Hand</th>
+                <th className="px-6 py-4 tl-label-caps text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -207,12 +274,21 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
                         )}
                       </div>
                     </td>
+                    <td className="px-6 py-4 text-center">
+                      <button 
+                        onClick={() => setAdjModal(m)}
+                        className="p-2 text-slate-300 hover:text-[#3b2063] hover:bg-[#3b206308] rounded-lg transition-all"
+                        title="Adjust Stock"
+                      >
+                        <Sliders size={16} />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center">
+                  <td colSpan={6} className="py-20 text-center">
                     <AlertCircle className="mx-auto text-slate-200 mb-3" size={32} />
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No matching materials found</p>
                   </td>
@@ -222,28 +298,66 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
           </table>
         </div>
       </div>
-      
+
       {/* Footer Info */}
       <div className="mt-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 opacity-50">
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Healthy</span>
-          </div>
-          <div className="flex items-center gap-1.5 opacity-50">
-            <div className="w-2 h-2 rounded-full bg-amber-500" />
-            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Low Stock</span>
-          </div>
-          <div className="flex items-center gap-1.5 opacity-50">
-            <div className="w-2 h-2 rounded-full bg-rose-500" />
-            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Critical</span>
+          <div className="flex items-center gap-1.5 opacity-40">
+            <Info size={12} className="text-slate-400" />
+            <p className="text-[10px] font-bold text-slate-500">Click the adjustment slider to report loss, spoilage, or restocks.</p>
           </div>
         </div>
-        
-        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] italic">
-          Operational Security Level A+
-        </p>
       </div>
+
+      {/* Adjustment Modal */}
+      {adjModal && createPortal(
+        <div className="adjustment-modal-overlay">
+          <div className="adjustment-modal">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-tight">Adjust Stock Level</h2>
+                <p className="text-[10px] font-bold text-[#3b2063] uppercase mt-0.5">{adjModal.name}</p>
+              </div>
+              <button onClick={() => setAdjModal(null)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-xl transition-all">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAdjust} className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="tl-label-caps">Adjustment Type</label>
+                  <select name="type" className="tl-input" required>
+                    <option value="add">Add Stock (+)</option>
+                    <option value="subtract">Deduct Stock (-)</option>
+                    <option value="waste">Loss / Spoilage (X)</option>
+                    <option value="set">Physical Set (=)</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="tl-label-caps">Quantity ({adjModal.unit})</label>
+                  <input name="quantity" type="number" step="0.01" className="tl-input" required placeholder="0.00" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="tl-label-caps">Reason</label>
+                <input name="reason" type="text" className="tl-input" placeholder="e.g. Spilled, Expired, New Delivery..." required />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setAdjModal(null)} className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:bg-slate-50">
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting} className="flex-1 tl-btn-primary px-4 py-3">
+                  {submitting ? 'Updating...' : 'Confirm Change'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

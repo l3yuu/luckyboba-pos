@@ -327,7 +327,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
         
         // Bulk Audit (Log physical counts)
-        Route::post('/raw-materials/bulk-audit', [RawMaterialController::class, 'bulkAudit'])->middleware('role:superadmin,branch_manager,team_leader');
+        Route::post('/raw-materials/bulk-audit',           [RawMaterialController::class, 'bulkAudit']);
+        Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
         
         Route::apiResource('raw-materials', RawMaterialController::class)->only(['index', 'show']);
 
@@ -462,7 +463,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
-        Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
         Route::apiResource('raw-materials', RawMaterialController::class)->except(['index', 'show']);
 
         Route::get  ('/recipes/by-menu-item/{menuItemId}', [RecipeController::class, 'byMenuItem']);
