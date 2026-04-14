@@ -11,7 +11,9 @@ import SalesDashboardPanel from '../components/TeamLeader/Reports/SalesDashboard
 import ItemsReportPanel    from '../components/TeamLeader/Reports/ItemsReportPanel';
 import XReadingPanel       from '../components/TeamLeader/Reports/XReadingPanel';
 import ZReadingPanel       from '../components/TeamLeader/Reports/ZReadingPanel';
-import InventoryListPanel  from '../components/TeamLeader/Inventory/InventoryListPanel';
+import RawMaterialsPanel   from '../components/TeamLeader/Inventory/RawMaterialsPanel';
+import RecipesPanel        from '../components/TeamLeader/Inventory/RecipesPanel';
+import UsageReportPanel    from '../components/TeamLeader/Inventory/UsageReportPanel';
 import ItemCheckerPanel    from '../components/TeamLeader/Inventory/ItemCheckerPanel';
 import SV_VoidLogsPanel    from '../components/Supervisor/Logging/SVVoidLogs';
 
@@ -69,8 +71,10 @@ const TeamLeaderDashboard = () => {
       case 'items-report':    return <ItemsReportPanel    branchId={bId} />;
       case 'x-reading':       return <XReadingPanel       branchId={bId} />;
       case 'z-reading':       return <ZReadingPanel       branchId={bId} />;
-      case 'inventory-list':  return <InventoryListPanel  branchId={bId} />;
-      case 'item-checker':    return <ItemCheckerPanel    branchId={bId} />;
+      case 'raw-materials':   return <RawMaterialsPanel branchId={bId} />;
+      case 'recipes':         return <RecipesPanel      branchId={bId} />;
+      case 'usage-report':    return <UsageReportPanel  branchId={bId} />;
+      case 'item-checker':    return <ItemCheckerPanel  branchId={bId} />;
       default:                return <TL_DashboardPanel />;
     }
   };

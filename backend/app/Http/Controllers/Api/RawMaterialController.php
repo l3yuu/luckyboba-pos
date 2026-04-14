@@ -180,6 +180,11 @@ class RawMaterialController extends Controller
             'reason'   => 'nullable|string',
         ]);
 
+        $user = auth()->user();
+        if (in_array($user->role, ['branch_manager', 'team_leader']) && $rawMaterial->branch_id !== $user->branch_id) {
+            return response()->json(['message' => 'Unauthorized: This material belongs to another branch.'], 403);
+        }
+
         try {
             DB::transaction(function () use ($validated, $rawMaterial) {
                 switch ($validated['type']) {
@@ -290,5 +295,73 @@ class RawMaterialController extends Controller
             ]);
 
         return response()->json($movements);
+    }
+
+    /**
+     * POST /api/raw-materials/bulk-audit
+     * Bulk physical count audit.
+     */
+    public function bulkAudit(Request $request)
+    {
+        $validated = $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|exists:raw_materials,id',
+            'items.*.beg' => 'nullable|numeric|min:0',
+            'items.*.actual' => 'nullable|numeric|min:0',
+            'reason' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        $reason = $validated['reason'] ?? 'Physical Count Audit';
+
+        try {
+            return DB::transaction(function () use ($validated, $user, $reason) {
+                foreach ($validated['items'] as $auditItem) {
+                    $material = RawMaterial::findOrFail($auditItem['id']);
+
+                    // Branch Isolation Check
+                    if (in_array($user->role, ['branch_manager', 'team_leader']) && $material->branch_id !== $user->branch_id) {
+                        continue; // Skip items from other branches
+                    }
+
+                    $oldStock = $material->current_stock;
+                    
+                    // 1. Check for manual BEG (Opening) adjust
+                    if (isset($auditItem['beg'])) {
+                        $begValue = $auditItem['beg'];
+                        // Record a movement at the very start of today (00:00:01)
+                        // This ensures the Usage Report's "BEG" calculation for "today"
+                        // respects this manual entry.
+                        StockMovement::create([
+                            'raw_material_id' => $material->id,
+                            'branch_id'       => $material->branch_id,
+                            'type'            => 'set',
+                            'quantity'        => $begValue,
+                            'reason'          => 'Manual Opening Adjustment',
+                            'created_at'      => now()->startOfDay()->addSecond(),
+                        ]);
+                    }
+
+                    // 2. Update current inventory if 'actual' (Closing) is provided
+                    if (isset($auditItem['actual'])) {
+                        $actual = $auditItem['actual'];
+                        $material->update(['current_stock' => $actual]);
+
+                        StockMovement::create([
+                            'raw_material_id' => $material->id,
+                            'branch_id'       => $material->branch_id,
+                            'type'            => 'set',
+                            'quantity'        => $actual,
+                            'reason'          => $reason . " (Prev: " . round((float)$oldStock, 2) . ")",
+                        ]);
+                    }
+                }
+
+                return response()->json(['message' => 'Bulk inventory audit completed successfully.']);
+            });
+        } catch (\Exception $e) {
+            Log::error('Bulk Audit Error: ' . $e->getMessage());
+            return response()->json(['message' => 'Audit failed.'], 500);
+        }
     }
 }
