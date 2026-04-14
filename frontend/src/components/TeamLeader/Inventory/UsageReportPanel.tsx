@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import { 
-  Search, RefreshCw, BarChart3, Clock, 
-  TrendingUp, TrendingDown, Info,
-  AlertCircle, CheckCircle2, Package
+  Search, RefreshCw, 
+  AlertCircle, CheckCircle2
 } from 'lucide-react';
 
 interface UsageRow {

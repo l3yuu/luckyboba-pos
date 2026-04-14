@@ -4,7 +4,7 @@ import api from '../../../services/api';
 import { 
   Search, RefreshCw, Package, 
   Filter, Sliders, X, CheckCircle2,
-  Info
+  Info, AlertCircle
 } from 'lucide-react';
 
 interface RawMaterial {
