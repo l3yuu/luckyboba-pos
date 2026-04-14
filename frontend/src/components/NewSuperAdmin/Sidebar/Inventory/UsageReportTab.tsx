@@ -188,6 +188,7 @@ const ProductSoldCard: React.FC<{
   loading: boolean;
 }> = ({ data, loading }) => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [searchTerm, setSearchTerm] = useState('');
 
   if (loading) {
     return (
@@ -205,7 +206,12 @@ const ProductSoldCard: React.FC<{
     );
   }
 
-  const grouped = data.reduce((acc, item) => {
+  const filteredData = data.filter(p => 
+    p.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.category_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const grouped = filteredData.reduce((acc, item) => {
     if (!acc[item.category_name]) acc[item.category_name] = [];
     acc[item.category_name].push(item);
     return acc;
@@ -217,14 +223,33 @@ const ProductSoldCard: React.FC<{
 
   return (
     <div className="bg-white border border-zinc-200 rounded-[0.625rem] flex flex-col shadow-sm h-full overflow-hidden text-zinc-900">
-      <div className="px-5 py-4 border-b border-zinc-100 bg-[#faf9ff] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Coffee size={14} className="text-[#3b2063]" />
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#1a0f2e]">Product Sold Summary</p>
+      <div className="px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Coffee size={14} className="text-[#3b2063]" />
+            <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#1a0f2e]">Product Sold Summary</p>
+          </div>
+          <span className="text-[10px] font-bold text-zinc-400 bg-white border border-zinc-100 px-2 py-0.5 rounded-full">
+            {filteredData.length} Items
+          </span>
         </div>
-        <span className="text-[10px] font-bold text-zinc-400 bg-white border border-zinc-100 px-2 py-0.5 rounded-full">
-          {data.length} Items
-        </span>
+        
+        {/* Search Bar */}
+        <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 focus-within:border-[#3b2063] transition-colors shadow-sm">
+          <Search size={12} className="text-zinc-400" />
+          <input
+            type="text"
+            placeholder="Search sold items..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 bg-transparent text-[10px] font-bold text-[#1a0f2e] outline-none placeholder:text-zinc-300 placeholder:font-normal"
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="text-zinc-300 hover:text-red-500">
+              <X size={12} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
@@ -693,7 +718,15 @@ const UsageReportTab: React.FC = () => {
                 <tr className="border-b border-zinc-100">
                   <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 sticky left-0 bg-white">Item</th>
                   {['BEG', 'DEL', 'IN', 'COOKED', 'OUT', 'SPOIL', 'SHOULD BE', 'ACTUAL', 'VAR'].map(h => (
-                    <th key={h} className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                    <th key={h} 
+                      className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-400 group/h relative cursor-help"
+                      title={COLUMN_GUIDE[h]}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        {h}
+                        <Info size={10} className="text-zinc-300 opacity-0 group-hover/h:opacity-100 transition-opacity" />
+                      </div>
+                    </th>
                   ))}
                 </tr>
               </thead>
