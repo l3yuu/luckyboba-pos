@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   ShoppingBag, ChevronDown, ChevronUp,
   Clock, Package, Receipt, Search,
-  Activity,
+  Activity, RefreshCw,
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api';
