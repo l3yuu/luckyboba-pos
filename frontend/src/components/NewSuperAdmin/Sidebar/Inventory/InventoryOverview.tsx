@@ -168,8 +168,11 @@ const InventoryOverview: React.FC = () => {
         })));
       }
       if (branchListRes.status === 'fulfilled') {
-        const bl = branchListRes.value.data;
-        setAllBranches(Array.isArray(bl) ? bl : bl?.data ?? []);
+        const bl = Array.isArray(branchListRes.value.data) ? branchListRes.value.data : branchListRes.value.data?.data ?? [];
+        setAllBranches(bl);
+        if (bl.length > 0 && !branch) {
+          setBranch(String(bl[0].id));
+        }
       }
     } catch (e) {
       console.error(e);
@@ -269,7 +272,6 @@ const InventoryOverview: React.FC = () => {
                 value={branch}
                 onChange={e => setBranch(e.target.value)}
                 className="bg-white border border-zinc-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-zinc-600 outline-none cursor-pointer focus:ring-2 focus:ring-[#e9d5ff]">
-                <option value="">All Branches</option>
                 {allBranches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
               </select>
               <Badge cls="badge-danger">{alerts.length} items</Badge>

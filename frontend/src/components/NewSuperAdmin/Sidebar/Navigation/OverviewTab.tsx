@@ -519,8 +519,8 @@ const OverviewTab: React.FC = () => {
             </div>
           </div>
           {loading && !breakdown.length ? <ChartSkeleton height="h-[220px]" /> : (
-            <div className="h-[220px] w-full relative">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
+            <div className="h-[220px] w-full min-w-0 relative">
+              <ResponsiveContainer width="100%" height="100%" minHeight={100} debounce={50}>
                 <AreaChart data={revenueChartData}>
                   <defs>
                     <linearGradient id="unifGrad" x1="0" y1="0" x2="0" y2="1">
@@ -547,8 +547,8 @@ const OverviewTab: React.FC = () => {
           <h3 className="text-base font-black text-[#1a0f2e] mb-4">By Branch</h3>
           {loading && !pieData.length ? <Skeleton className="h-[200px] w-full rounded-full" /> : (
             <>
-              <div className="h-[160px] w-full relative">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
+              <div className="h-[160px] w-full min-w-0 relative">
+                <ResponsiveContainer width="100%" height="100%" minHeight={100} debounce={50}>
                   <RePieChart>
                     <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={4} dataKey="value">
                       {pieData.map((e, idx) => <Cell key={idx} fill={e.color} />)}
@@ -580,9 +580,9 @@ const OverviewTab: React.FC = () => {
             <h3 className="text-base font-black text-[#1a0f2e]">Branch Performance</h3>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">{period} Revenue Summary</p>
           </div>
-          <div className="h-[200px]">
-            {loading && !barData.length ? <Skeleton className="w-full h-full" /> : (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
+          <div className="h-[200px] w-full min-w-0">
+            {loading && !barData.length ? <ChartSkeleton height="h-[200px]" /> : (
+              <ResponsiveContainer width="100%" height="100%" minHeight={100} debounce={50}>
                 <ReBarChart data={barData} barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />

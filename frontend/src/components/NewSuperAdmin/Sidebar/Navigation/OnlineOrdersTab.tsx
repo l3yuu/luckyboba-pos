@@ -7,33 +7,33 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface OrderItem {
-  id:       number;
-  name:     string;
-  qty:      number;
-  price:    number;
+  id: number;
+  name: string;
+  qty: number;
+  price: number;
   cup_size: string | null;
-  add_ons:  string[];
+  add_ons: string[];
 }
 
 interface Order {
-  id:              number;
-  invoice_number:  string;
-  customer_name:   string;
-  customer_code:   string;
-  qr_code:         string;
-  branch_name:     string | null;
-  total_amount:    number;
-  status:          string;
-  created_at:      string;
-  items:           OrderItem[];
+  id: number;
+  invoice_number: string;
+  customer_name: string;
+  customer_code: string;
+  qr_code: string;
+  branch_name: string | null;
+  total_amount: number;
+  status: string;
+  created_at: string;
+  items: OrderItem[];
 }
 
 interface Stats {
-  pending:         number;
-  preparing:       number;
+  pending: number;
+  preparing: number;
   completed_today: number;
-  total_today:     number;
-  avg_wait_min:    number;
+  total_today: number;
+  avg_wait_min: number;
 }
 
 type StatusFilter = "all" | "pending" | "preparing" | "completed";
@@ -207,22 +207,22 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus }: {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const OnlineOrdersTab: React.FC = () => {
-  const [orders, setOrders]       = useState<Order[]>([]);
-  const [stats, setStats]         = useState<Stats | null>(null);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState("");
-  const [search, setSearch]       = useState("");
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [updating, setUpdating]   = useState<number | null>(null);
+  const [updating, setUpdating] = useState<number | null>(null);
   const [prevPendingCount, setPrevPendingCount] = useState(0);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchOrders = useCallback(async () => {
     try {
-      const res  = await fetch("/api/online-orders", { headers: authHeaders() });
+      const res = await fetch("/api/online-orders", { headers: authHeaders() });
       const data = await res.json();
       const list: Order[] = Array.isArray(data) ? data : [];
       setOrders(list);
@@ -241,7 +241,7 @@ const OnlineOrdersTab: React.FC = () => {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res  = await fetch("/api/online-orders/stats", { headers: authHeaders() });
+      const res = await fetch("/api/online-orders/stats", { headers: authHeaders() });
       const data = await res.json();
       if (data.success) setStats(data.data);
     } catch { /* silently fail */ }
@@ -294,7 +294,7 @@ const OnlineOrdersTab: React.FC = () => {
   const handleSearch = (val: string) => {
     setSearch(val);
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {}, 300);
+    searchTimer.current = setTimeout(() => { }, 300);
   };
 
   const refresh = () => { setLoading(true); fetchOrders(); fetchStats(); };
@@ -475,11 +475,10 @@ const OnlineOrdersTab: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`text-xs font-bold tabular-nums ${
-                          wait >= 10 ? "text-red-500"
+                        <span className={`text-xs font-bold tabular-nums ${wait >= 10 ? "text-red-500"
                             : wait >= 5 ? "text-amber-500"
-                            : "text-zinc-500"
-                        }`}>
+                              : "text-zinc-500"
+                          }`}>
                           {o.status === "completed" ? "—" : `${wait}m`}
                         </span>
                       </td>
