@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   LayoutGrid, Users, History, BarChart2, 
-  Package, Search, LogOut, ShieldCheck
+  Package, Search, LogOut, ShieldCheck,
+  CreditCard, ArrowLeftRight, FileText
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -44,7 +45,19 @@ const MENU_GROUPS: MenuGroup[] = [
   {
     label: 'Floor Ops',
     items: [
-      { id: 'void-logs', label: 'Void Journal', icon: <ShieldCheck size={14} /> },
+      { id: 'void-logs',  label: 'Void Journal',    icon: <ShieldCheck size={14} /> },
+      { id: 'expenses',   label: 'Branch Expenses', icon: <CreditCard size={14} /> },
+      { id: 'audit-logs', label: 'My Audit Logs',   icon: <FileText size={14} /> },
+    ]
+  },
+  {
+    label: 'Inventory',
+    items: [
+      { id: 'raw-materials', label: 'Raw Materials', icon: <Package size={13} /> },
+      { id: 'recipes',       label: 'Recipes',       icon: <Search size={13} /> },
+      { id: 'usage-report',  label: 'Usage Report',  icon: <BarChart2 size={13} /> },
+      { id: 'stock-transfer', label: 'Stock Transfer', icon: <ArrowLeftRight size={13} /> },
+      { id: 'item-checker',   label: 'Item Checker',  icon: <Search size={13} /> },
     ]
   },
   {
@@ -54,15 +67,6 @@ const MENU_GROUPS: MenuGroup[] = [
       { id: 'items-report',    label: 'Items Report', icon: <History size={13} /> },
       { id: 'x-reading',       label: 'X-Reading', icon: <History size={13} /> },
       { id: 'z-reading',       label: 'Z-Reading', icon: <History size={13} /> },
-    ]
-  },
-  {
-    label: 'Inventory',
-    items: [
-      { id: 'raw-materials', label: 'Raw Materials', icon: <Package size={13} /> },
-      { id: 'recipes',       label: 'Recipes',       icon: <Search size={13} /> },
-      { id: 'usage-report',  label: 'Usage Report',  icon: <BarChart2 size={13} /> },
-      { id: 'item-checker',   label: 'Item Checker',  icon: <Search size={13} /> },
     ]
   }
 ];

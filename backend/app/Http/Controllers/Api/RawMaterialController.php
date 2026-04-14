@@ -312,6 +312,10 @@ class RawMaterialController extends Controller
             $query->where('branch_id', $branchId);
         }
 
+        if ($request->filled('period')) {
+            $query->where('created_at', 'like', $request->period . '%');
+        }
+
         if ($request->filled('raw_material_id')) {
             $query->where('raw_material_id', $request->raw_material_id);
         }

@@ -84,8 +84,8 @@ const MovementDrawer: React.FC<{
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/raw-materials/${row.id}/history`, { params: { period } })
-      .then(r => setMovements(r.data?.data ?? r.data ?? []))
+    api.get('/raw-materials/movements', { params: { raw_material_id: row.id, period } })
+      .then(r => setMovements(Array.isArray(r.data) ? r.data : []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [row.id, period]);

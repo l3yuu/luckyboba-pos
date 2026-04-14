@@ -35,6 +35,11 @@ class StockTransferController extends Controller
     // POST /api/stock-transfers
     public function store(Request $request)
     {
+        $user = auth()->user();
+        if ($user->role !== 'superadmin' && $request->from_branch_id !== $user->branch_id) {
+            return response()->json(['message' => 'Unauthorized. You can only initiate transfers from your own branch.'], 403);
+        }
+
         $request->validate([
             'from_branch_id'          => 'required|exists:branches,id',
             'to_branch_id'            => 'required|exists:branches,id|different:from_branch_id',
@@ -74,7 +79,7 @@ class StockTransferController extends Controller
     {
         $user = auth()->user();
         if ($user->role !== 'superadmin' && $user->branch_id !== $stockTransfer->from_branch_id) {
-            abort(403, 'Unauthorized. Only the source branch manager can approve this transfer.');
+            abort(403, 'Unauthorized. Only management from the source branch can approve this transfer.');
         }
 
         abort_if(
@@ -97,7 +102,7 @@ class StockTransferController extends Controller
     {
         $user = auth()->user();
         if ($user->role !== 'superadmin' && $user->branch_id !== $stockTransfer->from_branch_id) {
-            abort(403, 'Unauthorized. Only the source branch manager can dispatch this transfer.');
+            abort(403, 'Unauthorized. Only management from the source branch can dispatch this transfer.');
         }
 
         abort_if(
@@ -120,7 +125,7 @@ class StockTransferController extends Controller
     {
         $user = auth()->user();
         if ($user->role !== 'superadmin' && $user->branch_id !== $stockTransfer->to_branch_id) {
-            abort(403, 'Unauthorized. Only the destination branch manager can receive this transfer.');
+            abort(403, 'Unauthorized. Only management from the destination branch can receive this transfer.');
         }
 
         abort_if(
@@ -178,7 +183,7 @@ class StockTransferController extends Controller
     {
         $user = auth()->user();
         if ($user->role !== 'superadmin' && $user->branch_id !== $stockTransfer->from_branch_id) {
-            abort(403, 'Unauthorized. Only the source branch manager can cancel this transfer.');
+            abort(403, 'Unauthorized. Only management from the source branch can cancel this transfer.');
         }
 
         abort_if(
