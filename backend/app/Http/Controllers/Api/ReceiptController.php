@@ -153,7 +153,7 @@ class ReceiptController extends Controller
 public function voidRequest(Request $request, $id)
 {
     try {
-        $sale = \App\Models\Sale::findOrFail($id);
+        $sale = Sale::findOrFail($id);
 
         if (in_array($sale->status, ['cancelled', 'voided'])) {
             return response()->json(['message' => 'Sale is already voided.'], 422);

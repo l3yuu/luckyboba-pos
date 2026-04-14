@@ -28,6 +28,16 @@ class RawMaterial extends Model
 
     // ── Relationships ─────────────────────────────────────────────────────────
 
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function branchStocks(): HasMany
+    {
+        return $this->hasMany(RawMaterial::class, 'parent_id');
+    }
+
     public function logs(): HasMany
     {
         return $this->hasMany(RawMaterialLog::class);

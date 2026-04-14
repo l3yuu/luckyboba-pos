@@ -202,9 +202,9 @@ interface ZReadingReport {
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
-  <div className={`flex justify-between text-[12px] leading-snug font-medium ${indent ? 'pl-3' : ''}`}>
-    <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%] font-bold">{value}</span>
+  <div className={`flex justify-between text-[12px] leading-snug font-bold ${indent ? 'pl-3' : ''}`}>
+    <span className="uppercase w-[60%] leading-tight text-black">{label}</span>
+    <span className="text-right w-[40%] font-black text-black">{value}</span>
   </div>
 );
 
@@ -461,8 +461,8 @@ const ZReading = () => {
     return (
       <div className="my-2">
         <Divider />
-        <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[40%] uppercase">HOUR</span><span className="w-[20%] text-center uppercase">QTY</span><span className="w-[40%] text-right uppercase">AMOUNT</span></div>
-        {HOUR_LABELS.map((label, h) => { const d = salesMap.get(h) ?? { total: 0, count: 0 }; return (<div key={h} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300"><span className="w-[40%] uppercase">{label}</span><span className="w-[20%] text-center">{d.count}</span><span className="w-[40%] text-right">{phCurrency.format(d.total)}</span></div>); })}
+        <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5"><span className="w-[40%] uppercase">HOUR</span><span className="w-[20%] text-center uppercase">QTY</span><span className="w-[40%] text-right uppercase">AMOUNT</span></div>
+        {HOUR_LABELS.map((label, h) => { const d = salesMap.get(h) ?? { total: 0, count: 0 }; return (<div key={h} className="flex text-[11px] leading-snug font-bold border-b border-dotted border-zinc-300"><span className="w-[40%] uppercase">{label}</span><span className="w-[20%] text-center">{d.count}</span><span className="w-[40%] text-right">{phCurrency.format(d.total)}</span></div>); })}
         <Divider />
         <Row label="TOTAL ITEMS SOLD" value={totalItems} />
         <Row label="TOTAL REVENUE" value={phCurrency.format(totalSales)} />
@@ -473,9 +473,9 @@ const ZReading = () => {
   const renderVoidLogs = () => (
     <div className="my-2">
       <Divider />
-      <p className="text-[11px] uppercase mb-0.5">VOIDED TRANSACTIONS</p>
-      <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[25%] uppercase">TIME</span><span className="w-[50%] uppercase">REASON</span><span className="w-[25%] text-right uppercase">AMT</span></div>
-      {reportData?.logs?.length ? reportData.logs.map((log, i) => (<div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300"><span className="w-[25%]">{log.time}</span><span className="w-[50%] uppercase">{log.reason}</span><span className="w-[25%] text-right">{phCurrency.format(log.amount)}</span></div>)) : <p className="text-[11px]">No voids recorded today.</p>}
+      <p className="text-[11px] uppercase font-bold mb-0.5">VOIDED TRANSACTIONS</p>
+      <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5"><span className="w-[25%] uppercase">TIME</span><span className="w-[50%] uppercase">REASON</span><span className="w-[25%] text-right uppercase">AMT</span></div>
+      {reportData?.logs?.length ? reportData.logs.map((log, i) => (<div key={i} className="flex text-[11px] leading-snug font-bold border-b border-dotted border-zinc-300"><span className="w-[25%]">{log.time}</span><span className="w-[50%] uppercase">{log.reason}</span><span className="w-[25%] text-right">{phCurrency.format(log.amount)}</span></div>)) : <p className="text-[11px] font-bold">No voids recorded today.</p>}
       <Divider />
       <Row label="TOTAL VOIDS" value={reportData?.logs?.length ?? 0} />
       <Row label="TOTAL AMOUNT" value={phCurrency.format(reportData?.logs?.reduce((a, l) => a + l.amount, 0) ?? 0)} />
@@ -489,7 +489,7 @@ const ZReading = () => {
     return (
       <div className="my-2">
         <Divider />
-        <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[75%] uppercase">DESCRIPTION</span><span className="w-[25%] text-right uppercase">QTY</span></div>
+        <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5"><span className="w-[75%] uppercase">DESCRIPTION</span><span className="w-[25%] text-right uppercase">QTY</span></div>
         {reportData.categories.map((cat, catIdx) => {
           const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined);
           const sizeGroups = new Map<string | null, typeof cat.products>();
@@ -499,13 +499,13 @@ const ZReading = () => {
           return (
             <div key={catIdx} className="mb-1">
               <p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>
-              {orderedKeys.map((sizeKey, si) => { const products = sizeGroups.get(sizeKey) ?? []; return (<div key={si}>{hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}{products.map((item, i) => (<div key={i} className="flex text-[11px] leading-snug"><span className={`w-[75%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span><span className="w-[25%] text-right">{item.total_qty}</span></div>))}</div>); })}
+              {orderedKeys.map((sizeKey, si) => { const products = sizeGroups.get(sizeKey) ?? []; return (<div key={si}>{hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2 font-bold">{sizeKey}:</p>}{products.map((item, i) => (<div key={i} className="flex text-[11px] leading-snug font-bold"><span className={`w-[75%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span><span className="w-[25%] text-right">{item.total_qty}</span></div>))}</div>); })}
               <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5"><span className="uppercase">T. PER: {cat.category_name}</span><span>QTY: {catTotal}</span></div>
               <Divider />
             </div>
           );
         })}
-        {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (<div className="mt-1"><p className="text-[11px] uppercase">ADD ONS</p>{reportData.all_addons_summary.map((addon, idx) => (<div key={idx} className="flex text-[11px] leading-snug"><span className="w-[75%] uppercase pl-2">{addon.name}</span><span className="w-[25%] text-right">{addon.qty}</span></div>))}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div></div>)}
+        {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (<div className="mt-1"><p className="text-[11px] uppercase font-bold">ADD ONS</p>{reportData.all_addons_summary.map((addon, idx) => (<div key={idx} className="flex text-[11px] leading-snug font-bold"><span className="w-[75%] uppercase pl-2">{addon.name}</span><span className="w-[25%] text-right">{addon.qty}</span></div>))}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5 font-bold"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div></div>)}
         {(() => {
           const cupGroups = [
             { name: 'Standard Cup', sizes: ['SM', 'SL'] },
@@ -601,7 +601,7 @@ const ZReading = () => {
           );
         })()}
         <Divider />
-        <div className="flex justify-between text-[11px]"><span className="uppercase">ALL DAY MEAL</span><span>QTY: {totalItems}</span></div>
+        <div className="flex justify-between text-[11px] font-bold"><span className="uppercase">ALL DAY MEAL</span><span>QTY: {totalItems}</span></div>
       </div>
     );
   };
@@ -612,8 +612,8 @@ const ZReading = () => {
     return (
       <div className="my-2">
         <Divider />
-        <p className="text-[11px] uppercase border-b border-black pb-0.5 mb-0.5">DENOMINATION BREAKDOWN</p>
-        {!denominations || denominations.length === 0 ? <p className="text-[11px]">No denomination data available.</p> : (<><div className="flex text-[11px] mb-0.5"><span className="w-[45%] uppercase">DENOM</span><span className="w-[20%] text-center uppercase">QTY</span><span className="w-[35%] text-right uppercase">TOTAL</span></div>{denominations.map((d, i) => (<div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300"><span className="w-[45%] uppercase">{d.label}</span><span className="w-[20%] text-center">x{d.qty}</span><span className="w-[35%] text-right">{phCurrency.format(d.total)}</span></div>))}</>)}
+        <p className="text-[11px] uppercase border-b border-black pb-0.5 mb-0.5 font-bold">DENOMINATION BREAKDOWN</p>
+        {!denominations || denominations.length === 0 ? <p className="text-[11px] font-bold">No denomination data available.</p> : (<><div className="flex text-[11px] mb-0.5 font-bold"><span className="w-[45%] uppercase">DENOM</span><span className="w-[20%] text-center uppercase">QTY</span><span className="w-[35%] text-right uppercase">TOTAL</span></div>{denominations.map((d, i) => (<div key={i} className="flex text-[11px] leading-snug font-bold border-b border-dotted border-zinc-300"><span className="w-[45%] uppercase">{d.label}</span><span className="w-[20%] text-center">x{d.qty}</span><span className="w-[35%] text-right">{phCurrency.format(d.total)}</span></div>))}</>)}
         <Divider />
         <Row label="GRAND TOTAL" value={phCurrency.format(grandTotal)} />
       </div>
@@ -631,7 +631,18 @@ const ZReading = () => {
         <div className="my-2">
           <Divider />
           <div className="flex text-[8px] border-b border-black pb-0.5 mb-0.5 font-bold uppercase leading-tight"><span className="w-[30%]">SI # / TIME</span><span className="w-[10%] text-center">QTY</span><span className="w-[20%] text-center">CASHIER</span><span className="w-[20%] text-right">VATABLE</span><span className="w-[20%] text-right">TOTAL</span></div>
-          {rows.length === 0 ? <p className="text-[11px] text-center py-2">No transactions found.</p> : rows.map((tx, i) => { const isCancelled = tx.Status?.toLowerCase() === 'cancelled'; const timeOnly = tx.Date_Time ? new Date(tx.Date_Time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''; const siDisplay = String(tx.Invoice).replace(/^OR-0+/, '#').replace(/^OR-/, '#'); return (<div key={i} className={`border-b border-dotted border-zinc-300 py-0.5 ${isCancelled ? 'opacity-50' : ''}`}><div className="flex text-[8px] leading-snug items-start"><span className="w-[30%] uppercase leading-tight">{siDisplay}<br /><span className="text-zinc-500 text-[7px]">{timeOnly}</span></span><span className="w-[10%] text-center text-zinc-600">{tx.Items_Count ? tx.Items_Count : <span className="text-zinc-400">—</span>}</span><span className="w-[20%] text-center text-zinc-600 truncate" style={{ fontSize: '7px' }}>{tx.Cashier || <span className="text-zinc-400">—</span>}</span><span className="w-[20%] text-right text-zinc-600">{tx.Vatable ? phCurrency.format(tx.Vatable) : <span className="text-zinc-400">—</span>}</span><span className={`w-[20%] text-right font-medium ${isCancelled ? 'line-through text-zinc-400' : ''}`}>{phCurrency.format(tx.Amount)}</span></div></div>); })}
+          {rows.length === 0 ? <p className="text-[11px] text-center py-2">No transactions found.</p> : rows.map((tx, i) => { const isCancelled = tx.Status?.toLowerCase() === 'cancelled'; const timeOnly = tx.Date_Time ? new Date(tx.Date_Time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''; const siDisplay = String(tx.Invoice).replace(/^OR-0+/, '#').replace(/^OR-/, '#');            return (
+              <div key={i} className={`border-b border-dotted border-zinc-300 py-0.5 ${isCancelled ? 'opacity-50' : ''}`}>
+                <div className="flex text-[9px] font-bold leading-snug items-start">
+                  <span className="w-[30%] uppercase leading-tight">{siDisplay}<br /><span className="text-zinc-600 text-[8px]">{timeOnly}</span></span>
+                  <span className="w-[10%] text-center text-zinc-900">{tx.Items_Count ? tx.Items_Count : <span className="text-zinc-500">—</span>}</span>
+                  <span className="w-[20%] text-center text-zinc-900 truncate" style={{ fontSize: '8px' }}>{tx.Cashier || <span className="text-zinc-500">—</span>}</span>
+                  <span className="w-[20%] text-right text-zinc-900">{tx.Vatable ? phCurrency.format(tx.Vatable) : <span className="text-zinc-500">—</span>}</span>
+                  <span className={`w-[20%] text-right font-black ${isCancelled ? 'line-through text-zinc-500' : 'text-black'}`}>{phCurrency.format(tx.Amount)}</span>
+                </div>
+              </div>
+            );
+          })}
           <Divider />
           <div className="flex text-[9px] justify-between mb-0.5 text-zinc-500"><span className="uppercase">Cancelled</span><span>{phCurrency.format(cancelledTotal)}</span></div>
           <div className="flex text-[10px] font-bold justify-between"><span className="uppercase">Total Sales</span><span>{phCurrency.format(completedTotal)}</span></div>
@@ -1067,7 +1078,6 @@ const ZReading = () => {
               display: block !important; 
               margin: 0 !important; 
               padding: 0 !important; 
-            }
             .receipt-area { 
               color: #000 !important;
               width: 76mm !important; 
@@ -1076,10 +1086,9 @@ const ZReading = () => {
               padding: 2mm !important; 
               box-sizing: border-box !important; 
               background: white !important; 
-              color: #000 !important; 
               font-family: Arial, Helvetica, sans-serif !important; 
-              font-size: 12px !important; 
-              font-weight: 500 !important;
+              font-size: 13px !important; 
+              font-weight: bold !important;
               line-height: 1.5 !important; 
               box-shadow: none !important; 
               border: none !important; 
@@ -1089,15 +1098,16 @@ const ZReading = () => {
             }
             .receipt-area * {
               overflow: visible !important;
+              font-weight: 900 !important;
               -webkit-font-smoothing: none !important;
             }
             .receipt-area > div > div {
               break-inside: avoid !important;
             }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
-            table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
-            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 500 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 12px !important; }
+            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: bold !important; font-size: 13px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 13px !important; font-weight: bold !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
           }
         `}</style>
 
@@ -1252,7 +1262,7 @@ const ZReading = () => {
             </div>
           ) : reportData ? (
             <div className="printable-receipt-container">
-              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem', fontWeight: 500 }}>
+              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem', fontWeight: 'bold' }}>
                 <div className="text-center">
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>
