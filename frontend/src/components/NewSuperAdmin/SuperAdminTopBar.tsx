@@ -82,8 +82,6 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   usage_report: { label: "Usage Report", desc: "Material consumption & variance" },
   recipes: { label: "Recipes", desc: "Ingredient composition per menu item" },
   supplier: { label: "Supplier", desc: "Vendor records & contacts" },
-  item_checker: { label: "Item Checker", desc: "Verify item availability & details" },
-  item_serials: { label: "Item Serials", desc: "Serialized item tracking" },
   purchase_order: { label: "Purchase Order", desc: "Incoming stock orders" },
   stock_transfer: { label: "Stock Transfer", desc: "Move stock between branches" },
 

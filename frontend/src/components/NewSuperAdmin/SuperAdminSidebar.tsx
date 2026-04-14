@@ -4,7 +4,7 @@ import {
   LogOut, ShieldCheck, Tag,
   UtensilsCrossed, Layers, List, Package,
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
-  Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
+  Truck, ShoppingCart, ArrowLeftRight,
   DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown, Monitor,
   CreditCard, AlertTriangle, Sparkles, UserCheck, Bell, ShoppingBag
 } from "lucide-react";
@@ -16,8 +16,7 @@ export type TabId =
   | "cross_branch_reports" | "x_reading" | "z_reading"
   | "menu_items" | "categories" | "subcategories"
   | "inv_overview" | "inventory_alerts" | "raw_materials" | "usage_report"
-  | "recipes" | "supplier" | "item_checker"
-  | "item_serials" | "purchase_order" | "stock_transfer"
+  | "recipes" | "supplier" | "purchase_order" | "stock_transfer"
   | "expenses"
   | "card_management" | "card_approvals"
   | "card_members"
@@ -210,8 +209,6 @@ const INVENTORY_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "usage_report",     label: "Usage Report",   icon: <ClipboardList  size={13} /> },
   { id: "recipes",          label: "Recipes",        icon: <BookOpen       size={13} /> },
   { id: "supplier",         label: "Supplier",       icon: <Truck          size={13} /> },
-  { id: "item_checker",     label: "Item Checker",   icon: <ScanLine       size={13} /> },
-  { id: "item_serials",     label: "Item Serials",   icon: <Hash           size={13} /> },
   { id: "purchase_order",   label: "Purchase Order", icon: <ShoppingCart   size={13} /> },
   { id: "stock_transfer",   label: "Stock Transfer", icon: <ArrowLeftRight size={13} /> },
 ];

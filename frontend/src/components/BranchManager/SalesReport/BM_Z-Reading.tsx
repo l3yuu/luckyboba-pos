@@ -650,10 +650,10 @@ const handlePrint = async () => {
   // ADD before: return (
 
   // ── Receipt helpers ────────────────────────────────────────────────────────
-  const ReceiptRow = ({ label, value }: { label: string; value: string | number }) => (
+  const ReceiptRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="flex justify-between text-[11px] leading-snug">
       <span className="uppercase w-[60%] leading-tight">{label}</span>
-      <span className="text-right w-[40%]">{value}</span>
+      <span className="text-right w-[40%] whitespace-pre-line">{value}</span>
     </div>
   );
   const ReceiptDivider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
@@ -1070,8 +1070,6 @@ const handlePrint = async () => {
 
   const renderXReading = () => {
     const gross        = reportData?.gross_sales       || 0;
-    const netSales     = reportData?.net_total         || reportData?.net_sales || 0; // Use exclusive Net Sales for breakdown
-    const netInclusive = reportData?.net_sales         || 0; // Use inclusive Net Sales for payment matching
     const cashTotal    = reportData?.cash_total        || 0;
     const nonCash      = reportData?.non_cash_total    || 0;
     const txCount      = reportData?.transaction_count || 0;
@@ -1085,6 +1083,10 @@ const handlePrint = async () => {
     const vatAmount    = reportData?.vat_amount       || 0;
     const vatExempt    = reportData?.vat_exempt_sales || 0;
     const voids        = reportData?.total_void_amount || 0;
+    
+    const netSales     = reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc); 
+    const netInclusive = netSales;
+
     const PAYMENT_METHODS = ["food panda","grab","gcash","visa","mastercard","cash"];
     const METHOD_ALIASES: Record<string, string> = { panda: "food panda", foodpanda: "food panda", food_panda: "food panda", grabfood: "grab", "grab food": "grab", "master card": "mastercard", master: "mastercard", "visa card": "visa", "e-wallet": "gcash" };
     const paymentMap = new Map<string, number>();
@@ -1110,7 +1112,7 @@ const handlePrint = async () => {
         <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(vatExempt)} />
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
-        <ReceiptRow label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="Gross Amount"    value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -1159,24 +1161,30 @@ const handlePrint = async () => {
     const diplomat       = data.diplomat_discount || 0;
     const otherDiscount  = data.other_discount || 0;
     const totalDisc      = data.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
-    
-    // Exclusive Net Sales for breakdown display
-    const netSales       = data.net_total ?? data.net_sales ?? (gross - totalDisc);
-    // Inclusive Net Sales for payment reconciliation
-    const netInclusive   = data.net_sales ?? (gross - totalDisc);
+    // Check VAT type
+    const isVat = data.is_vat !== undefined ? data.is_vat : vatType === 'vat';
 
     const txCount            = data.transaction_count || 0;
     const vatableSales       = data.vatable_sales || 0;
     const vatAmount          = data.vat_amount || 0;
+    const vatExempt          = data.vat_exempt_sales || 0;
     const voids              = data.total_void_amount || 0;
     const qtyTotal           = data.total_qty_sold || 0;
     const cashDrop           = data.cash_drop || 0;
     const cashIn             = data.cash_in || 0;
+
+    // Exclusive Net Sales for breakdown display - Reconciled
+    const netSales       = isVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc);
+    // Inclusive Net Sales for payment reconciliation
+    const netInclusive   = netSales;
+
     const resetCounter       = data.reset_counter ?? 0;
     const zCounter           = data.z_counter ?? 1;
     const presentAccumulated = data.present_accumulated ?? gross;
     const previousAccumulated = data.previous_accumulated ?? 0;
-    const salesForDay        = data.sales_for_the_day ?? gross;
+    
+    // Ensure Sales for the Day matches the breakdown net sales exactly
+    const salesForDay        = data.sales_for_the_day ?? netSales;
 
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
     const METHOD_ALIASES: Record<string, string> = {
@@ -1197,6 +1205,8 @@ const handlePrint = async () => {
     const totalCredit  = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalDebit   = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalCard    = totalCredit + totalDebit;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const actualCash = paymentMap.get('cash') || 0;
     const actualNonCash = netInclusive - actualCash;
     
@@ -1206,20 +1216,14 @@ const handlePrint = async () => {
     const apiExpected = data.expected_amount ?? 0;
     const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
     const overShort   = data.over_short ?? (totalCashCount - expectedEOD);
-
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     
-    // Check VAT type
-    const isVat = data.is_vat !== undefined ? data.is_vat : vatType === 'vat';
-
     return (
       <div className="my-2 text-[10px] sm:text-[11px] leading-snug">
         <ReceiptDivider />
         <ReceiptRow label="Report Date" value={new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} />
         <ReceiptRow label="Report Time" value={timeStr} />
-        <ReceiptRow label="Start Date & Time" value={`${dateFrom} ${timeStr}`} />
-        <ReceiptRow label="End Date & Time" value={`${dateTo} ${timeStr}`} />
+        <ReceiptRow label="Start Date & Time" value={`${dateFrom}\n${timeStr}`} />
+        <ReceiptRow label="End Date & Time" value={`${dateTo}\n${timeStr}`} />
         <ReceiptRow label="Terminal #" value="ALL" />
         <ReceiptRow label="Branch" value={data.branch_name} />
         <ReceiptRow label="Cashier" value={data.prepared_by || "Super Admin"} />
@@ -1238,7 +1242,7 @@ const handlePrint = async () => {
         <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(data.vat_exempt_sales || 0)} />
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptRow label="Service Charge" value={phCurrency.format(0)} />
-        <ReceiptRow label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="GROSS Amount" value={phCurrency.format(gross)} />
         <ReceiptDivider />

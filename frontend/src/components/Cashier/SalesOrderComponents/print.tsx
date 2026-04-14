@@ -138,20 +138,7 @@ export const ReceiptPrint = ({
     });
   });
 
-  // 2. Lifted totalPaxLessVat calculation
-  const totalPaxLessVat = cart.reduce((acc: number, item: CartItem, idx: number) => {
-    const assignments = itemPaxAssignments[String(idx)] ?? [];
-    const scUnits = assignments.filter(a => a === 'sc').length;
-    const pwdUnits = assignments.filter(a => a === 'pwd').length;
-    const count = scUnits + pwdUnits;
-    if (count === 0) return acc;
-    const unitGross = Number(item.price) + (item.addOns ?? []).reduce((sum: number, name: string) => {
-      const a = addOnsData.find(x => x.name === name);
-      return sum + (a ? Number(a.price) : 0);
-    }, 0);
-    const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
-    return acc + (unitGross - unitVatExcl) * count;
-  }, 0);
+
 
   const addOnUnitPrice = (item: CartItem, addonName: string): number => {
     const a = addOnsData.find(x => x.name === addonName);
@@ -373,6 +360,15 @@ export const ReceiptPrint = ({
                       return acc + (unitVatExcl - discAmt) * g.count;
                     }, 0);
 
+                    const groupLessVat = groups.reduce((acc: number, g) => {
+                      const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
+                        const a = addOnsData.find(x => x.name === name);
+                        return sum + (a ? Number(a.price) : 0);
+                      }, 0);
+                      const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
+                      return acc + (unitGross - unitVatExcl) * g.count;
+                    }, 0);
+
                     return (
                       <div key={type} className="space-y-0.5">
                         <div className="uppercase font-bold">{type === 'sc' ? 'Senior' : 'PWD'} PAX Summary</div>
@@ -382,7 +378,7 @@ export const ReceiptPrint = ({
                         </div>
                         <div className="flex justify-between">
                           <span>Less VAT</span>
-                          <span>₱{totalPaxLessVat.toFixed(2)}</span>
+                          <span>₱{groupLessVat.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Net of VAT</span>
@@ -402,11 +398,11 @@ export const ReceiptPrint = ({
               const paxTypes = [];
               if (sc_discount_amount > 0) paxTypes.push({ type: 'sc', amt: sc_discount_amount, label: 'Senior' });
               if (pwd_discount_amount > 0) paxTypes.push({ type: 'pwd', amt: pwd_discount_amount, label: 'PWD' });
-              const totalPaxDiscount = (sc_discount_amount || 0) + (pwd_discount_amount || 0);
-              const summaryLessVat = (totalPaxDiscount / 0.20) * 0.12;
               return (
                 <div className="space-y-2 border-t border-dashed border-black py-2">
-                  {paxTypes.map(p => (
+                  {paxTypes.map(p => {
+                    const groupLessVat = (p.amt / 0.20) * 0.12;
+                    return (
                     <div key={p.type} className="space-y-0.5">
                       <div className="uppercase font-bold">{p.label} PAX Summary</div>
                       <div className="flex justify-between font-normal">
@@ -415,7 +411,7 @@ export const ReceiptPrint = ({
                       </div>
                       <div className="flex justify-between">
                         <span>Less VAT</span>
-                        <span>₱{summaryLessVat.toFixed(2)}</span>
+                        <span>-₱{groupLessVat.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Net of VAT</span>
@@ -426,7 +422,7 @@ export const ReceiptPrint = ({
                         <span>₱{(p.amt / 0.20).toFixed(2)}</span>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               );
             }

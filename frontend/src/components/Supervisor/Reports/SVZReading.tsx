@@ -69,10 +69,10 @@ interface SVZReadingProps {
 }
 
 // ─── Receipt primitives ───────────────────────────────────────────────────────
-const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
+const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
   <div className={`flex justify-between text-[11px] leading-snug ${indent ? 'pl-3' : ''}`}>
-    <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%]">{value}</span>
+    <span className="uppercase w-[60%] leading-tight text-zinc-500">{label}</span>
+    <span className="text-right w-[40%] text-zinc-900 font-medium whitespace-pre-line">{value}</span>
   </div>
 );
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
@@ -476,6 +476,9 @@ const ccData   = ccRes.data as Record<string, unknown>;
               ].map((r, i) => (<div key={i} className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">{r.label}</span><span className="w-[35%] text-right">{r.value}</span></div>))}
               <Divider />
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span><span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span></div>
+              <Row label="NET SALES" value={phCurrency.format(vatableSales + vatAmt + (reportData?.vat_exempt_sales || 0))} />
+              <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+              </div>
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">DIPLOMAT:</span><span className="w-[35%] text-right">{phCurrency.format(diplomat)}</span></div>
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">OTHER DISC:</span><span className="w-[35%] text-right">{phCurrency.format(otherDisc)}</span></div>
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">TOTAL VOIDS:</span><span className="w-[35%] text-right">{phCurrency.format(voids)}</span></div>
@@ -554,7 +557,6 @@ const ccData   = ccRes.data as Record<string, unknown>;
 
   // ── Z-Reading ──────────────────────────────────────────────────────────────
   const renderZReading = () => {
-    const netSales   = reportData?.net_sales      ?? 0;
     const gross      = reportData?.gross_sales    ?? 0;
     const txCount    = reportData?.transaction_count ?? 0;
     const vatableSales = reportData?.vatable_sales    ?? 0;
@@ -567,12 +569,14 @@ const ccData   = ccRes.data as Record<string, unknown>;
     const otherDisc = reportData?.diplomat_discount    ?? 0;
     const totalDisc = scDisc + pwdDisc + naacDisc + soloDisc + otherDisc;
     const voids     = reportData?.total_void_amount ?? 0;
+    const reportIsVat = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+    const netSales   = reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc);
 
     const resetCounter = reportData?.reset_counter        ?? 0;
     const zCounter     = reportData?.z_counter            ?? 1;
-    const presentAcc   = reportData?.present_accumulated  ?? gross;
+    const salesDay     = netSales;
     const previousAcc  = reportData?.previous_accumulated ?? 0;
-    const salesDay     = reportData?.sales_for_the_day    ?? gross;
+    const presentAcc   = previousAcc + salesDay;
 
     const METHOD_ALIASES: Record<string, string> = { panda: 'food panda', foodpanda: 'food panda', food_panda: 'food panda', 'food panda': 'food panda', grabfood: 'grab', 'grab food': 'grab', grab: 'grab', 'master card': 'mastercard', master: 'mastercard', mastercard: 'mastercard', 'visa card': 'visa', visa: 'visa', 'e-wallet': 'gcash', ewallet: 'gcash', gcash: 'gcash', cash: 'cash' };
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
@@ -601,16 +605,13 @@ const ccData   = ccRes.data as Record<string, unknown>;
     const startDate = isRange ? fromDate : selectedDate;
     const endDate   = isRange ? toDate   : selectedDate;
 
-    const netTotalExcl = reportData?.net_total ?? netSales;
-    const netInclusive = netSales;
-
     return (
       <div className="my-2">
         <Divider />
         <Row label="Report Date"           value={now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} />
         <Row label="Report Time"           value={timeStr} />
-        <Row label="Start Date & Time"     value={`${startDate} ${timeStr}`} />
-        <Row label="End Date & Time"       value={`${endDate} ${timeStr}`} />
+        <Row label="Start Date & Time"     value={`${startDate}\n${timeStr}`} />
+        <Row label="End Date & Time"       value={`${endDate}\n${timeStr}`} />
         <Row label="Terminal #"            value="ALL" />
         <Row label="Cashier"               value={reportData?.prepared_by || cashierName} />
         <Row label="Beg. SI #"             value={reportData?.beg_si || '0000000000'} />
@@ -628,9 +629,8 @@ const ccData   = ccRes.data as Record<string, unknown>;
         <Row label="VAT-Exempt Sales"           value={phCurrency.format(vatExempt)} />
         <Row label="Zero-Rated Sales"           value={phCurrency.format(0)} />
         <Divider />
-        <Row label="NET SALES (EXCL. VAT)" value={phCurrency.format(netTotalExcl)} />
+        <Row label="NET SALES" value={phCurrency.format(netSales)} />
         <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
-          <span>(VATable + VAT-Exempt - Voids - Discounts)</span>
           <span></span>
         </div>
         <Row label="Total Discounts" value={phCurrency.format(totalDisc)} />
@@ -663,7 +663,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
         {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
           <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
         )}
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netInclusive + (reportData?.rounding_adjustment || 0))} />
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netSales + (reportData?.rounding_adjustment || 0))} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />
