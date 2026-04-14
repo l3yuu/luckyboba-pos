@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RawMaterial;
 use App\Models\RawMaterialLog;
 use App\Models\StockMovement;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -113,8 +114,17 @@ class RawMaterialController extends Controller
             'branch_id'       => 'nullable|exists:branches,id',
         ]);
 
-        return DB::transaction(function() use ($validated) {
+        return DB::transaction(function() use ($validated, $request) {
             $material = RawMaterial::create($validated);
+
+            // ✅ Log Activity
+            AuditLog::create([
+                'user_id'    => auth()->id(),
+                'action'     => "Created Raw Material: {$material->name}",
+                'module'     => 'Inventory',
+                'details'    => "Category: {$material->category}, Initial Stock: {$material->current_stock} {$material->unit}",
+                'ip_address' => $request->ip(),
+            ]);
 
             // ✅ If this is a global material, auto-clone it for all existing branches
             if (empty($validated['branch_id'])) {
@@ -148,6 +158,15 @@ class RawMaterialController extends Controller
 
         $rawMaterial->update($validated);
 
+        // ✅ Log Activity
+        AuditLog::create([
+            'user_id'    => auth()->id(),
+            'action'     => "Updated Raw Material: {$rawMaterial->name}",
+            'module'     => 'Inventory',
+            'details'    => "Updated fields: " . implode(', ', array_keys($validated)),
+            'ip_address' => $request->ip(),
+        ]);
+
         return response()->json($rawMaterial);
     }
 
@@ -163,7 +182,17 @@ class RawMaterialController extends Controller
             ], 422);
         }
 
+        $materialName = $rawMaterial->name;
         $rawMaterial->delete();
+
+        // ✅ Log Activity
+        AuditLog::create([
+            'user_id'    => auth()->id(),
+            'action'     => "Deleted Raw Material: {$materialName}",
+            'module'     => 'Inventory',
+            'details'    => "Material was removed from the system.",
+            'ip_address' => request()->ip(),
+        ]);
 
         return response()->json(['message' => 'Deleted successfully.']);
     }
@@ -207,6 +236,15 @@ class RawMaterialController extends Controller
                     'type'            => $validated['type'],
                     'quantity'        => $validated['quantity'],
                     'reason'          => $validated['reason'] ?? ucfirst($validated['type']) . ' (manual)',
+                ]);
+
+                // ✅ Log Activity
+                AuditLog::create([
+                    'user_id'    => auth()->id(),
+                    'action'     => "Manual Stock Adjustment",
+                    'module'     => 'Inventory',
+                    'details'    => "Material: {$rawMaterial->name}. Type: {$validated['type']}, Qty: {$validated['quantity']} {$rawMaterial->unit}. Reason: " . ($validated['reason'] ?? 'None'),
+                    'ip_address' => request()->ip(),
                 ]);
             });
 
@@ -356,6 +394,15 @@ class RawMaterialController extends Controller
                         ]);
                     }
                 }
+
+                // ✅ Log Activity
+                AuditLog::create([
+                    'user_id'    => $user->id,
+                    'action'     => "Bulk Physical Count Audit",
+                    'module'     => 'Usage Report',
+                    'details'    => "Submitted physical counts for " . count($validated['items']) . " materials. Reason: " . $reason,
+                    'ip_address' => request()->ip(),
+                ]);
 
                 return response()->json(['message' => 'Bulk inventory audit completed successfully.']);
             });
