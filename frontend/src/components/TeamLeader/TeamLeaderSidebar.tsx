@@ -47,7 +47,6 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { id: 'void-logs',  label: 'Void Journal',    icon: <ShieldCheck size={14} /> },
       { id: 'expenses',   label: 'Branch Expenses', icon: <CreditCard size={14} /> },
-      { id: 'audit-logs', label: 'My Audit Logs',   icon: <FileText size={14} /> },
     ]
   },
   {

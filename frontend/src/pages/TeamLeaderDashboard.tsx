@@ -19,7 +19,6 @@ import SV_VoidLogsPanel    from '../components/Supervisor/Logging/SVVoidLogs';
 import TL_ExpensePanel      from '../components/TeamLeader/Inventory/TL_ExpensePanel';
 import TL_StockTransferPanel from '../components/TeamLeader/Inventory/TL_StockTransferPanel';
 import TL_PurchaseOrderPanel from '../components/TeamLeader/Inventory/TL_PurchaseOrderPanel';
-import BranchManagerAuditLogsTab from '../components/BranchManager/BranchManagerAuditLogsTab';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const DASHBOARD_STYLES = `
@@ -82,7 +81,6 @@ const TeamLeaderDashboard = () => {
       case 'expenses':        return <TL_ExpensePanel    branchId={bId} />;
       case 'stock-transfer':  return <TL_StockTransferPanel branchId={bId} />;
       case 'purchase-order':  return <TL_PurchaseOrderPanel branchId={bId} />;
-      case 'audit-logs':      return <BranchManagerAuditLogsTab />;
       default:                return <TL_DashboardPanel />;
     }
   };
