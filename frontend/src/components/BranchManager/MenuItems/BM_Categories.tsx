@@ -136,25 +136,15 @@ const BM_Categories: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in">
 
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-          <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
-            <input
-              type="text"
-              placeholder="Search category name or type..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <Btn onClick={fetchCategories} disabled={loading} className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
-            </Btn>
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-[#1a0f2e]">Categories</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">Menu category overview for this branch</p>
         </div>
+        <Btn onClick={fetchCategories} disabled={loading}>
+          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+        </Btn>
       </div>
 
       {/* Error */}
@@ -177,7 +167,23 @@ const BM_Categories: React.FC = () => {
       {/* Table card */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
 
-
+        {/* Search bar */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100">
+          <div className="flex-1 min-w-0 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+            <Search size={13} className="text-zinc-400 shrink-0" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+              placeholder="Search by name or type…"
+            />
+          </div>
+          {search && (
+            <span className="text-[10px] font-bold text-zinc-400">
+              {filtered.length} of {categories.length}
+            </span>
+          )}
+        </div>
 
         {/* Table */}
         <div className="overflow-x-auto">

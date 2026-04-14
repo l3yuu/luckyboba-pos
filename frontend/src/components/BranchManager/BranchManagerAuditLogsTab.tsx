@@ -2,12 +2,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search, Download, Clock, XCircle, Users, Activity,
-  ChevronLeft, ChevronRight, AlertCircle,
+  RefreshCw, ChevronLeft, ChevronRight, AlertCircle,
 } from "lucide-react";
 
-type ColorKey = "violet" | "emerald" | "red" | "amber";
+type ColorKey   = "violet" | "emerald" | "red" | "amber";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey = "sm" | "md" | "lg";
+type SizeKey    = "sm" | "md" | "lg";
 
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
@@ -21,10 +21,10 @@ interface BtnProps {
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
+    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
-    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
+    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
+    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
   };
   const c = colors[color];
   return (
@@ -44,12 +44,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
   onClick, className = "", disabled = false, type = "button",
 }) => {
-  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger: "bg-red-600 hover:bg-red-700 text-white",
-    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger:    "bg-red-600 hover:bg-red-700 text-white",
+    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -60,47 +60,47 @@ const Btn: React.FC<BtnProps> = ({
 };
 
 interface AuditLog {
-  id: number;
-  user_id: number;
-  action: string;
-  module: string;
-  details: string | null;
+  id:         number;
+  user_id:    number;
+  action:     string;
+  module:     string;
+  details:    string | null;
   ip_address: string | null;
   created_at: string;
-  user?: { id: number; name: string };
+  user?:      { id: number; name: string };
 }
 interface Stats {
   total_events: number;
-  today_count: number;
-  voids_today: number;
+  today_count:  number;
+  voids_today:  number;
   unique_users: number;
-  modules: string[];
+  modules:      string[];
 }
 interface Meta {
   current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
+  last_page:    number;
+  per_page:     number;
+  total:        number;
 }
 
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = () => ({
   "Content-Type": "application/json",
-  "Accept": "application/json",
+  "Accept":       "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 const MODULE_STYLE: Record<string, string> = {
-  void: "text-red-500 bg-red-50 border-red-200",
-  create: "text-emerald-600 bg-emerald-50 border-emerald-200",
-  edit: "text-amber-600 bg-amber-50 border-amber-200",
-  delete: "text-red-500 bg-red-50 border-red-200",
-  cash: "text-violet-600 bg-violet-50 border-violet-200",
-  discount: "text-blue-600 bg-blue-50 border-blue-200",
-  sales_order: "text-violet-600 bg-violet-50 border-violet-200",
-  branch_manager_nav: "text-zinc-600 bg-zinc-50 border-zinc-200",
-  auth: "text-emerald-600 bg-emerald-50 border-emerald-200",
+  void:                 "text-red-500 bg-red-50 border-red-200",
+  create:               "text-emerald-600 bg-emerald-50 border-emerald-200",
+  edit:                 "text-amber-600 bg-amber-50 border-amber-200",
+  delete:               "text-red-500 bg-red-50 border-red-200",
+  cash:                 "text-violet-600 bg-violet-50 border-violet-200",
+  discount:             "text-blue-600 bg-blue-50 border-blue-200",
+  sales_order:          "text-violet-600 bg-violet-50 border-violet-200",
+  branch_manager_nav:   "text-zinc-600 bg-zinc-50 border-zinc-200",
+  auth:                 "text-emerald-600 bg-emerald-50 border-emerald-200",
 };
 const moduleStyle = (m: string) =>
   MODULE_STYLE[m?.toLowerCase()] ?? "text-zinc-600 bg-zinc-50 border-zinc-200";
@@ -109,8 +109,8 @@ const initials = (name?: string) =>
   (name ?? "?").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
 const formatDate = (iso: string) => {
-  const d = new Date(iso);
-  const now = new Date();
+  const d    = new Date(iso);
+  const now  = new Date();
   const diff = now.getTime() - d.getTime();
   if (diff < 86400000 && d.getDate() === now.getDate()) return "Today";
   if (diff < 172800000) return "Yesterday";
@@ -121,14 +121,14 @@ const formatTime = (iso: string) =>
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const BranchManagerAuditLogsTab: React.FC = () => {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [meta, setMeta] = useState<Meta | null>(null);
+  const [logs,    setLogs]    = useState<AuditLog[]>([]);
+  const [stats,   setStats]   = useState<Stats | null>(null);
+  const [meta,    setMeta]    = useState<Meta | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
-  const [module, setModule] = useState("all");
-  const [page, setPage] = useState(1);
+  const [error,   setError]   = useState("");
+  const [search,  setSearch]  = useState("");
+  const [module,  setModule]  = useState("all");
+  const [page,    setPage]    = useState(1);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -138,11 +138,11 @@ const BranchManagerAuditLogsTab: React.FC = () => {
     setError("");
     try {
       const params = new URLSearchParams({ per_page: "20", page: String(p) });
-      if (s) params.set("search", s);
+      if (s)           params.set("search", s);
       if (m !== "all") params.set("module", m);
 
       // Uses /api/branch/audit-logs — scoped to branch on the server side
-      const res = await fetch(`/api/branch/audit-logs?${params}`, { headers: authHeaders() });
+      const res  = await fetch(`/api/branch/audit-logs?${params}`, { headers: authHeaders() });
       const data = await res.json();
 
       if (!data.success) throw new Error("Failed");
@@ -183,37 +183,17 @@ const BranchManagerAuditLogsTab: React.FC = () => {
 
   return (
     <div className="p-6 md:p-8">
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-          <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
-            <input
-              type="text"
-              placeholder="Search user, action, or module..."
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <select
-              value={module}
-              onChange={e => handleModule(e.target.value)}
-              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0"
-            >
-              <option value="all">All Modules</option>
-              {moduleOptions.map(m => (
-                <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1).replace(/_/g, ' ')}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <Btn variant="secondary" className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-              <Download size={15} /> Export
-            </Btn>
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-[#1a0f2e]">Audit Logs</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">Activity trail for this branch only</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Btn variant="secondary" onClick={() => fetchLogs(page, search, module)} disabled={loading}>
+            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+          </Btn>
+          <Btn variant="secondary"><Download size={13} /> Export</Btn>
         </div>
       </div>
 
@@ -228,16 +208,37 @@ const BranchManagerAuditLogsTab: React.FC = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<Activity size={16} />} label="Total Events" value={stats ? stats.total_events.toLocaleString() : "—"} color="violet" />
-        <StatCard icon={<Clock size={16} />} label="Today" value={stats ? stats.today_count : "—"} color="emerald" />
-        <StatCard icon={<XCircle size={16} />} label="Voids Today" value={stats ? stats.voids_today : "—"} color="red" />
-        <StatCard icon={<Users size={16} />} label="Unique Users" value={stats ? stats.unique_users : "—"} color="amber" />
+        <StatCard icon={<Activity size={16} />} label="Total Events" value={stats ? stats.total_events.toLocaleString() : "—"} color="violet"  />
+        <StatCard icon={<Clock    size={16} />} label="Today"        value={stats ? stats.today_count  : "—"}                  color="emerald" />
+        <StatCard icon={<XCircle  size={16} />} label="Voids Today"  value={stats ? stats.voids_today  : "—"}                  color="red"     />
+        <StatCard icon={<Users    size={16} />} label="Unique Users" value={stats ? stats.unique_users : "—"}                  color="amber"   />
       </div>
 
       {/* Table card */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
 
-
+        {/* Filters */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
+          <div className="flex-1 min-w-48 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+            <Search size={13} className="text-zinc-400 shrink-0" />
+            <input
+              value={search}
+              onChange={e => handleSearch(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+              placeholder="Search by user, action, or module..."
+            />
+          </div>
+          <select
+            value={module}
+            onChange={e => handleModule(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none"
+          >
+            <option value="all">All Modules</option>
+            {moduleOptions.map(m => (
+              <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1).replace(/_/g, ' ')}</option>
+            ))}
+          </select>
+        </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -315,8 +316,8 @@ const BranchManagerAuditLogsTab: React.FC = () => {
               {Array.from({ length: Math.min(5, meta.last_page) }, (_, i) => {
                 const p = meta.last_page <= 5 ? i + 1
                   : page <= 3 ? i + 1
-                    : page >= meta.last_page - 2 ? meta.last_page - 4 + i
-                      : page - 2 + i;
+                  : page >= meta.last_page - 2 ? meta.last_page - 4 + i
+                  : page - 2 + i;
                 return (
                   <button key={p} onClick={() => handlePage(p)}
                     className={`w-7 h-7 text-xs font-bold rounded-[0.4rem] transition-colors ${p === page ? "bg-[#3b2063] text-white" : "text-zinc-400 hover:bg-zinc-100"}`}>

@@ -324,11 +324,11 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
   const [editTarget,   setEditTarget]   = useState<Expense | null>(null);
   const [viewReceipt,  setViewReceipt]  = useState<string | null>(null);
   const [isDeleting,   setIsDeleting]   = useState<Expense | null>(null);
-
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchAll = useCallback(async () => {
     if (!branchId) return;
-
+    setIsRefreshing(true);
     try {
        const res = await api.get('/expenses', { params: {
          from:       dateFrom     || undefined,
@@ -342,6 +342,7 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
       console.error('Failed to load expenses', e);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, [branchId, dateFrom, dateTo, catFilter, search]);
 
@@ -375,42 +376,69 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
   return (
     <div className="p-6 md:p-8 flex flex-col gap-8 bg-zinc-50/50 min-h-full animate-in fade-in duration-500">
       
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-          <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
-            <input
-              type="text"
-              placeholder="Search expenses..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
-            />
-          </div>
-
-          <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
-            className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
-            <option value="">All Categories</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto" />
-            <span className="text-zinc-400 font-bold">-</span>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto" />
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <Btn onClick={() => setAddOpen(true)} className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-              <Plus size={14} strokeWidth={3} /> Record Expense
-            </Btn>
-          </div>
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-6">
+        <div className="flex items-center gap-4">
+           <div className="w-14 h-14 bg-white border border-zinc-200 rounded-2xl flex items-center justify-center shadow-sm">
+              <Receipt size={28} className="text-[#3b2063]" />
+           </div>
+           <div>
+              <h2 className="text-2xl font-black text-[#1a0f2e] tracking-tight">Expense Tracker</h2>
+              <div className="flex items-center gap-2 mt-1">
+                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                 <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Real-time Branch Expenditure</p>
+              </div>
+           </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Btn variant="secondary" onClick={fetchAll} disabled={isRefreshing} className="h-11 w-11 p-0 justify-center">
+            <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
+          </Btn>
+          <Btn onClick={() => setAddOpen(true)} className="h-11 px-6">
+            <Plus size={18} strokeWidth={3} /> <span className="hidden sm:inline">Record Expense</span>
+          </Btn>
         </div>
       </div>
 
+      {/* ── Filter Engine ── */}
+      <div className="bg-white border border-zinc-200 rounded-[1.5rem] p-6 shadow-sm flex flex-wrap gap-6 items-end relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-[#3b2063]/[0.02] rounded-full -translate-y-1/2 translate-x-1/2" />
+        
+        <div className="flex-1 min-w-[200px]">
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 px-0.5">Search Records</p>
+          <div className="relative group">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-violet-500 transition-colors" />
+            <input value={search} onChange={e => setSearch(e.target.value)} 
+              className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-semibold outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-400 transition-all" 
+              placeholder="Search title, notes, or ref..." />
+          </div>
+        </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 px-0.5">Period</p>
+            <div className="flex items-center bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="bg-transparent text-[11px] font-black text-zinc-600 px-3 py-3 outline-none border-r border-zinc-200" />
+               <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="bg-transparent text-[11px] font-black text-zinc-600 px-3 py-3 outline-none" />
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 px-0.5">Category</p>
+            <div className="relative">
+               <select value={catFilter} onChange={e => setCatFilter(e.target.value)} className="appearance-none w-full bg-zinc-50 border border-zinc-200 px-4 py-3 pr-10 rounded-xl text-sm font-semibold outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-400 cursor-pointer transition-all">
+                  <option value="">All Categories</option>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+               </select>
+               <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
+          </div>
+          <div className="flex items-end justify-end">
+            {(catFilter || search) && (
+              <button onClick={() => { setSearch(''); setCatFilter(''); }} className="text-xs font-black uppercase tracking-widest text-red-500 hover:text-red-600 mb-3 underline underline-offset-4 decoration-2">Clear Filters</button>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ── Top Stats & Mini-Vis Row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

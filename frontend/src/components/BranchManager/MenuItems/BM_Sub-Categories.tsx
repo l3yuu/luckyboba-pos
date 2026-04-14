@@ -1,8 +1,8 @@
 // BM_Sub-Categories.tsx — Read-only SuperAdmin-style sub-category list for BM
 import { useState, useEffect, useCallback } from "react";
 import {
-  RefreshCw, AlertCircle, Layers, Search,
-  ToggleLeft, ToggleRight,
+  RefreshCw, AlertCircle, Layers, ChevronDown,
+  X, ToggleLeft, ToggleRight,
 } from "lucide-react";
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
@@ -53,7 +53,6 @@ const BM_SubCategories: React.FC = () => {
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState("");
   const [filterCat,  setFilterCat]  = useState("");
-  const [search,     setSearch]     = useState("");
 
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
@@ -85,11 +84,7 @@ const BM_SubCategories: React.FC = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const filtered  = subs.filter(s => {
-    const matchCat    = !filterCat || String(s.category_id) === filterCat;
-    const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.category.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  const filtered  = subs.filter(s => !filterCat || String(s.category_id) === filterCat);
   const grouped   = categories.reduce((acc, cat) => {
     const children = filtered.filter(s => s.category_id === cat.id);
     if (children.length > 0) acc[cat.id] = { cat, children };
@@ -102,34 +97,39 @@ const BM_SubCategories: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in">
 
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-          <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
-            <input
-              type="text"
-              placeholder="Search sub-categories..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
-            />
-          </div>
-
-          <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-            className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
-            <option value="">All Parent Categories</option>
-            {categories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
-          </select>
-
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <Btn onClick={fetchAll} disabled={loading} className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
-            </Btn>
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <h2 className="text-base font-bold text-[#1a0f2e]">Sub-Categories</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            {loading ? "Loading…" : `${subs.length} sub-categories across ${categories.length} categories`}
+          </p>
         </div>
+        <Btn onClick={fetchAll} disabled={loading}>
+          <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+        </Btn>
       </div>
 
-
+      {/* Category filter */}
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
+        <div className="relative">
+          <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+            className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+            <option value="">All Parent Categories</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+        </div>
+        {filterCat && (
+          <button onClick={() => setFilterCat("")}
+            className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+            <X size={11} /> Clear
+          </button>
+        )}
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 ml-auto">
+          {filtered.length} sub-categories
+        </span>
+      </div>
 
       {/* Error */}
       {error && (

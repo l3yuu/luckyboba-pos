@@ -292,59 +292,90 @@ const BM_SalesDashboard: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
 
-      {/* ── Header Filters ── */}
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-2">
-        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-          {/* Mode toggle */}
-          <div className="flex rounded-xl overflow-hidden border border-zinc-200 shadow-sm shrink-0">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-base font-bold text-[#1a0f2e]">Sales Report</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            {bmBranchName ? `Sales breakdown for ${bmBranchName}` : "Sales breakdown for your branch"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
+            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+          </Btn>
+          <Btn variant="secondary" onClick={handleExport} disabled={loading}>
+            <Download size={13} /> Export CSV
+          </Btn>
+        </div>
+      </div>
+
+      {/* ── Filters ── */}
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
+        {/* Mode toggle */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Filter Mode</p>
+          <div className="flex rounded-lg overflow-hidden border border-zinc-200">
             {(["period", "range"] as const).map(m => (
               <button key={m} onClick={() => setMode(m)}
-                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === m ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
-                {m === "period" ? "Period" : "Range"}
+                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === m ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                {m === "period" ? "Period" : "Date Range"}
               </button>
             ))}
           </div>
+        </div>
 
-          {/* Period selector */}
-          {mode === "period" && (
-            <div className="flex rounded-xl overflow-hidden border border-zinc-200 shadow-sm shrink-0">
+        {/* Period selector */}
+        {mode === "period" && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Period</p>
+            <div className="flex rounded-lg overflow-hidden border border-zinc-200">
               {(["daily", "weekly", "monthly"] as const).map(p => (
                 <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-                  className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                  className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
                   {p}
                 </button>
               ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Date range */}
-          {mode === "range" && (
-            <div className="flex items-center gap-2 shrink-0">
+        {/* Date range */}
+        {mode === "range" && (
+          <>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date From</p>
               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all" />
-              <span className="text-zinc-400 font-bold">-</span>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all" />
+                className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
             </div>
-          )}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+            </div>
+          </>
+        )}
 
-          <Btn onClick={fetchAll} disabled={loading} className="px-5 py-3 rounded-xl shadow-sm">
-            {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
-          </Btn>
-
-          {mode === "range" && (
-            <button onClick={() => { setMode("period"); setPeriod("monthly"); }}
-              className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
-              <X size={11} /> Clear
-            </button>
-          )}
-
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <Btn variant="secondary" onClick={handleExport} className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-              <Download size={14} /> Export
-            </Btn>
+        {/* Branch badge — display only, not selectable */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
+          <div className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+            {bmBranchName || "Your Branch"}
           </div>
         </div>
+
+        {/* Apply */}
+        <Btn onClick={fetchAll} disabled={loading}>
+          {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
+        </Btn>
+
+        {/* Clear */}
+        {mode === "range" && (
+          <button onClick={() => { setMode("period"); setPeriod("monthly"); }}
+            className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+            <X size={11} /> Clear
+          </button>
+        )}
       </div>
 
       {/* ── Error ── */}
@@ -495,16 +526,13 @@ const BM_SalesDashboard: React.FC = () => {
       {/* ── TAB: Top Products ── */}
       {activeTab === "products" && (
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-          <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
-            <div className="relative group flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
-              />
+          <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-3">
+            <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+              <Search size={13} className="text-zinc-400" />
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+                placeholder="Search products..." />
+              {search && <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500"><X size={12} /></button>}
             </div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 shrink-0">
               {filteredProducts.length} items

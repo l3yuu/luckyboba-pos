@@ -235,36 +235,36 @@ const BM_InventoryItemChecker: React.FC = () => {
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-          <div className="flex items-center gap-1.5 p-1 bg-white border border-zinc-200 rounded-xl overflow-hidden shrink-0">
-            {(['menu', 'stock'] as SearchMode[]).map(m => (
-              <button
-                key={m}
-                onClick={() => { setMode(m); handleClear(); }}
-                className={`px-4 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest transition-all ${mode === m ? 'bg-[#3b2063] text-white shadow-sm' : 'text-zinc-500 hover:text-[#3b2063] hover:bg-[#faf9ff]'}`}
-              >
-                {m === 'menu' ? 'Menu Items' : 'Raw Materials'}
-              </button>
-            ))}
-          </div>
-
-          <div className="w-[1px] h-8 bg-zinc-200 hidden md:block" />
-
-          <button
-            onClick={() => { setBarcodeMode(v => !v); inputRef.current?.focus(); }}
-            className={`flex items-center justify-center gap-2 px-4 py-3 bg-white border rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shrink-0 w-full md:w-auto shadow-sm ${barcodeMode ? 'border-[#3b2063] text-[#3b2063] bg-[#f5f0ff]' : 'border-zinc-200 text-zinc-500 hover:border-[#3b2063] hover:text-[#3b2063]'}`}
-          >
-            <Barcode size={14} className={barcodeMode ? "animate-pulse" : ""} />
-            {barcodeMode ? 'Scanning...' : 'Barcode Mode'}
-          </button>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Item Checker</h2>
+          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
+            Quick lookup · barcode scan or search by name
+          </p>
         </div>
+        <button
+          onClick={() => { setBarcodeMode(v => !v); inputRef.current?.focus(); }}
+          className={`flex items-center gap-1.5 px-3 py-2 h-9 rounded-lg border font-bold text-xs uppercase tracking-widest transition-all ${barcodeMode ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'bg-white text-zinc-400 border-zinc-200 hover:text-[#3b2063] hover:border-[#e9d5ff]'}`}>
+          <Barcode size={14} /> {barcodeMode ? 'Scanning...' : 'Barcode Mode'}
+        </button>
       </div>
 
-      <div className="flex items-center gap-3 mb-8">
-        <div className={`flex items-center gap-3 bg-white border-2 rounded-[1rem] flex-1 shadow-sm transition-all ${barcodeMode ? 'border-[#3b2063]' : 'border-zinc-200 focus-within:border-[#3b2063]'}`}>
+      {/* Mode toggle */}
+      <div className="flex items-center gap-2 mb-4">
+        {(['menu', 'stock'] as SearchMode[]).map(m => (
+          <button key={m} onClick={() => { setMode(m); handleClear(); }}
+            className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-all ${mode === m ? 'bg-[#3b2063] text-white' : 'bg-white border border-zinc-200 text-zinc-500 hover:border-[#e9d5ff] hover:text-[#3b2063]'}`}>
+            {m === 'menu' ? 'Menu Items' : 'Raw Materials'}
+          </button>
+        ))}
+      </div>
+
+      {/* Search bar */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className={`flex items-center gap-3 bg-white border-2 rounded-xl flex-1 shadow-sm transition-all ${barcodeMode ? 'border-[#3b2063]' : 'border-zinc-200 focus-within:border-[#3b2063]'}`}>
           <div className="pl-4 text-zinc-400 shrink-0">
-            {barcodeMode ? <Barcode size={22} className="text-[#3b2063]" /> : <Search size={22} />}
+            {barcodeMode ? <Barcode size={20} className="text-[#3b2063]" /> : <Search size={20} />}
           </div>
           <input
             ref={inputRef}
@@ -274,21 +274,21 @@ const BM_InventoryItemChecker: React.FC = () => {
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
             placeholder={barcodeMode
               ? 'Scan barcode now — point scanner at item...'
-              : `Search ${mode === 'menu' ? 'menu items' : 'materials'} by name...`}
-            className="flex-1 h-16 text-lg font-semibold text-[#1a0f2e] outline-none bg-transparent placeholder:text-zinc-300"
+              : `Search ${mode === 'menu' ? 'menu items' : 'raw materials'} by name...`}
+            className="flex-1 h-14 text-base font-semibold text-[#1a0f2e] outline-none bg-transparent placeholder:text-zinc-300"
           />
           {query && (
             <button onClick={handleClear} className="pr-4 text-zinc-300 hover:text-red-500 transition-colors">
-              <X size={20} />
+              <X size={18} />
             </button>
           )}
         </div>
         <button
           onClick={() => handleSearch()}
           disabled={loading || !query.trim()}
-          className="bg-[#3b2063] hover:bg-[#2a1647] text-white px-8 h-16 rounded-[1rem] font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-2 shadow-sm">
-          {loading ? <RefreshCw size={18} className="animate-spin" /> : <Search size={18} />}
-          {loading ? 'Finding...' : 'Search'}
+          className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-6 h-14 rounded-xl font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 flex items-center gap-2">
+          {loading ? <RefreshCw size={16} className="animate-spin" /> : <Search size={16} />}
+          {loading ? 'Searching' : 'Search'}
         </button>
       </div>
 

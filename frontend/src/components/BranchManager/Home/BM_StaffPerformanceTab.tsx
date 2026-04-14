@@ -136,26 +136,39 @@ const BM_StaffPerformanceTab: React.FC<BM_StaffPerformanceTabProps> = ({ branchI
   return (
     <div className="p-6 md:p-8 space-y-6 fade-in">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center gap-6">
-        <div className="flex-1 flex items-center gap-2">
-          <div className="relative group flex-1 hidden lg:block">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-[#3b2063] rounded-2xl flex items-center justify-center text-white shadow-lg">
+              <Award size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-[#1a0f2e]">Staff Performance</h2>
+              <p className="text-[0.7rem] text-zinc-400 font-bold uppercase tracking-widest">Local Leaderboard & Efficiency</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative group mr-4 hidden lg:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={14} />
             <input
               type="text"
-              placeholder="Search staff members, branch, or performance..."
+              placeholder="Search staff..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-xl text-[0.7rem] font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all w-48 xl:w-64"
             />
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {(["daily", "weekly", "monthly"] as const).map(p => (
-              <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-                className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all capitalize shadow-sm ${period === p ? "bg-[#3b2063] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
-                {p}
-              </button>
-            ))}
-          </div>
+          {(["daily", "weekly", "monthly"] as const).map(p => (
+            <button key={p} onClick={() => setPeriod(p)} disabled={loading}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize ${period === p ? "bg-[#3b2063] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
+              {p}
+            </button>
+          ))}
+          <button onClick={fetchData} disabled={loading} className="p-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg hover:bg-zinc-50">
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
         </div>
       </div>
 

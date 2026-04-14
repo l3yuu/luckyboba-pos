@@ -4,8 +4,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import * as XLSX from "xlsx";
 import {
-  Search, Download, AlertCircle,
-  ChevronDown, ChevronUp, Package,
+  Search, Download, RefreshCw, AlertCircle,
+  ChevronDown, ChevronUp, X, Package,
   ArrowUpRight, ArrowDownRight, Printer,
 } from "lucide-react";
 import api from "../../../services/api";
@@ -318,43 +318,76 @@ const BM_ItemsReport: React.FC = () => {
       {/* ── Main UI ── */}
       <div className="bm-items-main p-6 md:p-8 fade-in flex flex-col gap-5">
 
-        <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-          <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-            <div className="relative group flex-1 w-full md:w-auto">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
-              <input
-                type="text"
-                placeholder="Search items or category..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
-              />
-            </div>
-            
-            <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all flex-1" />
-              <span className="text-zinc-400 font-bold">-</span>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all flex-1" />
-            </div>
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="text-base font-bold text-[#1a0f2e]">Items Report</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              {bmBranchName
+                ? `Per-item sales performance for ${bmBranchName}`
+                : "Per-item sales performance — quantity sold, revenue & pricing"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Btn variant="secondary" onClick={fetchItems} disabled={loading}>
+              <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+            </Btn>
+            <Btn variant="secondary" onClick={handleExport} disabled={loading || filtered.length === 0}>
+              <Download size={13} /> Export Excel
+            </Btn>
+            <Btn variant="secondary" onClick={handlePrint} disabled={loading || filtered.length === 0}>
+              <Printer size={13} /> Print
+            </Btn>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+        {/* ── Filters ── */}
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
+          {/* Date From */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date From</p>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+          </div>
+          {/* Date To */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+          </div>
+          {/* Branch badge — display only, not selectable */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
+            <div className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+              {bmBranchName || "Your Branch"}
+            </div>
+          </div>
+          {/* Category */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Category</p>
+            <div className="relative">
               <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
-                className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
+                className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
                 <option value="">All Categories</option>
                 {categories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
               </select>
+              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
             </div>
+          </div>
 
-            <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-              <Btn onClick={handleExport} variant="secondary" className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-                <Download size={14} /> Export
-              </Btn>
-              <Btn onClick={handlePrint} variant="secondary" className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-                <Printer size={14} /> Print
-              </Btn>
-            </div>
+          {/* ── Apply + Clear grouped together ── */}
+          <div className="flex items-center gap-2">
+            <Btn onClick={fetchItems} disabled={loading}>
+              {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
+            </Btn>
+            {categoryId && (
+              <button
+                onClick={() => setCategoryId("")}
+                className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 rounded-lg transition-colors"
+              >
+                <X size={11} /> Clear
+              </button>
+            )}
           </div>
         </div>
 
@@ -381,7 +414,23 @@ const BM_ItemsReport: React.FC = () => {
         {/* ── Table ── */}
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
 
-
+          {/* Search bar */}
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
+            <div className="flex-1 min-w-48 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+              <Search size={13} className="text-zinc-400 shrink-0" />
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+                placeholder="Search items or category..." />
+              {search && (
+                <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 shrink-0">
+              {filtered.length} items · click column header to sort
+            </span>
+          </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
