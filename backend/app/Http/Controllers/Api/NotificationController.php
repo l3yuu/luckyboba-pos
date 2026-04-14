@@ -140,6 +140,47 @@ class NotificationController extends Controller
             } catch (\Throwable $e) {}
         }
 
+        // ── 5. Pending online orders waiting > 5 min ──────────────────────
+        try {
+            $query = DB::table('sales')
+                ->leftJoin('branches', 'sales.branch_id', '=', 'branches.id')
+                ->where('sales.invoice_number', 'like', 'APP-%')
+                ->where('sales.status', 'pending')
+                ->where('sales.created_at', '<=', Carbon::now()->subMinutes(5));
+
+            if ($isBM && $targetBranchId) {
+                $query->where('sales.branch_id', $targetBranchId);
+            }
+
+            $staleOrders = $query->select(
+                    'sales.id',
+                    'sales.invoice_number',
+                    'sales.total_amount',
+                    'sales.customer_name',
+                    'sales.created_at',
+                    'branches.name as branch_name'
+                )
+                ->orderByDesc('sales.created_at')
+                ->limit(5)
+                ->get();
+
+            foreach ($staleOrders as $order) {
+                $waitMin = Carbon::parse($order->created_at)->diffInMinutes(now());
+                $notifications[] = [
+                    'id'          => 'order_' . $order->id,
+                    'type'        => 'online_order',
+                    'title'       => 'Pending Order: #' . ($order->invoice_number ?? $order->id),
+                    'message'     => '₱' . number_format($order->total_amount, 2)
+                                   . ' from ' . ($order->customer_name ?? 'App Customer')
+                                   . " — waiting {$waitMin} min.",
+                    'severity'    => $waitMin >= 10 ? 'critical' : 'warning',
+                    'at'          => $order->created_at,
+                    'branch_name' => $order->branch_name ?? 'Unknown Branch',
+                ];
+            }
+        } catch (\Throwable $e) {}
+
+
         // ── Sort: critical first, then warning, then info ──────────────────
         $order = ['critical' => 0, 'warning' => 1, 'info' => 2];
         usort($notifications, fn($a, $b) =>

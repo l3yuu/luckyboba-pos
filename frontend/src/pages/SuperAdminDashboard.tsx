@@ -42,6 +42,9 @@ import CardApprovalTab from "../components/NewSuperAdmin/Sidebar/System/CardAppr
 import CardManagementTab from "../components/NewSuperAdmin/Sidebar/System/CardManagementTab";
 import LoyaltyManagementTab from "../components/NewSuperAdmin/Sidebar/LoyaltyManagementTab";
 import FeaturedDrinksTab from "../components/NewSuperAdmin/Sidebar/System/FeaturedDrinksTab";
+import CustomerManagementTab from "../components/NewSuperAdmin/Sidebar/System/CustomerManagementTab";
+import NotificationCenterTab from "../components/NewSuperAdmin/Sidebar/System/NotificationCenterTab";
+import OnlineOrdersTab from "../components/NewSuperAdmin/Sidebar/Navigation/OnlineOrdersTab";
 
 
 const GlobalStyles = () => (
@@ -88,6 +91,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "branches": return <BranchesTab />;
       case "users": return <UsersTab />;
       case "devices": return <DeviceManagementTab />;
+      case "online_orders": return <OnlineOrdersTab />;
 
       // ── Reports ───────────────────────────────────────────────────────────
       case "sales_report": return <SalesReportTab />;
@@ -123,12 +127,14 @@ const SuperAdminDashboard: React.FC = () => {
       case "audit": return <AuditLogsTab />;
       case "settings": return <SettingsTab />;
       case "featured_drinks": return <FeaturedDrinksTab />;
+      case "notifications": return <NotificationCenterTab />;
 
       // ── App ───────────────────────────────────────────────────────────────────
       case "card_management": return <CardManagementTab />;
       case "card_approvals": return <CardApprovalTab />;
       case "card_members": return <CardUsersTab />;
       case "loyalty": return <LoyaltyManagementTab />;
+      case "customers": return <CustomerManagementTab />;
     }
   };
 
