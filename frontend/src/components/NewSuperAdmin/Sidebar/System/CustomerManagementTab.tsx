@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search, Users, ShoppingBag, CreditCard, TrendingUp,
   RefreshCw, ChevronLeft, ChevronRight, AlertCircle,
-  UserCheck, X, Calendar, Package, Eye,
+  UserCheck, X, Eye,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
