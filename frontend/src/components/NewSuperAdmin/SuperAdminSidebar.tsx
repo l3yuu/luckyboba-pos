@@ -6,12 +6,12 @@ import {
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
   Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
   DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown, Monitor,
-  CreditCard, AlertTriangle, Sparkles, UserCheck
+  CreditCard, AlertTriangle, Sparkles, UserCheck, Bell, ShoppingBag
 } from "lucide-react";
 
 // ── Tab IDs ───────────────────────────────────────────────────────────────────
 export type TabId =
-  | "overview" | "branches" | "users" | "devices"
+  | "overview" | "branches" | "users" | "devices" | "online_orders"
   | "sales_report" | "analytics" | "items_report" | "staff_performance"
   | "cross_branch_reports" | "x_reading" | "z_reading"
   | "menu_items" | "categories" | "subcategories"
@@ -23,7 +23,7 @@ export type TabId =
   | "card_members"
   | "loyalty"
   | "customers"
-  | "promotions" | "audit" | "settings" | "featured_drinks";
+  | "notifications" | "promotions" | "audit" | "settings" | "featured_drinks";
 
 export interface SuperAdminSidebarProps {
   open:          boolean;
@@ -180,10 +180,11 @@ const STYLES = `
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
 const NAV_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "overview", label: "Overview",          icon: <LayoutGrid size={14} /> },
-  { id: "branches", label: "Branch Management", icon: <GitBranch  size={14} /> },
-  { id: "users",    label: "User Management",   icon: <Users      size={14} /> },
-  { id: "devices",  label: "Device Management", icon: <Monitor    size={14} /> },
+  { id: "overview",       label: "Overview",          icon: <LayoutGrid  size={14} /> },
+  { id: "branches",       label: "Branch Management", icon: <GitBranch   size={14} /> },
+  { id: "users",          label: "User Management",   icon: <Users       size={14} /> },
+  { id: "devices",        label: "Device Management", icon: <Monitor     size={14} /> },
+  { id: "online_orders",  label: "Online Orders",     icon: <ShoppingBag size={14} /> },
 ];
 
 const REPORTS_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
@@ -229,8 +230,9 @@ const APP_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 ];
 
 const SYSTEM_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "promotions", label: "Promotions & Discounts", icon: <Tag         size={14} /> },
-  { id: "audit",      label: "Audit Logs",             icon: <ShieldCheck size={14} /> },
+  { id: "notifications", label: "Notification Center",   icon: <Bell        size={14} /> },
+  { id: "promotions",    label: "Promotions & Discounts", icon: <Tag         size={14} /> },
+  { id: "audit",         label: "Audit Logs",             icon: <ShieldCheck size={14} /> },
 ];
 
 const REPORTS_IDS:   TabId[] = REPORTS_ITEMS.map(i => i.id);

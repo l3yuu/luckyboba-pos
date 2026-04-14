@@ -220,6 +220,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::get   ('/online-orders',            [OnlineOrderController::class, 'index']);
         Route::patch ('/online-orders/{id}/status',[OnlineOrderController::class, 'updateStatus']);
+        Route::get   ('/online-orders/stats',      [OnlineOrderController::class, 'stats']);
 
         // ── Branch Manager App Routes ─────────────────────────────────────────
         Route::get   ('branch/app-orders',              [BranchManagerAppController::class, 'appOrders']);

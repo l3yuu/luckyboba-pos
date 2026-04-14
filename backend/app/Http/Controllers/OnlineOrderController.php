@@ -233,7 +233,61 @@ class OnlineOrderController extends Controller
         }
     }
 
-    
+    /**
+     * GET /api/online-orders/stats
+     * Summary statistics for the online order queue.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        try {
+            $user  = $request->user();
+            $query = Sale::where('invoice_number', 'like', 'APP-%');
+
+            // Branch scoping
+            if (!empty($user->branch_id)) {
+                $query->where('branch_id', $user->branch_id);
+            } elseif (!empty($user->branch_name)) {
+                $branch = \App\Models\Branch::where('name', $user->branch_name)->first();
+                if ($branch) $query->where('branch_id', $branch->id);
+            }
+
+            $pending   = (clone $query)->where('status', 'pending')->count();
+            $preparing = (clone $query)->where('status', 'preparing')->count();
+
+            $completedToday = (clone $query)
+                ->where('status', 'completed')
+                ->whereDate('updated_at', now()->toDateString())
+                ->count();
+
+            $totalToday = (clone $query)
+                ->whereDate('created_at', now()->toDateString())
+                ->sum('total_amount');
+
+            // Average wait time (minutes) for orders completed today
+            $avgWait = (clone $query)
+                ->where('status', 'completed')
+                ->whereDate('updated_at', now()->toDateString())
+                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_wait')
+                ->value('avg_wait');
+
+            return response()->json([
+                'success' => true,
+                'data'    => [
+                    'pending'         => $pending,
+                    'preparing'       => $preparing,
+                    'completed_today' => $completedToday,
+                    'total_today'     => round((float) ($totalToday ?? 0), 2),
+                    'avg_wait_min'    => round((float) ($avgWait ?? 0), 1),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve order stats',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     private function formatOrder($sale): array
     {
