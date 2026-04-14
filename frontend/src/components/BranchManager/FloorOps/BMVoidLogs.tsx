@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, RefreshCw, X, AlertTriangle, Trash2,
+  Search, AlertTriangle, Trash2,
   Receipt as ReceiptIcon, CheckCircle2,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -13,13 +13,13 @@ import api from '../../../services/api';
 type VoidStatus = 'completed' | 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 interface VoidLog {
-  id:         number;
-  sale_id:    number;
-  invoice:    string;
-  amount:     number;
-  cashier:    string;
+  id: number;
+  sale_id: number;
+  invoice: string;
+  amount: number;
+  cashier: string;
   created_at: string;
-  status:     VoidStatus;
+  status: VoidStatus;
 }
 
 interface Stats { gross: number; voided: number; net: number; }
@@ -46,11 +46,11 @@ interface RawSaleRecord {
 }
 
 const mapVoidLog = (v: RawSaleRecord): VoidLog => ({
-  id:         v.id,
-  sale_id:    v.id,
-  invoice:    v.Invoice ?? v.invoice_number ?? v.invoice ?? `#${v.id}`,
-  amount:     parseFloat(String(v.Amount ?? v.total_amount ?? v.amount ?? 0)),
-  cashier:    v.Cashier ?? v.cashier_name ?? v.cashier ?? '—',
+  id: v.id,
+  sale_id: v.id,
+  invoice: v.Invoice ?? v.invoice_number ?? v.invoice ?? `#${v.id}`,
+  amount: parseFloat(String(v.Amount ?? v.total_amount ?? v.amount ?? 0)),
+  cashier: v.Cashier ?? v.cashier_name ?? v.cashier ?? '—',
   created_at: (() => {
     const raw = v.Date_Time ?? v.created_at;
     return raw ? new Date(raw).toLocaleString('en-PH') : '—';
@@ -64,8 +64,8 @@ const mapVoidLog = (v: RawSaleRecord): VoidLog => ({
 
 const StatusBadge: React.FC<{ status: VoidStatus }> = ({ status }) => {
   const map: Record<string, string> = {
-    pending:   'bg-amber-50 text-amber-700 border border-amber-200',
-    approved:  'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    pending: 'bg-amber-50 text-amber-700 border border-amber-200',
+    approved: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
     completed: 'bg-blue-50 text-blue-700 border border-blue-200',
     cancelled: 'bg-red-50 text-red-600 border border-red-200',
   };
@@ -91,19 +91,19 @@ const StatBox: React.FC<{ label: string; value: number; isDanger?: boolean }> = 
 
 const BMVoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
 
-  const [voidLogs,     setVoidLogs]     = useState<VoidLog[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [fetchError,   setFetchError]   = useState('');
-  const [stats,        setStats]        = useState<Stats>({ gross: 0, voided: 0, net: 0 });
-  const [searchQuery,  setSearchQuery]  = useState('');
+  const [voidLogs, setVoidLogs] = useState<VoidLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
+  const [stats, setStats] = useState<Stats>({ gross: 0, voided: 0, net: 0 });
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Void modal
   const [targetReceipt, setTargetReceipt] = useState<VoidLog | null>(null);
-  const [voidReason,    setVoidReason]    = useState('');
-  const [isVoiding,     setIsVoiding]     = useState(false);
-  const [voidSuccess,   setVoidSuccess]   = useState(false);
-  const [voidError,     setVoidError]     = useState('');
+  const [voidReason, setVoidReason] = useState('');
+  const [isVoiding, setIsVoiding] = useState(false);
+  const [voidSuccess, setVoidSuccess] = useState(false);
+  const [voidError, setVoidError] = useState('');
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
   const fetchLogs = useCallback(async () => {
@@ -117,7 +117,7 @@ const BMVoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =>
       const mapped: VoidLog[] = raw.map(mapVoidLog);
       setVoidLogs(mapped);
 
-      const gross  = mapped.reduce((s, l) => s + l.amount, 0);
+      const gross = mapped.reduce((s, l) => s + l.amount, 0);
       const voided = mapped
         .filter(l => l.status === 'cancelled')
         .reduce((s, l) => s + l.amount, 0);
@@ -178,54 +178,40 @@ const BMVoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =>
   return (
     <div className="p-6 md:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Receipt Management</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Search and void transactions</p>
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-            className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-bold outline-none"
-          />
-          <button
-            onClick={fetchLogs}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-          >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          <div className="relative group flex-1 w-full md:w-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <input
+              type="text"
+              placeholder="Search invoice or cashier..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0"
+            />
+          </div>
         </div>
       </div>
 
       {/* ── Stats Bar ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-        <StatBox label="Gross Sales"  value={stats.gross} />
+        <StatBox label="Gross Sales" value={stats.gross} />
         <StatBox label="Voided Sales" value={stats.voided} isDanger />
-        <StatBox label="Net Sales"    value={stats.net} />
+        <StatBox label="Net Sales" value={stats.net} />
       </div>
 
       {/* ── Table ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-        <div className="px-5 py-4 border-b border-zinc-100">
-          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-            <Search size={13} className="text-zinc-400" />
-            <input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent text-sm outline-none"
-              placeholder="Search invoice or cashier..."
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="text-zinc-300 hover:text-red-500">
-                <X size={13} />
-              </button>
-            )}
-          </div>
-        </div>
+
 
         {fetchError && (
           <p className="px-5 py-3 text-xs text-red-500 font-semibold">{fetchError}</p>

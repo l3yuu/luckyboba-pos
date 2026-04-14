@@ -265,23 +265,36 @@ const BM_InventoryReports: React.FC = () => {
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Usage Report</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {MONTHS[selectedMonth]} {selectedYear} · raw material consumption
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={fetchReport} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button onClick={handleExport} disabled={exporting || loading}
-            className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all disabled:opacity-50">
-            <Download size={13} /> {exporting ? 'Exporting...' : 'Export CSV'}
-          </button>
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          <div className="relative group flex-1 w-full md:w-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <input
+              type="text"
+              placeholder="Search inventory items..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all flex-1">
+              {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+            </select>
+            <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all flex-1">
+              {[now.getFullYear() - 1, now.getFullYear()].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
+            <button onClick={handleExport} disabled={exporting || loading}
+              className="w-full md:w-auto bg-[#3b2063] hover:bg-[#2d1851] text-white px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm">
+              <Download size={15} /> {exporting ? "Exporting..." : "Export CSV"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -298,58 +311,13 @@ const BM_InventoryReports: React.FC = () => {
             <p className="text-2xl font-black tabular-nums" style={{ color: s.color }}>{loading ? '—' : s.value}</p>
           </div>
         ))}
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
-
-          {/* Period selector */}
-          <div className="flex items-center gap-2">
-            <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
-              className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-              {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
-            </select>
-            <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
-              className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-              {[now.getFullYear() - 1, now.getFullYear()].map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
-
-          <select value={branch} onChange={e => setBranch(e.target.value)}
-            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-            <option value="">All Branches</option>
-            {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
-          </select>
-
-          <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
-            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-            <option value="">All Categories</option>
-            {cats.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-
-          <select value={varFilter} onChange={e => setVarFilter(e.target.value)}
-            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-            <option value="">All Variance</option>
-            <option value="negative">Negative</option>
-            <option value="positive">Positive</option>
-            <option value="zero">Zero</option>
-          </select>
-
-          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 flex-1 min-w-35 h-9">
-            <Search size={13} className="text-zinc-400 shrink-0" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-xs text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search item..." />
-            {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={12} /></button>}
-          </div>
-
-          <button onClick={() => setShowGuide(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-2 h-9 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-500 hover:text-[#3b2063] hover:border-[#e9d5ff] transition-colors ml-auto">
-            Column Guide {showGuide ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+      </div>      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-zinc-50/20">
+          <p className="text-xs font-black uppercase tracking-widest text-[#1a0f2e]">Inventory Usage Ledger</p>
+          <button onClick={() => setShowGuide(!showGuide)} className="text-[10px] font-bold text-zinc-400 hover:text-[#3b2063] underline">
+            {showGuide ? "Hide Guide" : "Show Guide"}
           </button>
         </div>
-
         {/* Column guide */}
         {showGuide && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5 py-4 bg-[#faf9ff] border-b border-zinc-100">

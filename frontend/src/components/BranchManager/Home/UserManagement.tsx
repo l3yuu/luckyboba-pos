@@ -711,19 +711,20 @@ const UserManagement: React.FC = () => {
     <div className="p-6 md:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Cashier Management</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? 'Loading...' : `${users.length} cashiers · ${activeCount} active`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchUsers} disabled={loading}>
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </Btn>
-          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
-            <Plus size={13} /> Add Staff
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex items-center gap-3">
+          <div className="relative group flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <input
+              type="text"
+              placeholder="Search cashiers..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+            />
+          </div>
+          <Btn onClick={() => setAddOpen(true)} disabled={loading} className="px-5 py-3 rounded-xl shadow-sm shrink-0">
+            <Plus size={14} /> Add Staff
           </Btn>
         </div>
       </div>
@@ -761,14 +762,7 @@ const UserManagement: React.FC = () => {
 
       {/* ── Table ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-            <Search size={13} className="text-zinc-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search cashiers..." />
-          </div>
-        </div>
+
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
