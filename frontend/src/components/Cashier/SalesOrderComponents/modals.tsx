@@ -761,6 +761,7 @@ interface ConfirmOrderModalProps {
   vatableSales: number;
   vatAmount: number;
   vatExemptSales?: number;
+  lessVat?: number;
   change: number;
   totalDiscountDisplay: number;
   orderCharge: 'grab' | 'panda' | null;
@@ -797,7 +798,7 @@ interface ConfirmOrderModalProps {
 
 export const ConfirmOrderModal = ({
   cart, cashierName, totalCount, subtotal, amtDue,
-  vatableSales, vatAmount, vatExemptSales: _vatExemptSales = 0, change, totalDiscountDisplay,
+  vatableSales, vatAmount, vatExemptSales: _vatExemptSales = 0, lessVat = 0, change, totalDiscountDisplay,
   orderCharge, selectedDiscount, paymentMethod, cashTendered,
   referenceNumber, discountRemarks, itemPaxAssignments, seniorIds, pwdIds, discounts,
   activeTab, submitting, vatType = 'vat', addOnsData = [],
@@ -971,6 +972,15 @@ export const ConfirmOrderModal = ({
                     <>
                       <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
                       <div className="flex justify-between"><span>VAT Amount (12%)</span><span>₱ {vatAmount.toFixed(2)}</span></div>
+                      {_vatExemptSales > 0 && (
+                        <div className="flex justify-between"><span>VAT Exempt Sales</span><span>₱ {_vatExemptSales.toFixed(2)}</span></div>
+                      )}
+                      {lessVat > 0 && (
+                        <div className="flex justify-between text-yellow-600 font-bold">
+                          <span>Less VAT</span>
+                          <span>- ₱ {lessVat.toFixed(2)}</span>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="flex justify-between text-zinc-400 text-[10px]"><span>VAT Exempt</span><span>Non-VAT</span></div>

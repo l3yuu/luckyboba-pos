@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             CategoryDrinkSeeder::class,
             FeaturedDrinkSeeder::class,
             CardSeeder::class,
+            CustomerSeeder::class,
         ]);
     }
 }
