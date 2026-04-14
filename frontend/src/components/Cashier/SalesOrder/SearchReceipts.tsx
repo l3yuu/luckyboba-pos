@@ -58,7 +58,11 @@ interface ReprintPayload {
     total?:           number;
     vatable_sales?:   number;
     vat_amount?:      number;
+    pax_senior?:      number;
+    pax_pwd?:         number;
     discount_amount?: number;
+    sc_discount_amount?: number;
+    pwd_discount_amount?: number;
     vat_type?:        string;   // ← add this
     branch?: {
       name?:           string;
@@ -107,6 +111,7 @@ interface RawSaleItem {
   discount_label?:  string;
   discount_type?:   string;
   discount_value?:  number;
+  pax_assignment?:  string | string[];
 }
 
 type ReprintType = 'receipt' | 'kitchen' | 'sticker';
@@ -358,11 +363,21 @@ return {
   businessEmail:    payload.settings?.contact_email,
   businessPhone:    payload.settings?.contact_phone,
   businessAddress:  payload.settings?.address,
-  paxSenior: 0,
-  paxPwd: 0,
+  paxSenior: Number(sale.pax_senior ?? 0),
+  paxPwd: Number(sale.pax_pwd ?? 0),
   seniorIds: (sale.tin ?? sale.senior_id) ? [sale.tin ?? sale.senior_id ?? ''] : [],
-pwdIds: sale.pwd_id ? [sale.pwd_id] : [],
-posFooter: payload.settings ?? {},
+  pwdIds: sale.pwd_id ? [sale.pwd_id] : [],
+  sc_discount_amount: Number(sale.sc_discount_amount ?? 0),
+  pwd_discount_amount: Number(sale.pwd_discount_amount ?? 0),
+  itemPaxAssignments: (sale.sale_items || []).reduce((acc: any, raw: any, idx: number) => {
+    let assignments = raw.pax_assignment;
+    if (typeof assignments === 'string') {
+      try { assignments = JSON.parse(assignments); } catch { assignments = [assignments]; }
+    }
+    acc[String(idx)] = assignments || Array(raw.quantity).fill('none');
+    return acc;
+  }, {}),
+  posFooter: payload.settings ?? {},
 };
 };
 
