@@ -12,7 +12,7 @@ import {
 // ── Tab IDs ───────────────────────────────────────────────────────────────────
 export type TabId =
   | "overview" | "branches" | "users" | "devices" | "online_orders"
-  | "sales_report" | "analytics" | "items_report" | "staff_performance"
+  | "sales_report" | "analytics" | "items_report" | "staff_performance" | "branch_receipts"
   | "cross_branch_reports" | "x_reading" | "z_reading"
   | "menu_items" | "categories" | "subcategories"
   | "inv_overview" | "inventory_alerts" | "raw_materials" | "usage_report"
@@ -191,6 +191,7 @@ const REPORTS_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "analytics",            label: "Analytics & Sales",    icon: <TrendingUp    size={13} /> },
   { id: "items_report",         label: "Items Report",         icon: <List          size={16} /> },
   { id: "staff_performance",    label: "Staff Performance",    icon: <Users            size={16} /> },
+  { id: "branch_receipts",      label: "Branch Receipt",       icon: <Receipt       size={13} /> },
   { id: "cross_branch_reports", label: "Cross-Branch Reports", icon: <BarChart2     size={13} /> },
   { id: "x_reading",            label: "X Reading",            icon: <Repeat2       size={13} /> },
   { id: "z_reading",            label: "Z Reading",            icon: <FileText      size={13} /> },

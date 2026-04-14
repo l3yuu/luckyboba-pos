@@ -58,8 +58,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     try {
       const response = await api.get('/user');
-      const userData  = response.data;
-      localStorage.setItem('lucky_boba_user_name',      userData.name);
+      const userData = response.data;
+      
+      if (!userData || typeof userData !== 'object') {
+        throw new Error('Invalid user data received from server');
+      }
+
+      localStorage.setItem('lucky_boba_user_name',      userData.name || 'User');
       localStorage.setItem('lucky_boba_user_role',      userData.role || 'cashier');
       localStorage.setItem('lucky_boba_user_branch',    userData.branch_name ?? '');
       localStorage.setItem('lucky_boba_user_branch_id', String(userData.branch_id ?? ''));
@@ -108,13 +113,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { requires_2fa: true };
       }
 
+      if (!userData) {
+        console.error('✅ Login successful but "user" object missing:', response.data);
+        throw new Error('Authentication succeeded but user profile was not returned.');
+      }
+
       // ── Persist auth ──────────────────────────────────────────────────────
       localStorage.setItem('lucky_boba_token',          token);
-      localStorage.setItem('lucky_boba_user_name',      userData.name);
+      localStorage.setItem('lucky_boba_user_name',      userData.name || 'User');
       localStorage.setItem('lucky_boba_user_role',      userData.role || 'cashier');
       localStorage.setItem('lucky_boba_user_branch',    userData.branch_name ?? '');
       localStorage.setItem('lucky_boba_user_branch_id', String(userData.branch_id ?? ''));
-      localStorage.setItem('lucky_boba_user_id',        String(userData.id));
+      localStorage.setItem('lucky_boba_user_id',        String(userData.id ?? '0'));
       localStorage.setItem('lucky_boba_user_branch_vat', userData.branch_vat_type ?? 'vat');
       localStorage.removeItem('login_attempts');
       localStorage.removeItem('login_lockout_end');
@@ -165,12 +175,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const { token, user: userData, pos_number, branch_id } = response.data;
 
+      if (!userData) {
+        throw new Error('Account verified but profile data is missing.');
+      }
+
       localStorage.setItem('lucky_boba_token',          token);
-      localStorage.setItem('lucky_boba_user_name',      userData.name);
+      localStorage.setItem('lucky_boba_user_name',      userData.name || 'User');
       localStorage.setItem('lucky_boba_user_role',      userData.role || 'cashier');
       localStorage.setItem('lucky_boba_user_branch',    userData.branch_name ?? '');
       localStorage.setItem('lucky_boba_user_branch_id', String(userData.branch_id ?? ''));
-      localStorage.setItem('lucky_boba_user_id',        String(userData.id));
+      localStorage.setItem('lucky_boba_user_id',        String(userData.id ?? '0'));
       localStorage.setItem('lucky_boba_user_branch_vat', userData.branch_vat_type ?? 'vat');
       localStorage.removeItem('login_attempts');
       localStorage.removeItem('login_lockout_end');
