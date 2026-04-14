@@ -420,7 +420,11 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number |
   );
 };
 
-const InventoryAlertsTab: React.FC = () => {
+interface AlertProps {
+  onNavigate?: (id: any) => void;
+}
+
+const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate }) => {
   const [data, setData] = useState<BranchAlertGroup[]>([]);
   const [summary, setSummary] = useState<AlertSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -435,6 +439,7 @@ const InventoryAlertsTab: React.FC = () => {
   
   const [poTarget, setPoTarget]             = useState<{ bId: number; mId: number } | null>(null);
   const [transferTarget, setTransferTarget] = useState<{ bId: number; mId: number } | null>(null);
+  const [activeMenu, setActiveMenu]         = useState<{ bId: number; mId: number } | null>(null);
 
   const branches = useMemo(() => {
     // For filtering, we use branches that have alerts
@@ -671,9 +676,36 @@ const InventoryAlertsTab: React.FC = () => {
                             >
                               <ArrowRightLeft size={13} />
                             </button>
-                            <button className="p-1.5 hover:bg-zinc-100 text-zinc-400 rounded-lg transition-colors">
-                              <MoreVertical size={13} />
-                            </button>
+                            <div className="relative">
+                              <button
+                                onClick={() => setActiveMenu(activeMenu?.mId === item.id && activeMenu?.bId === branch.branch_id ? null : { bId: branch.branch_id, mId: item.id })}
+                                className="p-1.5 hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 rounded-lg transition-colors border border-transparent hover:border-zinc-200"
+                              >
+                                <MoreVertical size={13} />
+                              </button>
+
+                              {activeMenu?.mId === item.id && activeMenu?.bId === branch.branch_id && (
+                                <>
+                                  <div className="fixed inset-0 z-[100]" onClick={() => setActiveMenu(null)} />
+                                  <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-zinc-200 rounded-xl shadow-xl z-[101] py-1.5 animate-in fade-in zoom-in-95 duration-200">
+                                    <button
+                                      onClick={() => { onNavigate?.('raw_materials'); setActiveMenu(null); }}
+                                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-[#3b2063] transition-colors"
+                                    >
+                                      <Package size={14} className="text-zinc-400" />
+                                      Manage Material
+                                    </button>
+                                    <button
+                                      onClick={() => { onNavigate?.('usage_report'); setActiveMenu(null); }}
+                                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-[#3b2063] transition-colors"
+                                    >
+                                      <Clock size={14} className="text-zinc-400" />
+                                      Stock History
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -687,7 +719,10 @@ const InventoryAlertsTab: React.FC = () => {
                   <Clock size={10} />
                   <span>Last check: {new Date().toLocaleTimeString()}</span>
                 </div>
-                <button className="text-[#3b2063] font-bold hover:underline flex items-center gap-1">
+                <button
+                  onClick={() => onNavigate?.('inv_overview')}
+                  className="text-[#3b2063] font-bold hover:underline flex items-center gap-1"
+                >
                   View Full Branch Inventory <ChevronRight size={10} />
                 </button>
               </div>

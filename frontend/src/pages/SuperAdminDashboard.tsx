@@ -117,7 +117,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "item_serials": return <ItemSerialsTab />;
       case "purchase_order": return <PurchaseOrderTab />;
       case "stock_transfer": return <StockTransferTab />;
-      case "inventory_alerts": return <InventoryAlertsTab />;
+      case "inventory_alerts": return <InventoryAlertsTab onNavigate={setActive} />;
 
       // ── Expenses ──────────────────────────────────────────────────────────
       case "expenses": return <ExpensesTab />;
