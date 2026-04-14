@@ -22,7 +22,7 @@ class BranchController extends Controller
                 ->with(['manager:id,name,branch_id,role'])
                 ->orderBy('created_at', 'desc')
                 ->get()
-                ->map(fn($branch) => array_merge($branch->toArray(), [
+                ->map(fn(Branch $branch) => array_merge($branch->toArray(), [
                     'manager_name' => $branch->manager?->name ?? '—',
                     'staff_count'  => $branch->staff_count ?? 0,
                 ]));
@@ -51,7 +51,7 @@ class BranchController extends Controller
             $branches = Branch::where('status', 'active')
                 ->select(['id', 'name', 'location', 'store_address', 'latitude', 'longitude', 'status', 'image'])
                 ->get()
-                ->map(function ($branch) {
+                ->map(function (Branch $branch) {
                     return array_merge($branch->toArray(), [
                         'image' => $branch->image ? url('storage/' . $branch->image) : null,
                     ]);
@@ -123,6 +123,17 @@ public function store(Request $request)
         ]);
 
             AuditHelper::log('branch', "Created branch: {$branch->name}");
+
+            // Auto-clone all global raw materials to the new branch
+            $globals = \App\Models\RawMaterial::whereNull('branch_id')->get();
+            /** @var \App\Models\RawMaterial $global */
+            foreach ($globals as $global) {
+                $clone = $global->replicate();
+                $clone->branch_id = $branch->id;
+                $clone->parent_id = $global->id;
+                $clone->current_stock = 0;
+                $clone->save();
+            }
 
             return response()->json([
                 'success' => true,
