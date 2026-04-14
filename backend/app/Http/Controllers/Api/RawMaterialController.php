@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RawMaterial;
 use App\Models\RawMaterialLog;
 use App\Models\StockMovement;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -39,7 +40,46 @@ class RawMaterialController extends Controller
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        $materials = $query->orderBy('category')->orderBy('name')->get();
+        $materials = $query->with('branchStocks.branch')
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get();
+
+        // ✅ Multi-day Trend Calculation (Last 7 Days)
+        $sevenDaysAgo = now()->subDays(7)->startOfDay();
+        $movementsSet = StockMovement::whereIn('raw_material_id', $materials->pluck('id'))
+            ->where('created_at', '>=', $sevenDaysAgo)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy('raw_material_id');
+
+        $materials->each(function ($m) use ($movementsSet) {
+            $history = [];
+            $current = (float)$m->current_stock;
+            $movements = $movementsSet->get($m->id, collect());
+
+            // We want stock at end of each day: [6_days_ago, 5_ago, ..., today]
+            for ($i = 0; $i <= 7; $i++) {
+                $history[] = round($current, 2);
+                $cutoff = now()->subDays($i)->startOfDay();
+
+                // Movements that happened BETWEEN [cutoff] and [now]
+                // We basically "undo" these movements to find the previous state
+                foreach ($movements as $idx => $mov) {
+                    if ($mov->created_at >= $cutoff) {
+                        if ($mov->type === 'add') $current -= $mov->quantity;
+                        elseif ($mov->type === 'subtract' || $mov->type === 'waste') $current += $mov->quantity;
+                        elseif ($mov->type === 'set') {
+                            // If it's a 'set', we can't easily go further back without previous 'set' or movements
+                            // For simplicity, we assume older state was 0 if we hit a 'set' at the start of our window
+                            // But usually, we just stop undoing.
+                        }
+                        $movements->forget($idx); // Remove handled movement
+                    }
+                }
+            }
+            $m->stock_history = array_reverse($history);
+        });
 
         return response()->json($materials);
     }
@@ -74,8 +114,17 @@ class RawMaterialController extends Controller
             'branch_id'       => 'nullable|exists:branches,id',
         ]);
 
-        return DB::transaction(function() use ($validated) {
+        return DB::transaction(function() use ($validated, $request) {
             $material = RawMaterial::create($validated);
+
+            // ✅ Log Activity
+            AuditLog::create([
+                'user_id'    => auth()->id(),
+                'action'     => "Created Raw Material: {$material->name}",
+                'module'     => 'Inventory',
+                'details'    => "Category: {$material->category}, Initial Stock: {$material->current_stock} {$material->unit}",
+                'ip_address' => $request->ip(),
+            ]);
 
             // ✅ If this is a global material, auto-clone it for all existing branches
             if (empty($validated['branch_id'])) {
@@ -109,6 +158,15 @@ class RawMaterialController extends Controller
 
         $rawMaterial->update($validated);
 
+        // ✅ Log Activity
+        AuditLog::create([
+            'user_id'    => auth()->id(),
+            'action'     => "Updated Raw Material: {$rawMaterial->name}",
+            'module'     => 'Inventory',
+            'details'    => "Updated fields: " . implode(', ', array_keys($validated)),
+            'ip_address' => $request->ip(),
+        ]);
+
         return response()->json($rawMaterial);
     }
 
@@ -124,7 +182,17 @@ class RawMaterialController extends Controller
             ], 422);
         }
 
+        $materialName = $rawMaterial->name;
         $rawMaterial->delete();
+
+        // ✅ Log Activity
+        AuditLog::create([
+            'user_id'    => auth()->id(),
+            'action'     => "Deleted Raw Material: {$materialName}",
+            'module'     => 'Inventory',
+            'details'    => "Material was removed from the system.",
+            'ip_address' => request()->ip(),
+        ]);
 
         return response()->json(['message' => 'Deleted successfully.']);
     }
@@ -136,10 +204,15 @@ class RawMaterialController extends Controller
     public function adjust(Request $request, RawMaterial $rawMaterial)
     {
         $validated = $request->validate([
-            'type'     => 'required|in:add,subtract,set',
+            'type'     => 'required|in:add,subtract,set,waste',
             'quantity' => 'required|numeric|min:0',
             'reason'   => 'nullable|string',
         ]);
+
+        $user = auth()->user();
+        if (in_array($user->role, ['branch_manager', 'team_leader']) && $rawMaterial->branch_id !== $user->branch_id) {
+            return response()->json(['message' => 'Unauthorized: This material belongs to another branch.'], 403);
+        }
 
         try {
             DB::transaction(function () use ($validated, $rawMaterial) {
@@ -148,6 +221,7 @@ class RawMaterialController extends Controller
                         $rawMaterial->increment('current_stock', $validated['quantity']);
                         break;
                     case 'subtract':
+                    case 'waste':
                         $rawMaterial->decrement('current_stock', $validated['quantity']);
                         break;
                     case 'set':
@@ -162,6 +236,15 @@ class RawMaterialController extends Controller
                     'type'            => $validated['type'],
                     'quantity'        => $validated['quantity'],
                     'reason'          => $validated['reason'] ?? ucfirst($validated['type']) . ' (manual)',
+                ]);
+
+                // ✅ Log Activity
+                AuditLog::create([
+                    'user_id'    => auth()->id(),
+                    'action'     => "Manual Stock Adjustment",
+                    'module'     => 'Inventory',
+                    'details'    => "Material: {$rawMaterial->name}. Type: {$validated['type']}, Qty: {$validated['quantity']} {$rawMaterial->unit}. Reason: " . ($validated['reason'] ?? 'None'),
+                    'ip_address' => request()->ip(),
                 ]);
             });
 
@@ -250,5 +333,82 @@ class RawMaterialController extends Controller
             ]);
 
         return response()->json($movements);
+    }
+
+    /**
+     * POST /api/raw-materials/bulk-audit
+     * Bulk physical count audit.
+     */
+    public function bulkAudit(Request $request)
+    {
+        $validated = $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|exists:raw_materials,id',
+            'items.*.beg' => 'nullable|numeric|min:0',
+            'items.*.actual' => 'nullable|numeric|min:0',
+            'reason' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        $reason = $validated['reason'] ?? 'Physical Count Audit';
+
+        try {
+            return DB::transaction(function () use ($validated, $user, $reason) {
+                foreach ($validated['items'] as $auditItem) {
+                    $material = RawMaterial::findOrFail($auditItem['id']);
+
+                    // Branch Isolation Check
+                    if (in_array($user->role, ['branch_manager', 'team_leader']) && $material->branch_id !== $user->branch_id) {
+                        continue; // Skip items from other branches
+                    }
+
+                    $oldStock = $material->current_stock;
+                    
+                    // 1. Check for manual BEG (Opening) adjust
+                    if (isset($auditItem['beg'])) {
+                        $begValue = $auditItem['beg'];
+                        // Record a movement at the very start of today (00:00:01)
+                        // This ensures the Usage Report's "BEG" calculation for "today"
+                        // respects this manual entry.
+                        StockMovement::create([
+                            'raw_material_id' => $material->id,
+                            'branch_id'       => $material->branch_id,
+                            'type'            => 'set',
+                            'quantity'        => $begValue,
+                            'reason'          => 'Manual Opening Adjustment',
+                            'created_at'      => now()->startOfDay()->addSecond(),
+                        ]);
+                    }
+
+                    // 2. Update current inventory if 'actual' (Closing) is provided
+                    if (isset($auditItem['actual'])) {
+                        $actual = $auditItem['actual'];
+                        $material->update(['current_stock' => $actual]);
+
+                        StockMovement::create([
+                            'raw_material_id' => $material->id,
+                            'branch_id'       => $material->branch_id,
+                            'type'            => 'set',
+                            'quantity'        => $actual,
+                            'reason'          => $reason . " (Prev: " . round((float)$oldStock, 2) . ")",
+                        ]);
+                    }
+                }
+
+                // ✅ Log Activity
+                AuditLog::create([
+                    'user_id'    => $user->id,
+                    'action'     => "Bulk Physical Count Audit",
+                    'module'     => 'Usage Report',
+                    'details'    => "Submitted physical counts for " . count($validated['items']) . " materials. Reason: " . $reason,
+                    'ip_address' => request()->ip(),
+                ]);
+
+                return response()->json(['message' => 'Bulk inventory audit completed successfully.']);
+            });
+        } catch (\Exception $e) {
+            Log::error('Bulk Audit Error: ' . $e->getMessage());
+            return response()->json(['message' => 'Audit failed.'], 500);
+        }
     }
 }

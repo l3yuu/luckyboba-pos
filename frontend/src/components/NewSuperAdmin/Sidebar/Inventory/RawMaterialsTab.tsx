@@ -13,7 +13,13 @@ import api from '../../../../services/api';
 
 type Unit = 'PC' | 'PK' | 'BAG' | 'BTL' | 'BX' | 'ML' | 'G' | 'KG' | 'L';
 type Category = 'Packaging' | 'Ingredients' | 'Intermediate' | 'Equipment';
-type AdjType = 'add' | 'subtract' | 'set';
+type AdjType = 'add' | 'subtract' | 'set' | 'waste';
+
+interface BranchStock {
+  id: number;
+  branch?: { name: string };
+  current_stock: number;
+}
 
 interface RawMaterial {
   id: number;
@@ -25,6 +31,9 @@ interface RawMaterial {
   is_intermediate: boolean;
   notes?: string;
   created_at?: string;
+  branch_id?: number | null;
+  branch_stocks?: BranchStock[];
+  stock_history?: number[];
 }
 
 interface Movement {
@@ -81,7 +90,43 @@ const timeAgo = (d: string) => {
   return new Date(d).toLocaleDateString();
 };
 
-// ─── Shared UI ────────────────────────────────────────────────────────────────
+const WASTE_REASONS = [
+  'Expired', 'Spilled / Accident', 'Damaged Item', 'Quality Issue', 'Theft / Missing', 'Other'
+];
+
+const TrendSparkline: React.FC<{ data: number[] }> = ({ data }) => {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const padding = 2;
+  const width = 60;
+  const height = 24;
+
+  const points = data.map((val, i) => ({
+    x: (i / (data.length - 1)) * width,
+    y: height - ((val - min) / range) * (height - padding * 2) - padding
+  }));
+
+  const first = data[0];
+  const last = data[data.length - 1];
+  const isUp = last > first;
+  const isDown = last < first;
+  const color = isUp ? '#16a34a' : isDown ? '#dc2626' : '#94a3b8';
+
+  const d = points.reduce((acc, p, i) =>
+    i === 0 ? `M ${p.x},${p.y}` : `${acc} L ${p.x},${p.y}`, ''
+  );
+
+  return (
+    <div className="flex flex-col gap-1">
+      <svg width={width} height={height} className="overflow-visible">
+        <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="2" fill={color} />
+      </svg>
+    </div>
+  );
+};
 
 const inputCls = (err?: string) =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
@@ -123,12 +168,6 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
       .finally(() => setLoading(false));
   }, [item.id]);
 
-  const typeIcon = (t: AdjType) => {
-    if (t === 'add') return <TrendingUp size={12} color="#16a34a" />;
-    if (t === 'subtract') return <TrendingDown size={12} color="#dc2626" />;
-    return <Minus size={12} color="#3b2063" />;
-  };
-
   const typeColor = (t: AdjType) => t === 'add' ? '#16a34a' : t === 'subtract' ? '#dc2626' : '#3b2063';
 
   return createPortal(
@@ -166,8 +205,11 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
           ) : movements.map(m => (
             <div key={m.id} className="flex items-start gap-3 px-5 py-3.5 border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
               <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                style={{ background: m.type === 'add' ? '#f0fdf4' : m.type === 'subtract' ? '#fef2f2' : '#f5f0ff' }}>
-                {typeIcon(m.type)}
+                style={{ background: m.type === 'add' ? '#f0fdf4' : m.type === 'subtract' ? '#fef2f2' : m.type === 'waste' ? '#fff7ed' : '#f5f0ff' }}>
+                {m.type === 'add' ? <TrendingUp size={12} className="text-[#16a34a]" /> :
+                  m.type === 'subtract' ? <TrendingDown size={12} className="text-[#dc2626]" /> :
+                    m.type === 'waste' ? <Trash2 size={12} className="text-[#ea580c]" /> :
+                      <Minus size={12} className="text-[#3b2063]" />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
@@ -204,8 +246,8 @@ const AdjustModal: React.FC<{
 
   const preview = () => {
     if (qty === '') return item.current_stock;
-    if (adjType === 'add') return item.current_stock + Number(qty);
-    if (adjType === 'subtract') return Math.max(0, item.current_stock - Number(qty));
+    if (adjType === 'add') return Number(item.current_stock) + Number(qty);
+    if (adjType === 'subtract' || adjType === 'waste') return Math.max(0, Number(item.current_stock) - Number(qty));
     return Number(qty);
   };
 
@@ -227,8 +269,9 @@ const AdjustModal: React.FC<{
 
   const typeConfig = {
     add: { label: 'Add Stock', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: <TrendingUp size={14} /> },
-    subtract: { label: 'Subtract Stock', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: <TrendingDown size={14} /> },
-    set: { label: 'Set Stock', color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus size={14} /> },
+    subtract: { label: 'Subtract', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: <TrendingDown size={14} /> },
+    waste: { label: 'Waste', color: '#ea580c', bg: '#fff7ed', border: '#fed7aa', icon: <Trash2 size={14} /> },
+    set: { label: 'Set To', color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus size={14} /> },
   };
 
   return createPortal(
@@ -260,15 +303,15 @@ const AdjustModal: React.FC<{
           ) : (
             <>
               {/* Type selector */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {(Object.entries(typeConfig) as [AdjType, typeof typeConfig.add][]).map(([key, cfg]) => (
-                  <button key={key} onClick={() => setAdjType(key)}
-                    className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-lg border text-xs font-bold transition-all"
+                  <button key={key} onClick={() => { setAdjType(key); if (key === 'waste' && !WASTE_REASONS.includes(reason)) setReason(WASTE_REASONS[0]); }}
+                    className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-lg border text-[10px] font-bold transition-all"
                     style={adjType === key
                       ? { background: cfg.bg, color: cfg.color, borderColor: cfg.border }
                       : { background: 'white', color: '#71717a', borderColor: '#e4e4e7' }}>
                     <span style={{ color: adjType === key ? cfg.color : '#a1a1aa' }}>{cfg.icon}</span>
-                    {cfg.label.split(' ')[0]}
+                    {cfg.label}
                   </button>
                 ))}
               </div>
@@ -289,15 +332,26 @@ const AdjustModal: React.FC<{
               </div>
 
               <Field label="Quantity" required>
-                <input type="number" min="0" value={qty}
-                  onChange={e => setQty(e.target.value === '' ? '' : Number(e.target.value))}
-                  className={inputCls()} placeholder="Enter quantity..." />
+                <div className="relative">
+                  <input type="number" min="0" value={qty}
+                    onChange={e => setQty(e.target.value === '' ? '' : Number(e.target.value))}
+                    className={`${inputCls()} pr-10`} placeholder="0" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-400 uppercase">{item.unit}</span>
+                </div>
               </Field>
 
-              <Field label="Reason" required>
-                <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2}
-                  className={`${inputCls()} resize-none`} placeholder="e.g. Received from supplier, damaged goods..." />
-              </Field>
+              {adjType === 'waste' ? (
+                <Field label="Waste Category" required>
+                  <select value={reason} onChange={e => setReason(e.target.value)} className={inputCls()}>
+                    {WASTE_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </Field>
+              ) : (
+                <Field label="Reason / Notes" required>
+                  <input value={reason} onChange={e => setReason(e.target.value)}
+                    className={inputCls()} placeholder="e.g. Received from supplier" />
+                </Field>
+              )}
 
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -535,6 +589,10 @@ const RawMaterialsTab: React.FC = () => {
   const [delTarget, setDelTarget] = useState<RawMaterial | null>(null);
   const [adjTarget, setAdjTarget] = useState<RawMaterial | null>(null);
   const [histTarget, setHistTarget] = useState<RawMaterial | null>(null);
+  const [stockPopId, setStockPopId] = useState<number | null>(null);
+  const [popSearch, setPopSearch] = useState('');
+  const [branches, setBranches] = useState<Array<{ id: number; name: string }>>([]);
+  const [branchId, setBranchId] = useState<string>('');
 
   const normalize = (m: RawMaterial): RawMaterial => ({
     ...m,
@@ -546,15 +604,27 @@ const RawMaterialsTab: React.FC = () => {
   const fetchMaterials = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/raw-materials');
+      const res = await api.get('/raw-materials', {
+        params: { branch_id: branchId || undefined }
+      });
       const data = res.data;
       const raw = Array.isArray(data) ? data : data?.data ?? [];
-      setMaterials(raw.map(normalize)); // ← add .map(normalize) here
+      setMaterials(raw.map(normalize));
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
+  }, [branchId]);
+
+  const fetchBranches = useCallback(async () => {
+    try {
+      const res = await api.get('/branches');
+      setBranches(Array.isArray(res.data) ? res.data : res.data?.data ?? []);
+    } catch (e) { console.error(e); }
   }, []);
 
-  useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
+  useEffect(() => {
+    fetchMaterials();
+    fetchBranches();
+  }, [fetchMaterials, fetchBranches]);
 
   const filtered = materials.filter(m => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase());
@@ -602,6 +672,11 @@ const RawMaterialsTab: React.FC = () => {
               placeholder="Search materials..." />
             {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500 transition-colors"><X size={13} /></button>}
           </div>
+          <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#3b2063] outline-none h-9 focus:ring-2 focus:ring-[#e9d5ff]">
+            <option value="">All Branches</option>
+            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
           <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
             className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
             <option value="">All Categories</option>
@@ -625,7 +700,7 @@ const RawMaterialsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {['Item', 'Category', 'Unit', 'Current Stock', 'Reorder Level', 'Status', 'Actions'].map(h => (
+                {['Item', 'Category', 'Unit', '7D Trend', 'Current Stock', 'Reorder Level', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -678,11 +753,67 @@ const RawMaterialsTab: React.FC = () => {
                       <span className="text-xs font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded">{m.unit}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
+                      {m.stock_history && <TrendSparkline data={m.stock_history} />}
+                    </td>
+                    <td className="px-5 py-3.5 relative">
+                      <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setStockPopId(stockPopId === m.id ? null : m.id)}>
                         <span className="text-sm font-black tabular-nums" style={{ color: barColor }}>{m.current_stock}</span>
                         <div className="w-14 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
                         </div>
+                        {!branchId && m.branch_stocks && m.branch_stocks.length > 0 && (
+                          <div className="w-4 h-4 rounded-full bg-zinc-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Plus size={10} className="text-zinc-500" />
+                          </div>
+                        )}
+
+                        {/* Stock Popover */}
+                        {stockPopId === m.id && m.branch_stocks && (
+                          <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 z-50 w-64 bg-white border border-zinc-200 rounded-xl shadow-xl p-3 animate-in fade-in zoom-in slide-in-from-bottom-2 duration-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-[#3b2063]">Branch Distribution</p>
+                              <button onClick={(e) => { e.stopPropagation(); setStockPopId(null); setPopSearch(''); }} className="text-zinc-300 hover:text-zinc-500"><X size={10} /></button>
+                            </div>
+
+                            {/* Mini Search */}
+                            {m.branch_stocks.length > 5 && (
+                              <div className="mb-2 relative">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-300" size={10} />
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  placeholder="Filter branches..."
+                                  value={popSearch}
+                                  onChange={(e) => setPopSearch(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-full bg-zinc-50 border border-zinc-100 rounded-lg pl-6 pr-2 py-1 text-[10px] outline-none focus:ring-1 focus:ring-[#e9d5ff]"
+                                />
+                              </div>
+                            )}
+
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                              {m.branch_stocks
+                                .filter(bs => bs.branch?.name.toLowerCase().includes(popSearch.toLowerCase()))
+                                .map(bs => (
+                                  <div key={bs.id} className="flex items-center justify-between text-[11px] py-0.5 border-b border-transparent hover:border-zinc-50 transition-colors">
+                                    <span className="text-zinc-500 font-medium">{bs.branch?.name ?? 'Unknown'}</span>
+                                    <span className="font-bold text-[#1a0f2e]">{bs.current_stock} {m.unit}</span>
+                                  </div>
+                                ))}
+                              {m.branch_stocks.filter(bs => bs.branch?.name.toLowerCase().includes(popSearch.toLowerCase())).length === 0 && (
+                                <p className="text-[10px] text-center text-zinc-400 py-2">No branches found.</p>
+                              )}
+                            </div>
+
+                            <div className="pt-2 border-t border-zinc-100 mt-2 flex items-center justify-between text-[11px]">
+                              <span className="font-bold text-zinc-900 uppercase tracking-tighter">System Total</span>
+                              <span className="font-black text-[#3b2063] underline decoration-[#e9d5ff] underline-offset-2">
+                                {m.branch_stocks.reduce((acc, s) => acc + Number(s.current_stock), 0)} {m.unit}
+                              </span>
+                            </div>
+                            <div className="absolute w-2 h-2 bg-white border-r border-b border-zinc-200 rotate-45 left-1/2 -translate-x-1/2 -bottom-1" />
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-zinc-500 text-xs font-medium">{m.reorder_level}</td>

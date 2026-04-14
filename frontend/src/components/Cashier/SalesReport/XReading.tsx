@@ -94,10 +94,10 @@ interface XReadingReport {
   net_total?: number;
 }
 
-const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
+const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
   <div className={`flex justify-between text-[11px] font-bold leading-snug ${indent ? 'pl-3' : ''}`}>
     <span className="uppercase w-[60%] leading-tight text-black">{label}</span>
-    <span className="text-right w-[40%] text-black">{value}</span>
+    <span className="text-right w-[40%] text-black whitespace-pre-line">{value}</span>
   </div>
 );
 
@@ -732,8 +732,8 @@ const XReading = () => {
       <div className="my-2">
         <Divider />
         <Row label="REPORT DATE" value={selectedDate} />
-        <Row label="START DATE & TIME" value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
-        <Row label="END DATE & TIME" value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+        <Row label="START DATE & TIME" value={`${selectedDate}\n${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+        <Row label="END DATE & TIME" value={`${selectedDate}\n${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
         <Row label="TERMINAL #" value="POS-01" />
         <Row label="CASHIER" value={reportData?.prepared_by || cashierName} />
         <Row label="BEG. SI #" value={reportData?.beg_si || '0000000000'} />

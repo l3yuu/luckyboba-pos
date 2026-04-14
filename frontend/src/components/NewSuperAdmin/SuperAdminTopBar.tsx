@@ -97,6 +97,9 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   card_approvals: { label: "Card Approvals", desc: "Review and approve membership card requests" },
   card_members: { label: "Card Members", desc: "Active subscribers and daily perk usage" },
   loyalty: { label: "Loyalty", desc: "Manage loyalty programs and rewards" },
+  customers: { label: "Customers", desc: "Manage registered customer accounts" },
+  notifications: { label: "Notification Center", desc: "Real-time system alerts and events" },
+  online_orders: { label: "Online Orders", desc: "Monitor online order queue and statuses" },
 };
 
 // ── Pulse animation ───────────────────────────────────────────────────────────

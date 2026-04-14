@@ -52,16 +52,18 @@ interface ReceiptPrintProps {
   // FIX #3 — accept string[] to match SalesOrder state (joined to comma-string for display)
   seniorIds?: string[];
   pwdIds?: string[];
+  sc_discount_amount?: number;
+  pwd_discount_amount?: number;
   itemPaxAssignments?: Record<string, ('none' | 'sc' | 'pwd')[]>;
   posFooter?: {
-    pos_supplier?:    string;
-    pos_address?:     string;
-    pos_tin?:         string;
-    pos_accred_no?:   string;
+    pos_supplier?: string;
+    pos_address?: string;
+    pos_tin?: string;
+    pos_accred_no?: string;
     pos_date_issued?: string;
     pos_valid_until?: string;
-    pos_ptu?:         string;
-    pos_ptu_date?:    string;
+    pos_ptu?: string;
+    pos_ptu_date?: string;
   };
 }
 
@@ -82,6 +84,8 @@ export const ReceiptPrint = ({
   // FIX #3 — renamed from seniorId/pwdId (singular string) to seniorIds/pwdIds (string[])
   seniorIds = [],
   pwdIds = [],
+  sc_discount_amount = 0,
+  pwd_discount_amount = 0,
   itemPaxAssignments = {},
   posFooter = {},
 }: ReceiptPrintProps) => {
@@ -91,6 +95,60 @@ export const ReceiptPrint = ({
   // below uses itemPaxAssignments directly, which is the correct source of truth.
 
   const isVat = vatType === 'vat';
+
+  // 1. Lifted splitGroups calculation
+  const getDiscountInfo = (type: 'sc' | 'pwd' | 'none') => {
+    if (type === 'none') return { label: '', pct: 0 };
+    const d = selectedDiscounts.find(x =>
+      (type === 'sc' && x.name.toUpperCase().includes('SENIOR')) ||
+      (type === 'pwd' && (x.name.toUpperCase().includes('PWD') || x.name.toUpperCase().includes('DIPLOMAT')))
+    );
+    return {
+      label: type === 'sc' ? 'SC' : 'PWD',
+      pct: d ? (d.type?.includes('Percent') ? Number(d.amount) : 20) : 20,
+    };
+  };
+
+  const splitGroups: {
+    cartIndex: number;
+    item: CartItem;
+    discountType: 'none' | 'sc' | 'pwd';
+    discountLabel: string;
+    discountPct: number;
+    count: number;
+  }[] = [];
+
+  cart.forEach((item, cartIndex) => {
+    const assignments = itemPaxAssignments[String(cartIndex)] ?? Array(item.qty).fill('none');
+    const groups: Record<'none' | 'sc' | 'pwd', number> = { none: 0, sc: 0, pwd: 0 };
+    assignments.forEach((a: 'none' | 'sc' | 'pwd') => groups[a]++);
+
+    (['sc', 'pwd', 'none'] as const).forEach(discountType => {
+      const count = groups[discountType];
+      if (count === 0) return;
+      const info = getDiscountInfo(discountType);
+      splitGroups.push({
+        cartIndex,
+        item,
+        discountType,
+        discountLabel: info.label,
+        discountPct: info.pct,
+        count,
+      });
+    });
+  });
+
+
+
+  const addOnUnitPrice = (item: CartItem, addonName: string): number => {
+    const a = addOnsData.find(x => x.name === addonName);
+    if (!a) return 0;
+    return item.charges?.grab && Number(a.grab_price ?? 0) > 0
+      ? Number(a.grab_price)
+      : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+        ? Number(a.panda_price)
+        : Number(a.price);
+  };
 
   return (
     <div className="printable-receipt-container hidden print:block">
@@ -151,47 +209,6 @@ export const ReceiptPrint = ({
         {/* Items - Split by discount type */}
         <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
           {(() => {
-            const splitGroups: {
-              cartIndex: number;
-              item: CartItem;
-              discountType: 'none' | 'sc' | 'pwd';
-              discountLabel: string;
-              discountPct: number;
-              count: number;
-            }[] = [];
-
-            const getDiscountInfo = (type: 'sc' | 'pwd' | 'none') => {
-              if (type === 'none') return { label: '', pct: 0 };
-              const d = selectedDiscounts.find(x =>
-                (type === 'sc' && x.name.toUpperCase().includes('SENIOR')) ||
-                (type === 'pwd' && (x.name.toUpperCase().includes('PWD') || x.name.toUpperCase().includes('DIPLOMAT')))
-              );
-              return {
-                label: type === 'sc' ? 'SC' : 'PWD',
-                pct: d ? (d.type?.includes('Percent') ? Number(d.amount) : 20) : 20,
-              };
-            };
-
-            cart.forEach((item, cartIndex) => {
-              const assignments = itemPaxAssignments[String(cartIndex)] ?? Array(item.qty).fill('none');
-              const groups: Record<'none' | 'sc' | 'pwd', number> = { none: 0, sc: 0, pwd: 0 };
-              assignments.forEach((a: 'none' | 'sc' | 'pwd') => groups[a]++);
-
-              (['sc', 'pwd', 'none'] as const).forEach(discountType => {
-                const count = groups[discountType];
-                if (count === 0) return;
-                const info = getDiscountInfo(discountType);
-                splitGroups.push({
-                  cartIndex,
-                  item,
-                  discountType,
-                  discountLabel: info.label,
-                  discountPct: info.pct,
-                  count,
-                });
-              });
-            });
-
             const shownAddOns = new Set<number>();
 
             return splitGroups.map((group, gi) => {
@@ -201,32 +218,12 @@ export const ReceiptPrint = ({
               const showAddOns = !shownAddOns.has(cartIndex);
               if (showAddOns) shownAddOns.add(cartIndex);
 
-              // FIX #8 — for Grab/Panda orders item.price already IS the surcharge price
-              // (the menu stores grab_price / panda_price as the full item price in those modes).
-              // surchargePerUnit is only used as a display delta for the "X qty × unit" label —
-              // do NOT add it again to unitGross, which would double-count it.
-              const addOnUnitPrice = (addonName: string): number => {
-                const a = addOnsData.find(x => x.name === addonName);
-                if (!a) return 0;
-                return item.charges?.grab && Number(a.grab_price ?? 0) > 0
-                  ? Number(a.grab_price)
-                  : item.charges?.panda && Number(a.panda_price ?? 0) > 0
-                  ? Number(a.panda_price)
-                  : Number(a.price);
-              };
-
               const addOnCostPerUnit = (item.addOns ?? []).reduce(
-                (sum, name) => sum + addOnUnitPrice(name),
+                (sum: number, name: string) => sum + addOnUnitPrice(item, name),
                 0
               );
 
-              // item.price already reflects the correct Grab/Panda/base price —
-              // unitGross is simply the per-unit base price plus any add-on cost.
               const unitGross = Number(item.price) + addOnCostPerUnit;
-              const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
-              const discountAmt = hasPaxDiscount ? unitVatExcl * (discountPct / 100) : 0;
-              const netPrice = hasPaxDiscount ? unitVatExcl - discountAmt : unitGross;
-
               return (
                 <div key={gi} className="mb-3">
                   {/* Item name + badge */}
@@ -248,20 +245,6 @@ export const ReceiptPrint = ({
                       {(unitGross * count).toFixed(2)}
                     </span>
                   </div>
-
-                  {/* ── Per-item SC/PWD VAT breakdown ── */}
-                  {hasPaxDiscount && (
-                    <div className="mt-1 pl-1 text-[10px] border-t border-dashed border-gray-400 pt-1 space-y-0.5">
-                      <div className="flex justify-between">
-                        <span>{discountLabel} Discount ({discountPct}%)</span>
-                        <span>-₱{(discountAmt * count).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between font-bold border-t border-dashed border-gray-400 pt-0.5">
-                        <span>Net Price (VAT Exempt)</span>
-                        <span>₱{(netPrice * count).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Item-level discount label (e.g. BOGO, promo) */}
                   {isFirstGroupForItem && item.discountLabel && item.discountType && item.discountValue !== '' && Number(item.discountValue) !== 0 && (() => {
@@ -298,13 +281,13 @@ export const ReceiptPrint = ({
 
                   {/* Add-ons as separate line items - only once per original item */}
                   {showAddOns && item.addOns && item.addOns.length > 0 && item.addOns.map((addonName, ai) => {
-                    const addonUnitPrice = addOnUnitPrice(addonName);
-                    const addonTotal = addonUnitPrice * item.qty;
+                    const price = addOnUnitPrice(item, addonName);
+                    const addonTotal = price * item.qty;
                     return (
                       <div key={ai} className="mt-2 pt-1 border-t border-dashed border-gray-300">
                         <div className="uppercase font-medium">{addonName}</div>
                         <div className="flex justify-between w-full mt-0.5">
-                          <span>{item.qty} X {addonUnitPrice.toFixed(2)}</span>
+                          <span>{item.qty} X {price.toFixed(2)}</span>
                           <span>{addonTotal.toFixed(2)}</span>
                         </div>
                       </div>
@@ -335,8 +318,8 @@ export const ReceiptPrint = ({
                     {(selectedDiscount as { name: string; amount?: number; type?: string }).type?.includes('Percent')
                       ? ` (${(selectedDiscount as { name: string; amount?: number; type?: string }).amount}%)`
                       : (selectedDiscount as { name: string; amount?: number; type?: string }).amount
-                      ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
-                      : ''}
+                        ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
+                        : ''}
                   </span>
                   <span>- {promoDiscount.toFixed(2)}</span>
                 </div>
@@ -347,6 +330,106 @@ export const ReceiptPrint = ({
               </div>
             </>
           )}
+
+          {/* PAX Discount Detailed Breakdown (Summary) */}
+          {(() => {
+            if (!_isReprint) {
+              const paxGroups = (['sc', 'pwd'] as const).filter(t =>
+                splitGroups.some(g => g.discountType === t)
+              );
+              if (paxGroups.length === 0) return null;
+              return (
+                <div className="space-y-2 border-t border-dashed border-black py-2">
+                  {paxGroups.map(type => {
+                    const groups = splitGroups.filter(g => g.discountType === type);
+                    const discountTotal = groups.reduce((acc: number, g) => {
+                      const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
+                        const a = addOnsData.find(x => x.name === name);
+                        return sum + (a ? Number(a.price) : 0);
+                      }, 0);
+                      const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
+                      return acc + (unitVatExcl * (g.discountPct / 100)) * g.count;
+                    }, 0);
+                    const groupNetSubtotal = groups.reduce((acc: number, g) => {
+                      const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
+                        const a = addOnsData.find(x => x.name === name);
+                        return sum + (a ? Number(a.price) : 0);
+                      }, 0);
+                      const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
+                      const discAmt = unitVatExcl * (g.discountPct / 100);
+                      return acc + (unitVatExcl - discAmt) * g.count;
+                    }, 0);
+
+                    const groupLessVat = groups.reduce((acc: number, g) => {
+                      const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
+                        const a = addOnsData.find(x => x.name === name);
+                        return sum + (a ? Number(a.price) : 0);
+                      }, 0);
+                      const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
+                      return acc + (unitGross - unitVatExcl) * g.count;
+                    }, 0);
+
+                    return (
+                      <div key={type} className="space-y-0.5">
+                        <div className="uppercase font-bold">{type === 'sc' ? 'Senior' : 'PWD'} PAX Summary</div>
+                        <div className="flex justify-between font-normal">
+                          <span>Discount ({groups[0].discountPct}%)</span>
+                          <span>-₱{discountTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Less VAT</span>
+                          <span>₱{groupLessVat.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Net of VAT</span>
+                          <span>₱{(subtotal / 1.12).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between italic">
+                          <span>Net Price (VAT Exempt)</span>
+                          <span>₱{groupNetSubtotal.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+            if (_isReprint && (sc_discount_amount > 0 || pwd_discount_amount > 0)) {
+              const paxTypes = [];
+              if (sc_discount_amount > 0) paxTypes.push({ type: 'sc', amt: sc_discount_amount, label: 'Senior' });
+              if (pwd_discount_amount > 0) paxTypes.push({ type: 'pwd', amt: pwd_discount_amount, label: 'PWD' });
+              return (
+                <div className="space-y-2 border-t border-dashed border-black py-2">
+                  {paxTypes.map(p => {
+                    const groupLessVat = (p.amt / 0.20) * 0.12;
+                    return (
+                    <div key={p.type} className="space-y-0.5">
+                      <div className="uppercase font-bold">{p.label} PAX Summary</div>
+                      <div className="flex justify-between font-normal">
+                        <span>Discount (20%)</span>
+                        <span>-₱{p.amt.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Less VAT</span>
+                        <span>-₱{groupLessVat.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Net of VAT</span>
+                        <span>₱{(subtotal / 1.12).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between italic text-[10px]">
+                        <span>Net Price (VAT Exempt)</span>
+                        <span>₱{(p.amt / 0.20).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )})}
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+
           <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{amtDue.toFixed(2)}</span></div>
         </div>
 
@@ -411,14 +494,14 @@ export const ReceiptPrint = ({
         {/* ── POS Supplier Footer ── */}
         {(posFooter.pos_supplier || posFooter.pos_tin) && (
           <div className="mt-2 mb-4 text-left text-[10px] border-t border-dashed border-black pt-3 space-y-0.5 leading-snug">
-            {posFooter.pos_supplier    && <div className="font-bold uppercase">POS SUPPLIER: {posFooter.pos_supplier}</div>}
-            {posFooter.pos_address     && <div>{posFooter.pos_address}</div>}
-            {posFooter.pos_tin         && <div>TIN: {posFooter.pos_tin}</div>}
-            {posFooter.pos_accred_no   && <div>Accred No: {posFooter.pos_accred_no}</div>}
+            {posFooter.pos_supplier && <div className="font-bold uppercase">POS SUPPLIER: {posFooter.pos_supplier}</div>}
+            {posFooter.pos_address && <div>{posFooter.pos_address}</div>}
+            {posFooter.pos_tin && <div>TIN: {posFooter.pos_tin}</div>}
+            {posFooter.pos_accred_no && <div>Accred No: {posFooter.pos_accred_no}</div>}
             {posFooter.pos_date_issued && <div>Date Issued: {posFooter.pos_date_issued}</div>}
             {posFooter.pos_valid_until && <div>Valid Until: {posFooter.pos_valid_until}</div>}
-            {posFooter.pos_ptu         && <div>PTU No: {posFooter.pos_ptu}</div>}
-            {posFooter.pos_ptu_date    && <div>PTU Date Issued: {posFooter.pos_ptu_date}</div>}
+            {posFooter.pos_ptu && <div>PTU No: {posFooter.pos_ptu}</div>}
+            {posFooter.pos_ptu_date && <div>PTU Date Issued: {posFooter.pos_ptu_date}</div>}
           </div>
         )}
 
@@ -558,25 +641,25 @@ interface StickerClasses {
 }
 
 const getStickerClasses = (extraCount: number, nameLength = 0): StickerClasses => {
-  const isCrowded       = extraCount >= 2;
-  const isVeryCrowded   = extraCount >= 4;
-  const isUltraCrowded  = extraCount >= 6;
-  const isLongName      = nameLength > 12;
-  const isVeryLongName  = nameLength > 18;
+  const isCrowded = extraCount >= 2;
+  const isVeryCrowded = extraCount >= 4;
+  const isUltraCrowded = extraCount >= 6;
+  const isLongName = nameLength > 12;
+  const isVeryLongName = nameLength > 18;
   const isUltraLongName = nameLength > 25;
   return {
-    paddingClass:  isUltraCrowded ? 'p-0' : isVeryCrowded ? 'p-0.5' : 'p-1',
-    titleSize:     isUltraCrowded ? 'text-[8px]' : isVeryCrowded ? 'text-[9px]' : isCrowded ? 'text-[10px]' : 'text-[11px]',
-    nameSize:      isUltraCrowded || isUltraLongName
-                     ? 'text-[7px]'
-                     : isVeryCrowded || isVeryLongName
-                     ? 'text-[8px]'
-                     : isCrowded || isLongName
-                     ? 'text-[9px]'
-                     : 'text-[11px]',
-    addOnSize:     isUltraCrowded ? 'text-[5.5px]' : isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[8px]',
-    gapClass:      isUltraCrowded ? 'space-y-0 leading-none' : isVeryCrowded ? 'space-y-0 leading-tight' : 'space-y-0.5 leading-tight',
-    marginClass:   isUltraCrowded || isVeryCrowded ? 'mb-0' : 'mb-0.5',
+    paddingClass: isUltraCrowded ? 'p-0' : isVeryCrowded ? 'p-0.5' : 'p-1',
+    titleSize: isUltraCrowded ? 'text-[8px]' : isVeryCrowded ? 'text-[9px]' : isCrowded ? 'text-[10px]' : 'text-[11px]',
+    nameSize: isUltraCrowded || isUltraLongName
+      ? 'text-[7px]'
+      : isVeryCrowded || isVeryLongName
+        ? 'text-[8px]'
+        : isCrowded || isLongName
+          ? 'text-[9px]'
+          : 'text-[11px]',
+    addOnSize: isUltraCrowded ? 'text-[5.5px]' : isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[8px]',
+    gapClass: isUltraCrowded ? 'space-y-0 leading-none' : isVeryCrowded ? 'space-y-0 leading-tight' : 'space-y-0.5 leading-tight',
+    marginClass: isUltraCrowded || isVeryCrowded ? 'mb-0' : 'mb-0.5',
     isVeryCrowded: isVeryCrowded || isUltraCrowded,
   };
 };
@@ -632,8 +715,8 @@ export const StickerPrint = ({
     if (item.isBundle) {
       return acc + (item.bundleComponents?.reduce((s, c) => s + c.quantity, 0) ?? 0) * item.qty;
     }
-    const isSticker   = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
-    const isMixMatch  = item.remarks?.startsWith('[Drink:') ?? false;
+    const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isMixMatch = item.remarks?.startsWith('[Drink:') ?? false;
     const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
     return acc + (isSticker ? item.qty : 0) + (!isSticker && isMixMatch ? item.qty : 0) + (!isSticker ? waffleCount : 0);
   }, 0);
@@ -677,7 +760,7 @@ export const StickerPrint = ({
     }
 
     // ── Waffle combo add-on stickers ──────────────────────────────────────────
-    const isSticker         = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
     const waffleComboAddOns = item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')) ?? [];
 
     if (!isSticker && waffleComboAddOns.length > 0) {
@@ -709,13 +792,13 @@ export const StickerPrint = ({
     if (!isSticker && isMixMatch) {
       for (let i = 0; i < item.qty; i++) {
         const remarksContent = item.remarks?.replace(/^\[|\]$/g, '') ?? '';
-        const parts      = remarksContent.split(' | ');
-        const drinkName  = parts.find(p => p.startsWith('Drink:'))?.replace('Drink: ', '') ?? '';
-        const sugarPart  = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
-        const options    = parts.filter(p => !p.startsWith('Drink:') && !p.startsWith('Sugar:') && !p.startsWith('+'));
-        const addOns     = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
+        const parts = remarksContent.split(' | ');
+        const drinkName = parts.find(p => p.startsWith('Drink:'))?.replace('Drink: ', '') ?? '';
+        const sugarPart = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
+        const options = parts.filter(p => !p.startsWith('Drink:') && !p.startsWith('Sugar:') && !p.startsWith('+'));
+        const addOns = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
         const extraCount = options.length + addOns.length;
-        const cls        = getStickerClasses(extraCount);
+        const cls = getStickerClasses(extraCount);
 
         stickers.push(
           <div
@@ -784,7 +867,7 @@ export const StickerPrint = ({
     // ── Standard drink stickers ───────────────────────────────────────────────
     for (let i = 0; i < item.qty; i++) {
       const extraCount = (item.options?.length ?? 0) + (item.addOns?.length ?? 0);
-      const cls        = getStickerClasses(extraCount, item.name.length);
+      const cls = getStickerClasses(extraCount, item.name.length);
 
       stickers.push(
         <div

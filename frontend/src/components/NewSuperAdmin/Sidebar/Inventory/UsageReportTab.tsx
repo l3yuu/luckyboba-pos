@@ -17,12 +17,13 @@ interface UsageRow {
   category: string;
   beg: number;  // beginning stock
   del: number;  // deliveries
+  in: number;   // transfers in
   cooked: number;  // intermediate produced
   out: number;  // consumed/sold
   spoil: number;  // spoilage
-  end: number;  // ending stock
+  end: number;  // theoretical ending stock (current_stock in DB)
   usage: number;  // total used
-  variance: number;  // end - (beg + del + cooked - out - spoil)
+  variance: number; 
 }
 
 interface Movement {
@@ -47,9 +48,9 @@ interface Branch { id: number; name: string; }
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const varianceColor = (v: number) => {
-  if (v === 0) return { text: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' };
-  if (v > 0) return { text: '#d97706', bg: '#fffbeb', border: '#fde68a' };
-  return { text: '#dc2626', bg: '#fef2f2', border: '#fecaca' };
+  if (v === 0) return { text: '#71717a', bg: '#f4f4f5', border: '#e4e4e7' }; // Neutral Gray
+  if (v > 0) return { text: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' }; // Surplus Green
+  return { text: '#dc2626', bg: '#fef2f2', border: '#fecaca' }; // Loss Red
 };
 
 const varianceLabel = (v: number) => {
@@ -187,6 +188,7 @@ const ProductSoldCard: React.FC<{
   loading: boolean;
 }> = ({ data, loading }) => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [searchTerm, setSearchTerm] = useState('');
 
   if (loading) {
     return (
@@ -204,7 +206,12 @@ const ProductSoldCard: React.FC<{
     );
   }
 
-  const grouped = data.reduce((acc, item) => {
+  const filteredData = data.filter(p => 
+    p.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.category_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const grouped = filteredData.reduce((acc, item) => {
     if (!acc[item.category_name]) acc[item.category_name] = [];
     acc[item.category_name].push(item);
     return acc;
@@ -216,14 +223,33 @@ const ProductSoldCard: React.FC<{
 
   return (
     <div className="bg-white border border-zinc-200 rounded-[0.625rem] flex flex-col shadow-sm h-full overflow-hidden text-zinc-900">
-      <div className="px-5 py-4 border-b border-zinc-100 bg-[#faf9ff] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Coffee size={14} className="text-[#3b2063]" />
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#1a0f2e]">Product Sold Summary</p>
+      <div className="px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Coffee size={14} className="text-[#3b2063]" />
+            <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#1a0f2e]">Product Sold Summary</p>
+          </div>
+          <span className="text-[10px] font-bold text-zinc-400 bg-white border border-zinc-100 px-2 py-0.5 rounded-full">
+            {filteredData.length} Items
+          </span>
         </div>
-        <span className="text-[10px] font-bold text-zinc-400 bg-white border border-zinc-100 px-2 py-0.5 rounded-full">
-          {data.length} Items
-        </span>
+        
+        {/* Search Bar */}
+        <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 focus-within:border-[#3b2063] transition-colors shadow-sm">
+          <Search size={12} className="text-zinc-400" />
+          <input
+            type="text"
+            placeholder="Search sold items..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 bg-transparent text-[10px] font-bold text-[#1a0f2e] outline-none placeholder:text-zinc-300 placeholder:font-normal"
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="text-zinc-300 hover:text-red-500">
+              <X size={12} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
@@ -409,12 +435,13 @@ const UsageBreakdownDrawer: React.FC<{
 const COLUMN_GUIDE: Record<string, string> = {
   BEG: 'Beginning stock at start of period',
   DEL: 'Deliveries / stock additions received',
+  IN: 'Internal transfers received',
   COOKED: 'Intermediate items produced in-house',
   OUT: 'Consumed via sales (auto-deducted)',
   SPOIL: 'Spoilage or manual write-offs',
-  END: 'Ending stock at close of period',
-  USAGE: 'Total consumed = OUT + SPOIL',
-  VAR: 'Variance = END − (BEG + DEL + COOKED − OUT − SPOIL)',
+  'SHOULD BE': 'Calculated theoretical ending stock',
+  ACTUAL: 'Physically counted stock (Audited)',
+  VAR: 'Variance = ACTUAL − SHOULD BE',
 };
 
 const UsageReportTab: React.FC = () => {
@@ -436,6 +463,13 @@ const UsageReportTab: React.FC = () => {
   const [specificDate, setSpecificDate] = useState(now.toISOString().split('T')[0]);
   const [productSales, setProductSales] = useState<ProductSalesData[]>([]);
   const [salesLoading, setSalesLoading] = useState(false);
+  const [editingCounts, setEditingCounts] = useState<Record<number, string>>({});
+  const [isSavingAudit, setIsSavingAudit] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUserRole(localStorage.getItem('role'));
+  }, []);
 
   const period = viewMode === 'today'
     ? now.toISOString().split('T')[0]
@@ -471,6 +505,30 @@ const UsageReportTab: React.FC = () => {
   }, [period, branch]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
+
+  const handleSubmitAudit = async () => {
+    const dirtyItems = Object.entries(editingCounts)
+      .filter(([_, value]) => value !== '')
+      .map(([id, value]) => ({
+        id: Number(id),
+        actual: Number(value),
+      }));
+
+    if (dirtyItems.length === 0) return;
+
+    setIsSavingAudit(true);
+    try {
+      await api.post('/raw-materials/bulk-audit', { items: dirtyItems });
+      setEditingCounts({});
+      fetchReport();
+      alert('Inventory audit successfully committed.');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to save audit.');
+    } finally {
+      setIsSavingAudit(false);
+    }
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -621,6 +679,16 @@ const UsageReportTab: React.FC = () => {
               {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={12} /></button>}
             </div>
 
+            {viewMode === 'today' && userRole !== 'cashier' && Object.keys(editingCounts).length > 0 && (
+              <button
+                onClick={handleSubmitAudit}
+                disabled={isSavingAudit}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all disabled:opacity-50"
+              >
+                {isSavingAudit ? 'Saving...' : 'Commit Physical Audit'}
+              </button>
+            )}
+
             <button onClick={() => setShowGuide((v: boolean) => !v)}
               className="flex items-center gap-1.5 px-3 py-2 h-9 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-500 hover:text-[#3b2063] hover:border-[#e9d5ff] transition-colors ml-auto shrink-0">
               Column Guide {showGuide ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -649,8 +717,16 @@ const UsageReportTab: React.FC = () => {
               <thead>
                 <tr className="border-b border-zinc-100">
                   <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 sticky left-0 bg-white">Item</th>
-                  {['BEG', 'DEL', 'COOKED', 'OUT', 'SPOIL', 'END', 'USAGE', 'VAR'].map(h => (
-                    <th key={h} className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                  {['BEG', 'DEL', 'IN', 'COOKED', 'OUT', 'SPOIL', 'SHOULD BE', 'ACTUAL', 'VAR'].map(h => (
+                    <th key={h} 
+                      className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-400 group/h relative cursor-help"
+                      title={COLUMN_GUIDE[h]}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        {h}
+                        <Info size={10} className="text-zinc-300 opacity-0 group-hover/h:opacity-100 transition-opacity" />
+                      </div>
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -663,17 +739,17 @@ const UsageReportTab: React.FC = () => {
                     </p>
                   </td></tr>
                 ) : filtered.map(r => {
-                  const vc = varianceColor(r.variance);
                   return (
                     <tr key={r.id}
                       onClick={() => setDrawerRow(r)}
-                      className="border-b border-zinc-50 hover:bg-[#faf9ff] cursor-pointer transition-colors">
-                      <td className="px-4 py-3.5 sticky left-0 bg-white hover:bg-[#faf9ff]">
+                      className="border-b border-zinc-50 hover:bg-[#faf9ff] cursor-pointer transition-colors group/row">
+                      <td className="px-4 py-3.5 sticky left-0 bg-white group-hover/row:bg-[#faf9ff]">
                         <p className="font-bold text-[#1a0f2e] text-xs">{r.name}</p>
                         <p className="text-[10px] text-zinc-400">{r.category} · {r.unit}</p>
                       </td>
                       <td className="px-4 py-3.5 text-right text-xs font-medium text-zinc-500 tabular-nums">{r.beg}</td>
                       <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.del > 0 ? '#16a34a' : '#a1a1aa' }}>{r.del}</td>
+                      <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.in > 0 ? '#8b5cf6' : '#a1a1aa' }}>{r.in}</td>
                       <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.cooked > 0 ? '#2563eb' : '#a1a1aa' }}>{r.cooked}</td>
                       <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums transition-all group"
                         onClick={(e) => {
@@ -693,13 +769,42 @@ const UsageReportTab: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.spoil > 0 ? '#dc2626' : '#a1a1aa' }}>{r.spoil}</td>
-                      <td className="px-4 py-3.5 text-right text-xs font-bold text-[#1a0f2e] tabular-nums">{r.end}</td>
-                      <td className="px-4 py-3.5 text-right text-xs font-bold tabular-nums" style={{ color: '#3b2063' }}>{r.usage}</td>
+                      
+                      {/* Should Be (Expected) */}
+                      <td className="px-4 py-3.5 text-right text-xs font-bold text-zinc-500 tabular-nums">
+                        {r.end}
+                      </td>
+
+                      {/* Actual Count Input */}
+                      <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                        {viewMode === 'today' && userRole !== 'cashier' ? (
+                          <input
+                            type="number"
+                            value={editingCounts[r.id] ?? r.end}
+                            onChange={(e) => setEditingCounts(prev => ({ ...prev, [r.id]: e.target.value }))}
+                            className="w-16 h-7 bg-white border border-zinc-200 rounded px-2 text-xs font-black text-right text-[#1a0f2e] focus:border-[#3b2063] focus:ring-1 focus:ring-[#3b2063] outline-none transition-all tabular-nums"
+                            placeholder={String(r.end)}
+                          />
+                        ) : (
+                          <span className="text-xs font-black text-zinc-400 tabular-nums italic">
+                            {r.end}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Variance */}
                       <td className="px-4 py-3.5 text-right">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold border tabular-nums"
-                          style={{ background: vc.bg, color: vc.text, borderColor: vc.border }}>
-                          {varianceLabel(r.variance)}
-                        </span>
+                        {(() => {
+                          const currentActual = editingCounts[r.id] !== undefined ? Number(editingCounts[r.id]) : r.end;
+                          const currentVariance = currentActual - r.end;
+                          const vc = varianceColor(currentVariance);
+                          return (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold border tabular-nums"
+                              style={{ background: vc.bg, color: vc.text, borderColor: vc.border }}>
+                              {varianceLabel(currentVariance)}
+                            </span>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );
@@ -707,19 +812,24 @@ const UsageReportTab: React.FC = () => {
               </tbody>
               {!loading && filtered.length > 0 && (
                 <tfoot>
-                  <tr className="border-t-2 border-zinc-200 bg-zinc-50">
-                    <td className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">TOTALS</td>
-                    {(['beg', 'del', 'cooked', 'out', 'spoil', 'end', 'usage'] as (keyof UsageRow)[]).map(k => (
-                      <td key={k} className="px-4 py-3 text-right text-xs font-black text-[#1a0f2e] tabular-nums">
-                        {filtered.reduce((s, r) => s + (r[k] as number), 0)}
+                    <tr className="border-t-2 border-zinc-200 bg-zinc-50">
+                      <td className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 sticky left-0 bg-zinc-50">TOTALS</td>
+                      {(['beg', 'del', 'in', 'cooked', 'out', 'spoil', 'end'] as (keyof UsageRow)[]).map(k => (
+                        <td key={k} className="px-4 py-3 text-right text-xs font-black text-[#1a0f2e] tabular-nums">
+                          {filtered.reduce((s, r) => s + (r[k] as number), 0)}
+                        </td>
+                      ))}
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-[10px] font-bold text-zinc-400">
+                          -
+                        </span>
                       </td>
-                    ))}
-                    <td className="px-4 py-3 text-right">
-                      <span className="text-[10px] font-bold text-zinc-400">
-                        {negVar}↓ {posVar}↑
-                      </span>
-                    </td>
-                  </tr>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-[10px] font-bold text-zinc-400">
+                          {negVar}↓ {posVar}↑
+                        </span>
+                      </td>
+                    </tr>
                 </tfoot>
               )}
             </table>
