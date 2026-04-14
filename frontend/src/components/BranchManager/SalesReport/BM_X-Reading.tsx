@@ -97,10 +97,10 @@ const Btn: React.FC<BtnProps> = ({
 
 
 // ── Receipt helpers (same as cashier) ─────────────────────────────────────────
-const ReceiptRow = ({ label, value }: { label: string; value: string | number }) => (
+const ReceiptRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex justify-between text-[11px] leading-snug">
     <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%]">{value}</span>
+    <span className="text-right w-[40%] whitespace-pre-line">{value}</span>
   </div>
 );
 const ReceiptDivider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;

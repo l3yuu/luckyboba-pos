@@ -338,7 +338,7 @@ class SalesDashboardService
             'reset_counter'        => 0,
             'previous_accumulated' => $previousAccumulated,
             'present_accumulated'  => $presentAccumulated,
-            'sales_for_the_day'    => $gross,
+            'sales_for_the_day'    => $netSales,
             'rounding_adjustment'  => 0.0,
             'category_breakdown'   => [],
             'generated_at'         => now()->toDateTimeString(),

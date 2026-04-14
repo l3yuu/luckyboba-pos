@@ -557,10 +557,10 @@ const handlePrint = () => window.print();
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
   // ── Receipt helpers ────────────────────────────────────────────────────────
-  const ReceiptRow = ({ label, value }: { label: string; value: string | number }) => (
+  const ReceiptRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="flex justify-between text-[11px] leading-snug">
       <span className="uppercase w-[60%] leading-tight">{label}</span>
-      <span className="text-right w-[40%]">{value}</span>
+      <span className="text-right w-[40%] whitespace-pre-line">{value}</span>
     </div>
   );
   const ReceiptDivider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
@@ -977,9 +977,6 @@ const handlePrint = () => window.print();
 
   const renderXReading = () => {
     const gross        = reportData?.gross_sales       || 0;
-    const netSales     = reportData?.net_sales         || 0;
-    const cashTotal    = reportData?.cash_total        || 0;
-    const nonCash      = reportData?.non_cash_total    || 0;
     const txCount      = reportData?.transaction_count || 0;
     const scDiscount   = reportData?.sc_discount       || 0;
     const pwdDiscount  = reportData?.pwd_discount      || 0;
@@ -990,6 +987,9 @@ const handlePrint = () => window.print();
     const vatableSales = reportData?.vatable_sales    || 0;
     const vatAmount    = reportData?.vat_amount       || 0;
     const vatExempt    = reportData?.vat_exempt_sales || 0;
+    const netSales     = reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc);
+    const cashTotal    = reportData?.cash_total        || 0;
+    const nonCash      = reportData?.non_cash_total    || 0;
     const voids        = reportData?.total_void_amount || 0;
     const PAYMENT_METHODS = ["food panda","grab","gcash","visa","mastercard","cash"];
     const METHOD_ALIASES: Record<string, string> = { panda: "food panda", foodpanda: "food panda", food_panda: "food panda", grabfood: "grab", "grab food": "grab", "master card": "mastercard", master: "mastercard", "visa card": "visa", "e-wallet": "gcash" };
@@ -1016,9 +1016,8 @@ const handlePrint = () => window.print();
         <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(vatExempt)} />
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
-        <ReceiptRow label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
         <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
-          <span className="text-[9px]">(VATable + VAT-Exempt - Voids - Discounts)</span>
           <span></span>
         </div>
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
@@ -1066,21 +1065,21 @@ const handlePrint = () => window.print();
     const diplomat       = reportData?.diplomat_discount || 0;
     const otherDiscount  = reportData?.other_discount || 0;
     const totalDisc      = reportData?.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
-    const netSales       = reportData?.net_total ?? reportData?.net_sales ?? (gross - totalDisc);
-    const netInclusive   = reportData?.net_sales ?? (gross - totalDisc);
     const txCount        = reportData?.transaction_count || 0;
     const vatableSales   = reportData?.vatable_sales || 0;
     const vatAmount      = reportData?.vat_amount || 0;
+    const vatExemptSales = reportData?.vat_exempt_sales || 0;
     const voids          = reportData?.total_void_amount || 0;
     const qtyTotal       = reportData?.total_qty_sold || 0;
     const cashDrop       = reportData?.cash_drop || 0;
     const cashIn         = reportData?.cash_in || 0;
     const resetCounter   = reportData?.reset_counter ?? 0;
     const zCounter       = reportData?.z_counter ?? 1;
-    const presentAccumulated  = reportData?.present_accumulated ?? gross;
-    const previousAccumulated = reportData?.previous_accumulated ?? 0;
-    const salesForDay    = reportData?.sales_for_the_day ?? gross;
     const reportIsVat    = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+    const netSales       = reportIsVat ? (vatableSales + vatAmount + vatExemptSales) : (gross - totalDisc);
+    const salesForDay    = netSales;
+    const previousAccumulated = reportData?.previous_accumulated ?? 0;
+    const presentAccumulated  = previousAccumulated + salesForDay;
 
     const PAYMENT_METHODS = ["food panda","grab","gcash","visa","mastercard","cash"];
     const METHOD_ALIASES: Record<string, string> = {
@@ -1115,8 +1114,8 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="REPORT DATE" value={now.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} />
         <ReceiptRow label="REPORT TIME" value={timeStr} />
-        <ReceiptRow label="START DATE & TIME" value={`${dateFrom} ${timeStr}`} />
-        <ReceiptRow label="END DATE & TIME" value={`${dateTo} ${timeStr}`} />
+        <ReceiptRow label="START DATE & TIME" value={`${dateFrom}\n${timeStr}`} />
+        <ReceiptRow label="END DATE & TIME" value={`${dateTo}\n${timeStr}`} />
         <ReceiptRow label="TERMINAL #" value="ALL" />
         <ReceiptRow label="BRANCH" value={selectedBranchName} />
         <ReceiptRow label="CASHIER" value={reportData?.prepared_by || "ADMIN USER"} />
@@ -1136,9 +1135,8 @@ const handlePrint = () => window.print();
         <ReceiptRow label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <ReceiptDivider />
         <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
-        <ReceiptRow label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
         <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
-          <span className="text-[9px]">(VATable + VAT-Exempt - Voids - Discounts)</span>
           <span></span>
         </div>
         <ReceiptRow label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
@@ -1169,7 +1167,7 @@ const handlePrint = () => window.print();
         {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
           <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
         )}
-        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(netInclusive + (reportData?.rounding_adjustment || 0))} />
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(netSales + (reportData?.rounding_adjustment || 0))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <ReceiptRow label="TRANSACTION COUNT" value={txCount} />
