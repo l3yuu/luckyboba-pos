@@ -11,6 +11,7 @@ import UsersTab from "../components/NewSuperAdmin/Sidebar/Navigation/UsersTab";
 import DeviceManagementTab from "../components/NewSuperAdmin/Sidebar/Navigation/DeviceManagementTab";
 import AuditLogsTab from "../components/NewSuperAdmin/Sidebar/System/AuditLogsTab";
 import PromotionsTab from "../components/NewSuperAdmin/Sidebar/System/PromotionsTab";
+import VouchersTab from "../components/NewSuperAdmin/Sidebar/System/VouchersTab";
 import SettingsTab from "../components/NewSuperAdmin/Sidebar/SettingsTab";
 
 import SalesReportTab from "../components/NewSuperAdmin/Sidebar/Reports/SalesReportTab";
@@ -19,6 +20,7 @@ import AnalyticsTab from "../components/NewSuperAdmin/Sidebar/Reports/AnalyticsT
 import ItemsReportTab from "../components/NewSuperAdmin/Sidebar/Reports/ItemsReportTab";
 import XReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/XReadingTab";
 import ZReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/ZReadingTab";
+import BranchReceiptsTab from "../components/NewSuperAdmin/Sidebar/Reports/BranchReceiptsTab";
 import StaffPerformanceTab from "../components/NewSuperAdmin/Sidebar/Navigation/StaffPerformanceTab";
 
 import MenuItemsTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab";
@@ -30,8 +32,6 @@ import RawMaterialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/RawMa
 import UsageReportTab from "../components/NewSuperAdmin/Sidebar/Inventory/UsageReportTab";
 import RecipesTab from "../components/NewSuperAdmin/Sidebar/Inventory/RecipesTab";
 import SupplierTab from "../components/NewSuperAdmin/Sidebar/Inventory/SupplierTab";
-import ItemCheckerTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemCheckerTab";
-import ItemSerialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemSerialsTab";
 import PurchaseOrderTab from "../components/NewSuperAdmin/Sidebar/Inventory/PurchaseOrderTab";
 import StockTransferTab from "../components/NewSuperAdmin/Sidebar/Inventory/StockTransferTab";
 import InventoryAlertsTab from "../components/NewSuperAdmin/Sidebar/Inventory/InventoryAlertsTab";
@@ -45,6 +45,7 @@ import FeaturedDrinksTab from "../components/NewSuperAdmin/Sidebar/System/Featur
 import CustomerManagementTab from "../components/NewSuperAdmin/Sidebar/System/CustomerManagementTab";
 import NotificationCenterTab from "../components/NewSuperAdmin/Sidebar/System/NotificationCenterTab";
 import OnlineOrdersTab from "../components/NewSuperAdmin/Sidebar/Navigation/OnlineOrdersTab";
+import BranchPaymentSettingsTab from "../components/NewSuperAdmin/Sidebar/System/BranchPaymentSettingsTab";
 
 
 const GlobalStyles = () => (
@@ -101,6 +102,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "cross_branch_reports": return <CrossBranchTab />;
       case "x_reading": return <XReadingTab />;
       case "z_reading": return <ZReadingTab />;
+      case "branch_receipts": return <BranchReceiptsTab />;
 
       // ── Menu Management ───────────────────────────────────────────────────
       case "menu_items": return <MenuItemsTab />;
@@ -113,17 +115,16 @@ const SuperAdminDashboard: React.FC = () => {
       case "usage_report": return <UsageReportTab />;
       case "recipes": return <RecipesTab />;
       case "supplier": return <SupplierTab />;
-      case "item_checker": return <ItemCheckerTab />;
-      case "item_serials": return <ItemSerialsTab />;
       case "purchase_order": return <PurchaseOrderTab />;
       case "stock_transfer": return <StockTransferTab />;
-      case "inventory_alerts": return <InventoryAlertsTab />;
+      case "inventory_alerts": return <InventoryAlertsTab onNavigate={setActive} />;
 
       // ── Expenses ──────────────────────────────────────────────────────────
       case "expenses": return <ExpensesTab />;
 
       // ── System ────────────────────────────────────────────────────────────
       case "promotions": return <PromotionsTab />;
+      case "vouchers": return <VouchersTab />;
       case "audit": return <AuditLogsTab />;
       case "settings": return <SettingsTab />;
       case "featured_drinks": return <FeaturedDrinksTab />;
@@ -135,6 +136,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "card_members": return <CardUsersTab />;
       case "loyalty": return <LoyaltyManagementTab />;
       case "customers": return <CustomerManagementTab />;
+      case "payment_settings": return <BranchPaymentSettingsTab />;
     }
   };
 

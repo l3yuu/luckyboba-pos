@@ -13,9 +13,11 @@ interface PaymentData {
   gcash_name: string;
   gcash_number: string;
   gcash_qr: string | null;
+  gcash_qr_url?: string | null;
   maya_name: string;
   maya_number: string;
   maya_qr: string | null;
+  maya_qr_url?: string | null;
 }
 
 const BM_PaymentSettings = ({ onBack }: { onBack: () => void }) => {
@@ -178,9 +180,9 @@ const BM_PaymentSettings = ({ onBack }: { onBack: () => void }) => {
           <div className="space-y-4 pt-2">
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">GCash QR Code</p>
             <div className="relative aspect-square w-full max-w-[200px] mx-auto bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-3xl overflow-hidden flex flex-col items-center justify-center gap-3 group hover:border-blue-400 transition-all">
-              {gcashPreview || data.gcash_qr ? (
+              {gcashPreview || data.gcash_qr_url ? (
                 <>
-                  <img src={gcashPreview || data.gcash_qr!} alt="GCash QR" className="w-full h-full object-cover" />
+                  <img src={gcashPreview || data.gcash_qr_url!} alt="GCash QR" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <label className="p-3 bg-white rounded-2xl cursor-pointer hover:scale-110 transition-transform">
                       <Camera size={20} className="text-blue-600" />
@@ -239,9 +241,9 @@ const BM_PaymentSettings = ({ onBack }: { onBack: () => void }) => {
           <div className="space-y-4 pt-2">
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Maya QR Code</p>
             <div className="relative aspect-square w-full max-w-[200px] mx-auto bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-3xl overflow-hidden flex flex-col items-center justify-center gap-3 group hover:border-emerald-400 transition-all">
-              {mayaPreview || data.maya_qr ? (
+              {mayaPreview || data.maya_qr_url ? (
                 <>
-                  <img src={mayaPreview || data.maya_qr!} alt="Maya QR" className="w-full h-full object-cover" />
+                  <img src={mayaPreview || data.maya_qr_url!} alt="Maya QR" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <label className="p-3 bg-white rounded-2xl cursor-pointer hover:scale-110 transition-transform">
                       <Camera size={20} className="text-emerald-600" />

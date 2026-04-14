@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
+  Search, Plus, Edit2, Trash2, X, AlertCircle,
   Building2, Phone, Mail, MapPin, Package, CheckCircle,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -419,23 +419,33 @@ const BM_InventorySuppliers: React.FC = () => {
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Suppliers</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {loading ? 'Loading...' : `${suppliers.length} suppliers · ${activeCount} active`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={fetchSuppliers} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button onClick={() => setAddOpen(true)}
-            className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
-            <Plus size={13} /> Add Supplier
-          </button>
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          <div className="relative group flex-1 w-full md:w-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <input
+              type="text"
+              placeholder="Search suppliers..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
+            <button onClick={() => setAddOpen(true)} className="w-full md:w-auto px-5 py-3 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-xs">
+              <Plus size={14} strokeWidth={3} /> Add Supplier
+            </button>
+          </div>
         </div>
       </div>
 
@@ -455,22 +465,7 @@ const BM_InventorySuppliers: React.FC = () => {
 
       {/* Table */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
-          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 flex-1 min-w-40">
-            <Search size={13} className="text-zinc-400 shrink-0" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search suppliers..." />
-            {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={13} /></button>}
-          </div>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">{filtered.length} results</span>
-        </div>
+
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

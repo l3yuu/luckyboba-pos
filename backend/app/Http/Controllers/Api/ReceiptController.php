@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Receipt;
 use App\Models\Sale;
+use App\Models\ZReading;
 use App\Models\VoidRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -37,14 +38,26 @@ class ReceiptController extends Controller
             ? ((int) substr($latest->invoice_number, 3)) + 1
             : 1;
 
-        // Daily Queue logic
-        $todayCount = Sale::where('branch_id', $branchId)
-            ->whereDate('created_at', now()->toDateString())
-            ->count();
+        // Daily Queue logic — count sales since last closed Z-Reading
+        $lastZReading = ZReading::where('branch_id', $branchId)
+            ->where('is_closed', true)
+            ->latest('closed_at')
+            ->first();
+
+        $queueQuery = Sale::where('branch_id', $branchId);
+        
+        if ($lastZReading) {
+            $queueQuery->where('created_at', '>', $lastZReading->closed_at);
+        } else {
+            // Fallback: If no Z-Reading ever exists, count all for today
+            $queueQuery->whereDate('created_at', now()->toDateString());
+        }
+
+        $nextQueue = $queueQuery->count() + 1;
 
         return response()->json([
             'next_sequence' => $nextSeq,
-            'next_queue'    => $todayCount + 1
+            'next_queue'    => $nextQueue
         ]);
     }
 
@@ -56,6 +69,7 @@ class ReceiptController extends Controller
     $user  = $request->user();
     $query = strtolower($request->input('query', ''));
     $date  = $request->input('date');
+    $branchId = $request->input('branch_id');
 
     $dbQuery = Sale::query()
         ->leftJoin('receipts', 'sales.id', '=', 'receipts.sale_id')
@@ -75,6 +89,7 @@ class ReceiptController extends Controller
             'receipts.terminal',
             'receipts.items_count',
 
+            'branches.name as branch_name',
             'branches.brand',
             'branches.company_name',
             'branches.store_address',
@@ -109,6 +124,10 @@ class ReceiptController extends Controller
             $q->where('sales.branch_id', $user->branch_id)
               ->orWhere('sales.invoice_number', 'like', 'APP-%');
         });
+    }
+
+    if ($branchId) {
+        $dbQuery->where('sales.branch_id', $branchId);
     }
 
     // Date filter

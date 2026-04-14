@@ -99,23 +99,9 @@ if ($branchId) {
 })->middleware('throttle:30,1');
 // ─────────────────────────────────────────────────────────────────────────────
 
+Route::get('/branches/available', [BranchController::class, 'availableBranches']);
 Route::post('/google-login', [AuthController::class, 'googleLogin'])->middleware('throttle:10,1');
-Route::post('/register', function (Request $request) {
-    $request->validate([
-        'name'     => 'required|string|max:255',
-        'email'    => 'required|string|email|max:255|unique:users',
-        'password' => 'required|string|min:8',
-    ]);
-    $user  = User::create([
-        'name'     => $request->name,
-        'email'    => $request->email,
-        'password' => Hash::make($request->password),
-        'role'     => 'customer',
-        'status'   => 'active',
-    ]);
-    $token = $user->createToken('auth-token')->plainTextToken;
-    return response()->json(['token' => $token, 'user' => $user], 201);
-});
+Route::post('/register', [AuthController::class, 'register']);
 // ── Z Reading print — public, auth handled via one-time cache token ───────────
 Route::get('/readings/z/print', [SalesDashboardController::class, 'zReadingPrint']);
 // ── Authenticated routes ─────────────────────────────────────────────────────
@@ -125,11 +111,24 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/cards/generate-qr',  [CardController::class, 'generateQr']);
     Route::get('/cards/perk-status',   [CardController::class, 'perkStatus']);
     Route::get('/my-orders',      [OnlineOrderController::class, 'myOrders']);
+    Route::get('/orders/{id}/reorder', [OnlineOrderController::class, 'reorder']);
     Route::get('/points', [PointsController::class, 'index']);
     Route::post('/points/redeem', [PointsController::class, 'redeem']);
 
     // ── LOYALTY (Mobile & Shared) ──────────────────────────────────────────
     Route::get('/loyalty/rewards', [LoyaltyManagementController::class, 'getRewards']);
+    Route::get('/vouchers/available', [\App\Http\Controllers\Api\VoucherController::class, 'available']);
+    Route::get('/vouchers/validate', [\App\Http\Controllers\Api\VoucherController::class, 'validateCode']);
+
+    // ── FAVORITES ────────────────────────────────────────────────────────
+    Route::get('/favorites', [FavoriteController::class, 'index']);
+    Route::post('/favorites', [FavoriteController::class, 'store']);
+    Route::delete('/favorites/{menuItemId}', [FavoriteController::class, 'destroy']);
+
+    // ── REVIEWS ──────────────────────────────────────────────────────────
+    Route::get('/reviews', [ReviewController::class, 'index']);
+    Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::get('/branches/{branchId}/reviews', [ReviewController::class, 'branchReviews']);
 
     Route::patch('/orders/{siNumber}/cancel', function (Request $request, string $siNumber) {
         $sale = \App\Models\Sale::where('invoice_number', $siNumber)
@@ -422,7 +421,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']);
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
-        Route::apiResource('vouchers',  VoucherController::class)->only(['index', 'store']);
+        Route::apiResource('vouchers',  VoucherController::class)->except(['show']);
 
 
         Route::prefix('reports')->group(function () {
@@ -456,12 +455,21 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post  ('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
 
+        // ── BRANCH PAYMENT SETTINGS ──
+        Route::get('/branch/payment-settings', [\App\Http\Controllers\Api\BranchSettingsController::class, 'getPaymentSettings']);
+        Route::post('/branch/payment-settings', [\App\Http\Controllers\Api\BranchSettingsController::class, 'updatePaymentSettings']);
+
+
     });
 
     // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
     Route::middleware(['role:superadmin'])->group(function () {
         Route::get('/search', [SearchController::class, 'index']);
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
+
+        // ── FRANCHISES (SuperAdmin) ──────────────────────────────────────────
+        Route::apiResource('/franchises', FranchiseController::class);
+        Route::post('/franchises/{id}/assign-branches', [FranchiseController::class, 'assignBranches']);
 
         // ── CUSTOMER MANAGEMENT (SuperAdmin) ────────────────────────────────
         Route::prefix('customers')->group(function () {
@@ -493,6 +501,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::delete('/audit/clear',     [SettingsController::class, 'clearAuditLogs']);
             Route::post('/reset',             [SettingsController::class, 'resetSystem']);
             Route::get ('/backup-status',     [BackupController::class,   'lastBackupStatus']);
+            Route::get ('/backups',           [BackupController::class,   'listBackups']);
+            Route::get ('/backups/download/{filename}', [BackupController::class, 'downloadBackup']);
+            Route::delete('/backups/{filename}', [BackupController::class, 'deleteBackup']);
             Route::post('/run-backup',        [BackupController::class,   'runBackup']);
             Route::post('/upload',            [UploadController::class,   'upload']);
             Route::get ('/import-history',    [UploadController::class,   'importHistory']);

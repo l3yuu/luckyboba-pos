@@ -153,7 +153,6 @@ const SalesOrder = () => {
   // syncNextSequence reads it (avoids stale closure on branchId).
   const seqKey    = `last_or_sequence_${branchId ?? 'default'}`
   const queueKey  = `last_queue_sequence_${branchId ?? 'default'}`
-  const queueDate = `last_queue_date_${branchId ?? 'default'}`
 
   // Add-ons data
   const [addOnsData, setAddOnsData] = useState<
@@ -420,17 +419,11 @@ const SalesOrder = () => {
         localStorage.setItem(seqKey, String(serverSeq))
         setOrNumber(generateORNumber(serverSeq))
 
-        const today     = new Date().toDateString()
-        const savedDate = localStorage.getItem(queueDate)
-        const isNewDay  = savedDate !== today
-
-        if (isNewDay) {
-          localStorage.setItem(queueKey,  '1')
-          localStorage.setItem(queueDate, today)
-          setQueueNumber(generateQueueNumber(1))
-        } else {
-          const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
-          setQueueNumber(generateQueueNumber(lastQueue))
+        // ── Queue number logic — use server's next_queue ───────────────────────
+        const serverQueue = parseInt(data.next_queue, 10)
+        if (!isNaN(serverQueue)) {
+          localStorage.setItem(queueKey, String(serverQueue))
+          setQueueNumber(generateQueueNumber(serverQueue))
         }
       }
     } catch {
@@ -439,18 +432,9 @@ const SalesOrder = () => {
       localStorage.setItem(seqKey, String(lastSeq))
       setOrNumber(generateORNumber(lastSeq))
 
-      const today     = new Date().toDateString()
-      const savedDate = localStorage.getItem(queueDate)
-      const isNewDay  = savedDate !== today
-
-      if (isNewDay) {
-        localStorage.setItem(queueKey,  '1')
-        localStorage.setItem(queueDate, today)
-        setQueueNumber(generateQueueNumber(1))
-      } else {
-        const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
-        setQueueNumber(generateQueueNumber(lastQueue))
-      }
+      // Offline fallback: Increment existing or default to 1
+      const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
+      setQueueNumber(generateQueueNumber(lastQueue))
     }
   }
 
@@ -1210,7 +1194,6 @@ const SalesOrder = () => {
         const currentQueue = parseInt(queueNumber, 10)
         if (!isNaN(currentQueue)) {
           localStorage.setItem(queueKey, String(currentQueue + 1))
-          localStorage.setItem(queueDate, new Date().toDateString())
         }
         localStorage.setItem('dashboard_stats_timestamp', '0');
         const today = new Date().toISOString().split('T')[0];
@@ -1252,7 +1235,6 @@ const SalesOrder = () => {
       const currentQueue = parseInt(queueNumber, 10)
       if (!isNaN(currentQueue)) {
         localStorage.setItem(queueKey, String(currentQueue + 1))
-        localStorage.setItem(queueDate, new Date().toDateString())
       }
       setPrintedReceipt(false); setPrintedKitchen(false); setPrintedStickers(false)
       setIsSuccessModalOpen(true)

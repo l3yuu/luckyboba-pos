@@ -10,7 +10,7 @@ jobs:
   laravel-backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           submodules: false
       
@@ -48,11 +48,11 @@ jobs:
   react-frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           submodules: false
       - name: Setup Node.js
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -70,7 +70,7 @@ jobs:
   flutter-app:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -96,12 +96,12 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment: production
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           submodules: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -119,7 +119,7 @@ jobs:
           nc -zv -w 5 ${{ secrets.SSH_HOST }} ${{ secrets.SSH_PORT }} || echo "TCP Connection to Port ${{ secrets.SSH_PORT }} Failed"
 
       - name: Upload Build to Hostinger (Production)
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -206,12 +206,12 @@ jobs:
     if: github.ref == 'refs/heads/staging'
     environment: staging
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           submodules: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -229,7 +229,7 @@ jobs:
           nc -zv -w 5 ${{ secrets.SSH_HOST }} ${{ secrets.SSH_PORT }} || echo "TCP Connection to Port ${{ secrets.SSH_PORT }} Failed"
 
       - name: Upload Build to Hostinger (Staging)
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}

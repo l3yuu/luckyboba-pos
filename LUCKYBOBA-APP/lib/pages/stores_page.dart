@@ -5,7 +5,10 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'dart:math' as math;
+import '../config/app_config.dart';
 import '../cart/menu_page.dart';
 
 // ── Shared palette ────────────────────────────────────────────────────────────
@@ -27,46 +30,93 @@ class _StoresPageState extends State<StoresPage> {
   final MapController  _mapController  = MapController();
   late  PageController _pageController;
 
+  List<Map<String, dynamic>> storeLocations = [];
   LatLng _userLocation      = const LatLng(14.7040, 121.0340);
   bool   _isLoadingLocation = false;
+  bool   _isLoadingStores   = true;
   bool   _isMapReady        = false;
   int    _selectedIndex     = 0;
-
-  final List<Map<String, dynamic>> storeLocations = [
-    {'name': 'East Fairview',             'branch_id': 6,  'address': 'Dunhill Corner Winston St. East Fairview Q.C',        'image': 'assets/images/eastfairview_branch.png', 'lat': 14.7032, 'lng': 121.0695, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7032,121.0695'},
-    {'name': 'AUF Angeles',               'branch_id': 7,  'address': 'Stall #7 JCL foodcourt, 704 Fajardo st.',             'image': 'assets/images/auf_branch.jpg',           'lat': 15.1451, 'lng': 120.5941, 'closeTime': '07:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=15.1451,120.5941'},
-    {'name': 'Robinsons Galleria Cebu',   'branch_id': 8,  'address': '3rd Floor, Robinsons Galleria Cebu',                  'image': 'assets/images/galleriacebu_branch.jpg',  'lat': 10.3061, 'lng': 123.9059, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=10.3061,123.9059'},
-    {'name': 'Jenra Grand Mall',          'branch_id': 9,  'address': 'Upper Ground Floor (near Jollibee Entrance)',         'image': 'assets/images/jenra_branch.png',         'lat': 15.1336, 'lng': 120.5907, 'closeTime': '08:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=15.1336,120.5907'},
-    {'name': 'Pamana Medical Center',     'branch_id': 10, 'address': 'National Highway, Calamba, Laguna',                   'image': 'assets/images/pamana_branch.jpg',        'lat': 14.2017, 'lng': 121.1565, 'closeTime': '08:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.2017,121.1565'},
-    {'name': 'Dahlia',                    'branch_id': 11, 'address': '#10 Dahlia Avenue, Fairview, Quezon City',            'image': 'assets/images/dahlia_branch.png',        'lat': 14.7028, 'lng': 121.0664, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7028,121.0664'},
-    {'name': 'Misamis St., Bago Bantay',  'branch_id': 12, 'address': '43 Misamis St. Sto. Cristo, Bago Bantay',            'image': 'assets/images/misamis_branch.png',       'lat': 14.6598, 'lng': 121.0263, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6598,121.0263'},
-    {'name': 'Pontiac',                   'branch_id': 13, 'address': 'Pontiac st. cor. Datsun st. Fairview, Quezon City',  'image': 'assets/images/pontiac_branch.png',       'lat': 14.7065, 'lng': 121.0621, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7065,121.0621'},
-    {'name': 'QCGH',                      'branch_id': 14, 'address': 'Stall # 5 Seminary Road Project 8, Quezon City',     'image': 'assets/images/qcgh_branch.png',          'lat': 14.6669, 'lng': 121.0221, 'closeTime': '08:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6669,121.0221'},
-    {'name': 'Tondo, Manila',             'branch_id': 15, 'address': '539 Perla St., Tondo, Manila',                       'image': 'assets/images/tondo_branch.png',         'lat': 14.6138, 'lng': 120.9678, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6138,120.9678'},
-    {'name': 'Lucky Boba - Main Branch',  'branch_id': 1,  'address': '356 Vipra St., Sangandaan, Quezon City',             'image': 'assets/images/vipra_branch.png',         'lat': 14.6811, 'lng': 121.0368, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6811,121.0368'},
-    {'name': 'Starmall Shaw Blvd.',       'branch_id': 16, 'address': 'near Kalentong Jeepney Terminal',                    'image': 'assets/images/starmall_branch.png',      'lat': 14.5826, 'lng': 121.0535, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.5826,121.0535'},
-    {'name': 'Eton Centris',              'branch_id': 17, 'address': 'Second Floor, Eton Centris Station Mall',            'image': 'assets/images/etoncentris_branch.png',   'lat': 14.6444, 'lng': 121.0375, 'closeTime': '10:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6444,121.0375'},
-    {'name': 'Isetann Cubao',             'branch_id': 18, 'address': 'Ground Floor, Isetann Department Store',             'image': 'assets/images/isetann_branch.jpg',       'lat': 14.6219, 'lng': 121.0515, 'closeTime': '08:30 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6219,121.0515'},
-    {'name': 'Candelaria, Quezon',        'branch_id': 19, 'address': 'Maharlika Highway, Candelaria',                      'image': 'assets/images/candelaria_branch.png',    'lat': 13.9272, 'lng': 121.4233, 'closeTime': '08:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=13.9272,121.4233'},
-    {'name': 'Himlayan Rd., Pasong Tamo', 'branch_id': 20, 'address': '217 Himlayan Road cor. Tandang Sora Ave.',           'image': 'assets/images/himlayanrd_branch.png',    'lat': 14.6785, 'lng': 121.0505, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6785,121.0505'},
-    {'name': 'Lucky Boba - Bagbag',       'branch_id': 5,  'address': '657, 1116 Quirino Hwy, Novaliches',                  'image': 'assets/images/bagbag_branch.png',        'lat': 14.7000, 'lng': 121.0333, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7,121.0333'},
-    {'name': 'Lucky Boba - Cloverleaf',   'branch_id': 21, 'address': 'Ayala Malls Cloverleaf, QC',                        'image': 'assets/images/cloverleaf_branch.jpg',    'lat': 14.6540, 'lng': 121.0020, 'closeTime': '09:30 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.654,121.002'},
-    {'name': 'Ayala Malls Fairview Terraces','branch_id': 22,'address': 'Upper Ground Floor, Fairview, QC',                'image': 'assets/images/ayalateracces_branch.jpg', 'lat': 14.7340, 'lng': 121.0578, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.734,121.0578'},
-    {'name': 'Lucky Boba - Ayala',        'branch_id': 2,  'address': 'Ayala Center',                                      'image': 'assets/images/mallfeliz_branch.jpg',     'lat': 14.6186, 'lng': 121.0963, 'closeTime': '10:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6186,121.0963'},
-    {'name': 'Landmark, Trinoma',         'branch_id': 23, 'address': 'Level 1 Food Center, Landmark Supermarket',         'image': 'assets/images/landmark_branch.jpg',      'lat': 14.6534, 'lng': 121.0336, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6534,121.0336'},
-    {'name': 'SM North Edsa',             'branch_id': 24, 'address': 'The Block Entrance, SM North Edsa',                 'image': 'assets/images/smnorth_branch.jpg',       'lat': 14.6565, 'lng': 121.0305, 'closeTime': '10:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6565,121.0305'},
-    {'name': 'SM Novaliches',             'branch_id': 3,  'address': 'Ground Floor, SM Novaliches, QC',                   'image': 'assets/images/smnova_branch.jpg',        'lat': 14.7047, 'lng': 121.0346, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7047,121.0346'},
-    {'name': 'SM San Lazaro',             'branch_id': 25, 'address': 'Lower Ground Floor, SM San Lazaro, Manila',         'image': 'assets/images/sanlazaro_branch.jpg',     'lat': 14.6158, 'lng': 120.9830, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6158,120.983'},
-    {'name': 'Sta. Lucia Mall',           'branch_id': 26, 'address': 'Ground Floor, Sta. Lucia East Grand Mall',          'image': 'assets/images/stalucia_branch.jpg',      'lat': 14.6190, 'lng': 121.1000, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.619,121.1'},
-    {'name': 'Nova Plaza Mall',           'branch_id': 27, 'address': '3rd Floor, Novaliches, Quezon City',                'image': 'assets/images/novaplaza_branch.jpg',     'lat': 14.7214, 'lng': 121.0421, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7214,121.0421'},
-    {'name': 'Spark Place Cubao',         'branch_id': 28, 'address': '2nd Floor, Sparks Place, Cubao, QC',               'image': 'assets/images/sparkplace_branch.jpg',    'lat': 14.6179, 'lng': 121.0553, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6179,121.0553'},
-  ];
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
-    _calculateAndSortStores();
+    _fetchStores();
+  }
+
+  Future<void> _fetchStores() async {
+    setState(() => _isLoadingStores = true);
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiUrl}/branches/available'),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['success'] == true) {
+          final List<dynamic> data = body['data'];
+          setState(() {
+            storeLocations = data.map((b) {
+              final double lat = double.tryParse(b['latitude']?.toString() ?? '') ?? 0.0;
+              final double lng = double.tryParse(b['longitude']?.toString() ?? '') ?? 0.0;
+              return {
+                'name': b['name'] ?? 'Unknown Branch',
+                'branch_id': b['id'],
+                'address': b['location'] ?? 'No address provided',
+                'image': b['image'] ?? 'assets/images/maps_logo.png',
+                'lat': lat,
+                'lng': lng,
+                'closeTime': '09:00 PM',
+                'url': 'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+              };
+            }).toList();
+            _calculateAndSortStores();
+            _isLoadingStores = false;
+          });
+          return;
+        }
+      }
+      _useFallbackStores();
+    } catch (_) {
+      _useFallbackStores();
+    }
+  }
+
+  void _useFallbackStores() {
+    setState(() {
+      storeLocations = [
+        {'name': 'East Fairview',             'branch_id': 6,  'address': 'Dunhill Corner Winston St. East Fairview Q.C',        'image': 'assets/images/eastfairview_branch.png', 'lat': 14.7032, 'lng': 121.0695, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7032,121.0695'},
+        {'name': 'AUF Angeles',               'branch_id': 7,  'address': 'Stall #7 JCL foodcourt, 704 Fajardo st.',             'image': 'assets/images/auf_branch.jpg',           'lat': 15.1451, 'lng': 120.5941, 'closeTime': '07:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=15.1451,120.5941'},
+        {'name': 'Robinsons Galleria Cebu',   'branch_id': 8,  'address': '3rd Floor, Robinsons Galleria Cebu',                  'image': 'assets/images/galleriacebu_branch.jpg',  'lat': 10.3061, 'lng': 123.9059, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=10.3061,123.9059'},
+        {'name': 'Jenra Grand Mall',          'branch_id': 9,  'address': 'Upper Ground Floor (near Jollibee Entrance)',         'image': 'assets/images/jenra_branch.png',         'lat': 15.1336, 'lng': 120.5907, 'closeTime': '08:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=15.1336,120.5907'},
+        {'name': 'Pamana Medical Center',     'branch_id': 10, 'address': 'National Highway, Calamba, Laguna',                   'image': 'assets/images/pamana_branch.jpg',        'lat': 14.2017, 'lng': 121.1565, 'closeTime': '08:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.2017,121.1565'},
+        {'name': 'Dahlia',                    'branch_id': 11, 'address': '#10 Dahlia Avenue, Fairview, Quezon City',            'image': 'assets/images/dahlia_branch.png',        'lat': 14.7028, 'lng': 121.0664, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7028,121.0664'},
+        {'name': 'Misamis St., Bago Bantay',  'branch_id': 12, 'address': '43 Misamis St. Sto. Cristo, Bago Bantay',            'image': 'assets/images/misamis_branch.png',       'lat': 14.6598, 'lng': 121.0263, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6598,121.0263'},
+        {'name': 'Pontiac',                   'branch_id': 13, 'address': 'Pontiac st. cor. Datsun st. Fairview, Quezon City',  'image': 'assets/images/pontiac_branch.png',       'lat': 14.7065, 'lng': 121.0621, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7065,121.0621'},
+        {'name': 'QCGH',                      'branch_id': 14, 'address': 'Stall # 5 Seminary Road Project 8, Quezon City',     'image': 'assets/images/qcgh_branch.png',          'lat': 14.6669, 'lng': 121.0221, 'closeTime': '08:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6669,121.0221'},
+        {'name': 'Tondo, Manila',             'branch_id': 15, 'address': '539 Perla St., Tondo, Manila',                       'image': 'assets/images/tondo_branch.png',         'lat': 14.6138, 'lng': 120.9678, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6138,120.9678'},
+        {'name': 'Lucky Boba - Main Branch',  'branch_id': 1,  'address': '356 Vipra St., Sangandaan, Quezon City',             'image': 'assets/images/vipra_branch.png',         'lat': 14.6811, 'lng': 121.0368, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6811,121.0368'},
+        {'name': 'Starmall Shaw Blvd.',       'branch_id': 16, 'address': 'near Kalentong Jeepney Terminal',                    'image': 'assets/images/starmall_branch.png',      'lat': 14.5826, 'lng': 121.0535, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.5826,121.0535'},
+        {'name': 'Eton Centris',              'branch_id': 17, 'address': 'Second Floor, Eton Centris Station Mall',            'image': 'assets/images/etoncentris_branch.png',   'lat': 14.6444, 'lng': 121.0375, 'closeTime': '10:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6444,121.0375'},
+        {'name': 'Isetann Cubao',             'branch_id': 18, 'address': 'Ground Floor, Isetann Department Store',             'image': 'assets/images/isetann_branch.jpg',       'lat': 14.6219, 'lng': 121.0515, 'closeTime': '08:30 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6219,121.0515'},
+        {'name': 'Candelaria, Quezon',        'branch_id': 19, 'address': 'Maharlika Highway, Candelaria',                      'image': 'assets/images/candelaria_branch.png',    'lat': 13.9272, 'lng': 121.4233, 'closeTime': '08:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=13.9272,121.4233'},
+        {'name': 'Himlayan Rd., Pasong Tamo', 'branch_id': 20, 'address': '217 Himlayan Road cor. Tandang Sora Ave.',           'image': 'assets/images/himlayanrd_branch.png',    'lat': 14.6785, 'lng': 121.0505, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6785,121.0505'},
+        {'name': 'Lucky Boba - Bagbag',       'branch_id': 5,  'address': '657, 1116 Quirino Hwy, Novaliches',                  'image': 'assets/images/bagbag_branch.png',        'lat': 14.7000, 'lng': 121.0333, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7,121.0333'},
+        {'name': 'Lucky Boba - Cloverleaf',   'branch_id': 21, 'address': 'Ayala Malls Cloverleaf, QC',                        'image': 'assets/images/cloverleaf_branch.jpg',    'lat': 14.6540, 'lng': 121.0020, 'closeTime': '09:30 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.654,121.002'},
+        {'name': 'Ayala Malls Fairview Terraces','branch_id': 22,'address': 'Upper Ground Floor, Fairview, QC',                'image': 'assets/images/ayalateracces_branch.jpg', 'lat': 14.7340, 'lng': 121.0578, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.734,121.0578'},
+        {'name': 'Lucky Boba - Ayala',        'branch_id': 2,  'address': 'Ayala Center',                                      'image': 'assets/images/mallfeliz_branch.jpg',     'lat': 14.6186, 'lng': 121.0963, 'closeTime': '10:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6186,121.0963'},
+        {'name': 'Landmark, Trinoma',         'branch_id': 23, 'address': 'Level 1 Food Center, Landmark Supermarket',         'image': 'assets/images/landmark_branch.jpg',      'lat': 14.6534, 'lng': 121.0336, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6534,121.0336'},
+        {'name': 'SM North Edsa',             'branch_id': 24, 'address': 'The Block Entrance, SM North Edsa',                 'image': 'assets/images/smnorth_branch.jpg',       'lat': 14.6565, 'lng': 121.0305, 'closeTime': '10:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6565,121.0305'},
+        {'name': 'SM Novaliches',             'branch_id': 3,  'address': 'Ground Floor, SM Novaliches, QC',                   'image': 'assets/images/smnova_branch.jpg',        'lat': 14.7047, 'lng': 121.0346, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7047,121.0346'},
+        {'name': 'SM San Lazaro',             'branch_id': 25, 'address': 'Lower Ground Floor, SM San Lazaro, Manila',         'image': 'assets/images/sanlazaro_branch.jpg',     'lat': 14.6158, 'lng': 120.9830, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6158,120.983'},
+        {'name': 'Sta. Lucia Mall',           'branch_id': 26, 'address': 'Ground Floor, Sta. Lucia East Grand Mall',          'image': 'assets/images/stalucia_branch.jpg',      'lat': 14.6190, 'lng': 121.1000, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.619,121.1'},
+        {'name': 'Nova Plaza Mall',           'branch_id': 27, 'address': '3rd Floor, Novaliches, Quezon City',                'image': 'assets/images/novaplaza_branch.jpg',     'lat': 14.7214, 'lng': 121.0421, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.7214,121.0421'},
+        {'name': 'Spark Place Cubao',         'branch_id': 28, 'address': '2nd Floor, Sparks Place, Cubao, QC',               'image': 'assets/images/sparkplace_branch.jpg',    'lat': 14.6179, 'lng': 121.0553, 'closeTime': '09:00 PM', 'url': 'https://www.google.com/maps/search/?api=1&query=14.6179,121.0553'},
+      ];
+      _calculateAndSortStores();
+      _isLoadingStores = false;
+    });
   }
 
   @override
@@ -76,6 +126,7 @@ class _StoresPageState extends State<StoresPage> {
   }
 
   void _calculateAndSortStores() {
+    if (storeLocations.isEmpty) return;
     for (var store in storeLocations) {
       store['distance'] = _calculateDistance(
         _userLocation.latitude, _userLocation.longitude,
@@ -98,9 +149,11 @@ class _StoresPageState extends State<StoresPage> {
         _calculateAndSortStores();
         _isLoadingLocation = false;
       });
-      if (_isMapReady) {
+      if (_isMapReady && storeLocations.isNotEmpty) {
         _mapController.move(
-            LatLng(storeLocations[0]['lat'], storeLocations[0]['lng']), 15.0);
+            LatLng(storeLocations[0]['lat'] as double,
+                storeLocations[0]['lng'] as double),
+            15.0);
       }
     } catch (_) {
       if (mounted) setState(() => _isLoadingLocation = false);
@@ -135,7 +188,6 @@ class _StoresPageState extends State<StoresPage> {
   @override
   Widget build(BuildContext context) {
     final topPad    = MediaQuery.of(context).padding.top;
-    final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -338,21 +390,44 @@ class _StoresPageState extends State<StoresPage> {
             ),
           ),
 
-          // ── Bottom store card (PageView) ────────────────────────────────────
           Positioned(
-            bottom: bottomPad + 16,
-            left:   0,
-            right:  0,
+            bottom: 0,
+            left: 0,
+            right: 0,
             child: SizedBox(
-              height: 240,
+              height: 220,
               child: PageView.builder(
-                controller:    _pageController,
-                onPageChanged: _onPageChanged,
-                itemCount:     storeLocations.length,
-                itemBuilder:   (_, i) => _buildStoreCard(storeLocations[i]),
+                controller: _pageController,
+                itemCount: storeLocations.length,
+                onPageChanged: (i) {
+                  setState(() => _selectedIndex = i);
+                  _mapController.move(
+                    LatLng(storeLocations[i]['lat'], storeLocations[i]['lng']),
+                    14.5,
+                  );
+                },
+                itemBuilder: (_, i) => _buildStoreCard(storeLocations[i]),
               ),
             ),
           ),
+          if (_isLoadingStores)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withValues(alpha: 0.6),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: _kPurple),
+                      const SizedBox(height: 16),
+                      Text("Finding nearest stores...",
+                          style: GoogleFonts.outfit(
+                              color: _kPurple, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -385,15 +460,25 @@ class _StoresPageState extends State<StoresPage> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    store['image'],
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, trace) => Container(
-                      color: _kSurface,
-                      child: const Icon(Icons.store_rounded,
-                          color: _kPurple, size: 40),
-                    ),
-                  ),
+                  store['image'].toString().startsWith('http')
+                      ? Image.network(
+                          store['image'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, trace) => Container(
+                            color: _kSurface,
+                            child: const Icon(Icons.store_rounded,
+                                color: _kPurple, size: 40),
+                          ),
+                        )
+                      : Image.asset(
+                          store['image'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, trace) => Container(
+                            color: _kSurface,
+                            child: const Icon(Icons.store_rounded,
+                                color: _kPurple, size: 40),
+                          ),
+                        ),
                   // Subtle dark gradient for readability
                   Container(
                     decoration: BoxDecoration(
@@ -488,12 +573,32 @@ class _StoresPageState extends State<StoresPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            'Closes ${store['closeTime']}',
-                            style: GoogleFonts.outfit(
-                              fontSize: 11,
-                              color:    _kTextMid,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                'Closes ${store['closeTime']}',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 11,
+                                  color:    _kTextMid,
+                                ),
+                              ),
+                              if (store['distance'] != null) ...[
+                                Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                                  width: 3,
+                                  height: 3,
+                                  decoration: const BoxDecoration(color: Color(0xFFE2E8F0), shape: BoxShape.circle),
+                                ),
+                                Text(
+                                  '${(store['distance'] as double).toStringAsFixed(1)} km away',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color:    _kPurple,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),

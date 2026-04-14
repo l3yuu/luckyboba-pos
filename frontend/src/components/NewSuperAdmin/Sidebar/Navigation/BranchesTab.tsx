@@ -30,6 +30,9 @@ interface Branch {
   min_number: string;
   serial_number: string;
   owner_name: string;
+  franchise_id?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
@@ -59,6 +62,9 @@ interface RawBranch {
   min_number?: string;
   serial_number?: string;
   owner_name?: string;
+  franchise_id?: number | string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   today_sales?: number | string;
   total_sales?: number | string;
   staff_count?: number;
@@ -95,6 +101,8 @@ const mapBranch = (b: RawBranch): Branch => ({
   min_number: b.min_number ?? '',
   serial_number: b.serial_number ?? '',
   owner_name: b.owner_name ?? '',
+  latitude: b.latitude ? parseFloat(String(b.latitude)) : null,
+  longitude: b.longitude ? parseFloat(String(b.longitude)) : null,
 });
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -258,6 +266,7 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
     ["MIN", branch.min_number || "—"],
     ["Serial No.", branch.serial_number || "—"],
     ["Owner Name", branch.owner_name || "—"],
+    ["Coordinates", `${branch.latitude || '0'}, ${branch.longitude || '0'}`],
   ];
   return (
     <ModalShell
@@ -295,6 +304,8 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
     min_number: branch.min_number ?? '',
     serial_number: branch.serial_number ?? '',
     owner_name: branch.owner_name ?? '',
+    latitude: branch.latitude ?? '',
+    longitude: branch.longitude ?? '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -536,6 +547,8 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
     min_number: "",
     serial_number: "",
     owner_name: "",
+    latitude: "",
+    longitude: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);

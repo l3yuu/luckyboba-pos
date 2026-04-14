@@ -233,6 +233,7 @@ class RawMaterialController extends Controller
                 StockMovement::create([
                     'raw_material_id' => $rawMaterial->id,
                     'branch_id'       => $rawMaterial->branch_id,
+                    'user_id'         => auth()->id(),
                     'type'            => $validated['type'],
                     'quantity'        => $validated['quantity'],
                     'reason'          => $validated['reason'] ?? ucfirst($validated['type']) . ' (manual)',
@@ -302,7 +303,7 @@ class RawMaterialController extends Controller
      */
     public function movements(Request $request)
     {
-        $query = StockMovement::with(['rawMaterial:id,name,unit', 'branch:id,name']);
+        $query = StockMovement::with(['rawMaterial:id,name,unit', 'branch:id,name', 'user:id,name']);
         
         $branchId = $request->query('branch_id');
         $selectedBranchName = $branchId ? \App\Models\Branch::find($branchId)?->name : null;
@@ -310,6 +311,10 @@ class RawMaterialController extends Controller
         if ($branchId) {
             // Strict filtering for movements: only show results for the selected branch
             $query->where('branch_id', $branchId);
+        }
+
+        if ($request->filled('period')) {
+            $query->where('created_at', 'like', $request->period . '%');
         }
 
         if ($request->filled('raw_material_id')) {
@@ -328,7 +333,7 @@ class RawMaterialController extends Controller
                 'unit'         => $m->rawMaterial->unit ?? '',
                 'branch_name'  => $m->branch->name ?? ($selectedBranchName ?? 'Main Office'),
                 'reason'       => $m->reason,
-                'performed_by' => 'System', 
+                'performed_by' => $m->user->name ?? 'System', 
                 'created_at'   => $m->created_at,
             ]);
 
@@ -367,16 +372,33 @@ class RawMaterialController extends Controller
                     // 1. Check for manual BEG (Opening) adjust
                     if (isset($auditItem['beg'])) {
                         $begValue = $auditItem['beg'];
+                        
+                        // To make this "BEG" permanent in the report, we must update current_stock
+                        // Formula: New Current Stock = New BEG + (Movements since start of today)
+                        $todayStart = now()->startOfDay();
+                        $todayAdditions = StockMovement::where('raw_material_id', $material->id)
+                            ->where('created_at', '>=', $todayStart)
+                            ->where('type', 'add')
+                            ->sum('quantity');
+                        $todaySubtractions = StockMovement::where('raw_material_id', $material->id)
+                            ->where('created_at', '>=', $todayStart)
+                            ->where('type', 'subtract')
+                            ->sum('quantity');
+
+                        $material->current_stock = $begValue + $todayAdditions - $todaySubtractions;
+                        $material->save();
+
                         // Record a movement at the very start of today (00:00:01)
                         // This ensures the Usage Report's "BEG" calculation for "today"
                         // respects this manual entry.
                         StockMovement::create([
                             'raw_material_id' => $material->id,
                             'branch_id'       => $material->branch_id,
+                            'user_id'         => auth()->id(),
                             'type'            => 'set',
                             'quantity'        => $begValue,
                             'reason'          => 'Manual Opening Adjustment',
-                            'created_at'      => now()->startOfDay()->addSecond(),
+                            'created_at'      => $todayStart->copy()->addSecond(),
                         ]);
                     }
 
@@ -388,6 +410,7 @@ class RawMaterialController extends Controller
                         StockMovement::create([
                             'raw_material_id' => $material->id,
                             'branch_id'       => $material->branch_id,
+                            'user_id'         => auth()->id(),
                             'type'            => 'set',
                             'quantity'        => $actual,
                             'reason'          => $reason . " (Prev: " . round((float)$oldStock, 2) . ")",

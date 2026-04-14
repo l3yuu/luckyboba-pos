@@ -40,6 +40,47 @@ class BackupController extends Controller
         ]);
     }
 
+    public function listBackups()
+    {
+        $backupDir = storage_path('app/backups');
+        if (!file_exists($backupDir)) return response()->json([]);
+
+        $files = glob($backupDir . '/*.sql');
+        $backups = [];
+
+        foreach ($files as $file) {
+            $backups[] = [
+                'filename' => basename($file),
+                'size'     => round(filesize($file) / 1024 / 1024, 2) . ' MB',
+                'date'     => Carbon::createFromTimestamp(filemtime($file))
+                                ->timezone('Asia/Manila')
+                                ->format('Y-m-d h:i A'),
+                'timestamp'=> filemtime($file)
+            ];
+        }
+
+        usort($backups, fn($a, $b) => $b['timestamp'] - $a['timestamp']);
+
+        return response()->json($backups);
+    }
+
+    public function downloadBackup($filename)
+    {
+        $path = storage_path("app/backups/{$filename}");
+        if (!file_exists($path)) return response()->json(['error' => 'File not found'], 404);
+
+        return response()->download($path);
+    }
+
+    public function deleteBackup($filename)
+    {
+        $path = storage_path("app/backups/{$filename}");
+        if (!file_exists($path)) return response()->json(['error' => 'File not found'], 404);
+
+        unlink($path);
+        return response()->json(['success' => true]);
+    }
+
     public function runBackup(Request $request)
     {
         try {
@@ -50,12 +91,9 @@ class BackupController extends Controller
                 mkdir(storage_path('app/backups'), 0755, true);
             }
 
-            // Make path configurable via .env for production flexibility
             $mysqldumpPath = env('DB_DUMP_PATH', 'mysqldump'); 
-
             $passwordPart = env('DB_PASSWORD') ? '--password="' . env('DB_PASSWORD') . '"' : '';
 
-            // Use escaped quotes for the path and filename to handle spaces in Windows or Linux
             $command = sprintf(
                 '"%s" --user=%s %s --host=%s %s > "%s"',
                 $mysqldumpPath,
@@ -66,7 +104,6 @@ class BackupController extends Controller
                 $path
             );
 
-            // Execute the command and capture both output and errors
             $output = [];
             $returnVar = 0;
             exec($command . ' 2>&1', $output, $returnVar);
@@ -76,7 +113,11 @@ class BackupController extends Controller
                 throw new \Exception("Database export failed (Code: $returnVar): " . $errorMsg);
             }
 
-            return response()->download($path);
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Backup created successfully',
+                'filename' => $filename
+            ]);
 
         } catch (\Exception $e) {
             \Log::error("Backup Error: " . $e->getMessage());
@@ -86,5 +127,4 @@ class BackupController extends Controller
             ], 500);
         }
     }
-
 }

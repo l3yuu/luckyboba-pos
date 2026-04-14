@@ -194,15 +194,15 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
 
           <div className="flex-1 overflow-y-auto pr-2 custom-scroll space-y-3">
             {loading && !pulse ? (
-               [...Array(5)].map((_, i) => (
-                 <div key={i} className="flex justify-between items-center p-4 bg-zinc-50 rounded-xl">
-                    <div className="flex gap-3 items-center">
-                       <Skeleton className="w-10 h-10 rounded-lg" />
-                       <div className="space-y-2"><Skeleton className="w-32 h-3" /><Skeleton className="w-24 h-2" /></div>
-                    </div>
-                    <Skeleton className="w-16 h-4" />
-                 </div>
-               ))
+              [...Array(5)].map((_, i) => (
+                <div key={i} className="flex justify-between items-center p-4 bg-zinc-50 rounded-xl">
+                  <div className="flex gap-3 items-center">
+                    <Skeleton className="w-10 h-10 rounded-lg" />
+                    <div className="space-y-2"><Skeleton className="w-32 h-3" /><Skeleton className="w-24 h-2" /></div>
+                  </div>
+                  <Skeleton className="w-16 h-4" />
+                </div>
+              ))
             ) : pulse && pulse.recent_sales.length > 0 ? (
               pulse.recent_sales.map((sale) => (
                 <div key={sale.id} className="ticker-item bg-white hover:bg-zinc-50/50 border border-zinc-100 hover:border-[#ede8ff] hover:shadow-md p-4 rounded-xl transition-all flex items-center justify-between group">
@@ -237,7 +237,7 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
         <div className="xl:col-span-4 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm flex flex-col">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-               <ShieldCheck size={16} />
+              <ShieldCheck size={16} />
             </div>
             <div>
               <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wider opacity-80">Staff Presence</h3>
@@ -247,7 +247,7 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
 
           <div className="flex-1 overflow-y-auto pr-1 custom-scroll space-y-3">
             {loading && !pulse ? (
-               [...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)
+              [...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)
             ) : pulse && pulse.active_users.length > 0 ? (
               pulse.active_users.map((staff) => (
                 <div key={staff.id} className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-50 hover:border-emerald-100 hover:bg-emerald-50/20 transition-all group">
@@ -280,13 +280,13 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
           </div>
 
           <div className="mt-6 pt-4 border-t border-zinc-100">
-             <div className="flex items-center justify-between">
-                <span className="text-[0.65rem] font-black text-zinc-400 uppercase tracking-widest">Operational Health</span>
-                <span className="text-[0.65rem] font-black text-emerald-600 uppercase tracking-widest">Stable</span>
-             </div>
-             <div className="mt-2 h-1 w-full bg-zinc-100 rounded-full overflow-hidden">
-                <div className="h-full w-full bg-emerald-500 opacity-30" />
-             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[0.65rem] font-black text-zinc-400 uppercase tracking-widest">Operational Health</span>
+              <span className="text-[0.65rem] font-black text-emerald-600 uppercase tracking-widest">Stable</span>
+            </div>
+            <div className="mt-2 h-1 w-full bg-zinc-100 rounded-full overflow-hidden">
+              <div className="h-full w-full bg-emerald-500 opacity-30" />
+            </div>
           </div>
         </div>
       </div>
