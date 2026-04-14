@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  ShoppingBag, RefreshCw, Search, ToggleLeft, ToggleRight,
+  ShoppingBag, Search, ToggleLeft, ToggleRight,
   ChevronDown, AlertCircle,
 } from 'lucide-react';
 
@@ -155,7 +155,7 @@ const MenuItemRow = ({
 const BM_MenuManagement = () => {
   const [items,       setItems]       = useState<MenuItem[]>([]);
   const [loading,     setLoading]     = useState(true);
-  const [refreshing,  setRefreshing]  = useState(false);
+
   const [error,       setError]       = useState<string | null>(null);
   const [toggling,    setToggling]    = useState<Set<number>>(new Set());
   const [search,      setSearch]      = useState('');
@@ -164,9 +164,8 @@ const BM_MenuManagement = () => {
   const [openCats,    setOpenCats]    = useState<Set<string>>(new Set());
 
   // ── Fetch menu ──────────────────────────────────────────────────────────────
-  const fetchMenu = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    else         setRefreshing(true);
+  const fetchMenu = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
       const res = await fetch(`${API_BASE}/branch/menu-items`, {
@@ -194,7 +193,6 @@ const BM_MenuManagement = () => {
       console.error(e);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 
@@ -259,32 +257,32 @@ const BM_MenuManagement = () => {
       <section className="mm-root px-5 md:px-8 pb-8 pt-5 space-y-5">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
-                Menu Management
-              </h2>
-              <p className="mm-label" style={{ color: '#a1a1aa', marginTop: 2 }}>
-                Enable or disable items for your branch
-              </p>
+        <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+          <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+            <div className="relative group flex-1 w-full md:w-auto">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+              <input
+                type="text"
+                placeholder="Search items or category..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              />
             </div>
-          </div>
+            
+            <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
+              <option value="all">All Categories</option>
+              {categories.filter(c => c !== 'all').map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
 
-          <button
-            onClick={() => fetchMenu(true)}
-            disabled={refreshing}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '7px 14px', background: '#f4f4f5', border: 'none',
-              borderRadius: '0.5rem', cursor: 'pointer',
-              fontSize: '0.65rem', fontWeight: 700, color: '#52525b',
-              letterSpacing: '0.1em', textTransform: 'uppercase',
-            }}
-          >
-            <RefreshCw size={11} className={refreshing ? 'mm-spin' : ''} />
-            Refresh
-          </button>
+            <select value={avFilter} onChange={e => setAvFilter(e.target.value as 'all' | 'available' | 'unavailable')}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
+              <option value="all">All Status</option>
+              <option value="available">Available</option>
+              <option value="unavailable">Unavailable</option>
+            </select>
+          </div>
         </div>
 
         {/* ── Summary pills ── */}
@@ -321,68 +319,7 @@ const BM_MenuManagement = () => {
           </div>
         )}
 
-        {/* ── Filters ── */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
 
-          {/* Category filter */}
-          <div className="flex items-center gap-1 flex-wrap flex-1">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setCatFilter(cat)}
-                style={{
-                  padding: '4px 10px', border: 'none', borderRadius: '100px',
-                  fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
-                  textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.12s',
-                  background: catFilter === cat ? '#3b2063' : '#f4f4f5',
-                  color:      catFilter === cat ? '#fff'    : '#71717a',
-                }}
-              >
-                {cat === 'all' ? 'All Categories' : cat}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 sm:ml-auto">
-            {/* Available filter */}
-            {(['all', 'available', 'unavailable'] as const).map(v => (
-              <button
-                key={v}
-                onClick={() => setAvFilter(v)}
-                style={{
-                  padding: '4px 10px', border: 'none', borderRadius: '100px',
-                  fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
-                  textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.12s',
-                  background: avFilter === v
-                    ? v === 'available' ? '#dcfce7' : v === 'unavailable' ? '#fee2e2' : '#3b2063'
-                    : '#f4f4f5',
-                  color: avFilter === v
-                    ? v === 'available' ? '#166534' : v === 'unavailable' ? '#991b1b' : '#fff'
-                    : '#71717a',
-                }}
-              >
-                {v === 'all' ? 'All' : v}
-              </button>
-            ))}
-
-            {/* Search */}
-            <div className="relative">
-              <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search items…"
-                style={{
-                  paddingLeft: 28, paddingRight: 12, paddingTop: 7, paddingBottom: 7,
-                  border: '1.5px solid #e4e4e7', borderRadius: '0.5rem',
-                  fontSize: '0.78rem', color: '#1a0f2e', background: '#fafafa',
-                  outline: 'none', width: 180,
-                }}
-              />
-            </div>
-          </div>
-        </div>
 
         {/* ── Content ── */}
         {loading ? (
