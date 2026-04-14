@@ -51,15 +51,7 @@ const authHeaders = () => ({
 const fmt = (v: number) =>
   `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
-const timeAgo = (iso: string) => {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "Just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-};
+
 
 const waitMinutes = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
 
@@ -238,7 +230,7 @@ const OnlineOrdersTab: React.FC = () => {
       // Audio alert for new pending orders
       const newPending = list.filter(o => o.status === "pending").length;
       if (prevPendingCount > 0 && newPending > prevPendingCount) {
-        try { new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA").play(); } catch {}
+        try { new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA").play(); } catch { /* ignore */ }
       }
       setPrevPendingCount(newPending);
 

@@ -117,7 +117,7 @@ const NotificationCenterTab: React.FC = () => {
 
       // Play chime if new notifications arrived
       if (lastCount > 0 && list.length > lastCount) {
-        try { new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA").play(); } catch {}
+        try { new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA").play(); } catch { /* ignore */ }
       }
       setLastCount(list.length);
     } catch { /* silently fail */ }
