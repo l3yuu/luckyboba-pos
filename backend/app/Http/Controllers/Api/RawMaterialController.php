@@ -367,6 +367,22 @@ class RawMaterialController extends Controller
                     // 1. Check for manual BEG (Opening) adjust
                     if (isset($auditItem['beg'])) {
                         $begValue = $auditItem['beg'];
+                        
+                        // To make this "BEG" permanent in the report, we must update current_stock
+                        // Formula: New Current Stock = New BEG + (Movements since start of today)
+                        $todayStart = now()->startOfDay();
+                        $todayAdditions = StockMovement::where('raw_material_id', $material->id)
+                            ->where('created_at', '>=', $todayStart)
+                            ->where('type', 'add')
+                            ->sum('quantity');
+                        $todaySubtractions = StockMovement::where('raw_material_id', $material->id)
+                            ->where('created_at', '>=', $todayStart)
+                            ->where('type', 'subtract')
+                            ->sum('quantity');
+
+                        $material->current_stock = $begValue + $todayAdditions - $todaySubtractions;
+                        $material->save();
+
                         // Record a movement at the very start of today (00:00:01)
                         // This ensures the Usage Report's "BEG" calculation for "today"
                         // respects this manual entry.
@@ -376,7 +392,7 @@ class RawMaterialController extends Controller
                             'type'            => 'set',
                             'quantity'        => $begValue,
                             'reason'          => 'Manual Opening Adjustment',
-                            'created_at'      => now()->startOfDay()->addSecond(),
+                            'created_at'      => $todayStart->copy()->addSecond(),
                         ]);
                     }
 
