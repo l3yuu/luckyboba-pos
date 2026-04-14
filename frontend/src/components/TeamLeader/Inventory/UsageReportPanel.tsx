@@ -2,11 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import api from '../../../services/api';
 import { 
-<<<<<<< HEAD
-  Search, RefreshCw, 
-=======
   Search, RefreshCw, Info,
->>>>>>> 1ec7c2c8fe4c2858bc765b4c6608489254e87919
   AlertCircle, CheckCircle2
 } from 'lucide-react';
 
