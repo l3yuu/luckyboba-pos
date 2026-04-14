@@ -314,11 +314,21 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/',             [InventoryController::class,          'index']);
             Route::get('/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
             Route::get('/history',      [InventoryController::class,          'getTransactionHistory']);
+            
+            // Usage Report (Read Access for all roles)
+            Route::get('/usage-report',           [InventoryController::class, 'usageReport']);
+            Route::get('/usage-report/get-product-sales', [InventoryController::class, 'productSalesSummary']);
+            Route::get('/usage-report/breakdown/{id}', [InventoryController::class, 'usageBreakdown']);
+            Route::get('/usage-report/export',    [InventoryController::class, 'exportUsageReport']);
         });
 
         Route::get('/raw-materials/low-stock',             [RawMaterialController::class, 'lowStock']);
         Route::get('/raw-materials/movements',             [RawMaterialController::class, 'movements']);
         Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
+        
+        // Bulk Audit (Log physical counts)
+        Route::post('/raw-materials/bulk-audit', [RawMaterialController::class, 'bulkAudit'])->middleware('role:superadmin,branch_manager,team_leader');
+        
         Route::apiResource('raw-materials', RawMaterialController::class)->only(['index', 'show']);
 
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
@@ -394,10 +404,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::patch('/{id}/quantity',         [InventoryController::class, 'updateQuantity']);
             Route::get ('/overview',               [InventoryController::class, 'overview']);
             Route::get ('/alerts',                 [InventoryController::class, 'alerts']);
-            Route::get ('/usage-report',           [InventoryController::class, 'usageReport']);
-            Route::get ('/usage-report/get-product-sales', [InventoryController::class, 'productSalesSummary']);
-            Route::get ('/usage-report/breakdown/{id}', [InventoryController::class, 'usageBreakdown']);
-            Route::get ('/usage-report/export',    [InventoryController::class, 'exportUsageReport']);
         });
 
         Route::prefix('purchase-orders')->group(function () {

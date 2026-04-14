@@ -291,4 +291,54 @@ class RawMaterialController extends Controller
 
         return response()->json($movements);
     }
+
+    /**
+     * POST /api/raw-materials/bulk-audit
+     * Bulk physical count audit.
+     */
+    public function bulkAudit(Request $request)
+    {
+        $validated = $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|exists:raw_materials,id',
+            'items.*.actual' => 'required|numeric|min:0',
+            'reason' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        $reason = $validated['reason'] ?? 'Physical Count Audit';
+
+        try {
+            return DB::transaction(function () use ($validated, $user, $reason) {
+                foreach ($validated['items'] as $auditItem) {
+                    $material = RawMaterial::findOrFail($auditItem['id']);
+
+                    // Branch Isolation Check
+                    if (in_array($user->role, ['branch_manager', 'team_leader']) && $material->branch_id !== $user->branch_id) {
+                        continue; // Skip items from other branches
+                    }
+
+                    $oldStock = $material->current_stock;
+                    $actual = $auditItem['actual'];
+
+                    // Update Stock (Absolute Set)
+                    $material->update(['current_stock' => $actual]);
+
+                    // Record Movement
+                    StockMovement::create([
+                        'raw_material_id' => $material->id,
+                        'branch_id'       => $material->branch_id,
+                        'type'            => 'set',
+                        'quantity'        => $actual,
+                        'reason'          => $reason . " (Prev: " . round((float)$oldStock, 2) . ")",
+                    ]);
+                }
+
+                return response()->json(['message' => 'Bulk inventory audit completed successfully.']);
+            });
+        } catch (\Exception $e) {
+            Log::error('Bulk Audit Error: ' . $e->getMessage());
+            return response()->json(['message' => 'Audit failed.'], 500);
+        }
+    }
 }

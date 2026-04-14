@@ -18,7 +18,7 @@ class InventoryRepository implements InventoryRepositoryInterface
     private function getScopedBranchId(?int $requestedBranchId = null): ?int
     {
         $authUser = Auth::user();
-        if ($authUser && $authUser->role === 'branch_manager') {
+        if ($authUser && in_array($authUser->role, ['branch_manager', 'team_leader', 'supervisor'])) {
             return $authUser->branch_id;
         }
         return $requestedBranchId;
