@@ -91,38 +91,66 @@ class BackupController extends Controller
                 mkdir(storage_path('app/backups'), 0755, true);
             }
 
-            $mysqldumpPath = env('DB_DUMP_PATH', 'mysqldump'); 
-            $passwordPart = env('DB_PASSWORD') ? '--password="' . env('DB_PASSWORD') . '"' : '';
+            $handle = fopen($path, 'w+');
+            fwrite($handle, "-- Backup created on " . date('Y-m-d H:i:s') . "\n\n");
+            fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
 
-            $command = sprintf(
-                '"%s" --user=%s %s --host=%s %s > "%s"',
-                $mysqldumpPath,
-                env('DB_USERNAME'),
-                $passwordPart,
-                env('DB_HOST'),
-                env('DB_DATABASE'),
-                $path
-            );
+            // Get all tables
+            $tables = \Illuminate\Support\Facades\DB::select('SHOW TABLES');
 
-            $output = [];
-            $returnVar = 0;
-            exec($command . ' 2>&1', $output, $returnVar);
+            foreach ($tables as $tableRow) {
+                $properties = get_object_vars($tableRow);
+                $tableName = reset($properties);
 
-            if ($returnVar !== 0 || !file_exists($path) || filesize($path) === 0) {
-                $errorMsg = implode("\n", $output);
-                throw new \Exception("Database export failed (Code: $returnVar): " . $errorMsg);
+                // Get Create Table Schema
+                $createTableResult = \Illuminate\Support\Facades\DB::select("SHOW CREATE TABLE `{$tableName}`");
+                $createRow = (array) $createTableResult[0];
+                $createSql = $createRow['Create Table'] ?? '';
+                
+                if (empty($createSql)) continue; // skip views or errors
+
+                fwrite($handle, "DROP TABLE IF EXISTS `{$tableName}`;\n");
+                fwrite($handle, "{$createSql};\n\n");
+
+                // Get Table Rows
+                $rows = \Illuminate\Support\Facades\DB::table($tableName)->get();
+                if ($rows->count() > 0) {
+                    foreach ($rows as $row) {
+                        $rowArray = (array) $row;
+                        $keys = array_keys($rowArray);
+                        $values = array_values($rowArray);
+                        
+                        $escapedValues = array_map(function($val) {
+                            if (is_null($val)) return 'NULL';
+                            // Safe database escaping for pure PHP
+                            $val = str_replace(
+                                ['\\', "'", "\r", "\n"], 
+                                ['\\\\', "''", '\r', '\n'], 
+                                $val
+                            );
+                            return "'" . $val . "'";
+                        }, $values);
+
+                        $sql = "INSERT INTO `{$tableName}` (`" . implode("`, `", $keys) . "`) VALUES (" . implode(", ", $escapedValues) . ");\n";
+                        fwrite($handle, $sql);
+                    }
+                    fwrite($handle, "\n");
+                }
             }
+
+            fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
+            fclose($handle);
 
             return response()->json([
                 'success'  => true,
-                'message'  => 'Backup created successfully',
+                'message'  => 'Backup created successfully via PHP Native Dumper',
                 'filename' => $filename
             ]);
 
         } catch (\Throwable $e) {
             \Log::error("Backup Error: " . $e->getMessage());
             return response()->json([
-                'error' => 'Backup failed. Please check if mysqldump is installed, exec() is enabled, or the properties in .env are correct.',
+                'error' => 'Backup failed natively.',
                 'details' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
