@@ -15,6 +15,12 @@ type Unit = 'PC' | 'PK' | 'BAG' | 'BTL' | 'BX' | 'ML' | 'G' | 'KG' | 'L';
 type Category = 'Packaging' | 'Ingredients' | 'Intermediate' | 'Equipment';
 type AdjType = 'add' | 'subtract' | 'set' | 'waste';
 
+interface BranchStock {
+  id: number;
+  branch?: { name: string };
+  current_stock: number;
+}
+
 interface RawMaterial {
   id: number;
   name: string;
@@ -26,7 +32,7 @@ interface RawMaterial {
   notes?: string;
   created_at?: string;
   branch_id?: number | null;
-  branch_stocks?: any[];
+  branch_stocks?: BranchStock[];
   stock_history?: number[];
 }
 

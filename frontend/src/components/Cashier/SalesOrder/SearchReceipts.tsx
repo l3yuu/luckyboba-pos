@@ -369,12 +369,22 @@ return {
   pwdIds: sale.pwd_id ? [sale.pwd_id] : [],
   sc_discount_amount: Number(sale.sc_discount_amount ?? 0),
   pwd_discount_amount: Number(sale.pwd_discount_amount ?? 0),
-  itemPaxAssignments: (sale.sale_items || []).reduce((acc: any, raw: any, idx: number) => {
-    let assignments = raw.pax_assignment;
-    if (typeof assignments === 'string') {
-      try { assignments = JSON.parse(assignments); } catch { assignments = [assignments]; }
+  itemPaxAssignments: (sale.sale_items || []).reduce((acc: Record<string, ('none' | 'sc' | 'pwd')[]>, raw: RawSaleItem, idx: number) => {
+    let assignments: ('none' | 'sc' | 'pwd')[] = [];
+    const rawVal = raw.pax_assignment;
+    
+    if (typeof rawVal === 'string') {
+      try {
+        const parsed = JSON.parse(rawVal);
+        assignments = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        assignments = [rawVal as 'none' | 'sc' | 'pwd'];
+      }
+    } else if (Array.isArray(rawVal)) {
+      assignments = rawVal as ('none' | 'sc' | 'pwd')[];
     }
-    acc[String(idx)] = assignments || Array(raw.quantity).fill('none');
+
+    acc[String(idx)] = assignments.length > 0 ? assignments : Array(raw.quantity).fill('none' as const);
     return acc;
   }, {}),
   posFooter: payload.settings ?? {},
