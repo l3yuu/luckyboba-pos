@@ -45,7 +45,7 @@ const sizeLabel = (s?: string | null) => {
   return mapping[s] || s;
 };
 
-const RecipesPanel = ({ branchId: _branchId }: { branchId: number | null }) => {
+const RecipesPanel = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

@@ -72,7 +72,7 @@ const TeamLeaderDashboard = () => {
       case 'x-reading':       return <XReadingPanel       branchId={bId} />;
       case 'z-reading':       return <ZReadingPanel       branchId={bId} />;
       case 'raw-materials':   return <RawMaterialsPanel branchId={bId} />;
-      case 'recipes':         return <RecipesPanel      branchId={bId} />;
+      case 'recipes':         return <RecipesPanel />;
       case 'usage-report':    return <UsageReportPanel  branchId={bId} />;
       case 'item-checker':    return <ItemCheckerPanel  branchId={bId} />;
       default:                return <TL_DashboardPanel />;
