@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, Eye, Edit2, Trash2, Lock, UserCheck, XCircle,
-  Users, X, AlertCircle, RefreshCw, Mail, MapPin, ShieldCheck,
+  Users, X, AlertCircle, Mail, MapPin, ShieldCheck,
   Trash, CheckCircle, Laptop, MonitorCheck, MonitorOff, Plus,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -10,65 +10,65 @@ import api from '../../../services/api';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type VariantKey = 'primary' | 'secondary' | 'danger' | 'ghost';
-type SizeKey    = 'sm' | 'md' | 'lg';
+type SizeKey = 'sm' | 'md' | 'lg';
 
 interface Staff {
-  id:            number;
-  name:          string;
-  email:         string;
-  role:          string;
-  branch:        string;
-  branch_id:     number | null;
-  status:        string;
-  lastLogin?:    string;
-  login_count:   number;
-  created_at:    string;
-  has_pin:       boolean;
-  device_id?:    number | null;
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  branch: string;
+  branch_id: number | null;
+  status: string;
+  lastLogin?: string;
+  login_count: number;
+  created_at: string;
+  has_pin: boolean;
+  device_id?: number | null;
   device_number?: string | null;
 }
 
 interface FormState {
-  name:            string;
-  email:           string;
-  password:        string;
+  name: string;
+  email: string;
+  password: string;
   passwordConfirm: string;
-  status:          string;
-  role:            string;
+  status: string;
+  role: string;
 }
 
 interface PosDevice {
-  id:          number;
+  id: number;
   device_name: string;
-  pos_number:  string;
-  branch_id:   number;
-  status:      string;
-  user_id:     number | null;
-  user?:       { id: number; name: string } | null;
-  branch?:     { id: number; name: string } | null;
+  pos_number: string;
+  branch_id: number;
+  status: string;
+  user_id: number | null;
+  user?: { id: number; name: string } | null;
+  branch?: { id: number; name: string } | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapStaff = (u: any): Staff => ({
-  id:            u.id,
-  name:          u.name,
-  email:         u.email,
-  role:          u.role,
-  branch:        u.branch ?? u.branch_name ?? '—',
-  branch_id:     u.branch_id ?? null,
-  status:        u.status,
-  lastLogin:     u.last_login_at
+  id: u.id,
+  name: u.name,
+  email: u.email,
+  role: u.role,
+  branch: u.branch ?? u.branch_name ?? '—',
+  branch_id: u.branch_id ?? null,
+  status: u.status,
+  lastLogin: u.last_login_at
     ? new Date(u.last_login_at).toLocaleString('en-PH', {
-        month: 'short', day: 'numeric', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      })
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
     : undefined,
-  login_count:   u.login_count ?? 0,
-  created_at:    u.created_at,
-  has_pin:       u.has_pin ?? false,
-  device_id:     u.device_id ?? null,
+  login_count: u.login_count ?? 0,
+  created_at: u.created_at,
+  has_pin: u.has_pin ?? false,
+  device_id: u.device_id ?? null,
   device_number: u.device_number ?? u.pos_number ?? null,
 });
 
@@ -117,12 +117,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = 'primary', size = 'sm',
   onClick, className = '', disabled = false, type = 'button',
 }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: 'px-3 py-2 text-xs', md: 'px-4 py-2.5 text-sm', lg: 'px-6 py-3 text-sm' };
+  const sizes: Record<SizeKey, string> = { sm: 'px-3 py-2 text-xs', md: 'px-4 py-2.5 text-sm', lg: 'px-6 py-3 text-sm' };
   const variants: Record<VariantKey, string> = {
-    primary:   'bg-[#3b2063] hover:bg-[#2a1647] text-white',
+    primary: 'bg-[#3b2063] hover:bg-[#2a1647] text-white',
     secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
-    danger:    'bg-red-600 hover:bg-red-700 text-white',
-    ghost:     'bg-transparent text-zinc-500 hover:bg-zinc-100',
+    danger: 'bg-red-600 hover:bg-red-700 text-white',
+    ghost: 'bg-transparent text-zinc-500 hover:bg-zinc-100',
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -138,29 +138,29 @@ const ModalShell: React.FC<{
   onClose: () => void; icon: React.ReactNode; title: string; sub: string;
   children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
 }> = ({ onClose, icon, title, sub, children, footer, maxWidth = 'max-w-md' }) =>
-  createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
-            <div>
-              <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
-              <p className="text-[10px] text-zinc-400">{sub}</p>
+    createPortal(
+      <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+        style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+        <div className="absolute inset-0" onClick={onClose} />
+        <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
+          <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
+              <div>
+                <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
+                <p className="text-[10px] text-zinc-400">{sub}</p>
+              </div>
             </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
+              <X size={16} />
+            </button>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
-            <X size={16} />
-          </button>
+          <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
+          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
         </div>
-        <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
-      </div>
-    </div>,
-    document.body
-  );
+      </div>,
+      document.body
+    );
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
 
@@ -181,14 +181,14 @@ const inputCls = (err?: string) =>
 
 const ViewStaffModal: React.FC<{ onClose: () => void; user: Staff }> = ({ onClose, user }) => {
   const rows: [string, React.ReactNode][] = [
-    ['Staff ID',   `#${user.id}`],
-    ['Name',       <div className="flex items-center gap-2"><Avatar name={user.name} />{user.name}</div>],
-    ['Email',      <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>],
-    ['Branch',     <span className="flex items-center gap-1"><MapPin size={11} />{user.branch}</span>],
-    ['Role',       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">{user.role === 'team_leader' ? 'Team Leader' : 'Cashier'}</span>],
-    ['Status',     <Badge status={user.status} />],
+    ['Staff ID', `#${user.id}`],
+    ['Name', <div className="flex items-center gap-2"><Avatar name={user.name} />{user.name}</div>],
+    ['Email', <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>],
+    ['Branch', <span className="flex items-center gap-1"><MapPin size={11} />{user.branch}</span>],
+    ['Role', <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">{user.role === 'team_leader' ? 'Team Leader' : 'Cashier'}</span>],
+    ['Status', <Badge status={user.status} />],
     ['Last Login', user.lastLogin ?? '—'],
-    ['Device',     user.device_number
+    ['Device', user.device_number
       ? <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1"><MonitorCheck size={9} />{user.device_number}</span>
       : <span className="text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full flex items-center gap-1"><MonitorOff size={9} />No device</span>],
   ];
@@ -211,23 +211,23 @@ const ViewStaffModal: React.FC<{ onClose: () => void; user: Staff }> = ({ onClos
 // ─── Staff Form Modal (Add / Edit) ────────────────────────────────────────────
 
 const StaffFormModal: React.FC<{
-  onClose:      () => void;
-  onSaved:      (u: Staff) => void;
+  onClose: () => void;
+  onSaved: (u: Staff) => void;
   editingUser?: Staff | null;
-  branchId:     number | null;
+  branchId: number | null;
 }> = ({ onClose, onSaved, editingUser, branchId }) => {
   const [form, setForm] = useState<FormState>(
     editingUser
       ? { name: editingUser.name, email: editingUser.email, password: '', passwordConfirm: '', status: editingUser.status, role: editingUser.role }
       : blankForm()
   );
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [saving,   setSaving]   = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())  e.name  = 'Name is required.';
+    if (!form.name.trim()) e.name = 'Name is required.';
     if (!form.email.trim()) e.email = 'Email is required.';
     if (!editingUser && !form.password) e.password = 'Password is required.';
     if (form.password && form.password.length < 6) e.password = 'Password must be at least 6 characters.';
@@ -247,7 +247,7 @@ const StaffFormModal: React.FC<{
           status: form.status, branch_id: branchId,
         };
         if (form.password) {
-          payload.password              = form.password;
+          payload.password = form.password;
           payload.password_confirmation = form.passwordConfirm;
         }
         const res = await api.put(`/users/${editingUser.id}`, payload);
@@ -341,11 +341,11 @@ const StaffFormModal: React.FC<{
 // ─── Toggle Status Modal ──────────────────────────────────────────────────────
 
 const ToggleStatusModal: React.FC<{
-  onClose:   () => void;
+  onClose: () => void;
   onToggled: (u: Staff) => void;
-  user:      Staff;
+  user: Staff;
 }> = ({ onClose, onToggled, user }) => {
-  const [saving,   setSaving]   = useState(false);
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
   const isActive = user.status === 'ACTIVE';
 
@@ -413,11 +413,11 @@ const ToggleStatusModal: React.FC<{
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 
 const DeleteStaffModal: React.FC<{
-  onClose:   () => void;
+  onClose: () => void;
   onDeleted: (id: number) => void;
-  user:      Staff;
+  user: Staff;
 }> = ({ onClose, onDeleted, user }) => {
-  const [saving,   setSaving]   = useState(false);
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
 
   const handleDelete = async () => {
@@ -479,16 +479,16 @@ const DeleteStaffModal: React.FC<{
 // ─── Assign Device Modal ──────────────────────────────────────────────────────
 
 const AssignDeviceModal: React.FC<{
-  onClose:     () => void;
+  onClose: () => void;
   onAssigned?: (userId: number, deviceId: number | null, deviceNumber: string | null) => void;
-  user:        Staff;
+  user: Staff;
 }> = ({ onClose, onAssigned, user }) => {
-  const [devices,    setDevices]    = useState<PosDevice[]>([]);
+  const [devices, setDevices] = useState<PosDevice[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
-  const [loading,    setLoading]    = useState(true);
-  const [saving,     setSaving]     = useState(false);
-  const [apiError,   setApiError]   = useState('');
-  const [success,    setSuccess]    = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const currentDevice = devices.find(d => d.user_id === user.id);
 
@@ -496,7 +496,7 @@ const AssignDeviceModal: React.FC<{
     (async () => {
       setLoading(true);
       try {
-        const res  = await api.get('/pos-devices');
+        const res = await api.get('/pos-devices');
         const list: PosDevice[] = res.data?.data ?? res.data?.devices ?? [];
         setDevices(list.filter(d => d.status === 'ACTIVE'));
         const assigned = list.find(d => d.user_id === user.id);
@@ -578,11 +578,11 @@ const AssignDeviceModal: React.FC<{
             </div>
             {currentDevice
               ? <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <MonitorCheck size={9} />{currentDevice.pos_number}
-                </span>
+                <MonitorCheck size={9} />{currentDevice.pos_number}
+              </span>
               : <span className="text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <MonitorOff size={9} />No device
-                </span>}
+                <MonitorOff size={9} />No device
+              </span>}
           </div>
           {currentDevice ? (
             <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg">
@@ -633,16 +633,16 @@ const AssignDeviceModal: React.FC<{
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
-  const [staff,      setStaff]      = useState<Staff[]>([]);
-  const [loading,    setLoading]    = useState(true);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
-  const [search,     setSearch]     = useState('');
+  const [search, setSearch] = useState('');
 
-  const [addOpen,      setAddOpen]      = useState(false);
-  const [viewTarget,   setViewTarget]   = useState<Staff | null>(null);
-  const [editTarget,   setEditTarget]   = useState<Staff | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewTarget, setViewTarget] = useState<Staff | null>(null);
+  const [editTarget, setEditTarget] = useState<Staff | null>(null);
   const [toggleTarget, setToggleTarget] = useState<Staff | null>(null);
-  const [delTarget,    setDelTarget]    = useState<Staff | null>(null);
+  const [delTarget, setDelTarget] = useState<Staff | null>(null);
   const [deviceTarget, setDeviceTarget] = useState<Staff | null>(null);
 
   const fetchStaff = useCallback(async () => {
@@ -680,29 +680,11 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
     u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const activeCount   = staff.filter(u => u.status === 'ACTIVE').length;
+  const activeCount = staff.filter(u => u.status === 'ACTIVE').length;
   const inactiveCount = staff.filter(u => u.status !== 'ACTIVE').length;
 
   return (
     <div className="p-6 md:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Staff Overview</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? 'Loading...' : `${staff.length} staff · ${activeCount} active`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchStaff} disabled={loading}>
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </Btn>
-          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
-            <Plus size={13} /> Add Staff
-          </Btn>
-        </div>
-      </div>
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -743,10 +725,13 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400 font-bold"
               placeholder="Search staff..."
             />
           </div>
+          <Btn onClick={() => setAddOpen(true)} disabled={loading} className="shrink-0">
+            <Plus size={13} /> Add Staff
+          </Btn>
         </div>
 
         <div className="overflow-x-auto">
@@ -803,11 +788,10 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
                   </td>
                   <td className="px-5 py-3.5 text-zinc-500">{u.email}</td>
                   <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      u.role === 'team_leader'
-                        ? 'bg-violet-50 text-violet-700 border border-violet-200'
-                        : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
-                    }`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${u.role === 'team_leader'
+                      ? 'bg-violet-50 text-violet-700 border border-violet-200'
+                      : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+                      }`}>
                       {u.role === 'team_leader' ? 'Team Leader' : 'Cashier'}
                     </span>
                   </td>
@@ -837,11 +821,10 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
                       </button>
                       <button
                         onClick={() => setDeviceTarget(u)}
-                        className={`p-1.5 rounded-[0.4rem] transition-colors ${
-                          u.device_number
-                            ? 'hover:bg-violet-50 text-violet-500 hover:text-violet-700'
-                            : 'hover:bg-amber-50 text-amber-400 hover:text-amber-600'
-                        }`}
+                        className={`p-1.5 rounded-[0.4rem] transition-colors ${u.device_number
+                          ? 'hover:bg-violet-50 text-violet-500 hover:text-violet-700'
+                          : 'hover:bg-amber-50 text-amber-400 hover:text-amber-600'
+                          }`}
                         title={u.device_number ? `Device: ${u.device_number} — click to change` : 'No device — click to assign'}>
                         <Laptop size={13} />
                       </button>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import api from '../../../services/api';
 import { 
   Search, RefreshCw, Info,
@@ -112,16 +113,20 @@ const UsageReportPanel = ({ branchId }: { branchId: number | null }) => {
       setEditActuals({});
       setTimeout(() => setSuccessMsg(''), 3000);
       loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Audit submission failed', err);
-      const msg = err.response?.data?.message || 'Failed to submit audit';
-      const errors = err.response?.data?.errors;
-      if (errors) {
-        // Just show the first validation error if any
-        const firstErr = Object.values(errors)[0] as string[];
-        alert(`${msg}: ${firstErr[0]}`);
+      if (axios.isAxiosError(err)) {
+        const msg = err.response?.data?.message || 'Failed to submit audit';
+        const errors = err.response?.data?.errors;
+        if (errors) {
+          // Just show the first validation error if any
+          const firstErr = Object.values(errors)[0] as string[];
+          alert(`${msg}: ${firstErr[0]}`);
+        } else {
+          alert(msg);
+        }
       } else {
-        alert(msg);
+        alert('Failed to submit audit');
       }
     } finally {
       setSaving(false);
