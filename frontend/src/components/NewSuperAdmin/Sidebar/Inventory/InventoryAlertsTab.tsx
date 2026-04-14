@@ -447,8 +447,8 @@ const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate }) => {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [data]);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const [alertsRes, brRes, supRes, rmRes] = await Promise.all([
         api.get('/inventory-alerts'),
@@ -469,12 +469,18 @@ const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate }) => {
     } catch (err) {
       console.error("Failed to fetch alerts", err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchData();
+    fetchData(); // Initial load
+
+    const interval = setInterval(() => {
+      fetchData(true); // Silent update every 30s
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [fetchData]);
 
   const filteredData = useMemo(() => {

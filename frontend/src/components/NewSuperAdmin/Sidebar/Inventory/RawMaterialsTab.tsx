@@ -601,8 +601,8 @@ const RawMaterialsTab: React.FC = () => {
       : 'Ingredients') as Category,
   });
 
-  const fetchMaterials = useCallback(async () => {
-    setLoading(true);
+  const fetchMaterials = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const res = await api.get('/raw-materials', {
         params: { branch_id: branchId || undefined }
@@ -611,7 +611,7 @@ const RawMaterialsTab: React.FC = () => {
       const raw = Array.isArray(data) ? data : data?.data ?? [];
       setMaterials(raw.map(normalize));
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally { if (!isSilent) setLoading(false); }
   }, [branchId]);
 
   const fetchBranches = useCallback(async () => {
@@ -622,8 +622,14 @@ const RawMaterialsTab: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchMaterials();
+    fetchMaterials(); // Initial load
     fetchBranches();
+
+    const interval = setInterval(() => {
+      fetchMaterials(true); // Silent update every 30s
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [fetchMaterials, fetchBranches]);
 
   const filtered = materials.filter(m => {

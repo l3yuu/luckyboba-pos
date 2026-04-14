@@ -233,6 +233,7 @@ class RawMaterialController extends Controller
                 StockMovement::create([
                     'raw_material_id' => $rawMaterial->id,
                     'branch_id'       => $rawMaterial->branch_id,
+                    'user_id'         => auth()->id(),
                     'type'            => $validated['type'],
                     'quantity'        => $validated['quantity'],
                     'reason'          => $validated['reason'] ?? ucfirst($validated['type']) . ' (manual)',
@@ -302,7 +303,7 @@ class RawMaterialController extends Controller
      */
     public function movements(Request $request)
     {
-        $query = StockMovement::with(['rawMaterial:id,name,unit', 'branch:id,name']);
+        $query = StockMovement::with(['rawMaterial:id,name,unit', 'branch:id,name', 'user:id,name']);
         
         $branchId = $request->query('branch_id');
         $selectedBranchName = $branchId ? \App\Models\Branch::find($branchId)?->name : null;
@@ -332,7 +333,7 @@ class RawMaterialController extends Controller
                 'unit'         => $m->rawMaterial->unit ?? '',
                 'branch_name'  => $m->branch->name ?? ($selectedBranchName ?? 'Main Office'),
                 'reason'       => $m->reason,
-                'performed_by' => 'System', 
+                'performed_by' => $m->user->name ?? 'System', 
                 'created_at'   => $m->created_at,
             ]);
 
@@ -393,6 +394,7 @@ class RawMaterialController extends Controller
                         StockMovement::create([
                             'raw_material_id' => $material->id,
                             'branch_id'       => $material->branch_id,
+                            'user_id'         => auth()->id(),
                             'type'            => 'set',
                             'quantity'        => $begValue,
                             'reason'          => 'Manual Opening Adjustment',
@@ -408,6 +410,7 @@ class RawMaterialController extends Controller
                         StockMovement::create([
                             'raw_material_id' => $material->id,
                             'branch_id'       => $material->branch_id,
+                            'user_id'         => auth()->id(),
                             'type'            => 'set',
                             'quantity'        => $actual,
                             'reason'          => $reason . " (Prev: " . round((float)$oldStock, 2) . ")",

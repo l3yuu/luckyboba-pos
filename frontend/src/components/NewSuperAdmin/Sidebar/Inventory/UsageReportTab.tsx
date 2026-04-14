@@ -471,15 +471,24 @@ const UsageReportTab: React.FC = () => {
     setUserRole(localStorage.getItem('role'));
   }, []);
 
+  // Auto-select first branch if none selected
+  useEffect(() => {
+    if (!branch && branches.length > 0) {
+      setBranch(String(branches[0].id));
+    }
+  }, [branches, branch]);
+
   const period = viewMode === 'today'
     ? now.toISOString().split('T')[0]
     : viewMode === 'specific'
       ? specificDate
       : `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
 
-  const fetchReport = useCallback(async () => {
-    setLoading(true);
-    setSalesLoading(true);
+  const fetchReport = useCallback(async (isSilent = false) => {
+    if (!isSilent) {
+      setLoading(true);
+      setSalesLoading(true);
+    }
     try {
       const [reportRes, branchRes, salesRes] = await Promise.allSettled([
         api.get('/inventory/usage-report', { params: { period, branch_id: branch || undefined } }),
@@ -653,7 +662,6 @@ const UsageReportTab: React.FC = () => {
 
             <select value={branch} onChange={e => setBranch(e.target.value)}
               className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-              <option value="">All Branches</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
             </select>
 

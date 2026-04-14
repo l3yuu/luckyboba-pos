@@ -143,6 +143,7 @@ class StockTransferController extends Controller
                 // Log to stock_movements for history consistency
                 StockMovement::create([
                     'raw_material_id' => $item->raw_material_id,
+                    'user_id'         => auth()->id(),
                     'type'            => 'subtract',
                     'quantity'        => $item->quantity,
                     'reason'          => 'Stock transfer out — ' . $stockTransfer->transfer_number,
@@ -161,6 +162,7 @@ class StockTransferController extends Controller
                     $destMat->increment('current_stock', $item->quantity);
                     StockMovement::create([
                         'raw_material_id' => $destMat->id,
+                        'user_id'         => auth()->id(),
                         'type'            => 'add',
                         'quantity'        => $item->quantity,
                         'reason'          => 'Stock transfer in — ' . $stockTransfer->transfer_number,
