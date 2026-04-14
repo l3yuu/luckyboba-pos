@@ -13,6 +13,7 @@ import '../config/app_config.dart';
 import '../state/profile_notifier.dart';
 import '../auth/main.dart';
 import 'order_history_page.dart';
+import 'vouchers_wallet_page.dart';
 import 'notifications_page.dart';
 import 'contact_us_page.dart';
 import 'legal_page.dart';
@@ -48,6 +49,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String  _userEmail        = '';
   String? _profileImagePath;
   bool    _isUploading      = false;
+  bool    _hasActiveCard    = false;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -72,6 +74,41 @@ class _ProfilePageState extends State<ProfilePage> {
       _profileImagePath = prefs.getString(imageKey);
     });
     profileImageNotifier.value = _profileImagePath;
+    _fetchCardStatus();
+  }
+
+  Future<void> _fetchCardStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('token') ?? prefs.getString('session_token');
+      
+      int? userId = prefs.getInt('user_id');
+      if (userId == null) {
+        final strId = prefs.getString('user_id_str') ?? prefs.getString('user_id') ?? '';
+        userId = int.tryParse(strId);
+      }
+
+      if (userId == null || userId == 0) return;
+
+      final res = await http.get(
+        Uri.parse('${AppConfig.apiUrl}/check-card-status/$userId'),
+        headers: {
+          'Accept': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 8));
+
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        if (mounted) {
+          setState(() {
+            _hasActiveCard = data['has_active_card'] == true;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('🃏 Profile card fetch error: $e');
+    }
   }
 
   // ── Update display name ───────────────────────────────────────────────────
@@ -451,6 +488,15 @@ class _ProfilePageState extends State<ProfilePage> {
                           MaterialPageRoute(
                               builder: (_) => const OrderHistoryPage())),
                     ),
+                    if (_hasActiveCard)
+                      _MenuTileData(
+                        icon:     PhosphorIconsRegular.tag,
+                        title:    'Vouchers & Promos',
+                        subtitle: 'My available vouchers',
+                        onTap:    () => Navigator.push(context,
+                            MaterialPageRoute(
+                                builder: (_) => const VouchersWalletPage())),
+                      ),
                     _MenuTileData(
                       icon:     PhosphorIconsRegular.bell,
                       title:    'Notifications',

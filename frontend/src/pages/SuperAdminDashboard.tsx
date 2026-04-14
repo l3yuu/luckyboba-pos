@@ -11,6 +11,7 @@ import UsersTab from "../components/NewSuperAdmin/Sidebar/Navigation/UsersTab";
 import DeviceManagementTab from "../components/NewSuperAdmin/Sidebar/Navigation/DeviceManagementTab";
 import AuditLogsTab from "../components/NewSuperAdmin/Sidebar/System/AuditLogsTab";
 import PromotionsTab from "../components/NewSuperAdmin/Sidebar/System/PromotionsTab";
+import VouchersTab from "../components/NewSuperAdmin/Sidebar/System/VouchersTab";
 import SettingsTab from "../components/NewSuperAdmin/Sidebar/SettingsTab";
 
 import SalesReportTab from "../components/NewSuperAdmin/Sidebar/Reports/SalesReportTab";
@@ -45,6 +46,7 @@ import FeaturedDrinksTab from "../components/NewSuperAdmin/Sidebar/System/Featur
 import CustomerManagementTab from "../components/NewSuperAdmin/Sidebar/System/CustomerManagementTab";
 import NotificationCenterTab from "../components/NewSuperAdmin/Sidebar/System/NotificationCenterTab";
 import OnlineOrdersTab from "../components/NewSuperAdmin/Sidebar/Navigation/OnlineOrdersTab";
+import BranchPaymentSettingsTab from "../components/NewSuperAdmin/Sidebar/System/BranchPaymentSettingsTab";
 
 
 const GlobalStyles = () => (
@@ -124,6 +126,7 @@ const SuperAdminDashboard: React.FC = () => {
 
       // ── System ────────────────────────────────────────────────────────────
       case "promotions": return <PromotionsTab />;
+      case "vouchers": return <VouchersTab />;
       case "audit": return <AuditLogsTab />;
       case "settings": return <SettingsTab />;
       case "featured_drinks": return <FeaturedDrinksTab />;
@@ -135,6 +138,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "card_members": return <CardUsersTab />;
       case "loyalty": return <LoyaltyManagementTab />;
       case "customers": return <CustomerManagementTab />;
+      case "payment_settings": return <BranchPaymentSettingsTab />;
     }
   };
 

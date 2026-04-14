@@ -6,7 +6,7 @@ import {
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
   Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
   DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown, Monitor,
-  CreditCard, AlertTriangle, Sparkles, UserCheck, Bell, ShoppingBag
+  CreditCard, AlertTriangle, Sparkles, UserCheck, Bell, ShoppingBag, Smartphone
 } from "lucide-react";
 
 // ── Tab IDs ───────────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ export type TabId =
   | "card_members"
   | "loyalty"
   | "customers"
-  | "notifications" | "promotions" | "audit" | "settings" | "featured_drinks";
+  | "notifications" | "promotions" | "vouchers" | "payment_settings" | "audit" | "settings" | "featured_drinks";
 
 export interface SuperAdminSidebarProps {
   open:          boolean;
@@ -184,7 +184,6 @@ const NAV_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "branches",       label: "Branch Management", icon: <GitBranch   size={14} /> },
   { id: "users",          label: "User Management",   icon: <Users       size={14} /> },
   { id: "devices",        label: "Device Management", icon: <Monitor     size={14} /> },
-  { id: "online_orders",  label: "Online Orders",     icon: <ShoppingBag size={14} /> },
 ];
 
 const REPORTS_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
@@ -220,17 +219,20 @@ const EXPENSES_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "expenses", label: "Expenses", icon: <Wallet size={13} /> },
 ];
 
-const APP_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+const MOBILE_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "online_orders",  label: "Online Orders",     icon: <ShoppingBag size={14} /> },
   { id: "card_management", label: "Card Management", icon: <CreditCard size={14} /> },
   { id: "card_approvals", label: "Card Approvals", icon: <CreditCard size={14} /> },
   { id: "card_members",     label: "Card Members",   icon: <Users      size={14} /> },
   { id: "loyalty",          label: "Loyalty & Points", icon: <Tag        size={14} /> },
   { id: "featured_drinks",  label: "Featured Drinks",  icon: <Sparkles    size={14} /> },
   { id: "customers",        label: "Customers",        icon: <UserCheck   size={14} /> },
+  { id: "vouchers",         label: "Vouchers",         icon: <Tag         size={14} /> },
+  { id: "payment_settings", label: "Payment Settings", icon: <CreditCard  size={14} /> },
 ];
 
 const SYSTEM_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "notifications", label: "Notification Center",   icon: <Bell        size={14} /> },
+  { id: "notifications", label: "Notification Center",    icon: <Bell        size={14} /> },
   { id: "promotions",    label: "Promotions & Discounts", icon: <Tag         size={14} /> },
   { id: "audit",         label: "Audit Logs",             icon: <ShieldCheck size={14} /> },
 ];
@@ -239,6 +241,7 @@ const REPORTS_IDS:   TabId[] = REPORTS_ITEMS.map(i => i.id);
 const MENU_IDS:      TabId[] = MENU_ITEMS.map(i => i.id);
 const INVENTORY_IDS: TabId[] = INVENTORY_ITEMS.map(i => i.id);
 const EXPENSES_IDS:  TabId[] = EXPENSES_ITEMS.map(i => i.id);
+const MOBILE_IDS:    TabId[] = MOBILE_ITEMS.map(i => i.id);
 
 const ROLE_LABELS: Record<string, string> = {
   superadmin:     "Super Admin",
@@ -343,22 +346,26 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
   const [menuExp,      setMenuExp]      = useState(false);
   const [inventoryExp, setInventoryExp] = useState(false);
   const [expensesExp,  setExpensesExp]  = useState(false);
+  const [mobileExp,    setMobileExp]    = useState(false);
 
   // Mobile accordion state (separate so desktop and mobile don't share)
   const [mReportsExp,   setMReportsExp]   = useState(false);
   const [mMenuExp,      setMMenuExp]      = useState(false);
   const [mInventoryExp, setMInventoryExp] = useState(false);
   const [mExpensesExp,  setMExpensesExp]  = useState(false);
+  const [mMobileExp,    setMMobileExp]    = useState(false);
 
   const reportsOpen   = REPORTS_IDS.includes(active)   || reportsExp;
   const menuOpen      = MENU_IDS.includes(active)      || menuExp;
   const inventoryOpen = INVENTORY_IDS.includes(active) || inventoryExp;
   const expensesOpen  = EXPENSES_IDS.includes(active)  || expensesExp;
+  const mobileOpen    = MOBILE_IDS.includes(active)    || mobileExp;
 
   const mReportsOpen   = REPORTS_IDS.includes(active)   || mReportsExp;
   const mMenuOpen      = MENU_IDS.includes(active)      || mMenuExp;
   const mInventoryOpen = INVENTORY_IDS.includes(active) || mInventoryExp;
   const mExpensesOpen  = EXPENSES_IDS.includes(active)  || mExpensesExp;
+  const mMobileOpen    = MOBILE_IDS.includes(active)    || mMobileExp;
 
   const isLoggingOut = externalLoggingOut ?? internalLoggingOut;
 
@@ -466,13 +473,9 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
             expanded={expensesOpen} onToggle={() => setExpensesExp(v => !v)} onNavigate={go} />
 
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">App</p>
-          {APP_ITEMS.map(t => (
-            <button key={t.id} onClick={() => go(t.id)}
-              className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === t.id ? "active" : "text-zinc-500"}`}>
-              <span className={`shrink-0 ${active === t.id ? "text-[#3b2063]" : "text-zinc-400"}`}>{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
+          <NavGroup label="Mobile Application" icon={<Smartphone size={14} />} items={MOBILE_ITEMS}
+            activeTab={active} isGroupActive={MOBILE_IDS.includes(active)}
+            expanded={mobileOpen} onToggle={() => setMobileExp(v => !v)} onNavigate={go} />
 
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">System</p>
           {SYSTEM_ITEMS.map(t => (
@@ -589,12 +592,9 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                 expanded={mExpensesOpen} onToggle={() => setMExpensesExp(v => !v)} onNavigate={go} />
 
               <div className="sa-sec">App</div>
-              {APP_ITEMS.map(t => (
-                <button key={t.id} onClick={() => go(t.id)} className={`sa-item ${active === t.id ? "active" : ""}`}>
-                  <span className="sa-item-icon" style={{ color: active === t.id ? "#3b2063" : "#71717a" }}>{t.icon}</span>
-                  {t.label}
-                </button>
-              ))}
+              <MobileGroup label="Mobile Application" icon={<Smartphone size={18} />}
+                items={MOBILE_ITEMS} activeTab={active} isGroupActive={MOBILE_IDS.includes(active)}
+                expanded={mMobileOpen} onToggle={() => setMMobileExp(v => !v)} onNavigate={go} />
 
               <div className="sa-sec">System</div>
               {SYSTEM_ITEMS.map(t => (

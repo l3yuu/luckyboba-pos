@@ -144,6 +144,10 @@ class OnlineOrderController extends Controller
                 ]);
             }
 
+            if ($request->filled('voucher_id')) {
+                \App\Models\Voucher::where('id', $request->voucher_id)->increment('times_used');
+            }
+
             $branch = \App\Models\Branch::whereRaw(
                 'LOWER(name) = ?', [strtolower($request->input('branch_name'))]
             )->first();

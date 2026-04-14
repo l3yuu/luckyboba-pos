@@ -17,24 +17,30 @@ class BranchSettingsController extends Controller
     public function getPaymentSettings(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user->branch_id) {
+        $branchId = $request->query('branch_id') ?: $user->branch_id;
+
+        if (!$branchId && $user->role !== 'superadmin') {
             return response()->json([
                 'success' => false,
                 'message' => 'User is not assigned to a branch.'
             ], 403);
         }
 
-        $branch = Branch::findOrFail($user->branch_id);
+        $branch = Branch::findOrFail($branchId);
 
         return response()->json([
             'success' => true,
             'data' => [
+                'branch_id'    => $branch->id,
+                'branch_name'  => $branch->name,
                 'gcash_name'   => $branch->gcash_name,
                 'gcash_number' => $branch->gcash_number,
-                'gcash_qr'     => $branch->gcash_qr ? url('storage/' . $branch->gcash_qr) : null,
+                'gcash_qr'     => $branch->gcash_qr,
+                'gcash_qr_url' => $branch->gcash_qr ? url('storage/' . $branch->gcash_qr) : null,
                 'maya_name'    => $branch->maya_name,
                 'maya_number'  => $branch->maya_number,
-                'maya_qr'      => $branch->maya_qr ? url('storage/' . $branch->maya_qr) : null,
+                'maya_qr'      => $branch->maya_qr,
+                'maya_qr_url'  => $branch->maya_qr ? url('storage/' . $branch->maya_qr) : null,
             ]
         ]);
     }
@@ -46,7 +52,9 @@ class BranchSettingsController extends Controller
     public function updatePaymentSettings(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user->branch_id) {
+        $branchId = $request->input('branch_id') ?: $user->branch_id;
+
+        if (!$branchId && $user->role !== 'superadmin') {
             return response()->json([
                 'success' => false,
                 'message' => 'User is not assigned to a branch.'
@@ -54,15 +62,16 @@ class BranchSettingsController extends Controller
         }
 
         $request->validate([
+            'branch_id'    => 'nullable|exists:branches,id',
             'gcash_name'   => 'nullable|string|max:255',
             'gcash_number' => 'nullable|string|max:255',
-            'gcash_qr'     => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+            'gcash_qr'     => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'maya_name'    => 'nullable|string|max:255',
             'maya_number'  => 'nullable|string|max:255',
-            'maya_qr'      => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+            'maya_qr'      => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
-        $branch = Branch::findOrFail($user->branch_id);
+        $branch = Branch::findOrFail($branchId);
 
         $data = $request->only(['gcash_name', 'gcash_number', 'maya_name', 'maya_number']);
 
@@ -90,10 +99,12 @@ class BranchSettingsController extends Controller
             'data' => [
                 'gcash_name'   => $branch->gcash_name,
                 'gcash_number' => $branch->gcash_number,
-                'gcash_qr'     => $branch->gcash_qr ? url('storage/' . $branch->gcash_qr) : null,
+                'gcash_qr'     => $branch->gcash_qr,
+                'gcash_qr_url' => $branch->gcash_qr ? url('storage/' . $branch->gcash_qr) : null,
                 'maya_name'    => $branch->maya_name,
                 'maya_number'  => $branch->maya_number,
-                'maya_qr'      => $branch->maya_qr ? url('storage/' . $branch->maya_qr) : null,
+                'maya_qr'      => $branch->maya_qr,
+                'maya_qr_url'  => $branch->maya_qr ? url('storage/' . $branch->maya_qr) : null,
             ]
         ]);
     }

@@ -130,6 +130,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // ── LOYALTY (Mobile & Shared) ──────────────────────────────────────────
     Route::get('/loyalty/rewards', [LoyaltyManagementController::class, 'getRewards']);
+    Route::get('/vouchers/available', [\App\Http\Controllers\Api\VoucherController::class, 'available']);
+    Route::get('/vouchers/validate', [\App\Http\Controllers\Api\VoucherController::class, 'validateCode']);
 
     Route::patch('/orders/{siNumber}/cancel', function (Request $request, string $siNumber) {
         $sale = \App\Models\Sale::where('invoice_number', $siNumber)
@@ -415,7 +417,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']);
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
-        Route::apiResource('vouchers',  VoucherController::class)->only(['index', 'store']);
+        Route::apiResource('vouchers',  VoucherController::class)->except(['show']);
 
 
         Route::prefix('reports')->group(function () {
@@ -448,6 +450,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get   ('/{id}/sales-summary',  [BranchController::class, 'salesSummary']);
             Route::post  ('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
+
+        // ── BRANCH PAYMENT SETTINGS ──
+        Route::get('/branch/payment-settings', [\App\Http\Controllers\Api\BranchSettingsController::class, 'getPaymentSettings']);
+        Route::post('/branch/payment-settings', [\App\Http\Controllers\Api\BranchSettingsController::class, 'updatePaymentSettings']);
+
 
     });
 
