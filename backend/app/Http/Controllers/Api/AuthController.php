@@ -236,4 +236,34 @@ class AuthController extends Controller
         'token' => $token,  // ← add this
     ], 200);
 }
+
+    public function register(Request $request)
+    {
+        $request->validate([
+            'name'          => 'required|string|max:255',
+            'email'         => 'required|string|email|max:255|unique:users',
+            'password'      => 'required|string|min:8',
+            'referral_code' => 'nullable|string|exists:users,referral_code',
+        ]);
+
+        $referredBy = null;
+        if ($request->referral_code) {
+            $referrer = User::where('referral_code', $request->referral_code)->first();
+            $referredBy = $referrer ? $referrer->id : null;
+        }
+
+        $user = User::create([
+            'name'          => $request->name,
+            'email'         => $request->email,
+            'password'      => Hash::make($request->password),
+            'role'          => 'customer',
+            'status'        => 'active',
+            'referred_by_id' => $referredBy,
+            'referral_code' => strtoupper(Str::random(8)),
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json(['token' => $token, 'user' => $user], 201);
+    }
 }

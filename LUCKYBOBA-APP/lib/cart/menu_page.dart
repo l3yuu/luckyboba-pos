@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'item_customization_page.dart';
 import 'cart_page.dart';
@@ -45,14 +46,170 @@ class _MenuPageState extends State<MenuPage> {
   int           _selectedCategoryIndex = 0;
   List<dynamic> _allMenuItems          = [];
   List<String>  _categories            = [];
+  Set<int>      _favoritedIds          = {};
   bool          _isLoading             = true;
+  bool          _hasActiveCard         = false;
 
   final ScrollController _chipScrollCtrl = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _fetchMenu();
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    await _loadLoyaltyStatus();
+    await _fetchMenu();
+    if (_hasActiveCard) {
+      await _fetchFavorites();
+    }
+  }
+
+  Future<void> _loadLoyaltyStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool? localStatus = prefs.getBool('has_active_card');
+    if (localStatus != null) {
+      if (mounted) setState(() => _hasActiveCard = localStatus);
+    }
+    
+    final int? userId = prefs.getInt('user_id');
+    if (userId == null) return;
+    try {
+      final response = await http
+          .get(Uri.parse('${AppConfig.apiUrl}/check-card-status/$userId'))
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final hasCard = data['has_active_card'] == true;
+        await prefs.setBool('has_active_card', hasCard);
+        if (mounted) setState(() => _hasActiveCard = hasCard);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      if (token.isEmpty) return;
+
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiUrl}/favorites'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final Set<int> ids = data.map<int>((fav) => fav['menu_item_id'] as int).toSet();
+        if (mounted) setState(() => _favoritedIds = ids);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleFavorite(int menuItemId) async {
+    if (!_hasActiveCard) {
+      _showLoyaltyRequired();
+      return;
+    }
+
+    final bool isAdding = !_favoritedIds.contains(menuItemId);
+    
+    // Optimistic update
+    setState(() {
+      if (isAdding) {
+        _favoritedIds.add(menuItemId);
+      } else {
+        _favoritedIds.remove(menuItemId);
+      }
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      
+      final response = isAdding 
+        ? await http.post(
+            Uri.parse('${AppConfig.apiUrl}/favorites'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: json.encode({'menu_item_id': menuItemId}),
+          )
+        : await http.delete(
+            Uri.parse('${AppConfig.apiUrl}/favorites/$menuItemId'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          );
+
+      if (response.statusCode >= 400) {
+        // Rollback on error
+        setState(() {
+          if (isAdding) {
+            _favoritedIds.remove(menuItemId);
+          } else {
+            _favoritedIds.add(menuItemId);
+          }
+        });
+        final data = json.decode(response.body);
+        _showErrorSnackBar(data['message'] ?? 'Action failed.');
+      }
+    } catch (e) {
+      // Rollback on connection error
+      setState(() {
+        if (isAdding) {
+          _favoritedIds.remove(menuItemId);
+        } else {
+          _favoritedIds.add(menuItemId);
+        }
+      });
+      _showErrorSnackBar('Connection error.');
+    }
+  }
+
+  void _showLoyaltyRequired() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Loyalty Required', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Adding drinks to your "Favorites" list is a premium feature. Please activate your Loyalty Card to enjoy this perk!',
+          style: GoogleFonts.outfit(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Not Now', style: GoogleFonts.outfit(color: _kTextMid)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Navigate back to home or cards page
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kPurple,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('Get Card', style: GoogleFonts.outfit(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    );
   }
 
   @override
@@ -454,22 +611,57 @@ class _MenuPageState extends State<MenuPage> {
             // Image
             Expanded(
               flex: 3,
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(18)),
-                child: imageUrl != null && imageUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl:    imageUrl,
-                        width:       double.infinity,
-                        fit:         BoxFit.cover,
-                        placeholder: (context, url) =>
-                            _buildShimmerPlaceholder(),
-                        errorWidget: (context, url, error) =>
-                            _buildPlaceholderImage(),
-                      )
-                    : _buildPlaceholderImage(),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(18)),
+                    child: imageUrl != null && imageUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) =>
+                                _buildShimmerPlaceholder(),
+                            errorWidget: (context, url, error) =>
+                                _buildPlaceholderImage(),
+                          )
+                        : _buildPlaceholderImage(),
+                  ),
+                    // Favorite Heart Overlay
+                    Positioned(
+                      top:  8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () => _toggleFavorite(item['id']),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
+                          ),
+                          child: Icon(
+                            _favoritedIds.contains(item['id'])
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_outline_rounded,
+                            size: 16,
+                            color: _favoritedIds.contains(item['id'])
+                                ? Colors.redAccent
+                                : _kTextMid,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
             // Name + price + add button
             Expanded(

@@ -42,6 +42,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String?               _selectedPerk; // internal ID: 'buy_1_take_1' or '10_percent_off'
   bool                  _cardLoading = true;
 
+  // Voucher Promo Variables
+  final TextEditingController _promoController = TextEditingController();
+  bool                  _isApplyingPromo = false;
+  Map<String, dynamic>? _appliedVoucher;
+  String?               _promoError;
+
   final List<Map<String, dynamic>> _paymentOptions = [
     {'label': 'GCash', 'icon': Icons.account_balance_wallet_rounded},
     {'label': 'Maya',  'icon': Icons.credit_card_rounded},
@@ -130,11 +136,26 @@ class _CheckoutPageState extends State<CheckoutPage> {
   });
 
   double get cartTotal {
-    if (_selectedPerk == '10_percent_off') return _rawTotal * 0.90;
+    double total = _rawTotal;
+    
+    // Default perks logic
+    if (_selectedPerk == '10_percent_off') total = _rawTotal * 0.90;
     if (_selectedPerk == 'buy_1_take_1') {
-      return (_rawTotal - _cheapestClassicMilkteaPrice).clamp(0, double.maxFinite);
+      total = (_rawTotal - _cheapestClassicMilkteaPrice).clamp(0, double.maxFinite);
     }
-    return _rawTotal;
+    
+    // Apply voucher discount if any
+    if (_appliedVoucher != null) {
+      double voucherVal = double.tryParse(_appliedVoucher!['value']?.toString() ?? '0') ?? 0.0;
+      if (_appliedVoucher!['type'] == 'Percentage') {
+         total = total - (total * (voucherVal / 100));
+      } else {
+         total = total - voucherVal;
+      }
+      total = total.clamp(0, double.maxFinite);
+    }
+    
+    return total;
   }
 
   double get _discountAmount => _rawTotal - cartTotal;
@@ -192,6 +213,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         'customer_code':  customerCode,
         'qr_code':        qrPayload,
         'card_id':        _activeCard?['card_id'] ?? _activeCard?['id'],
+        'voucher_id':     _appliedVoucher?['id'],
         'items': myCart.map((item) => {
           'menu_item_id': item['id'],
           'name':         item['name'],
@@ -302,6 +324,75 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
+  Future<void> _applyPromoCode() async {
+    final code = _promoController.text.trim();
+    if (code.isEmpty) return;
+
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _isApplyingPromo = true;
+      _promoError = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('session_token') ?? '';
+
+      final res = await http.get(
+        Uri.parse('${AppConfig.apiUrl}/vouchers/validate?code=$code'),
+        headers: {
+          'Accept': 'application/json',
+          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (!mounted) return;
+
+      final data = json.decode(res.body);
+      if (res.statusCode == 200 && data['success'] == true) {
+        final voucher = data['data'];
+
+        // Check min spend locally if backend didn't block it (backend shouldn't know the exact cart logic in the GET check)
+        final double minSpend = double.tryParse(voucher['min_spend']?.toString() ?? '0') ?? 0.0;
+        if (minSpend > 0 && cartTotal < minSpend) {
+           setState(() {
+             _promoError = 'Minimum spend of ₱$minSpend required.';
+             _appliedVoucher = null;
+           });
+        } else {
+           setState(() {
+             _appliedVoucher = voucher;
+             _promoError = null;
+             _promoController.clear();
+           });
+        }
+      } else {
+        setState(() {
+          _promoError = data['message'] ?? 'Invalid voucher code';
+          _appliedVoucher = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _promoError = 'Connection error.';
+          _appliedVoucher = null;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isApplyingPromo = false);
+      }
+    }
+  }
+
+  void _removePromo() {
+    setState(() {
+      _appliedVoucher = null;
+      _promoError = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -341,6 +432,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         const SizedBox(height: 10),
                         _buildOrderTypeToggle(),
                         const SizedBox(height: 24),
+                        
+                        if (_activeCard != null) ...[
+                          _sectionLabel('Voucher & Promos'),
+                          const SizedBox(height: 10),
+                          _buildVoucherInput(),
+                          const SizedBox(height: 24),
+                        ],
 
                         _sectionLabel('Payment Method'),
                         const SizedBox(height: 10),
@@ -786,6 +884,98 @@ class _CheckoutPageState extends State<CheckoutPage> {
           const SizedBox(width: 8),
           Text(subtitle, style: GoogleFonts.poppins(fontSize: 12, color: _textMid)),
         ],
+      ],
+    );
+  }
+
+  Widget _buildVoucherInput() {
+    if (_appliedVoucher != null) {
+      final code = _appliedVoucher!['code'];
+      final type = _appliedVoucher!['type'];
+      final val = _appliedVoucher!['value'];
+      final label = type == 'Percentage' ? '$val% OFF' : '₱$val OFF';
+      
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+           color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+           borderRadius: BorderRadius.circular(16),
+           border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.2)),
+        ),
+        child: Row(
+           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+           children: [
+             Row(
+               children: [
+                 const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20),
+                 const SizedBox(width: 8),
+                 Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       Text('$code Applied', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF16A34A))),
+                       Text(label, style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF16A34A))),
+                    ],
+                 ),
+               ],
+             ),
+             IconButton(
+               icon: const Icon(Icons.close_rounded, color: Color(0xFF16A34A)),
+               onPressed: _removePromo,
+             ),
+           ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _promoError != null ? Colors.red.withValues(alpha: 0.5) : const Color(0xFFEAEAF0)),
+                ),
+                child: TextField(
+                  controller: _promoController,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    hintText: 'Enter promo code',
+                    hintStyle: GoogleFonts.poppins(fontSize: 14, color: _textMid),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: _isApplyingPromo ? null : _applyPromoCode,
+              child: Container(
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color: _purple,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: _isApplyingPromo 
+                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                     : Text('Apply', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (_promoError != null)
+           Padding(
+             padding: const EdgeInsets.only(top: 8, left: 4),
+             child: Text(_promoError!, style: GoogleFonts.poppins(fontSize: 12, color: Colors.red)),
+           ),
       ],
     );
   }

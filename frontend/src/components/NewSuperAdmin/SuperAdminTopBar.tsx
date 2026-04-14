@@ -88,7 +88,8 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
 
   expenses: { label: "Expenses", desc: "Operational costs & expense tracking" },
 
-  promotions: { label: "Promotions & Discounts", desc: "Active campaigns & vouchers" },
+  promotions: { label: "Promotions & Discounts", desc: "Active campaigns & regular discounts" },
+  vouchers: { label: "Vouchers", desc: "Manage promo codes and limited vouchers" },
   audit: { label: "Audit Logs", desc: "Complete system activity trail" },
   settings: { label: "System Settings", desc: "Global configuration & preferences" },
 
@@ -99,6 +100,7 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   customers: { label: "Customers", desc: "Manage registered customer accounts" },
   notifications: { label: "Notification Center", desc: "Real-time system alerts and events" },
   online_orders: { label: "Online Orders", desc: "Monitor online order queue and statuses" },
+  payment_settings: { label: "Payment Settings", desc: "Configure branch-specific payment methods & QR codes" },
 };
 
 // ── Pulse animation ───────────────────────────────────────────────────────────

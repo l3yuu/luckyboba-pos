@@ -42,6 +42,34 @@ class BranchController extends Controller
     }
 
     /**
+     * Public endpoint for mobile app store finder
+     * GET /api/branches/available
+     */
+    public function availableBranches()
+    {
+        try {
+            $branches = Branch::where('status', 'active')
+                ->select(['id', 'name', 'location', 'store_address', 'latitude', 'longitude', 'status', 'image'])
+                ->get()
+                ->map(function ($branch) {
+                    return array_merge($branch->toArray(), [
+                        'image' => $branch->image ? url('storage/' . $branch->image) : null,
+                    ]);
+                });
+
+            return response()->json([
+                'success' => true,
+                'data'    => $branches
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch available branches'
+            ], 500);
+        }
+    }
+
+    /**
      * POST /api/branches
      */
 public function store(Request $request)
