@@ -74,7 +74,7 @@ class CustomerController extends Controller
             $cardMap   = UserCard::whereIn('user_id', $userIds)
                 ->where('status', 'active')
                 ->join('cards', 'user_cards.card_id', '=', 'cards.id')
-                ->select('user_cards.user_id', 'cards.title as card_title', 'user_cards.created_at as purchase_date', 'user_cards.expiry_date')
+                ->select('user_cards.user_id', 'cards.title as card_title', 'user_cards.created_at as purchase_date', 'user_cards.expires_at as expiry_date')
                 ->get()
                 ->keyBy('user_id');
 
@@ -192,7 +192,7 @@ class CustomerController extends Controller
             $card = UserCard::where('user_id', $user->id)
                 ->where('status', 'active')
                 ->join('cards', 'user_cards.card_id', '=', 'cards.id')
-                ->select('cards.title', 'cards.price', 'user_cards.created_at as purchase_date', 'user_cards.expiry_date', 'user_cards.status')
+                ->select('cards.title', 'cards.price', 'user_cards.created_at as purchase_date', 'user_cards.expires_at as expiry_date', 'user_cards.status')
                 ->first();
 
             // Aggregate stats
