@@ -34,6 +34,8 @@ class User extends Authenticatable
         'branch_name',
         'branch_id',
         'manager_pin',
+        'referral_code',
+        'referred_by_id',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────
@@ -61,6 +63,16 @@ class User extends Authenticatable
     public function activeCard()
     {
         return $this->hasOne(UserCard::class)->where('status', 'active');
+    }
+
+    public function referrer()
+    {
+        return $this->belongsTo(User::class, 'referred_by_id');
+    }
+
+    public function referrals()
+    {
+        return $this->hasMany(User::class, 'referred_by_id');
     }
 
     // ── Hidden / Appends ──────────────────────────────────────────────────────

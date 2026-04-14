@@ -22,14 +22,44 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   static const Color _textDark   = Color(0xFF1A1A2E);
   static const Color _textMid    = Color(0xFF6B6B8A);
 
-  List<dynamic> _orders    = [];
   bool          _isLoading = true;
+  bool          _hasActiveCard = false;
+  List<dynamic> _orders = [];
   String?       _error;
 
   @override
   void initState() {
     super.initState();
-    _fetchOrders();
+    _checkLoyaltyAndFetch();
+  }
+
+  Future<void> _checkLoyaltyAndFetch() async {
+    await _loadLoyaltyStatus();
+    await _fetchOrders();
+  }
+
+  Future<void> _loadLoyaltyStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Try local first
+    bool? localStatus = prefs.getBool('has_active_card');
+    if (localStatus != null) {
+      if (mounted) setState(() => _hasActiveCard = localStatus);
+    }
+    
+    // Refresh from API
+    final int? userId = prefs.getInt('user_id');
+    if (userId == null) return;
+    try {
+      final response = await http
+          .get(Uri.parse('${AppConfig.apiUrl}/check-card-status/$userId'))
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final hasCard = data['has_active_card'] == true;
+        await prefs.setBool('has_active_card', hasCard);
+        if (mounted) setState(() => _hasActiveCard = hasCard);
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchOrders() async {
@@ -58,6 +88,110 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     } catch (e) {
       setState(() { _error = 'Connection error. Please try again.'; _isLoading = false; });
     }
+  }
+
+  Future<void> _handleReorder(int orderId) async {
+    if (!_hasActiveCard) {
+      _showLoyaltyRequired();
+      return;
+    }
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(color: _purple)),
+    );
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiUrl}/orders/$orderId/reorder'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          _showReorderSuccess(data['items'] ?? []);
+        } else {
+          _showErrorSnackBar(data['message'] ?? 'Re-order failed.');
+        }
+      } else {
+        final data = json.decode(response.body);
+        _showErrorSnackBar(data['message'] ?? 'Re-order failed.');
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      _showErrorSnackBar('Connection error.');
+    }
+  }
+
+  void _showLoyaltyRequired() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Loyalty Required', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Re-ordering is a premium feature. Please activate your Lucky Boba Loyalty Card to access this.',
+          style: GoogleFonts.poppins(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close', style: GoogleFonts.poppins(color: _textMid)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Navigate to cards or home to see card options
+              Navigator.pop(context); 
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _purple,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('Get Card', style: GoogleFonts.poppins(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReorderSuccess(List<dynamic> items) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Items added to cart! Go to menu to checkout.'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'GO TO MENU',
+          textColor: Colors.white,
+          onPressed: () {
+             Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Color _statusColor(String status) {
@@ -384,16 +518,38 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Total',
-                      style: GoogleFonts.poppins(
-                          fontSize: 13, color: _textMid)),
-                  Text(
-                    '₱${double.tryParse(total.toString())?.toStringAsFixed(2) ?? '0.00'}',
-                    style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: _deepPurple),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Total',
+                          style: GoogleFonts.poppins(
+                              fontSize: 11, color: _textMid)),
+                      Text(
+                        '₱${double.tryParse(total.toString())?.toStringAsFixed(2) ?? '0.00'}',
+                        style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: _deepPurple),
+                      ),
+                    ],
                   ),
+                  if (status.toLowerCase() == 'completed' || status.toLowerCase() == 'fulfilled')
+                    ElevatedButton.icon(
+                      onPressed: () => _handleReorder(order['id']),
+                      icon: const Icon(Icons.replay_rounded, size: 16, color: Colors.white),
+                      label: Text('RE-ORDER', 
+                        style: GoogleFonts.poppins(
+                          fontSize: 11, 
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white
+                        )),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _hasActiveCard ? _purple : Colors.grey,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
                 ],
               ),
             ),
