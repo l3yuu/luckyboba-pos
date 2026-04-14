@@ -465,9 +465,13 @@ const TL_StockTransferPanel: React.FC<{ branchId?: number | null }> = ({ branchI
   const [expanded,     setExpanded]     = useState<number | null>(null);
 
   const fetchAll = useCallback(async () => {
+    if (!currentBranchId) return;
     setLoading(true);
     try {
-      const [tRes, bRes] = await Promise.allSettled([api.get('/stock-transfers'), api.get('/branches')]);
+      const [tRes, bRes] = await Promise.allSettled([
+        api.get('/stock-transfers', { params: { branch_id: currentBranchId } }), 
+        api.get('/branches')
+      ]);
       if (tRes.status === 'fulfilled') { const d = tRes.value.data; setTransfers(Array.isArray(d) ? d : d?.data ?? []); }
       if (bRes.status === 'fulfilled') { const d = bRes.value.data; setBranches(Array.isArray(d) ? d : d?.data ?? []); }
     } catch (e) {
@@ -475,7 +479,7 @@ const TL_StockTransferPanel: React.FC<{ branchId?: number | null }> = ({ branchI
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentBranchId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
