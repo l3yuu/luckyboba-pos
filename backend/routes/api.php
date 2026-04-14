@@ -547,7 +547,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('admin/cards')->group(function () {
             Route::get ('/',                          [CardController::class, 'adminIndex']);
             Route::post('/',                          [CardController::class, 'store']);
-            Route::put ('/{id}',                      [CardController::class, 'update']);
+            Route::post('/{id}',                      [CardController::class, 'update']);
             Route::delete('/{id}',                    [CardController::class, 'destroy']);
             Route::patch('/{id}/toggle',              [CardController::class, 'toggle']);
             

@@ -63,12 +63,24 @@ const CardManagementTab = () => {
     setError(null);
     if (card) {
       setEditingCard(card);
-      setTitle(card.title);
-      setPrice(card.price.toString());
-      setIsActive(card.is_active);
-      setSortOrder(card.sort_order.toString());
-      setAvailableMonths(card.available_months ? JSON.parse(card.available_months) : []);
-      setImagePreview(card.image_url);
+      setTitle(card.title || "");
+      setPrice(card.price ? card.price.toString() : "0");
+      setIsActive(card.is_active ?? true);
+      setSortOrder(card.sort_order ? card.sort_order.toString() : "0");
+      
+      let months: string[] = [];
+      try {
+        if (typeof card.available_months === 'string') {
+          months = JSON.parse(card.available_months);
+        } else if (Array.isArray(card.available_months)) {
+          months = card.available_months;
+        }
+      } catch (e) {
+        console.error("Failed to parse months", e);
+      }
+      setAvailableMonths(Array.isArray(months) ? months : []);
+      
+      setImagePreview(card.image_url || null);
       setImageFile(null);
     } else {
       setEditingCard(null);
@@ -118,17 +130,13 @@ const CardManagementTab = () => {
     }
 
     let url = "/api/admin/cards";
-    const method = "POST";
-
     if (editingCard) {
       url = `/api/admin/cards/${editingCard.id}`;
-      // Laravel needs _method=PUT to handle multipart/form-data properly via POST
-      formData.append("_method", "PUT");
     }
 
     try {
       const res = await fetch(url, {
-        method: method,
+        method: "POST",
         headers: {
           "Accept": "application/json",
           "Authorization": `Bearer ${getToken()}`,
@@ -139,11 +147,12 @@ const CardManagementTab = () => {
       if (res.ok && data.success) {
         setIsModalOpen(false);
         fetchCards();
+        // Optional: you could add a local "Toast" success state here
       } else {
-        setError(data.message || "Failed to save card.");
+        setError(data.message || data.error || "Failed to save card template.");
       }
     } catch (_err) {
-      setError("Network error occurred.");
+      setError("Network error: Could not reach the server.");
     } finally {
       setIsSaving(false);
     }
