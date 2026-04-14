@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type ElementType } from 'react';
 import api from '../../../services/api';
 import {
-  Users, ShoppingBag, AlertTriangle, TrendingUp,
+  Users, ShoppingBag, AlertTriangle, PhilippinePeso,
   RefreshCw, CheckCircle2, Clock, Package, Search, 
   ArrowUpRight, ArrowDownRight, FileText
 } from 'lucide-react';
@@ -216,9 +216,9 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
 
       {/* ── EXECUTIVE KPI TILES ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <StatTile label="Today's Revenue" value={fmtS(totalSales)} icon={TrendingUp} color="#3b2063" />
+        <StatTile label="Today's Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#3b2063" />
         <StatTile label="Transaction Volume" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#0891b2" />
-        <StatTile label="Void Risks" value={fmtS(voidedSales)} icon={AlertTriangle} color="#e11d48" />
+        <StatTile label="Void Risks" value={fmtS(voidedSales)} icon={PhilippinePeso} color="#e11d48" />
         <StatTile label="Personnel On-Duty" value={activeStaffTodayCount} icon={Users} color="#059669" />
       </div>
 

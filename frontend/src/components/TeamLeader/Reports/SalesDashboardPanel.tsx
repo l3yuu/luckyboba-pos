@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type ElementType } from 'react';
 import api from '../../../services/api';
 import { 
-  TrendingUp, ShoppingBag, DollarSign, Calendar, 
+  PhilippinePeso, ShoppingBag, Calendar, 
   ArrowUpRight, ArrowDownRight, Activity, 
   RefreshCw, FileText
 } from 'lucide-react';
@@ -202,10 +202,10 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
 
       {/* ── HIGH-DENSITY KPI TILES ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <SalesTile label="Fiscal Revenue" value={fmtS(totalSales)} icon={DollarSign} color="#3b2063" trend={12} />
+        <SalesTile label="Fiscal Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#3b2063" trend={12} />
         <SalesTile label="Operational Volume" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#0891b2" trend={5} />
         <SalesTile label="Efficiency (AOV)" value={fmtS(avgOrderValue)} icon={Activity} color="#d97706" />
-        <SalesTile label="Peak Liquidity" value={bestDay ? fmtS(bestDay.sales) : '—'} icon={TrendingUp} color="#059669" />
+        <SalesTile label="Peak Liquidity" value={bestDay ? fmtS(bestDay.sales) : '—'} icon={PhilippinePeso} color="#059669" />
       </div>
 
       {/* ── TREND VISUALIZATION ── */}

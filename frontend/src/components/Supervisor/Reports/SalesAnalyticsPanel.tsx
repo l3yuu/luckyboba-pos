@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type ElementType } from 'react';
 import api from '../../../services/api';
 import { 
-  TrendingUp, ShoppingBag, DollarSign, Calendar, 
+  PhilippinePeso, ShoppingBag, Calendar, 
   ArrowUpRight, ArrowDownRight, Activity, 
   RefreshCw, FileText, LineChart as LineIcon
 } from 'lucide-react';
@@ -219,10 +219,10 @@ const SalesAnalyticsPanel = ({ branchId }: SalesDashboardProps) => {
 
       {/* ── PREMIUM FISCAL ARCHITECTURE ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-        <SalesTile label="Aggregate Revenue" value={fmtS(totalSales)} icon={DollarSign} color="#3b2063" trend={+14.2} />
+        <SalesTile label="Aggregate Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#3b2063" trend={+14.2} />
         <SalesTile label="Trading Volume" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#0ea5e9" trend={-2.4} />
         <SalesTile label="System Efficiency" value={fmtS(avgOrderValue)} icon={Activity} color="#f59e0b" />
-        <SalesTile label="Saturation Peak" value={bestDay ? fmtS(bestDay.sales) : '—'} icon={TrendingUp} color="#10b981" />
+        <SalesTile label="Saturation Peak" value={bestDay ? fmtS(bestDay.sales) : '—'} icon={PhilippinePeso} color="#10b981" />
       </div>
 
       {/* ── TREND VISUALIZATION ── */}
