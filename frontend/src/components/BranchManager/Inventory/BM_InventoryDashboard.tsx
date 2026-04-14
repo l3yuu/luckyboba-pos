@@ -210,27 +210,22 @@ const resolveUnit = (unit: unknown): string => {
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Inventory Overview</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {loading ? 'Loading...' : 'All branches · Live stock health'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <select
             value={branch}
             onChange={e => setBranch(e.target.value)}
-            className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none">
+            className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
             <option value="">All Branches</option>
             {allBranches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
           </select>
-          <button onClick={fetchAll} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
+            <button onClick={fetchAll} disabled={loading}
+              className="w-full md:w-auto bg-white border border-zinc-200 text-zinc-600 hover:text-[#3b2063] hover:border-[#3b2063] px-5 py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-xs font-bold shadow-sm">
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
+            </button>
+          </div>
         </div>
       </div>
 

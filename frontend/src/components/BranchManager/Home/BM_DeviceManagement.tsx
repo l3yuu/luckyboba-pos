@@ -535,19 +535,26 @@ const fetchData = async () => {
   return (
     <div className="p-6 md:p-8 fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Device Management</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? "Loading..." : `${total} devices · ${active} active · ${assigned} assigned`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchData} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
-          <Btn onClick={() => setRegisterOpen(true)}>
-            <Plus size={13} /> Register Device
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex items-center gap-3">
+          <div className="relative group flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <input
+              type="text"
+              placeholder="Search by POS number, device ID, or cashier..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+            />
+          </div>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+            className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0">
+            <option value="">All Status</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+          </select>
+          <Btn onClick={() => setRegisterOpen(true)} disabled={loading} className="px-5 py-3 rounded-xl shadow-sm shrink-0">
+            <Plus size={14} /> Register Device
           </Btn>
         </div>
       </div>
@@ -574,20 +581,7 @@ const fetchData = async () => {
       {/* Table */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
         {/* Filters */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-            <Search size={13} className="text-zinc-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search by POS number, device ID, branch, or cashier..." />
-          </div>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none">
-            <option value="">All Status</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-          </select>
-        </div>
+
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

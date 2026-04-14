@@ -464,17 +464,41 @@ const BM_MenuList: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Menu List</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? "Loading..." : `${items.length} items · ${items.filter(i => i.is_available).length} available`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex items-center gap-3">
+          <div className="relative group flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <input
+              type="text"
+              placeholder="Search items or barcode..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+            />
+          </div>
+          <div className="relative shrink-0">
+            <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] cursor-pointer shadow-sm transition-all hover:bg-zinc-50">
+              <option value="">All Categories</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+          <div className="relative shrink-0">
+            <select value={filterType} onChange={e => setFilterType(e.target.value)}
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] cursor-pointer shadow-sm transition-all hover:bg-zinc-50">
+              <option value="">All Types</option>
+              <option value="food">Food</option>
+              <option value="drink">Drink</option>
+              <option value="wings">Wings</option>
+              <option value="waffle">Waffle</option>
+              <option value="combo">Combo</option>
+              <option value="bundle">Bundle</option>
+              <option value="mix_and_match">Mix & Match</option>
+              <option value="promo">Promo</option>
+            </select>
+            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
         </div>
       </div>
 
@@ -504,53 +528,7 @@ const BM_MenuList: React.FC = () => {
       {/* Table */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
         {/* Filters */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
-          <div className="flex-1 min-w-48 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-            <Search size={13} className="text-zinc-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search items or barcode..." />
-            {search && <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500"><X size={12} /></button>}
-          </div>
-          <div className="relative">
-            <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-              <option value="">All Categories</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          </div>
-          <div className="relative">
-          <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-            <option value="">All Types</option>
-            <option value="food">Food</option>
-            <option value="drink">Drink</option>
-            <option value="wings">Wings</option>
-            <option value="waffle">Waffle</option>
-            <option value="combo">Combo</option>
-            <option value="bundle">Bundle</option>
-            <option value="mix_and_match">Mix & Match</option>
-            <option value="promo">Promo</option>
-          </select>
-          <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-        </div>
-          <div className="relative">
-            <select value={filterAvail} onChange={e => setFilterAvail(e.target.value)}
-              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-              <option value="">All Status</option>
-              <option value="true">Available</option>
-              <option value="false">Unavailable</option>
-            </select>
-            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          </div>
-          {(filterCat || filterAvail || filterType) && (   // ✅ add filterType
-            <button onClick={() => { setFilterCat(""); setFilterAvail(""); setFilterType(""); }}
-              className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
-              <X size={11} /> Clear
-            </button>
-          )}
-        </div>
+
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
