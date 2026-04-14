@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import api from "../../../../services/api";
+import type { TabId } from "../../SuperAdminSidebar";
 
 type Severity = 'critical' | 'warning';
 type ItemType = 'raw_material' | 'product';
@@ -423,7 +424,7 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number |
 };
 
 interface AlertProps {
-  onNavigate?: (id: string) => void;
+  onNavigate?: (id: TabId) => void;
 }
 
 const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate }) => {
