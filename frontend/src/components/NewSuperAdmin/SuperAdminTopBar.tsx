@@ -101,6 +101,7 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   customers: { label: "Customers", desc: "Manage registered customer accounts" },
   notifications: { label: "Notification Center", desc: "Real-time system alerts and events" },
   online_orders: { label: "Online Orders", desc: "Monitor online order queue and statuses" },
+  payment_settings: { label: "Payment Settings", desc: "Configure branch-specific payment methods & QR codes" },
 };
 
 // ── Pulse animation ───────────────────────────────────────────────────────────

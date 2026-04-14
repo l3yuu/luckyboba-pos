@@ -47,7 +47,6 @@ import CustomerManagementTab from "../components/NewSuperAdmin/Sidebar/System/Cu
 import NotificationCenterTab from "../components/NewSuperAdmin/Sidebar/System/NotificationCenterTab";
 import OnlineOrdersTab from "../components/NewSuperAdmin/Sidebar/Navigation/OnlineOrdersTab";
 import BranchPaymentSettingsTab from "../components/NewSuperAdmin/Sidebar/System/BranchPaymentSettingsTab";
-import FranchisesTab from "../components/NewSuperAdmin/Sidebar/Navigation/FranchisesTab";
 
 
 const GlobalStyles = () => (
@@ -92,7 +91,6 @@ const SuperAdminDashboard: React.FC = () => {
       // ── Navigation ────────────────────────────────────────────────────────
       case "overview": return <OverviewTab />;
       case "branches": return <BranchesTab />;
-      case "franchises": return <FranchisesTab />;
       case "users": return <UsersTab />;
       case "devices": return <DeviceManagementTab />;
       case "online_orders": return <OnlineOrdersTab />;

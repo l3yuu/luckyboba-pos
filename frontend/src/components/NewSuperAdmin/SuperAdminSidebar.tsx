@@ -23,7 +23,7 @@ export type TabId =
   | "card_members"
   | "loyalty"
   | "customers"
-  | "notifications" | "promotions" | "vouchers" | "payment_settings" | "audit" | "settings" | "featured_drinks" | "franchises";
+  | "notifications" | "promotions" | "vouchers" | "payment_settings" | "audit" | "settings" | "featured_drinks";
 
 export interface SuperAdminSidebarProps {
   open:          boolean;
@@ -182,7 +182,6 @@ const STYLES = `
 const NAV_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "overview",       label: "Overview",          icon: <LayoutGrid  size={14} /> },
   { id: "branches",       label: "Branch Management", icon: <GitBranch   size={14} /> },
-  { id: "franchises",     label: "Franchise Management", icon: <Layers size={14} /> },
   { id: "users",          label: "User Management",   icon: <Users       size={14} /> },
   { id: "devices",        label: "Device Management", icon: <Monitor     size={14} /> },
 ];

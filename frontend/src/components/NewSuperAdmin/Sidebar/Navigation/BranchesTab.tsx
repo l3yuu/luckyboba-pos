@@ -34,7 +34,6 @@ interface Branch {
   latitude?: number | null;
   longitude?: number | null;
 }
-interface Franchise { id: number; name: string; }
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
   sub?: string; trend?: number; color?: ColorKey;
@@ -102,7 +101,6 @@ const mapBranch = (b: RawBranch): Branch => ({
   min_number: b.min_number ?? '',
   serial_number: b.serial_number ?? '',
   owner_name: b.owner_name ?? '',
-  franchise_id: b.franchise_id ? parseInt(String(b.franchise_id)) : null,
   latitude: b.latitude ? parseFloat(String(b.latitude)) : null,
   longitude: b.longitude ? parseFloat(String(b.longitude)) : null,
 });
@@ -268,7 +266,6 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
     ["MIN", branch.min_number || "—"],
     ["Serial No.", branch.serial_number || "—"],
     ["Owner Name", branch.owner_name || "—"],
-    ["Franchise", branch.franchise_id || "None"],
     ["Coordinates", `${branch.latitude || '0'}, ${branch.longitude || '0'}`],
   ];
   return (
@@ -307,11 +304,9 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
     min_number: branch.min_number ?? '',
     serial_number: branch.serial_number ?? '',
     owner_name: branch.owner_name ?? '',
-    franchise_id: branch.franchise_id ?? '',
     latitude: branch.latitude ?? '',
     longitude: branch.longitude ?? '',
   });
-  const [franchises, setFranchises] = useState<Franchise[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
@@ -322,16 +317,6 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
     if (!form.location.trim()) e.location = "Location is required.";
     return e;
   };
-
-  useEffect(() => {
-    const fetchFranchises = async () => {
-      try {
-        const res = await fetch("/api/franchises", { headers: authHeaders() });
-        if (res.ok) setFranchises(await res.json());
-      } catch (err) { console.error(err); }
-    };
-    fetchFranchises();
-  }, []);
 
   const handleSubmit = async () => {
     const e = validate();
@@ -562,11 +547,9 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
     min_number: "",
     serial_number: "",
     owner_name: "",
-    franchise_id: "",
     latitude: "",
     longitude: "",
   });
-  const [franchises, setFranchises] = useState<Franchise[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
@@ -577,16 +560,6 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
     if (!form.location.trim()) e.location = "Location is required.";
     return e;
   };
-
-  useEffect(() => {
-    const fetchFranchises = async () => {
-      try {
-        const res = await fetch("/api/franchises", { headers: authHeaders() });
-        if (res.ok) setFranchises(await res.json());
-      } catch (err) { console.error(err); }
-    };
-    fetchFranchises();
-  }, []);
 
   const handleSubmit = async () => {
     const e = validate();
