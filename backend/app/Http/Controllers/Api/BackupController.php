@@ -119,11 +119,13 @@ class BackupController extends Controller
                 'filename' => $filename
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error("Backup Error: " . $e->getMessage());
             return response()->json([
-                'error' => 'Backup failed. Please check if mysqldump is installed and the path is correct in .env.',
-                'details' => $e->getMessage()
+                'error' => 'Backup failed. Please check if mysqldump is installed, exec() is enabled, or the properties in .env are correct.',
+                'details' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ], 500);
         }
     }
