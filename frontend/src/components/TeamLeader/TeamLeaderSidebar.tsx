@@ -57,6 +57,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { id: 'recipes',       label: 'Recipes',       icon: <Search size={13} /> },
       { id: 'usage-report',  label: 'Usage Report',  icon: <BarChart2 size={13} /> },
       { id: 'stock-transfer', label: 'Stock Transfer', icon: <ArrowLeftRight size={13} /> },
+      { id: 'purchase-order', label: 'Purchase Order', icon: <FileText size={13} /> },
       { id: 'item-checker',   label: 'Item Checker',  icon: <Search size={13} /> },
     ]
   },

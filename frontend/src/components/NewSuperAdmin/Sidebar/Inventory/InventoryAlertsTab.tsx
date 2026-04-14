@@ -108,7 +108,7 @@ const AlertPOModal: React.FC<{
   const addRow = () => setPoItems(p => [...p, { raw_material_id: 0, material_name: '', unit: '', quantity: '', unit_cost: '' }]);
   const removeRow = (idx: number) => setPoItems(p => p.filter((_, i) => i !== idx));
 
-  const updateRow = (idx: number, field: keyof POItem, value: any) => {
+  const updateRow = (idx: number, field: keyof POItem, value: POItem[keyof POItem]) => {
     setPoItems(p => p.map((row, i) => {
       if (i !== idx) return row;
       if (field === 'raw_material_id') {
@@ -137,8 +137,9 @@ const AlertPOModal: React.FC<{
       });
       onCreated();
       onClose();
-    } catch (err: any) {
-      setApiErr(err.response?.data?.message || 'Failed to create PO');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setApiErr(error.response?.data?.message || 'Failed to create PO');
     } finally { setSaving(false); }
   };
 
@@ -269,7 +270,7 @@ const AlertTransferModal: React.FC<{
   const addRow = () => setItems(p => [...p, { raw_material_id: 0, material_name: '', unit: '', quantity: '' }]);
   const removeRow = (idx: number) => setItems(p => p.filter((_, i) => i !== idx));
 
-  const updateRow = (idx: number, field: keyof TransferItem, value: any) => {
+  const updateRow = (idx: number, field: keyof TransferItem, value: TransferItem[keyof TransferItem]) => {
     setItems(p => p.map((row, i) => {
       if (i !== idx) return row;
       if (field === 'raw_material_id') {
@@ -298,8 +299,9 @@ const AlertTransferModal: React.FC<{
       });
       onCreated();
       onClose();
-    } catch (err: any) {
-      setApiErr(err.response?.data?.message || 'Transfer failed');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setApiErr(error.response?.data?.message || 'Transfer failed');
     } finally { setSaving(false); }
   };
 
@@ -421,7 +423,7 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number |
 };
 
 interface AlertProps {
-  onNavigate?: (id: any) => void;
+  onNavigate?: (id: string) => void;
 }
 
 const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate }) => {

@@ -4,7 +4,7 @@ import {
   LogOut, ShieldCheck, Tag,
   UtensilsCrossed, Layers, List, Package,
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
-  Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
+  Truck, ShoppingCart, ArrowLeftRight,
   DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown, Monitor,
   CreditCard, AlertTriangle, Sparkles, UserCheck, Bell, ShoppingBag
 } from "lucide-react";

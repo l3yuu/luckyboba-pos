@@ -16,8 +16,9 @@ import RecipesPanel        from '../components/TeamLeader/Inventory/RecipesPanel
 import UsageReportPanel    from '../components/TeamLeader/Inventory/UsageReportPanel';
 import ItemCheckerPanel    from '../components/TeamLeader/Inventory/ItemCheckerPanel';
 import SV_VoidLogsPanel    from '../components/Supervisor/Logging/SVVoidLogs';
-import BM_ExpensesTab      from '../components/BranchManager/Expenses/BM_ExpensesTab';
-import BM_InventoryStockTransfer from '../components/BranchManager/Inventory/BM_InventoryStockTransfer';
+import TL_ExpensePanel      from '../components/TeamLeader/Inventory/TL_ExpensePanel';
+import TL_StockTransferPanel from '../components/TeamLeader/Inventory/TL_StockTransferPanel';
+import TL_PurchaseOrderPanel from '../components/TeamLeader/Inventory/TL_PurchaseOrderPanel';
 import BranchManagerAuditLogsTab from '../components/BranchManager/BranchManagerAuditLogsTab';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -78,8 +79,9 @@ const TeamLeaderDashboard = () => {
       case 'recipes':         return <RecipesPanel />;
       case 'usage-report':    return <UsageReportPanel  branchId={bId} />;
       case 'item-checker':    return <ItemCheckerPanel  branchId={bId} />;
-      case 'expenses':        return <BM_ExpensesTab    branchId={bId} />;
-      case 'stock-transfer':  return <BM_InventoryStockTransfer branchId={bId} />;
+      case 'expenses':        return <TL_ExpensePanel    branchId={bId} />;
+      case 'stock-transfer':  return <TL_StockTransferPanel branchId={bId} />;
+      case 'purchase-order':  return <TL_PurchaseOrderPanel branchId={bId} />;
       case 'audit-logs':      return <BranchManagerAuditLogsTab />;
       default:                return <TL_DashboardPanel />;
     }
