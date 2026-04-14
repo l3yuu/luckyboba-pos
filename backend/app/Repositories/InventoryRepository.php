@@ -48,7 +48,7 @@ class InventoryRepository implements InventoryRepositoryInterface
         }
 
         $rmTotal = (clone $rmQuery)->count();
-        $rmLow   = (clone $rmQuery)->whereColumn('current_stock', '>', DB::raw('0'))
+        $rmLow   = (clone $rmQuery)->where('current_stock', '>', 0)
             ->whereColumn('current_stock', '<=', 'reorder_level')
             ->count();
         $rmOut   = (clone $rmQuery)->where('current_stock', '<=', 0)->count();
@@ -116,7 +116,7 @@ class InventoryRepository implements InventoryRepositoryInterface
     public function getAlerts(array $filters = []): Collection
     {
         $branchId = $this->getScopedBranchId($filters['branch_id'] ?? null);
-        $requestedBranchName = $filters['branch_id'] ? Branch::find($filters['branch_id'])?->name : null;
+        $requestedBranchName = ($filters['branch_id'] ?? null) ? Branch::find($filters['branch_id'])?->name : null;
 
         // 1. Menu Item Alerts
         $miQuery = MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
@@ -196,7 +196,7 @@ class InventoryRepository implements InventoryRepositoryInterface
             $endDate   = date('Y-m-t', strtotime($startDate));
         }
 
-        $materialsQuery = \App\Models\RawMaterial::query();
+        $materialsQuery = RawMaterial::query();
         if ($branchId) {
             $materialsQuery->where('branch_id', $branchId);
         }
