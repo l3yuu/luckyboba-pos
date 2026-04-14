@@ -19,6 +19,7 @@ import AnalyticsTab from "../components/NewSuperAdmin/Sidebar/Reports/AnalyticsT
 import ItemsReportTab from "../components/NewSuperAdmin/Sidebar/Reports/ItemsReportTab";
 import XReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/XReadingTab";
 import ZReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/ZReadingTab";
+import BranchReceiptsTab from "../components/NewSuperAdmin/Sidebar/Reports/BranchReceiptsTab";
 import StaffPerformanceTab from "../components/NewSuperAdmin/Sidebar/Navigation/StaffPerformanceTab";
 
 import MenuItemsTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab";
@@ -99,6 +100,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "cross_branch_reports": return <CrossBranchTab />;
       case "x_reading": return <XReadingTab />;
       case "z_reading": return <ZReadingTab />;
+      case "branch_receipts": return <BranchReceiptsTab />;
 
       // ── Menu Management ───────────────────────────────────────────────────
       case "menu_items": return <MenuItemsTab />;

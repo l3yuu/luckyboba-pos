@@ -56,6 +56,7 @@ class ReceiptController extends Controller
     $user  = $request->user();
     $query = strtolower($request->input('query', ''));
     $date  = $request->input('date');
+    $branchId = $request->input('branch_id');
 
     $dbQuery = Sale::query()
         ->leftJoin('receipts', 'sales.id', '=', 'receipts.sale_id')
@@ -75,6 +76,7 @@ class ReceiptController extends Controller
             'receipts.terminal',
             'receipts.items_count',
 
+            'branches.name as branch_name',
             'branches.brand',
             'branches.company_name',
             'branches.store_address',
@@ -109,6 +111,10 @@ class ReceiptController extends Controller
             $q->where('sales.branch_id', $user->branch_id)
               ->orWhere('sales.invoice_number', 'like', 'APP-%');
         });
+    }
+
+    if ($branchId) {
+        $dbQuery->where('sales.branch_id', $branchId);
     }
 
     // Date filter

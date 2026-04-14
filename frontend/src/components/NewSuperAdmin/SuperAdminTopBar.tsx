@@ -70,6 +70,7 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   cross_branch_reports: { label: "Cross-Branch Reports", desc: "Consolidated analytics across branches" },
   x_reading: { label: "X Reading", desc: "Mid-day POS shift summary" },
   z_reading: { label: "Z Reading", desc: "End-of-day POS closing report" },
+  branch_receipts: { label: "Branch Receipts", desc: "View and manage receipts across all branches" },
 
   menu_items: { label: "Menu List", desc: "All products & pricing" },
   categories: { label: "Categories", desc: "Top-level menu groupings" },
