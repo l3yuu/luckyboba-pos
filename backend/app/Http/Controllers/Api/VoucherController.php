@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+
+use App\Traits\LoyaltyCheck;
 
 class VoucherController extends Controller
 {
+    use LoyaltyCheck;
     public function index()
     {
         try {
@@ -24,15 +28,7 @@ class VoucherController extends Controller
     public function available(Request $request)
     {
         try {
-            // Restrict to card holders only
-            $userId = $request->user()->id;
-            $hasCard = DB::table('user_cards')
-                ->where('user_id', $userId)
-                ->where('status', 'active')
-                ->whereRaw('expires_at > NOW()')
-                ->exists();
-
-            if (!$hasCard) {
+            if (!$this->hasActiveCard($request)) {
                 return response()->json(['success' => true, 'data' => [], 'message' => 'Loyalty card required to access vouchers.']);
             }
 
@@ -148,16 +144,8 @@ class VoucherController extends Controller
      */
     public function validateCode(Request $request)
     {
-        // Restrict to card holders only
-        $userId = $request->user()->id;
-        $hasCard = DB::table('user_cards')
-            ->where('user_id', $userId)
-            ->where('status', 'active')
-            ->whereRaw('expires_at > NOW()')
-            ->exists();
-
-        if (!$hasCard) {
-            return response()->json(['success' => false, 'message' => 'You need an active loyalty card to use vouchers.'], 403);
+        if (!$this->hasActiveCard($request)) {
+            return $this->loyaltyRequiredResponse();
         }
 
         $code = strtoupper($request->query('code'));
@@ -177,6 +165,14 @@ class VoucherController extends Controller
 
         if ($voucher->usage_limit && $voucher->times_used >= $voucher->usage_limit) {
             return response()->json(['success' => false, 'message' => 'This voucher has reached its usage limit.'], 400);
+        }
+
+        $minSpend = (float)($request->query('total') ?? 0);
+        if ($voucher->min_spend > 0 && $minSpend < $voucher->min_spend) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Minimum spend of ₱' . number_format($voucher->min_spend, 2) . ' required to use this voucher.'
+            ], 400);
         }
 
         return response()->json(['success' => true, 'data' => $voucher]);

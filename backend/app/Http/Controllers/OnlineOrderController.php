@@ -6,8 +6,12 @@ use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
+use App\Traits\LoyaltyCheck;
+
 class OnlineOrderController extends Controller
 {
+    use LoyaltyCheck;
+
     public function index(Request $request): JsonResponse
     {
         $user  = $request->user();
@@ -72,6 +76,38 @@ class OnlineOrderController extends Controller
             ->map(fn($sale) => $this->formatOrder($sale));
 
         return response()->json($orders);
+    }
+
+    public function reorder(Request $request, int $id): JsonResponse
+    {
+        if (!$this->hasActiveCard($request)) {
+            return $this->loyaltyRequiredResponse();
+        }
+
+        $sale = Sale::with('items')
+            ->where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $items = $sale->items->map(function ($item) {
+            // Check if MenuItem still exists and is active
+            $menuItem = \App\Models\MenuItem::find($item->menu_item_id);
+            
+            return [
+                'menu_item_id' => $item->menu_item_id,
+                'name'         => $item->product_name,
+                'quantity'     => $item->quantity,
+                'unit_price'   => $menuItem ? $menuItem->price : $item->unit_price,
+                'cup_size'     => $item->size,
+                'add_ons'      => $item->add_ons,
+                'is_available' => $menuItem && $menuItem->status === 'active',
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'items'   => $items,
+        ]);
     }
 
     public function store(Request $request): JsonResponse

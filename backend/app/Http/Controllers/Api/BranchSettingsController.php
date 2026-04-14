@@ -41,6 +41,8 @@ class BranchSettingsController extends Controller
                 'maya_number'  => $branch->maya_number,
                 'maya_qr'      => $branch->maya_qr,
                 'maya_qr_url'  => $branch->maya_qr ? url('storage/' . $branch->maya_qr) : null,
+                'image'        => $branch->image,
+                'image_url'    => $branch->image ? url('storage/' . $branch->image) : null,
             ]
         ]);
     }
@@ -69,6 +71,7 @@ class BranchSettingsController extends Controller
             'maya_name'    => 'nullable|string|max:255',
             'maya_number'  => 'nullable|string|max:255',
             'maya_qr'      => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'image'        => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
         $branch = Branch::findOrFail($branchId);
@@ -91,6 +94,14 @@ class BranchSettingsController extends Controller
             $data['maya_qr'] = $request->file('maya_qr')->store('branches/qrs', 'public');
         }
 
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($branch->image) {
+                Storage::disk('public')->delete($branch->image);
+            }
+            $data['image'] = $request->file('image')->store('branches/images', 'public');
+        }
+
         $branch->update($data);
 
         return response()->json([
@@ -105,6 +116,8 @@ class BranchSettingsController extends Controller
                 'maya_number'  => $branch->maya_number,
                 'maya_qr'      => $branch->maya_qr,
                 'maya_qr_url'  => $branch->maya_qr ? url('storage/' . $branch->maya_qr) : null,
+                'image'        => $branch->image,
+                'image_url'    => $branch->image ? url('storage/' . $branch->image) : null,
             ]
         ]);
     }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { 
-  CreditCard, Smartphone, Upload, Trash2, 
+  CreditCard, Smartphone, Upload, 
   CheckCircle2, AlertCircle, Store, Save,
   ArrowRight
 } from "lucide-react";
@@ -15,6 +15,8 @@ interface PaymentSettings {
   maya_name: string;
   maya_number: string;
   maya_qr: string | null;
+  image: string | null;
+  image_url?: string | null;
 }
 
 interface Branch {
@@ -48,6 +50,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
     maya_name: "",
     maya_number: "",
     maya_qr: null,
+    image: null,
   });
 
   const [loading, setLoading] = useState(true);
@@ -56,9 +59,12 @@ const BranchPaymentSettingsTab: React.FC = () => {
   const [mayaFile, setMayaFile] = useState<File | null>(null);
   const [gcashPreview, setGcashPreview] = useState<string | null>(null);
   const [mayaPreview, setMayaPreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const gcashInputRef = useRef<HTMLInputElement>(null);
   const mayaInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -97,6 +103,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
         setSettings(data.data);
         setGcashPreview(data.data.gcash_qr_url);
         setMayaPreview(data.data.maya_qr_url);
+        setImagePreview(data.data.image_url);
       }
     } catch (err) {
       showToast("Failed to load payment settings", "error");
@@ -105,15 +112,18 @@ const BranchPaymentSettingsTab: React.FC = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'gcash' | 'maya') => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'gcash' | 'maya' | 'image') => {
     const file = e.target.files?.[0];
     if (file) {
       if (type === 'gcash') {
         setGcashFile(file);
         setGcashPreview(URL.createObjectURL(file));
-      } else {
+      } else if (type === 'maya') {
         setMayaFile(file);
         setMayaPreview(URL.createObjectURL(file));
+      } else {
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
       }
     }
   };
@@ -131,6 +141,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
     
     if (gcashFile) formData.append('gcash_qr', gcashFile);
     if (mayaFile) formData.append('maya_qr', mayaFile);
+    if (imageFile) formData.append('image', imageFile);
 
     try {
       const res = await fetch(`${API_BASE}/branch/payment-settings`, {
@@ -143,6 +154,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
         showToast("Payment settings updated successfully", "success");
         setGcashFile(null);
         setMayaFile(null);
+        setImageFile(null);
       } else {
         showToast(data.message || "Failed to update settings", "error");
       }
@@ -351,6 +363,67 @@ const BranchPaymentSettingsTab: React.FC = () => {
                   accept="image/*"
                   onChange={(e) => handleFileChange(e, 'maya')}
                 />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Store Display Section */}
+      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-zinc-800 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+              <Store size={18} className="text-white" />
+            </div>
+            <h3 className="font-bold text-white">Store Display Image</h3>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/50">App Branding</p>
+        </div>
+        
+        <div className="p-6">
+          <div className="flex flex-col md:flex-row gap-8 items-center">
+            <div 
+              onClick={() => imageInputRef.current?.click()}
+              className="relative group cursor-pointer w-full md:w-64 aspect-video bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center overflow-hidden hover:border-violet-400 transition-all"
+            >
+              {imagePreview ? (
+                <img 
+                  src={imagePreview} 
+                  alt="Store Preview" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <Upload size={20} className="text-zinc-300" />
+                  <span className="text-[10px] font-bold text-zinc-400">Click to Upload</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <div className="flex flex-col items-center gap-1.5">
+                  <Upload size={20} className="text-white" />
+                  <span className="text-[10px] font-black uppercase text-white">Change Cover</span>
+                </div>
+              </div>
+              <input 
+                type="file" 
+                ref={imageInputRef}
+                className="hidden" 
+                accept="image/*"
+                onChange={(e) => handleFileChange(e, 'image')}
+              />
+            </div>
+
+            <div className="flex-1 space-y-3">
+              <h4 className="text-sm font-bold text-[#1a0f2e]">Store Cover Photo</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                This image will be displayed on the store locator cards in the mobile app. 
+                Recommended aspect ratio: <b>16:9</b> (Landscape). 
+                Supported formats: PNG, JPG, WebP. Max size: 2MB.
+              </p>
+              <div className="flex items-center gap-2 text-[10px] font-bold text-violet-600 bg-violet-50 px-3 py-1.5 rounded-lg w-fit">
+                <CheckCircle2 size={12} />
+                <span>Automatically Optimized for Mobile</span>
               </div>
             </div>
           </div>
