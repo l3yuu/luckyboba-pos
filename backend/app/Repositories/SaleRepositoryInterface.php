@@ -12,6 +12,7 @@ interface SaleRepositoryInterface
     
     /** Stats & Aggregates */
     public function getSalesSumBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null): float;
+    public function getGrossItemSalesBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null): float;
     public function getSalesCountBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null): int;
     public function getVoidSalesBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null): float;
     public function getTaxAndVatAggregates(Carbon $startDate, Carbon $endDate, ?int $branchId = null): object;

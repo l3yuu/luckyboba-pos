@@ -104,6 +104,14 @@ const SalesOrder = () => {
 
   //Receipt Footer
   const [posFooter, setPosFooter] = useState<Record<string, string>>({});
+
+  // General Settings
+  const [generalSettings, setGeneralSettings] = useState<{
+    business_name?: string;
+    contact_email?: string;
+    contact_phone?: string;
+    address?: string;
+  }>({});
   // Cart
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -470,9 +478,21 @@ const SalesOrder = () => {
 
     api
       .get('/payment-settings')
-      .then(({ data }) => setPosFooter(data))
-      .catch(() => {});
-
+      .then(({ data }) => {
+        // /payment-settings returns ALL settings (including contact_email, contact_phone)
+        setPosFooter(prev => ({
+          ...prev,
+          ...data,
+        }));
+        // Also populate generalSettings for receipt header/footer
+        setGeneralSettings({
+          business_name: data.business_name ?? '',
+          contact_email: data.contact_email ?? '',
+          contact_phone: data.contact_phone ?? '',
+          address: data.address ?? '',
+        });
+      })
+      .catch(() => {})
     api
       .get('/discounts')
       .then(({ data }) => {
@@ -1804,6 +1824,10 @@ const SalesOrder = () => {
         <ReceiptPrint
           {...printProps}
           {...branchDetails}
+          businessName={generalSettings.business_name}
+          contactEmail={generalSettings.contact_email}
+          contactPhone={generalSettings.contact_phone}
+          generalAddress={generalSettings.address}
           ownerName={branchDetails.owner_name}
           vatType={vatType}
           addOnsData={addOnsData}
