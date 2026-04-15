@@ -455,6 +455,14 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post  ('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
 
+        // ── CUSTOMER MANAGEMENT (SuperAdmin + BranchManager) ────────────────
+        Route::prefix('customers')->group(function () {
+            Route::get('/',                    [CustomerController::class, 'index']);
+            Route::get('/stats',               [CustomerController::class, 'stats']);
+            Route::get('/{id}',                [CustomerController::class, 'show']);
+            Route::patch('/{id}/toggle-status', [CustomerController::class, 'toggleStatus']);
+        });
+
         // ── BRANCH PAYMENT SETTINGS ──
         Route::get('/branch/payment-settings', [\App\Http\Controllers\Api\BranchSettingsController::class, 'getPaymentSettings']);
         Route::post('/branch/payment-settings', [\App\Http\Controllers\Api\BranchSettingsController::class, 'updatePaymentSettings']);
@@ -471,13 +479,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('/franchises', FranchiseController::class);
         Route::post('/franchises/{id}/assign-branches', [FranchiseController::class, 'assignBranches']);
 
-        // ── CUSTOMER MANAGEMENT (SuperAdmin) ────────────────────────────────
-        Route::prefix('customers')->group(function () {
-            Route::get('/',                    [CustomerController::class, 'index']);
-            Route::get('/stats',               [CustomerController::class, 'stats']);
-            Route::get('/{id}',                [CustomerController::class, 'show']);
-            Route::patch('/{id}/toggle-status', [CustomerController::class, 'toggleStatus']);
-        });
+        // ── CUSTOMER MANAGEMENT (Moved to shared block) ─────────────────────
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::apiResource('raw-materials', RawMaterialController::class)->except(['index', 'show']);
