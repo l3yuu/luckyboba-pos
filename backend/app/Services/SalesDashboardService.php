@@ -198,7 +198,13 @@ class SalesDashboardService
 
         // totalCollected IS netSales (voids already excluded by status='completed')
         $netSales   = $totalCollected;
-        $grossSales = round($totalCollected + $totalDiscounts + $voidAmount, 2);
+        
+        // Correct Gross calculation for BIR compliance:
+        // Gross = Net + SC/PWD Discounts + Other Discounts + Less VAT (removed 12% for SC/PWD)
+        $scPwdTotal = (float) $discounts['sc_discount'] + (float) $discounts['pwd_discount'];
+        $lessVat = round($scPwdTotal * 0.6, 2); // (12% / 20% = 0.6 multiplier)
+
+        $grossSales = round($totalCollected + $totalDiscounts + $lessVat + $voidAmount, 2);
         $netTotal   = round($vatableSales + $vatExemptSales, 2);
 
         // Rounding adjustment should be 0 by construction (golden rule)
@@ -288,7 +294,12 @@ class SalesDashboardService
 
         // totalCollected IS netSales (voids already excluded by status filter)
         $netSales = $totalCollected;
-        $gross    = round($totalCollected + $totalDiscounts + $voidAmount, 2);
+
+        // Correct Gross calculation: Include the 12% VAT that was exempted for SC/PWD
+        $scPwdTotal = (float) $discounts['sc_discount'] + (float) $discounts['pwd_discount'];
+        $lessVat = round($scPwdTotal * 0.6, 2);
+
+        $gross    = round($totalCollected + $totalDiscounts + $lessVat + $voidAmount, 2);
         $netTotal = round($vatableSales + $vatExemptSales, 2);
 
         // Rounding adjustment = 0 by construction (golden rule)
@@ -334,11 +345,13 @@ class SalesDashboardService
             'cash_in'              => $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId),
             'cash_drop'            => $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId),
             'cash_in_drawer'       => round($this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId) + $cash - $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId), 2),
+            'expected_amount'      => round($this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId) + $cash - $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId), 2),
             'z_counter'            => $this->saleRepo->getZReadingsCountUpTo($start, $branchId, ($fromStr === $toStr)),
             'reset_counter'        => 0,
             'previous_accumulated' => $previousAccumulated,
             'present_accumulated'  => $presentAccumulated,
             'sales_for_the_day'    => $netSales,
+            'less_vat'             => $lessVat,
             'rounding_adjustment'  => 0.0,
             'category_breakdown'   => [],
             'generated_at'         => now()->toDateTimeString(),

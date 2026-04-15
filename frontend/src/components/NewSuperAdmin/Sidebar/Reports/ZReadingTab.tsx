@@ -128,6 +128,7 @@ interface XReadingReport {
   over_short?: number;
   net_total?: number;
   expected_amount?: number;
+  less_vat?: number;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -468,7 +469,8 @@ const ZReadingTab: React.FC = () => {
         cash_denominations: cashDenominations,
         total_cash_count:   totalCashCount,
         expected_amount:    expectedAmount,
-        over_short:         totalCashCount - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+        less_vat:           Number(zData.less_vat ?? 0),
+        over_short:         totalCashCount - expectedAmount,
         categories:         (qtyRes as Record<string, unknown>).categories ?? [],
         all_addons_summary: (qtyRes as Record<string, unknown>).all_addons_summary ?? [],
         logs:               (voidRes as Record<string, unknown>).logs ?? (Array.isArray(voidRes) ? voidRes : []),
@@ -1064,6 +1066,7 @@ const handlePrint = () => window.print();
     const pwdDiscount    = reportData?.pwd_discount || 0;
     const diplomat       = reportData?.diplomat_discount || 0;
     const otherDiscount  = reportData?.other_discount || 0;
+    const lessVat        = reportData?.less_vat || 0;
     const totalDisc      = reportData?.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
     const txCount        = reportData?.transaction_count || 0;
     const vatableSales   = reportData?.vatable_sales || 0;
@@ -1136,10 +1139,8 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
         <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
-        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
-          <span></span>
-        </div>
         <ReceiptRow label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
+        <ReceiptRow label="LESS VAT (SC/PWD)" value={phCurrency.format(lessVat)} />
         <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
