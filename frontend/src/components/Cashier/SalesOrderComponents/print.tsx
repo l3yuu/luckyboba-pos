@@ -101,6 +101,15 @@ export const ReceiptPrint = ({
   // below uses itemPaxAssignments directly, which is the correct source of truth.
 
   const isVat = vatType === 'vat';
+  const safeSubtotal = Number(subtotal ?? 0);
+  const safeAmtDue = Number(amtDue ?? 0);
+  const safeVatableSales = Number(vatableSales ?? 0);
+  const safeVatAmount = Number(vatAmount ?? 0);
+  const safeVatExemptSales = Number(vatExemptSales ?? 0);
+  const safeItemDiscountTotal = Number(itemDiscountTotal ?? 0);
+  const safePromoDiscount = Number(promoDiscount ?? 0);
+  const safeTotalDiscountDisplay = Number(totalDiscountDisplay ?? 0);
+  const safeChange = Number(change ?? 0);
 
   // 1. Lifted splitGroups calculation
   const getDiscountInfo = (type: 'sc' | 'pwd' | 'none') => {
@@ -308,16 +317,16 @@ export const ReceiptPrint = ({
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
           <div className="flex justify-between"><span>Total Items</span><span>{totalCount}</span></div>
-          <div className="flex justify-between"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
-          {totalDiscountDisplay > 0 && (
+          <div className="flex justify-between"><span>Sub Total</span><span>{safeSubtotal.toFixed(2)}</span></div>
+          {safeTotalDiscountDisplay > 0 && (
             <>
-              {itemDiscountTotal > 0 && (
+              {safeItemDiscountTotal > 0 && (
                 <div className="flex justify-between">
                   <span>Item Discount(s)</span>
-                  <span>- {itemDiscountTotal.toFixed(2)}</span>
+                  <span>- {safeItemDiscountTotal.toFixed(2)}</span>
                 </div>
               )}
-              {selectedDiscount && promoDiscount > 0 && (
+              {selectedDiscount && safePromoDiscount > 0 && (
                 <div className="flex justify-between">
                   <span>
                     Promo: {selectedDiscount.name}
@@ -327,12 +336,12 @@ export const ReceiptPrint = ({
                         ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
                         : ''}
                   </span>
-                  <span>- {promoDiscount.toFixed(2)}</span>
+                  <span>- {safePromoDiscount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold border-t border-dashed border-black pt-1 mt-1">
                 <span>Total Discount</span>
-                <span>- {totalDiscountDisplay.toFixed(2)}</span>
+                <span>- {safeTotalDiscountDisplay.toFixed(2)}</span>
               </div>
             </>
           )}
@@ -355,6 +364,14 @@ export const ReceiptPrint = ({
                       }, 0);
                       const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
                       return acc + (unitVatExcl * (g.discountPct / 100)) * g.count;
+                    }, 0);
+                    const groupNetOfVat = groups.reduce((acc: number, g) => {
+                      const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
+                        const a = addOnsData.find(x => x.name === name);
+                        return sum + (a ? Number(a.price) : 0);
+                      }, 0);
+                      const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
+                      return acc + unitVatExcl * g.count;
                     }, 0);
                     const groupNetSubtotal = groups.reduce((acc: number, g) => {
                       const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
@@ -388,7 +405,7 @@ export const ReceiptPrint = ({
                         </div>
                         <div className="flex justify-between">
                           <span>Net of VAT</span>
-                          <span>₱{(subtotal / 1.12).toFixed(2)}</span>
+                          <span>₱{groupNetOfVat.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between italic">
                           <span>Net Price (VAT Exempt)</span>
@@ -407,7 +424,10 @@ export const ReceiptPrint = ({
               return (
                 <div className="space-y-2 border-t border-dashed border-black py-2">
                   {paxTypes.map(p => {
-                    const groupLessVat = (p.amt / 0.20) * 0.12;
+                    const preVatFull = (p.amt / 0.20);
+                    const groupLessVat = preVatFull * 0.12;
+                    const netOfVat = preVatFull;
+                    const netVatExempt = preVatFull * 0.80;
                     return (
                     <div key={p.type} className="space-y-0.5">
                       <div className="uppercase font-bold">{p.label} PAX Summary</div>
@@ -421,11 +441,11 @@ export const ReceiptPrint = ({
                       </div>
                       <div className="flex justify-between">
                         <span>Net of VAT</span>
-                        <span>₱{(subtotal / 1.12).toFixed(2)}</span>
+                        <span>₱{netOfVat.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between italic text-[10px]">
                         <span>Net Price (VAT Exempt)</span>
-                        <span>₱{(p.amt / 0.20).toFixed(2)}</span>
+                        <span>₱{netVatExempt.toFixed(2)}</span>
                       </div>
                     </div>
                   )})}
@@ -436,7 +456,7 @@ export const ReceiptPrint = ({
           })()}
 
 
-          <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{amtDue.toFixed(2)}</span></div>
+          <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{safeAmtDue.toFixed(2)}</span></div>
         </div>
 
         {/* Payment */}
@@ -444,8 +464,8 @@ export const ReceiptPrint = ({
           <div className="flex justify-between"><span>Payment Method</span><span className="uppercase font-bold">{paymentMethod}</span></div>
           {paymentMethod === 'cash' && (
             <>
-              <div className="flex justify-between"><span>Cash (Tendered)</span><span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : amtDue.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>Change</span><span>{change.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Cash (Tendered)</span><span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : safeAmtDue.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Change</span><span>{safeChange.toFixed(2)}</span></div>
             </>
           )}
           {referenceNumber && (
@@ -459,14 +479,14 @@ export const ReceiptPrint = ({
             <>
               <div className="flex justify-between"><span>VATable Sales(V)</span><span>0.00</span></div>
               <div className="flex justify-between"><span>VAT Amount</span><span>0.00</span></div>
-              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>{Number(amtDue || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>{safeAmtDue.toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
             </>
           ) : (
             <>
-              <div className="flex justify-between"><span>VATable Sales(V)</span><span>{Number(vatableSales || 0).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>VAT Amount</span><span>{Number(vatAmount || 0).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>{Number(vatExemptSales || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VATable Sales(V)</span><span>{safeVatableSales.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VAT Amount</span><span>{safeVatAmount.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>{safeVatExemptSales.toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
             </>
           )}

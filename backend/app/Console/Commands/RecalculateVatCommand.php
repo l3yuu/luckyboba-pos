@@ -68,10 +68,27 @@ class RecalculateVatCommand extends Command
 
                 $categorized    = $scDisc + $pwdDisc + $diplomatDisc + $otherDisc;
                 $uncategorized  = max(0, $rawGeneric - $categorized);
-                $correctTotal   = max(0, round($itemSum - $itemDiscSum - $uncategorized - $categorized, 2));
+                
+                // SC/PWD VAT treatment (BIR):
+                // The stored SC/PWD discount amount is 20% of VAT-exclusive base.
+                // The VAT portion must also be removed from the customer-pay total:
+                //   lessVat = (scPwdDiscount / 0.20) * 0.12
+                $scPwdDisc = $scDisc + $pwdDisc;
+                if ($scPwdDisc <= 0) {
+                    $scPwdDisc = (float) DB::table('sale_items')
+                        ->where('sale_id', $sale->id)
+                        ->where(function ($q) {
+                            $q->where('discount_label', 'like', '%SENIOR%')
+                              ->orWhere('discount_label', 'like', '%PWD%');
+                        })
+                        ->sum('discount_amount');
+                }
+                $lessVat = $scPwdDisc > 0 ? round(($scPwdDisc / 0.20) * 0.12, 2) : 0.0;
 
-                // ONLY fix if we detect the double-subtraction bug (current total is too low)
-                if ($correctTotal > $currentTotal + 0.1) {
+                $correctTotal = max(0, round($itemSum - $itemDiscSum - $uncategorized - $categorized - $lessVat, 2));
+
+                // Fix total_amount when it materially differs.
+                if (abs($correctTotal - $currentTotal) > 0.01) {
                     $totalFixed++;
                     $totalAmount += ($correctTotal - $currentTotal);
                     $newTotal = $correctTotal;
@@ -93,11 +110,22 @@ class RecalculateVatCommand extends Command
             $pwdDiscount = (float) ($sale->pwd_discount_amount ?? 0);
             $totalScPwd  = $scDiscount + $pwdDiscount;
 
-            $vatExemptSales = 0.0;
+            // Preserve any base VAT-exempt sales and layer SC/PWD-derived exempt amounts.
+            $baseVatExemptSales = max(0.0, (float) ($sale->vat_exempt_sales ?? 0));
+            $scPwdVatExemptSales = 0.0;
             if ($totalScPwd > 0) {
-                $vatExemptSales = round($totalScPwd / 0.20 * 0.80, 2);
-                $vatExemptSales = min($vatExemptSales, $newTotal);
+                $scPwdVatExemptSales = round($totalScPwd / 0.20 * 0.80, 2);
+                $scPwdVatExemptSales = min($scPwdVatExemptSales, $newTotal);
             }
+            $vatExemptSales = $baseVatExemptSales;
+            if ($scPwdVatExemptSales > 0) {
+                if ($baseVatExemptSales + 0.02 < $scPwdVatExemptSales) {
+                    $vatExemptSales = $baseVatExemptSales + $scPwdVatExemptSales;
+                } else {
+                    $vatExemptSales = max($baseVatExemptSales, $scPwdVatExemptSales);
+                }
+            }
+            $vatExemptSales = min(round($vatExemptSales, 2), $newTotal);
 
             $vatableGross = round($newTotal - $vatExemptSales, 2);
             $vatableSales = round($vatableGross / 1.12, 2);

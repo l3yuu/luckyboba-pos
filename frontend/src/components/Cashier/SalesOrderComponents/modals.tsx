@@ -1267,7 +1267,7 @@ export const ConfirmOrderModal = ({
                                 <span className="text-[10px] text-zinc-400 font-bold">₱{Number(item.price).toFixed(2)}/unit</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                {assignments.map((a, _) => a !== 'none' ? typeBadge(a) : null)}
+                                {assignments.map((a, ai) => a !== 'none' ? <React.Fragment key={`${cartIndex}-${ai}`}>{typeBadge(a)}</React.Fragment> : null)}
                               </div>
                             </div>
 
