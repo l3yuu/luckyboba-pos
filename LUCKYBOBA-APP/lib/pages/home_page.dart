@@ -238,8 +238,13 @@ class _HomePageState extends State<HomePage> {
     sorted.sort((a, b) => (a['_dist'] as double).compareTo(b['_dist'] as double));
     if (mounted) {
       setState(() {
-        _nearestStore = sorted.first;
-        _nearestDist  = sorted.first['_dist'];
+        if (sorted.isNotEmpty) {
+          _nearestStore = sorted.first;
+          _nearestDist = sorted.first['_dist'];
+        } else {
+          _nearestStore = null;
+          _nearestDist = null;
+        }
         _loadingNearby = false;
       });
     }
@@ -407,8 +412,28 @@ class _HomePageState extends State<HomePage> {
                               child: CircularProgressIndicator(
                                   color: _kPurple)),
                         )
-                      : _NearbyStoreBanner(
-                          store: _nearestStore!, dist: _nearestDist),
+                      : (_nearestStore == null || _nearestDist == null)
+                          ? Container(
+                              height: 180,
+                              decoration: AppTheme.glassDecoration(
+                                borderRadius: 22,
+                                opacity: 0.1,
+                                shadowColor: _kOrange,
+                                shadowBlur: 20,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'No nearby store available yet.',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: _kTextMid,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : _NearbyStoreBanner(
+                              store: _nearestStore!, dist: _nearestDist!),
 
                   const SizedBox(height: 120),
                 ],
@@ -718,12 +743,30 @@ class _HeroBannerLight extends StatelessWidget {
                           fit: BoxFit.cover,
                           color: Colors.black.withValues(alpha: 0.25),
                           colorBlendMode: BlendMode.darken,
+                          errorBuilder: (context, error, trace) => Container(
+                            color: const Color(0xFF2D2A42),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.local_cafe_rounded,
+                              color: Colors.white70,
+                              size: 36,
+                            ),
+                          ),
                         )
                       : Image.asset(
                           imagePath,
                           fit: BoxFit.cover,
                           color: Colors.black.withValues(alpha: 0.25),
                           colorBlendMode: BlendMode.darken,
+                          errorBuilder: (context, error, trace) => Container(
+                            color: const Color(0xFF2D2A42),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.local_cafe_rounded,
+                              color: Colors.white70,
+                              size: 36,
+                            ),
+                          ),
                         ),
                 ),
               ),
@@ -835,6 +878,15 @@ class _CategoryCard extends StatelessWidget {
                   child: Image.asset(
                     imagePath,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, trace) => Container(
+                      color: color.withValues(alpha: 0.20),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.fastfood_rounded,
+                        color: color,
+                        size: 26,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -920,6 +972,10 @@ class _NearbyStoreBanner extends StatelessWidget {
                         fit: BoxFit.cover,
                         color: Colors.black.withValues(alpha: 0.35),
                         colorBlendMode: BlendMode.darken,
+                        errorBuilder: (context, error, trace) => Container(
+                          color: Colors.grey[900],
+                          child: const Icon(Icons.store_rounded, color: Colors.white, size: 40),
+                        ),
                       ),
               ),
               Positioned.fill(
@@ -1112,8 +1168,23 @@ class _BranchTile extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset(store['image'],
-                  width: 50, height: 50, fit: BoxFit.cover),
+              child: Image.asset(
+                store['image'],
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, trace) => Container(
+                  width: 50,
+                  height: 50,
+                  color: Colors.white10,
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.storefront_rounded,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(

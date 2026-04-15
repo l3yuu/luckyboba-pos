@@ -92,7 +92,7 @@ class _MenuPageState extends State<MenuPage> {
   Future<void> _fetchFavorites() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
+      final token = prefs.getString('session_token') ?? prefs.getString('token') ?? '';
       if (token.isEmpty) return;
 
       final response = await http.get(
@@ -130,7 +130,7 @@ class _MenuPageState extends State<MenuPage> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
+      final token = prefs.getString('session_token') ?? prefs.getString('token') ?? '';
       
       final response = isAdding 
         ? await http.post(

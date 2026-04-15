@@ -2,6 +2,7 @@
 import 'dart:ui'; // For BackdropFilter
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +27,17 @@ void main() async {
   // Skip Firebase on web — no web config exists; web is used for UI debugging only
   if (!kIsWeb) {
     await Firebase.initializeApp();
+  }
+
+  // Crash reporting (mobile only)
+  if (!kIsWeb) {
+    FlutterError.onError = (details) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
   }
 
   final prefs = await SharedPreferences.getInstance();
@@ -88,6 +100,22 @@ class LuckyBobaApp extends StatelessWidget {
         textTheme: GoogleFonts.poppinsTextTheme(),
         colorScheme: ColorScheme.fromSeed(seedColor: AppTheme.primary),
       ),
+      builder: (context, child) {
+        final c = child ?? const SizedBox.shrink();
+        if (AppConfig.isProduction) return c;
+
+        // Visible environment badge so testers never confuse staging/dev with prod.
+        return Banner(
+          message: AppConfig.envLabel,
+          location: BannerLocation.topEnd,
+          color: AppConfig.isStaging ? Colors.orange : Colors.redAccent,
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
+          ),
+          child: c,
+        );
+      },
       home: home,
     );
   }

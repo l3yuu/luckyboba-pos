@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../cart/payment_instructions_page.dart';
 import '../account/order_history_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ── Colors ────────────────────────────────────────────────────────────────────
 const Color _purple     = Color(0xFF7C14D4);
@@ -103,6 +104,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   bool    _isLoading   = true;
   bool    _isCancelling = false;
   String? _error;
+  DateTime? _lastUpdated;
   Timer?  _pollTimer;
   bool    _isAppInForeground = true;
 
@@ -232,6 +234,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                 order['payment_status'] == 'paid';
             _isLoading = false;
             _error     = null;
+            _lastUpdated = DateTime.now();
           });
         } else {
           if (mounted) setState(() => _isLoading = false);
@@ -372,6 +375,31 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     ).then((_) {
       _fetchStatus().then((_) => _scheduleNextPoll());
     });
+  }
+
+  Future<void> _contactSupport() async {
+    final subject = Uri.encodeComponent('Lucky Boba Support — Order ${widget.siNumber}');
+    final body = Uri.encodeComponent(
+      'Hi Lucky Boba Support,\n\n'
+      'I need help with my order.\n\n'
+      'Order ID: ${widget.siNumber}\n'
+      'Status: $_status\n'
+      'Payment: ${widget.paymentMethod}\n'
+      'Amount: ₱${widget.amount.toStringAsFixed(2)}\n\n'
+      'Thanks.',
+    );
+    final uri = Uri.parse('mailto:${AppConfig.supportEmail}?subject=$subject&body=$body');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not open email app.', style: GoogleFonts.poppins(color: Colors.white)),
+          backgroundColor: _red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 
   // ── Payment picker bottom sheet ───────────────────────────────────────────
@@ -670,6 +698,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
                       style: GoogleFonts.poppins(
                           fontSize: 11, color: _textMid)),
                 ),
+                if (_lastUpdated != null)
+                  Text(
+                    'Updated ${_lastUpdated!.toLocal().toString().substring(11, 19)}',
+                    style: GoogleFonts.poppins(fontSize: 10, color: _textMid),
+                  ),
               ],
             ),
           ),
@@ -1083,6 +1116,27 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
               style: GoogleFonts.poppins(fontSize: 12, color: _red),
             ),
           ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () async {
+              setState(() {
+                _isLoading = true;
+                _error = null;
+              });
+              await _fetchStatus();
+              if (mounted) _scheduleNextPoll();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: _red,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'Retry',
+              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );
@@ -1177,15 +1231,42 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
         color:        _surface,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline_rounded, size: 18, color: _purple),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Real-time status updates active. Pull down to refresh manually.',
-              style: GoogleFonts.poppins(
-                  fontSize: 11, color: _textMid, height: 1.5),
+          Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, size: 18, color: _purple),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Real-time status updates active. Pull down to refresh manually.',
+                  style: GoogleFonts.poppins(
+                      fontSize: 11, color: _textMid, height: 1.5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _contactSupport,
+              icon: const Icon(Icons.support_agent_rounded, size: 18, color: _purple),
+              label: Text(
+                'Contact Support',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _purple,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(color: _purple.withValues(alpha: 0.35), width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                backgroundColor: Colors.white,
+              ),
             ),
           ),
         ],

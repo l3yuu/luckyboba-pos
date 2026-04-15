@@ -40,6 +40,9 @@ Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'check
 
 // ✅ PUBLIC MOBILE ROUTES
 Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/cards/image/{path}', [CardController::class, 'image'])
+    ->where('path', '.*')
+    ->middleware('throttle:120,1');
 Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');

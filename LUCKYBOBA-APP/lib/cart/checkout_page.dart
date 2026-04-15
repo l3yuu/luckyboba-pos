@@ -226,15 +226,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
         }).toList(),
       });
 
-      final response = await http.post(
-        Uri.parse('${AppConfig.apiUrl}/online-orders'),
-        headers: {
-          'Content-Type':  'application/json',
-          'Accept':        'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: body,
-      );
+      final response = await http
+          .post(
+            Uri.parse('${AppConfig.apiUrl}/online-orders'),
+            headers: {
+              'Content-Type':  'application/json',
+              'Accept':        'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: body,
+          )
+          .timeout(const Duration(seconds: 20));
 
       debugPrint('Checkout status: ${response.statusCode}');
       debugPrint('Checkout body:   ${response.body}');
@@ -316,7 +318,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
       debugPrint('Checkout error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(
+              'Checkout failed — please check your connection and try again.',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         );
       }
     } finally {
