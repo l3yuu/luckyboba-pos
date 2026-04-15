@@ -64,13 +64,19 @@ class _StoresPageState extends State<StoresPage> {
                 'name': b['name'] ?? 'Unknown Branch',
                 'branch_id': b['id'],
                 'address': b['location'] ?? 'No address provided',
-                'image': b['image'] ?? 'assets/images/maps_logo.png',
+                'image': b['image'], // keep it null if null
                 'lat': lat,
                 'lng': lng,
                 'closeTime': '09:00 PM',
                 'url': 'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
               };
-            }).toList();
+            }).where((s) => s['lat'] != 0.0 || s['lng'] != 0.0).toList();
+            
+            if (storeLocations.isEmpty) {
+              _useFallbackStores();
+              return;
+            }
+
             _calculateAndSortStores();
             _isLoadingStores = false;
           });
@@ -361,7 +367,7 @@ class _StoresPageState extends State<StoresPage> {
 
           // ── My-location FAB ─────────────────────────────────────────────────
           Positioned(
-            bottom: 240,
+            bottom: 350,
             right:  16,
             child: GestureDetector(
               onTap: _isLoadingLocation ? null : _getCurrentLocation,
@@ -391,7 +397,7 @@ class _StoresPageState extends State<StoresPage> {
           ),
 
           Positioned(
-            bottom: 0,
+            bottom: 110,
             left: 0,
             right: 0,
             child: SizedBox(
@@ -460,25 +466,32 @@ class _StoresPageState extends State<StoresPage> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  store['image'].toString().startsWith('http')
-                      ? Image.network(
-                          store['image'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, trace) => Container(
-                            color: _kSurface,
-                            child: const Icon(Icons.store_rounded,
-                                color: _kPurple, size: 40),
+                  (store['image'] == null || store['image'].toString().isEmpty)
+                      ? Container(
+                          color: _kSurface.withValues(alpha: 0.5),
+                          child: Center(
+                            child: Icon(Icons.store_rounded, color: _kPurple.withValues(alpha: 0.5), size: 40),
                           ),
                         )
-                      : Image.asset(
-                          store['image'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, trace) => Container(
-                            color: _kSurface,
-                            child: const Icon(Icons.store_rounded,
-                                color: _kPurple, size: 40),
-                          ),
-                        ),
+                      : store['image'].toString().startsWith('http')
+                          ? Image.network(
+                              store['image'],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, trace) => Container(
+                                color: _kSurface,
+                                child: const Icon(Icons.store_rounded,
+                                    color: _kPurple, size: 40),
+                              ),
+                            )
+                          : Image.asset(
+                              store['image'],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, trace) => Container(
+                                color: _kSurface,
+                                child: const Icon(Icons.store_rounded,
+                                    color: _kPurple, size: 40),
+                              ),
+                            ),
                   // Subtle dark gradient for readability
                   Container(
                     decoration: BoxDecoration(

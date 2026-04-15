@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'item_customization_page.dart';
 import 'cart_page.dart';
 import '../config/app_config.dart';
+import '../widgets/tappable_card.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -354,8 +355,23 @@ class _MenuPageState extends State<MenuPage> {
                             childAspectRatio: 0.72,
                           ),
                           itemCount:   groupedItems.length,
-                          itemBuilder: (context, index) =>
-                              _buildItemCard(groupedItems[index]),
+                          itemBuilder: (context, index) {
+                            return TweenAnimationBuilder<double>(
+                              duration: Duration(milliseconds: 350 + (index * 50)),
+                              tween: Tween(begin: 0.0, end: 1.0),
+                              curve: Curves.easeOutCubic,
+                              builder: (context, value, child) {
+                                return Opacity(
+                                  opacity: value,
+                                  child: Transform.translate(
+                                    offset: Offset(0, 20 * (1 - value)),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: _buildItemCard(groupedItems[index]),
+                            );
+                          },
                         ),
                       ),
           ),
@@ -562,7 +578,7 @@ class _MenuPageState extends State<MenuPage> {
           return p != startingPrice;
         });
 
-    return GestureDetector(
+    return TappableCard(
       onTap: () {
         final List<Map<String, dynamic>> normalizedVariants =
             variants.map<Map<String, dynamic>>((v) {
@@ -616,17 +632,20 @@ class _MenuPageState extends State<MenuPage> {
                   ClipRRect(
                     borderRadius:
                         const BorderRadius.vertical(top: Radius.circular(18)),
-                    child: imageUrl != null && imageUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) =>
-                                _buildShimmerPlaceholder(),
-                            errorWidget: (context, url, error) =>
-                                _buildPlaceholderImage(),
-                          )
-                        : _buildPlaceholderImage(),
+                    child: Hero(
+                      tag: 'menu_item_${item['id']}',
+                      child: imageUrl != null && imageUrl.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) =>
+                                  _buildShimmerPlaceholder(),
+                              errorWidget: (context, url, error) =>
+                                  _buildPlaceholderImage(),
+                            )
+                          : _buildPlaceholderImage(),
+                    ),
                   ),
                     // Favorite Heart Overlay
                     Positioned(

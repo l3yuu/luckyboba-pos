@@ -32,12 +32,16 @@ class AppTheme {
     ],
   );
 
+  static const Duration kAnimationDuration = Duration(milliseconds: 250);
+
   // ── DECORATIONS ────────────────────────────────────────────────────────────
   static BoxDecoration glassDecoration({
     double borderRadius = 24,
     double borderAlpha = 0.15,
     double blur = 15,
     double opacity = 0.08,
+    Color? shadowColor,
+    double shadowBlur = 18,
   }) {
     return BoxDecoration(
       color: Colors.white.withValues(alpha: opacity),
@@ -46,6 +50,15 @@ class AppTheme {
         color: Colors.white.withValues(alpha: borderAlpha),
         width: 1.0,
       ),
+      boxShadow: shadowColor != null
+          ? [
+              BoxShadow(
+                color: shadowColor.withValues(alpha: 0.15),
+                blurRadius: shadowBlur,
+                offset: const Offset(0, 8),
+              ),
+            ]
+          : null,
     );
   }
 
