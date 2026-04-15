@@ -2,13 +2,11 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Plus, CheckCircle, Tag, RefreshCw,
-  Search, ToggleRight, ToggleLeft, AlertCircle, Calendar
+  Search, ToggleRight, ToggleLeft, AlertCircle
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type ColorKey = "violet" | "emerald" | "red" | "amber";
-type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey = "sm" | "md" | "lg";
 
 interface Branch { id: number; name: string; }
 
@@ -78,7 +76,6 @@ const DiscountCard: React.FC<{
   toggling: boolean;
 }> = ({ discount, onToggle, toggling }) => {
   const active = discount.status === "ON";
-  const expired = !!discount.ends_at && new Date(discount.ends_at) < new Date();
   
   return (
     <div className={`bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${active ? "border-violet-200 shadow-sm shadow-violet-50" : "border-zinc-200"}`}>
