@@ -258,15 +258,13 @@ const menuItems = [
   { tab: 'sub-category-list', label: 'Sub-Categories' },
 ];
 const inventoryItems = [
-  { tab: 'inventory-dashboard', label: 'Dashboard' },
-  { tab: 'inventory-list', label: 'Inventory List' },
-  { tab: 'inventory-category', label: 'Categories' },
+  { tab: 'inventory-dashboard', label: 'Overview' },
+  { tab: 'inventory-alert-center', label: 'Alert Center' },
+  { tab: 'inventory-list', label: 'Raw Materials' },
+  { tab: 'inventory-report', label: 'Usage Report' },
+  { tab: 'inventory-recipes', label: 'Recipes' },
   { tab: 'purchase-order', label: 'Purchase Orders' },
   { tab: 'stock-transfer', label: 'Stock Transfer' },
-  { tab: 'supplier', label: 'Suppliers' },
-  { tab: 'item-checker', label: 'Item Checker' },
-  { tab: 'item-serials', label: 'Item Serials' },
-  { tab: 'inventory-report', label: 'Reports' },
 ];
 const appItems = [
   { tab: 'app-orders', label: 'App Orders' },

@@ -37,6 +37,8 @@ interface FormState {
   passwordConfirm: string;
   status:          string;
   role:            string;
+  manager_pin:     string;
+  manager_pin_confirmation: string;
 }
 
 interface PosDevice {
@@ -58,9 +60,14 @@ const mapUser = (u: any): User => ({
   id:             u.id,
   name:           u.name,
   email:          u.email,
-  role:           u.role,
-  branch:         u.branch ?? u.branch_name ?? '—',
-  branch_id:      u.branch_id ?? null,
+  role:           String(u.role ?? '').trim().toLowerCase(),
+  branch:         u.branch?.name ?? u.branch ?? u.branch_name ?? '—',
+  branch_id:      (() => {
+    const raw = u.branch_id ?? u.branch?.id ?? null;
+    if (raw == null || raw === '') return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  })(),
   status:         u.status,
   lastLogin:      u.last_login_at
     ? new Date(u.last_login_at).toLocaleString('en-PH', {
@@ -76,7 +83,14 @@ const mapUser = (u: any): User => ({
 });
 
 const blankForm = (): FormState => ({
-  name: '', email: '', password: '', passwordConfirm: '', status: 'ACTIVE', role: 'cashier',
+  name: '',
+  email: '',
+  password: '',
+  passwordConfirm: '',
+  status: 'ACTIVE',
+  role: 'cashier',
+  manager_pin: '',
+  manager_pin_confirmation: '',
 });
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -195,7 +209,7 @@ const ViewUserModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose,
   ];
   return (
     <ModalShell onClose={onClose} icon={<Eye size={15} className="text-violet-600" />}
-      title={user.name} sub="Cashier details"
+      title={user.name} sub="Staff details"
       footer={<Btn variant="secondary" onClick={onClose}>Close</Btn>}>
       <div className="flex flex-col divide-y divide-zinc-100 -my-1">
         {rows.map(([label, val]) => (
@@ -219,12 +233,24 @@ const CashierFormModal: React.FC<{
 }> = ({ onClose, onSaved, editingUser, branchId }) => {
   const [form, setForm] = useState<FormState>(
     editingUser
-      ? { name: editingUser.name, email: editingUser.email, password: '', passwordConfirm: '', status: editingUser.status, role: editingUser.role }
+      ? {
+          name: editingUser.name,
+          email: editingUser.email,
+          password: '',
+          passwordConfirm: '',
+          status: editingUser.status,
+          role: editingUser.role,
+          manager_pin: '',
+          manager_pin_confirmation: '',
+        }
       : blankForm()
   );
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [saving,   setSaving]   = useState(false);
   const [apiError, setApiError] = useState('');
+
+  const PIN_ROLES = ['team_leader', 'supervisor'];
+  const showPin = PIN_ROLES.includes(form.role) && (!editingUser || !editingUser.has_pin);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -233,6 +259,12 @@ const CashierFormModal: React.FC<{
     if (!editingUser && !form.password) e.password = 'Password is required.';
     if (form.password && form.password.length < 6) e.password = 'Password must be at least 6 characters.';
     if (form.password && form.password !== form.passwordConfirm) e.passwordConfirm = 'Passwords do not match.';
+    if (showPin) {
+      if (!form.manager_pin.trim()) e.manager_pin = 'PIN is required for this role.';
+      else if (!/^\d{4,8}$/.test(form.manager_pin)) e.manager_pin = 'PIN must be 4–8 digits.';
+      if (form.manager_pin !== form.manager_pin_confirmation)
+        e.manager_pin_confirmation = 'PINs do not match.';
+    }
     return e;
   };
 
@@ -253,10 +285,14 @@ const handleSubmit = async () => {
         payload.password              = form.password;
         payload.password_confirmation = form.passwordConfirm;
       }
+      if (showPin) {
+        payload.manager_pin = form.manager_pin;
+        payload.manager_pin_confirmation = form.manager_pin_confirmation;
+      }
       const res = await api.put(`/users/${editingUser.id}`, payload);
       onSaved(mapUser(res.data?.data ?? res.data));
     } else {
-      const res = await api.post('/users', {
+      const createPayload: Record<string, string | number | boolean | null> = {
         name:                  form.name,
         email:                 form.email,
         password:              form.password,
@@ -264,7 +300,12 @@ const handleSubmit = async () => {
         role:                  form.role,      // ← was hardcoded 'cashier'
         status:                form.status,
         branch_id:             branchId,
-      });
+      };
+      if (showPin) {
+        createPayload.manager_pin = form.manager_pin;
+        createPayload.manager_pin_confirmation = form.manager_pin_confirmation;
+      }
+      const res = await api.post('/users', createPayload);
       onSaved(mapUser(res.data?.data ?? res.data));
     }
     onClose();
@@ -292,14 +333,14 @@ const handleSubmit = async () => {
       onClose={onClose}
       icon={editingUser ? <Edit2 size={15} className="text-violet-600" /> : <Users size={15} className="text-violet-600" />}
       title={editingUser ? 'Edit Staff' : 'Add Staff'}
-      sub={editingUser ? `Updating ${editingUser.name}` : 'Create a new cashier or team leader account'}
+      sub={editingUser ? `Updating ${editingUser.name}` : 'Create a new cashier, team leader, or supervisor account'}
       footer={
         <>
           <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
           <Btn onClick={handleSubmit} disabled={saving}>
             {saving
               ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
-              : editingUser ? 'Save Changes' : <><Plus size={13} /> Add Cashier</>}
+              : editingUser ? 'Save Changes' : <><Plus size={13} /> Add Staff</>}
           </Btn>
         </>
       }>
@@ -331,8 +372,39 @@ const handleSubmit = async () => {
         <select {...f('role')} className={inputCls()}>
           <option value="cashier">Cashier</option>
           <option value="team_leader">Team Leader</option>
+          <option value="supervisor">Supervisor</option>
         </select>
       </Field>
+      {showPin && (
+        <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Lock size={13} className="text-violet-600 shrink-0" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-violet-700">Manager PIN</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="PIN" required error={errors.manager_pin}>
+              <input
+                {...f('manager_pin')}
+                type="password"
+                inputMode="numeric"
+                placeholder="4–8 digits"
+                maxLength={8}
+                className={inputCls(errors.manager_pin)}
+              />
+            </Field>
+            <Field label="Confirm PIN" required error={errors.manager_pin_confirmation}>
+              <input
+                {...f('manager_pin_confirmation')}
+                type="password"
+                inputMode="numeric"
+                placeholder="Re-enter PIN"
+                maxLength={8}
+                className={inputCls(errors.manager_pin_confirmation)}
+              />
+            </Field>
+          </div>
+        </div>
+      )}
       {/* Hint for new cashiers: device assigned after saving */}
       {!editingUser && (
         <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg">
@@ -465,7 +537,8 @@ const DeleteUserModal: React.FC<{
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-[#1a0f2e] truncate">{user.name}</p>
             <p className="text-[10px] text-zinc-400 truncate flex items-center gap-1">
-              <ShieldCheck size={9} />Cashier
+            <ShieldCheck size={9} />
+            {user.role === 'team_leader' ? 'Team Leader' : user.role === 'supervisor' ? 'Supervisor' : 'Cashier'}
             </p>
           </div>
           <Badge status={user.status} />
@@ -662,7 +735,13 @@ const UserManagement: React.FC = () => {
     try {
       const meRes = await api.get('/user');
       const me    = meRes.data?.data ?? meRes.data;
-      setBranchId(me?.branch_id ?? null);
+      const myBranchId: number | null = (() => {
+        const raw = me?.branch_id ?? null;
+        if (raw == null || raw === '') return null;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : null;
+      })();
+      setBranchId(myBranchId);
 
       const [usersRes] = await Promise.all([
         api.get('/users'),
@@ -677,9 +756,14 @@ const UserManagement: React.FC = () => {
       const list = raw
         .filter((u): u is Record<string, unknown> => !!u && typeof u === 'object' && 'id' in (u as object))
         .map(mapUser)
-        .filter(u => u.role === 'cashier' || u.role === 'team_leader');
+        .filter(u => u.role === 'cashier' || u.role === 'team_leader' || u.role === 'supervisor');
 
-      setUsers(list);
+      // Branch Manager should only see staff for their own branch
+      const branchScoped = myBranchId == null
+        ? list
+        : list.filter(u => u.branch_id === myBranchId);
+
+      setUsers(branchScoped);
 
       // ── Load branches for device registration ─────────────────────────────
 
@@ -819,15 +903,21 @@ const UserManagement: React.FC = () => {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       u.role === 'team_leader'
                         ? 'bg-violet-50 text-violet-700 border border-violet-200'
+                        : u.role === 'supervisor'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
                         : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
                     }`}>
-                      {u.role === 'team_leader' ? 'Team Leader' : 'Cashier'}
+                      {u.role === 'team_leader' ? 'Team Leader' : u.role === 'supervisor' ? 'Supervisor' : 'Cashier'}
                     </span>
                   </td>
 
                   {/* Device status pill — always visible for cashiers */}
                   <td className="px-5 py-3.5">
-                    <DevicePill deviceNumber={u.device_number} />
+                    {u.role === 'cashier' ? (
+                      <DevicePill deviceNumber={u.device_number} />
+                    ) : (
+                      <span className="text-zinc-300 text-xs">—</span>
+                    )}
                   </td>
                   <td className="px-5 py-3.5 text-zinc-400 text-xs">{u.lastLogin ?? '—'}</td>
                   <td className="px-5 py-3.5"><Badge status={u.status} /></td>
@@ -851,16 +941,18 @@ const UserManagement: React.FC = () => {
                         <Trash2 size={13} />
                       </button>
                       {/* Assign Device — always shown, colour indicates assignment state */}
-                      <button
-                        onClick={() => setDeviceTarget(u)}
-                        className={`p-1.5 rounded-[0.4rem] transition-colors ${
-                          u.device_number
-                            ? 'hover:bg-violet-50 text-violet-500 hover:text-violet-700'
-                            : 'hover:bg-amber-50 text-amber-400 hover:text-amber-600'
-                        }`}
-                        title={u.device_number ? `Device: ${u.device_number} — click to change` : 'No device — click to assign'}>
-                        <Laptop size={13} />
-                      </button>
+                      {u.role === 'cashier' && (
+                        <button
+                          onClick={() => setDeviceTarget(u)}
+                          className={`p-1.5 rounded-[0.4rem] transition-colors ${
+                            u.device_number
+                              ? 'hover:bg-violet-50 text-violet-500 hover:text-violet-700'
+                              : 'hover:bg-amber-50 text-amber-400 hover:text-amber-600'
+                          }`}
+                          title={u.device_number ? `Device: ${u.device_number} — click to change` : 'No device — click to assign'}>
+                          <Laptop size={13} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

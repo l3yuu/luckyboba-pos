@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, CustomerController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController };
+use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, CustomerController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController, FavoriteController, ReviewController, FranchiseController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchManagerAppController; // ✅ FIXED: now in Api namespace
@@ -117,8 +117,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // ── LOYALTY (Mobile & Shared) ──────────────────────────────────────────
     Route::get('/loyalty/rewards', [LoyaltyManagementController::class, 'getRewards']);
-    Route::get('/vouchers/available', [\App\Http\Controllers\Api\VoucherController::class, 'available']);
-    Route::get('/vouchers/validate', [\App\Http\Controllers\Api\VoucherController::class, 'validateCode']);
+    Route::get('/vouchers/available', [VoucherController::class, 'available']);
+    Route::get('/vouchers/validate', [VoucherController::class, 'validateCode']);
 
     // ── FAVORITES ────────────────────────────────────────────────────────
     Route::get('/favorites', [FavoriteController::class, 'index']);
@@ -456,8 +456,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
 
         // ── BRANCH PAYMENT SETTINGS ──
-        Route::get('/branch/payment-settings', [\App\Http\Controllers\Api\BranchSettingsController::class, 'getPaymentSettings']);
-        Route::post('/branch/payment-settings', [\App\Http\Controllers\Api\BranchSettingsController::class, 'updatePaymentSettings']);
+        Route::get('/branch/payment-settings', [BranchSettingsController::class, 'getPaymentSettings']);
+        Route::post('/branch/payment-settings', [BranchSettingsController::class, 'updatePaymentSettings']);
 
 
     });
@@ -547,7 +547,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('admin/cards')->group(function () {
             Route::get ('/',                          [CardController::class, 'adminIndex']);
             Route::post('/',                          [CardController::class, 'store']);
-            Route::put ('/{id}',                      [CardController::class, 'update']);
+            Route::post('/{id}',                      [CardController::class, 'update']);
             Route::delete('/{id}',                    [CardController::class, 'destroy']);
             Route::patch('/{id}/toggle',              [CardController::class, 'toggle']);
             

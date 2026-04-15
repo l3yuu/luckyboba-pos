@@ -1,4 +1,5 @@
 // components/NewSuperAdmin/Tabs/MenuManagement/MenuItemsTab.tsx
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useCallback, useMemo, startTransition, useRef } from "react";
 import {
   Search, Plus, Edit2, Trash2, RefreshCw,
@@ -26,12 +27,12 @@ interface BundleItemRaw {
   size?: string;
 }
 
-interface ItemOptions {
+export interface ItemOptions {
   pearl: boolean;
   ice: boolean;
 }
 
-interface MenuItem {
+export interface MenuItem {
   id: number;
   name: string;
   category_id: number | null;
@@ -47,14 +48,14 @@ interface MenuItem {
   image_path: string | null;
   is_available: boolean;
 }
-interface Category {
+export interface Category {
   id: number;
   name: string;
   category_type: string; // ✅ added
 }
-interface SubCategory { id: number; name: string; category_id: number; }
+export interface SubCategory { id: number; name: string; category_id: number; }
 
-interface CategoryDrink {
+export interface CategoryDrink {
   id: number;
   category_id: number;
   menu_item_id: number;
@@ -63,7 +64,7 @@ interface CategoryDrink {
   price: number;
 }
 
-interface SugarLevel {
+export interface SugarLevel {
   id: number;
   label: string;
   value: string;
@@ -77,7 +78,7 @@ interface BtnProps {
   children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
   onClick?: () => void; className?: string; disabled?: boolean; type?: "button" | "submit" | "reset";
 }
-const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
+export const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
     primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
@@ -115,7 +116,7 @@ const OptionsBadge: React.FC<{ opts: ItemOptions }> = ({ opts }) => {
   );
 };
 
-const OptionsToggle: React.FC<{
+export const OptionsToggle: React.FC<{
   value: ItemOptions;
   onChange: (v: ItemOptions) => void;
 }> = ({ value, onChange }) => (
@@ -159,10 +160,10 @@ const OptionsToggle: React.FC<{
   </div>
 );
 
-const inputCls = (err?: string) =>
+export const inputCls = (err?: string) =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? "border-red-300 bg-red-50" : "border-zinc-200"}`;
 
-const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
+export const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
   <div>
     <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
       {label} {required && <span className="text-red-400">*</span>}
@@ -172,7 +173,7 @@ const Field: React.FC<{ label: string; required?: boolean; error?: string; child
   </div>
 );
 
-const ModalShell: React.FC<{
+export const ModalShell: React.FC<{
   onClose: () => void; icon: React.ReactNode; title: string; sub: string;
   children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
 }> = ({ onClose, icon, title, sub, children, footer, maxWidth = "max-w-lg" }) =>
@@ -200,7 +201,7 @@ const ModalShell: React.FC<{
 
 // ── Combo Builder Section ─────────────────────────────────────────────────────
 
-interface ComboBuilderProps {
+export interface ComboBuilderProps {
   allItems: MenuItem[];
   foodItemId: string;
   drinkItemId: string;
@@ -212,7 +213,7 @@ interface ComboBuilderProps {
 const FOOD_TYPES = ["food", "wings", "waffle"];
 const DRINK_TYPES = ["drink"];
 
-const ComboBuilder: React.FC<ComboBuilderProps> = ({
+export const ComboBuilder: React.FC<ComboBuilderProps> = ({
   allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, errors,
 }) => {
 
@@ -300,14 +301,14 @@ const ComboBuilder: React.FC<ComboBuilderProps> = ({
 
 // ── Bundle Builder Section ────────────────────────────────────────────────────
 
-interface BundleBuilderProps {
+export interface BundleBuilderProps {
   allItems: MenuItem[];
   bundleItemIds: string[];
   onItemsChange: (ids: string[]) => void;
   errors: Record<string, string>;
 }
 
-const BundleBuilder: React.FC<BundleBuilderProps> = ({
+export const BundleBuilder: React.FC<BundleBuilderProps> = ({
   allItems, bundleItemIds, onItemsChange, errors,
 }) => {
   const drinkOptions = useMemo(() => {
@@ -405,7 +406,7 @@ const BundleBuilder: React.FC<BundleBuilderProps> = ({
 
 // ── Category Drinks Manager ───────────────────────────────────────────────────
 
-interface CategoryDrinksManagerProps {
+export interface CategoryDrinksManagerProps {
   categoryId: number;
   categoryName: string;
   allItems: MenuItem[];
@@ -571,7 +572,7 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
   );
 };
 
-const SugarLevelToggle: React.FC<{
+export const SugarLevelToggle: React.FC<{
   allLevels: SugarLevel[];
   selected: number[];
   onChange: (ids: number[]) => void;
@@ -617,7 +618,7 @@ const SugarLevelToggle: React.FC<{
 
 // ── Food Add-Ons Toggle ───────────────────────────────────────────────────────
 
-const FoodAddOnsToggle: React.FC<{
+export const FoodAddOnsToggle: React.FC<{
   allAddOns: AddOnItem[];
   selected: number[];
   onChange: (ids: number[]) => void;
@@ -668,12 +669,12 @@ const FoodAddOnsToggle: React.FC<{
 
 // ── Searchable Select ─────────────────────────────────────────────────────────
 
-interface SearchableSelectOption {
+export interface SearchableSelectOption {
   value: string;
   label: string;
 }
 
-interface SearchableSelectProps {
+export interface SearchableSelectProps {
   options: SearchableSelectOption[];
   value: string;
   onChange: (val: string) => void;
@@ -688,7 +689,7 @@ const ACCENT: Record<string, { border: string; ring: string; icon: string; highl
   rose: { border: "border-rose-200", ring: "focus-within:ring-rose-400", icon: "text-rose-300", highlight: "bg-rose-50 text-rose-700" },
 };
 
-const SearchableSelect: React.FC<SearchableSelectProps> = ({
+export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   options, value, onChange, placeholder = "Search or select...", error = false, accentColor = "purple",
 }) => {
   const [query, setQuery] = useState("");
@@ -809,7 +810,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
 // ── Add / Edit Modal ──────────────────────────────────────────────────────────
 
-interface MenuItemFormProps {
+export interface MenuItemFormProps {
   item?: MenuItem;
   allItems: MenuItem[];   // ✅ for combo picker
   categories: Category[];
@@ -820,7 +821,7 @@ interface MenuItemFormProps {
   onSaved: (item: MenuItem) => void;
 }
 
-const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, allAddOns, onClose, onSaved }) => {
+export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, allAddOns, onClose, onSaved }) => {
   const isEdit = !!item;
 
   const [form, setForm] = useState({
@@ -833,6 +834,16 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
     barcode: item?.barcode ?? "",
     is_available: item?.is_available ?? true,
   });
+
+  const getImageUrl = (path: string | null) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const cleanPath = path.replace(/^\/storage\//, '').replace(/^storage\//, '');
+    return import.meta.env.DEV ? `http://localhost:8000/storage/${cleanPath}` : `/storage/${cleanPath}`;
+  };
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(getImageUrl(item?.image_path ?? null));
 
   const mmFoodOptions = useMemo(() =>
     allItems
@@ -980,19 +991,29 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
 
     try {
       // Step 1: Create/update the menu item
-      const payload = {
-        name: form.name,
-        category_id: form.category_id ? Number(form.category_id) : null,
-        subcategory_id: form.subcategory_id ? Number(form.subcategory_id) : null,
-        price: Number(form.price),
-        grab_price: Number(form.grab_price) || 0,
-        panda_price: Number(form.panda_price) || 0,
-        barcode: form.barcode || null,
-        is_available: form.is_available,
-      };
+      const formData = new FormData();
+      formData.append("name", form.name);
+      if (form.category_id) formData.append("category_id", form.category_id);
+      if (form.subcategory_id) formData.append("subcategory_id", form.subcategory_id);
+      formData.append("price", String(form.price));
+      formData.append("grab_price", String(form.grab_price || 0));
+      formData.append("panda_price", String(form.panda_price || 0));
+      if (form.barcode) formData.append("barcode", form.barcode);
+      formData.append("is_available", form.is_available ? "1" : "0");
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
+      if (isEdit) {
+        formData.append("_method", "PUT");
+      }
+
       const url = isEdit ? `/api/menu-items/${item!.id}` : "/api/menu-items";
-      const method = isEdit ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      const method = "POST"; // Laravel uses POST + _method=PUT for FormData
+
+      const headers = { ...authHeaders() };
+      delete headers["Content-Type"]; // Let the browser set the multipart boundary
+
+      const res = await fetch(url, { method, headers, body: formData });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
@@ -1229,6 +1250,37 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
             <Barcode size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           </div>
         </Field>
+      </div>
+
+      {/* Product Image */}
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2 block">
+          Product Image
+        </label>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-lg bg-zinc-100 border border-zinc-200 overflow-hidden flex items-center justify-center shrink-0">
+            {imagePreview ? (
+              <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+            ) : (
+              <Package size={20} className="text-zinc-300" />
+            )}
+          </div>
+          <div className="flex-1">
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp"
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setImageFile(file);
+                  setImagePreview(URL.createObjectURL(file));
+                }
+              }}
+              className="w-full text-xs text-zinc-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100 cursor-pointer"
+            />
+            <p className="text-[9px] text-zinc-400 mt-1.5">Max size 2MB. JPG, PNG, WEBP.</p>
+          </div>
+        </div>
       </div>
 
       {/* ✅ ADD THIS — Delivery surcharge fields */}
@@ -1721,7 +1773,7 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
 
 // ── Add-On Builder Modal ──────────────────────────────────────────────────────
 
-interface AddOnItem {
+export interface AddOnItem {
   id: number;
   name: string;
   price: number;

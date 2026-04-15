@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import { 
-  Search, RefreshCw, BookOpen, 
+  Search, RefreshCw, 
   ChevronDown, ChevronUp, FlaskConical,
   AlertCircle
 } from 'lucide-react';
@@ -48,7 +48,7 @@ const sizeLabel = (s?: string | null) => {
 const RecipesPanel = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState<number[]>([]);
 
@@ -92,34 +92,16 @@ const RecipesPanel = () => {
       <style>{STYLES}</style>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <BookOpen className="text-[#3b2063]" />
-            Master Recipe Book
-          </h1>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-            Ingredient specifications and production guidelines
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
-            <input 
-              type="text" 
-              placeholder="Search dishes..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="tl-search-input pl-9 pr-4 py-2 rounded-xl text-xs font-bold w-full md:w-64 outline-none"
-            />
-          </div>
-          <button 
-            onClick={() => fetchRecipes(true)}
-            className="p-2.5 bg-white border border-slate-200 rounded-xl hover:border-[#3b206330] hover:text-[#3b2063] transition-all"
-          >
-            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-          </button>
+      <div className="mb-8">
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
+          <input 
+            type="text" 
+            placeholder="Search dishes..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="tl-search-input pl-9 pr-4 py-2 rounded-xl text-xs font-bold w-full outline-none"
+          />
         </div>
       </div>
 

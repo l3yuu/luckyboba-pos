@@ -362,7 +362,7 @@ const PurchaseOrderTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [branchFilter, setBranchFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [addOpen, setAddOpen] = useState(false);
   const [viewTarget, setViewTarget] = useState<PurchaseOrder | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -387,6 +387,15 @@ const PurchaseOrderTab: React.FC = () => {
     const interval = setInterval(() => fetchAll(true), 30000);
     return () => clearInterval(interval);
   }, [fetchAll]);
+
+  const handleBranchChange = (val: string) => {
+    setBranchFilter(val);
+    if (!val) {
+      localStorage.removeItem('superadmin_selected_branch');
+    } else {
+      localStorage.setItem('superadmin_selected_branch', val);
+    }
+  };
 
   const filtered = orders.filter(o => {
     const matchSearch = o.po_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -429,7 +438,7 @@ const PurchaseOrderTab: React.FC = () => {
             {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={13} /></button>}
           </div>
 
-          <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)} className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
+          <select value={branchFilter} onChange={e => handleBranchChange(e.target.value)} className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
             <option value="">All Branches</option>
             {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
           </select>

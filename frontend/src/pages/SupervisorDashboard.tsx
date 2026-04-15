@@ -15,6 +15,12 @@ import SV_StockLevels      from '../components/Supervisor/Inventory/StockLevelsP
 import SV_ItemChecker      from '../components/Supervisor/Inventory/ItemCheckerPanel';
 import SVZReading          from '../components/Supervisor/Reports/SVZReading';
 import XReadingPanel       from '../components/TeamLeader/Reports/XReadingPanel';
+import UsageReportPanel    from '../components/TeamLeader/Inventory/UsageReportPanel';
+import RawMaterialsPanel   from '../components/TeamLeader/Inventory/RawMaterialsPanel';
+import SV_RecipesPanel     from '../components/Supervisor/Inventory/SV_RecipesPanel';
+import SV_MenuItemsList    from '../components/Supervisor/Menu/SV_MenuItemsList';
+import SV_CategoriesList   from '../components/Supervisor/Menu/SV_CategoriesList';
+import SV_SubCategoriesList from '../components/Supervisor/Menu/SV_SubCategoriesList';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const DASHBOARD_STYLES = `
@@ -68,10 +74,16 @@ const SupervisorDashboard = () => {
       case 'void-logs':       return <SV_VoidJournal    branchId={bId} />;
       case 'sales-dashboard': return <SV_SalesAnalytics branchId={bId} />;
       case 'items-report':    return <SV_ItemsReport    branchId={bId} />;
+      case 'usage-report':    return <UsageReportPanel  branchId={bId} />;
       case 'x-reading':       return <XReadingPanel     branchId={bId} />;
       case 'z-reading':       return <SVZReading        branchId={bId} />;
       case 'inventory-list':  return <SV_StockLevels    branchId={bId} />;
       case 'item-checker':    return <SV_ItemChecker    branchId={bId} />;
+      case 'raw-materials':   return <RawMaterialsPanel branchId={bId} />;
+      case 'recipes':         return <SV_RecipesPanel   branchId={bId} />;
+      case 'menu-list':       return <SV_MenuItemsList  />;
+      case 'categories-list': return <SV_CategoriesList />;
+      case 'sub-categories-list': return <SV_SubCategoriesList />;
       default:                return <SV_DashboardPanel branchId={bId} />;
     }
   };

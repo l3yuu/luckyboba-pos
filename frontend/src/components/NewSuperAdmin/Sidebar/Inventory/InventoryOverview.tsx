@@ -121,7 +121,7 @@ const InventoryOverview: React.FC = () => {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [branches, setBranches] = useState<BranchSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [branch, setBranch] = useState('');
+  const [branch, setBranch] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [allBranches, setAllBranches] = useState<{ id: number; name: string }[]>([]);
 
   const fetchAll = useCallback(async (isSilent = false) => {
@@ -171,7 +171,9 @@ const InventoryOverview: React.FC = () => {
         const bl = Array.isArray(branchListRes.value.data) ? branchListRes.value.data : branchListRes.value.data?.data ?? [];
         setAllBranches(bl);
         if (bl.length > 0 && !branch) {
-          setBranch(String(bl[0].id));
+          const defaultId = String(bl[0].id);
+          setBranch(defaultId);
+          localStorage.setItem('superadmin_selected_branch', defaultId);
         }
       }
     } catch (e) {
@@ -180,6 +182,11 @@ const InventoryOverview: React.FC = () => {
       if (!isSilent) setLoading(false);
     }
   }, [branch]);
+
+  const handleBranchChange = (val: string) => {
+    setBranch(val);
+    localStorage.setItem('superadmin_selected_branch', val);
+  };
 
   useEffect(() => { 
     fetchAll(); // Initial load
@@ -270,7 +277,7 @@ const InventoryOverview: React.FC = () => {
             <div className="flex items-center gap-3 ml-auto">
               <select
                 value={branch}
-                onChange={e => setBranch(e.target.value)}
+                onChange={e => handleBranchChange(e.target.value)}
                 className="bg-white border border-zinc-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-zinc-600 outline-none cursor-pointer focus:ring-2 focus:ring-[#e9d5ff]">
                 {allBranches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
               </select>

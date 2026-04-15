@@ -97,13 +97,14 @@ class OrderTrackingPage extends StatefulWidget {
 }
 
 class _OrderTrackingPageState extends State<OrderTrackingPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   String  _status      = 'pending';
   bool    _isPaid      = false;
   bool    _isLoading   = true;
   bool    _isCancelling = false;
   String? _error;
   Timer?  _pollTimer;
+  bool    _isAppInForeground = true;
 
   // ── Payment availability ─────────────────────────────────────────────────
   bool _gcashAvailable = false;
@@ -116,25 +117,51 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pulseCtrl = AnimationController(
       vsync:    this,
       duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
     _pulseAnim = Tween<double>(begin: 0.6, end: 1.0).animate(_pulseCtrl);
 
-    _fetchStatus();
+    _fetchStatus().then((_) => _scheduleNextPoll());
     _fetchPaymentSettings();
-    _pollTimer = Timer.periodic(
-      const Duration(seconds: 8),
-          (_) => _fetchStatus(),
-    );
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pollTimer?.cancel();
     _pulseCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _isAppInForeground = true;
+      // Catch up immediately when app comes to foreground
+      _fetchStatus().then((_) => _scheduleNextPoll());
+    } else {
+      _isAppInForeground = false;
+      // Stop polling when in background to save battery and network
+      _pollTimer?.cancel();
+    }
+  }
+
+  void _scheduleNextPoll() {
+    _pollTimer?.cancel();
+    if (!_isAppInForeground || !mounted) return;
+    if (_status == 'completed' || _status == 'cancelled') return;
+
+    // Smart Adaptive Polling
+    // Fast poll (3s) for active preparation/ready, slow poll (10s) for pending
+    int delaySeconds = (_status == 'pending' && !_isPaid) ? 10 : 3;
+    
+    _pollTimer = Timer(Duration(seconds: delaySeconds), () async {
+      await _fetchStatus();
+      if (mounted) _scheduleNextPoll();
+    });
   }
 
   // ── API: fetch payment settings (availability check) ──────────────────────
@@ -342,7 +369,9 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           items:         widget.items,
         ),
       ),
-    ).then((_) => _fetchStatus());
+    ).then((_) {
+      _fetchStatus().then((_) => _scheduleNextPoll());
+    });
   }
 
   // ── Payment picker bottom sheet ───────────────────────────────────────────
@@ -1154,7 +1183,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Status updates every 8 seconds. Pull down to refresh manually.',
+              'Real-time status updates active. Pull down to refresh manually.',
               style: GoogleFonts.poppins(
                   fontSize: 11, color: _textMid, height: 1.5),
             ),

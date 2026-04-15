@@ -214,24 +214,45 @@ class InventoryRepository implements InventoryRepositoryInterface
 
             $movements = $movementsQuery->get();
 
-            $del    = $movements->where('type', 'add')->whereNotIn('reason', ['Transfer In', 'Production', 'Cooked'])->sum('quantity');
-            $out    = $movements->where('type', 'subtract')->sum('quantity');
-            $spoil  = $movements->where('type', 'subtract')->filter(fn($m) => str_contains(strtolower($m->reason), 'spoil'))->sum('quantity');
-            
-            // IN (Internal Transfers)
-            $in = $movements->where('type', 'add')->filter(fn($m) => str_contains(strtolower($m->reason), 'transfer'))->sum('quantity');
-            
-            // Cooked / Production
+            $del    = $movements->where('type', 'add')->filter(fn($m) => 
+                !str_contains(strtolower($m->reason), 'transfer in') && 
+                !str_contains(strtolower($m->reason), 'production') && 
+                !str_contains(strtolower($m->reason), 'cooked')
+            )->sum('quantity');
+            $in     = $movements->where('type', 'add')->filter(fn($m) => str_contains(strtolower($m->reason), 'transfer in'))->sum('quantity');
             $cooked = $movements->where('type', 'add')->filter(fn($m) => str_contains(strtolower($m->reason), 'production') || str_contains(strtolower($m->reason), 'cooked'))->sum('quantity');
 
-            // Sold Units
-            $sold = $soldSummary->firstWhere('raw_material_id', $mat->id)?->units_sold ?? 0;
+            // ── SUBTRACTIONS ──────────────────────────────────────────────
+            // 1. Spoilage (Waste type OR Reason has 'spoil'/'waste')
+            $spoil  = $movements->filter(fn($m) => 
+                $m->type === 'waste' || 
+                str_contains(strtolower($m->reason), 'spoil') || 
+                str_contains(strtolower($m->reason), 'waste')
+            )->sum('quantity');
+
+            // 2. Sales (Subtract type AND Reason has 'sale')
+            $soldQty = $movements->filter(fn($m) => 
+                $m->type === 'subtract' && str_contains(strtolower($m->reason), 'sale')
+            )->sum('quantity');
+
+            // 3. Other Out (Subtract type AND NOT Spoil AND NOT Sale)
+            $out = $movements->filter(fn($m) => 
+                $m->type === 'subtract' && 
+                !str_contains(strtolower($m->reason), 'sale') && 
+                !str_contains(strtolower($m->reason), 'spoil') &&
+                !str_contains(strtolower($m->reason), 'waste')
+            )->sum('quantity');
+
+            // 4. Sold Count (for the column)
+            $soldSummaryData = $soldSummary->firstWhere('raw_material_id', $mat->id);
+            $soldItemsCount = $soldSummaryData?->units_sold ?? 0;
 
             $end = $mat->current_stock;
-            $beg = max(0, $end - $del - $in - $cooked + $out + $spoil);
+            // Back-calculate BEG: End - Additions + All Subtractions
+            $beg = max(0, $end - ($del + $in + $cooked) + ($out + $spoil + $soldQty));
 
-            $usage    = $out + $spoil;
-            $expected = $beg + $del + $in + $cooked - $out - $spoil;
+            $usage    = $out + $spoil + $soldQty;
+            $expected = $beg + $del + $in + $cooked - $usage;
             $variance = $end - $expected;
 
             return [
@@ -247,7 +268,7 @@ class InventoryRepository implements InventoryRepositoryInterface
                 'spoil'    => round($spoil, 2),
                 'end'      => round($end, 2),
                 'usage'    => round($usage, 2),
-                'sold'     => $sold,
+                'sold'     => $soldItemsCount,
                 'variance' => round($variance, 2),
             ];
         });

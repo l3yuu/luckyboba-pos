@@ -18,6 +18,15 @@ class MenuItemController extends Controller
 {
     use MenuCache;
 
+    private function denyIfSupervisor()
+    {
+        $user = auth()->user();
+        if ($user && $user->role === 'supervisor') {
+            return response()->json(['message' => 'Supervisors have read-only access.'], 403);
+        }
+        return null;
+    }
+
     private function selectFields(): array
     {
         return [
@@ -58,6 +67,8 @@ class MenuItemController extends Controller
 
     public function store(Request $request)
     {
+        if ($deny = $this->denyIfSupervisor()) return $deny;
+
         $v = Validator::make($request->all(), [
             'name'           => 'required|string|max:255',
             'category_id'    => 'nullable|integer|exists:categories,id',
@@ -108,6 +119,8 @@ class MenuItemController extends Controller
 
     public function update(Request $request, $id)
     {
+        if ($deny = $this->denyIfSupervisor()) return $deny;
+
         $v = Validator::make($request->all(), [
             'name'           => 'sometimes|string|max:255',
             'category_id'    => 'nullable|integer|exists:categories,id',
@@ -164,6 +177,8 @@ class MenuItemController extends Controller
 
     public function destroy($id)
     {
+        if ($deny = $this->denyIfSupervisor()) return $deny;
+
         // ✅ Delete image from server when item is deleted
         $existingItem = DB::table('menu_items')->where('id', $id)->first();
         if ($existingItem && $existingItem->image) {
@@ -187,6 +202,8 @@ class MenuItemController extends Controller
 
     public function import(Request $request)
     {
+        if ($deny = $this->denyIfSupervisor()) return $deny;
+
         $request->validate([
             'file'         => 'required|mimes:xlsx,xls,csv|max:4096',
         ]);

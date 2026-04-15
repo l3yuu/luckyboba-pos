@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:822257671635:android:0777c0f8c09b273dd5e326",
+        "mobilesdk_app_id": "1:822257671635:android:4c1ddc8fc33a23f3d5e326",
         "android_client_info": {
-          "package_name": "com.example.luckyboba_app"
+          "package_name": "com.luckyboba.app"
         }
       },
       "oauth_client": [
@@ -17,8 +17,8 @@
           "client_id": "822257671635-9bq8u2do11r5bqnrk0i0vloriprp5boa.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example.luckyboba_app",
-            "certificate_hash": "721add46e0ba2a5c337da0d44aa1f45cbdef0d52"
+            "package_name": "com.luckyboba.app",
+            "certificate_hash": "43a7e3c0ffac21b77c189d66b1156b5c76b2247a"
           }
         },
         {

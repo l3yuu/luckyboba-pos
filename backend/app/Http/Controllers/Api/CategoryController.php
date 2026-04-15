@@ -14,6 +14,15 @@ class CategoryController extends Controller
 {
     use MenuCache;
 
+    private function denyIfSupervisor()
+    {
+        $user = auth()->user();
+        if ($user && $user->role === 'supervisor') {
+            return response()->json(['message' => 'Supervisors have read-only access.'], 403);
+        }
+        return null;
+    }
+
     public function index(Request $request)
     {
         $query = DB::table('categories')
@@ -49,6 +58,8 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
+        if ($deny = $this->denyIfSupervisor()) return $deny;
+
         $validated = $request->validate([
             'name'          => 'required|string|unique:categories,name|max:255',
             'type'          => 'nullable|in:food,drink,promo,standard',
@@ -118,6 +129,8 @@ class CategoryController extends Controller
 
     public function update(Request $request, $id)
     {
+        if ($deny = $this->denyIfSupervisor()) return $deny;
+
         $validated = $request->validate([
             'name'          => 'sometimes|required|string|max:255|unique:categories,name,' . $id,
             'type'          => 'sometimes|nullable|in:food,drink,promo,standard',
@@ -157,6 +170,8 @@ class CategoryController extends Controller
 
     public function destroy($id)
     {
+        if ($deny = $this->denyIfSupervisor()) return $deny;
+
         $category = Category::findOrFail($id);
 
         // ✅ Guard: prevent deleting a category that still has menu items

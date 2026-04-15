@@ -122,10 +122,14 @@ const CrossBranchTab: React.FC = () => {
   const [branchPerf, setBranchPerf] = useState<BranchMetric[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
-  const [exportBranchId, setExportBranchId] = useState<string>("");
+  const [exportBranchId, setExportBranchId] = useState<string>(localStorage.getItem('superadmin_selected_branch') || "");
 
   const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const fmtK = (v: number) => `₱${((v ?? 0) / 1000).toFixed(0)}k`;
+  const handleBranchChange = (id: string) => {
+    setExportBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
 
   // Fetch branches for export selector
   useEffect(() => {
@@ -203,7 +207,7 @@ const CrossBranchTab: React.FC = () => {
           ))}
         </div>
         <div className="flex items-center gap-1.5">
-          <select value={exportBranchId} onChange={e => setExportBranchId(e.target.value)}
+          <select value={exportBranchId} onChange={e => handleBranchChange(e.target.value)}
             className="appearance-none text-[10px] font-bold uppercase tracking-wider text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-2.5 pr-6 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
             <option value="">All Branches</option>
             {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}

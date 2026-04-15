@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { 
   CreditCard, Smartphone, Upload, 
   CheckCircle2, AlertCircle, Store, Save,
@@ -75,13 +75,6 @@ const BranchPaymentSettingsTab: React.FC = () => {
     }
     fetchBranches();
   }, []);
-
-  useEffect(() => {
-    if (selectedBranchId) {
-      fetchSettings(selectedBranchId);
-    }
-  }, [selectedBranchId]);
-
   const fetchBranches = async () => {
     try {
       const res = await fetch(`${API_BASE}/branches`, { headers: getHeaders() });
@@ -94,7 +87,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
     }
   };
 
-  const fetchSettings = async (branchId: number) => {
+  const fetchSettings = useCallback(async (branchId: number) => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/branch/payment-settings?branch_id=${branchId}`, { headers: getHeaders() });
@@ -105,12 +98,18 @@ const BranchPaymentSettingsTab: React.FC = () => {
         setMayaPreview(data.data.maya_qr_url);
         setImagePreview(data.data.image_url);
       }
-    } catch (err) {
+    } catch (_err) {
       showToast("Failed to load payment settings", "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    if (selectedBranchId) {
+      fetchSettings(selectedBranchId);
+    }
+  }, [selectedBranchId, fetchSettings]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'gcash' | 'maya' | 'image') => {
     const file = e.target.files?.[0];
@@ -158,7 +157,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
       } else {
         showToast(data.message || "Failed to update settings", "error");
       }
-    } catch (err) {
+    } catch (_err) {
       showToast("Network error", "error");
     } finally {
       setSaving(false);

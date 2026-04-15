@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Package, AlertTriangle, XCircle, Truck, Clock,
-  RefreshCw, TrendingDown,
+  TrendingDown,
 } from 'lucide-react';
 import api from '../../../services/api';
 
@@ -116,22 +116,24 @@ const ProgressBar: React.FC<{ pct: number; color: string; width?: number }> = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const BM_InventoryDashboard: React.FC = () => {
+  const [branchId,  setBranchId]  = useState<number | null>(null);
   const [stats,     setStats]     = useState<OverviewStats>({ total_items: 0, low_stock: 0, out_of_stock: 0, pending_pos: 0 });
   const [alerts,    setAlerts]    = useState<StockAlert[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [branches,  setBranches]  = useState<BranchSummary[]>([]);
   const [loading,   setLoading]   = useState(true);
-  const [branch,    setBranch]    = useState('');
-  const [allBranches, setAllBranches] = useState<{ id: number; name: string }[]>([]);
 
   const fetchAll = useCallback(async () => {
+    if (branchId == null) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const [overviewRes, alertsRes, movementsRes, branchListRes] = await Promise.allSettled([
-        api.get('/inventory/overview', { params: branch ? { branch_id: branch } : {} }),
-        api.get('/inventory/alerts',   { params: branch ? { branch_id: branch } : {} }),
-        api.get('/raw-materials/movements', { params: { limit: 20, branch_id: branch || undefined } }),
-        api.get('/branches'),
+      const [overviewRes, alertsRes, movementsRes] = await Promise.allSettled([
+        api.get('/inventory/overview', { params: { branch_id: branchId } }),
+        api.get('/inventory/alerts',   { params: { branch_id: branchId } }),
+        api.get('/raw-materials/movements', { params: { limit: 20, branch_id: branchId } }),
       ]);
 
       if (overviewRes.status === 'fulfilled') {
@@ -167,16 +169,18 @@ if (movementsRes.status === 'fulfilled') {
     performed_by: str(m.performed_by),
   })));
 }
-      if (branchListRes.status === 'fulfilled') {
-        const bl = branchListRes.value.data;
-        setAllBranches(Array.isArray(bl) ? bl : bl?.data ?? []);
-      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [branch]);
+  }, [branchId]);
+
+  useEffect(() => {
+    api.get('/user')
+      .then(res => setBranchId(res.data?.branch_id ?? null))
+      .catch(() => setBranchId(null));
+  }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -212,20 +216,7 @@ const resolveUnit = (unit: unknown): string => {
 
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-          <select
-            value={branch}
-            onChange={e => setBranch(e.target.value)}
-            className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
-            <option value="">All Branches</option>
-            {allBranches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
-          </select>
-
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <button onClick={fetchAll} disabled={loading}
-              className="w-full md:w-auto bg-white border border-zinc-200 text-zinc-600 hover:text-[#3b2063] hover:border-[#3b2063] px-5 py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-xs font-bold shadow-sm">
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
-            </button>
-          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto" />
         </div>
       </div>
 
