@@ -140,7 +140,7 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     id:           raw.menu_item_id ?? raw.id,
     category_id:  0,
     name:         resolvedName,
-    price:        Number(raw.unit_price ?? raw.price ?? 0),
+    price:        Number(raw.unit_price) || Number(raw.price) || 0,
     barcode:      '',
     qty:          Number(raw.quantity ?? 1),
     size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
