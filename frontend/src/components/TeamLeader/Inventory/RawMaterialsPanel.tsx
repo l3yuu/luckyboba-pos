@@ -87,6 +87,15 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
   const [adjModal, setAdjModal] = useState<RawMaterial | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
+  const [customReason, setCustomReason] = useState(false);
+  const [adjType, setAdjType] = useState<keyof typeof REASONS>('add');
+
+  const REASONS = {
+    add: ['Delivery', 'Production', 'Cooked', 'Correction', 'Other'],
+    subtract: ['Error in Logging', 'Production', 'Cooked', 'Correction', 'Other'],
+    waste: ['Spoilage', 'Expired', 'Spilled', 'Damage', 'Other'],
+    set: ['Physical Count', 'Initial Setup', 'Correction', 'Other']
+  } as const;
 
   const fetchMaterials = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -107,6 +116,16 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
     fetchMaterials();
   }, [fetchMaterials]);
 
+  // Polling for live updates
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!loading && !adjModal) {
+        fetchMaterials(true);
+      }
+    }, 60000); // 60 seconds is enough for TL
+    return () => clearInterval(timer);
+  }, [fetchMaterials, loading, adjModal]);
+
   const categories = ['All', ...Array.from(new Set(materials.map(m => m.category)))];
 
   const filtered = materials.filter(m => {
@@ -126,11 +145,20 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
     if (!adjModal) return;
     setSubmitting(true);
     const formData = new FormData(e.currentTarget);
+    const selectedReason = formData.get('reason_select') as string;
+    const finalReason = selectedReason === 'Other' ? (formData.get('reason') as string) : selectedReason;
+
     const payload = {
       type: formData.get('type') as string,
       quantity: Number(formData.get('quantity')),
-      reason: formData.get('reason') as string
+      reason: finalReason
     };
+
+    if (!finalReason) {
+      alert('Please provide a reason');
+      setSubmitting(false);
+      return;
+    }
 
     try {
       await api.post(`/raw-materials/${adjModal.id}/adjust`, payload);
@@ -309,7 +337,16 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="tl-label-caps">Adjustment Type</label>
-                  <select name="type" className="tl-input" required>
+                  <select 
+                    name="type" 
+                    className="tl-input" 
+                    required 
+                    value={adjType}
+                    onChange={(e) => {
+                      setAdjType(e.target.value as keyof typeof REASONS);
+                      setCustomReason(false);
+                    }}
+                  >
                     <option value="add">Add Stock (+)</option>
                     <option value="subtract">Deduct Stock (-)</option>
                     <option value="waste">Loss / Spoilage (X)</option>
@@ -324,7 +361,29 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
 
               <div className="space-y-1.5">
                 <label className="tl-label-caps">Reason</label>
-                <input name="reason" type="text" className="tl-input" placeholder="e.g. Spilled, Expired, New Delivery..." required />
+                <div className="space-y-2">
+                  <select 
+                    name="reason_select" 
+                    className="tl-input" 
+                    onChange={(e) => setCustomReason(e.target.value === 'Other')}
+                    required
+                  >
+                    <option value="">Select a reason...</option>
+                    {REASONS[adjType].map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  
+                  {customReason && (
+                    <input 
+                      name="reason" 
+                      type="text" 
+                      className="tl-input animate-tl-fade" 
+                      placeholder="Type custom reason here..." 
+                      required 
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="pt-4 flex gap-3">

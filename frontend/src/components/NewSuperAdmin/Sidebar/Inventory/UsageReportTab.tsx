@@ -466,6 +466,7 @@ const UsageReportTab: React.FC = () => {
   const [editingCounts, setEditingCounts] = useState<Record<number, string>>({});
   const [isSavingAudit, setIsSavingAudit] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
     setUserRole(localStorage.getItem('role'));
@@ -510,10 +511,22 @@ const UsageReportTab: React.FC = () => {
     finally {
       setLoading(false);
       setSalesLoading(false);
+      setLastUpdated(new Date());
     }
   }, [period, branch]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
+
+  // Polling for automated updates
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // Only poll when not explicitly loading and not in monthly mode (which is historical)
+      if (!loading && viewMode !== 'monthly') {
+        fetchReport(true);
+      }
+    }, 30000); // 30 seconds
+    return () => clearInterval(timer);
+  }, [fetchReport, loading, viewMode]);
 
   const handleSubmitAudit = async () => {
     const dirtyItems = Object.entries(editingCounts)
@@ -612,6 +625,27 @@ const UsageReportTab: React.FC = () => {
 
         {/* Left Side: Filters + Table */}
         <div className="flex-1 w-full bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
+          <div className="flex flex-wrap items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1 bg-white border border-emerald-100 rounded-full shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Live Updates</span>
+                <div className="w-[1px] h-3 bg-emerald-100 hidden sm:block" />
+                <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-tight hidden sm:block">
+                  Synced: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              </div>
+            </div>
+
+            <div className="hidden md:flex items-center gap-2 text-zinc-400">
+              <Clock size={12} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">{viewMode === 'today' ? 'Real-time Ledger' : 'Historical Record'}</span>
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
 
             {/* Period selector */}

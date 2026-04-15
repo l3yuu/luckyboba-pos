@@ -13,7 +13,7 @@ import api from '../../../services/api';
 
 type Unit     = 'PC' | 'PK' | 'BAG' | 'BTL' | 'BX' | 'ML' | 'G' | 'KG' | 'L';
 type Category = 'Packaging' | 'Ingredients' | 'Intermediate' | 'Equipment';
-type AdjType  = 'add' | 'subtract' | 'set';
+type AdjType  = 'add' | 'subtract' | 'set' | 'waste';
 
 interface RawMaterial {
   id:             number;
@@ -181,6 +181,15 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
   );
 };
 
+// ─── Constants ─────────────────────────────────────────────────────────────
+
+const REASONS = {
+  add: ['Delivery', 'Production', 'Cooked', 'Correction', 'Other'],
+  subtract: ['Production', 'Cooked', 'Sales', 'Transfer Out', 'Correction', 'Other'],
+  waste: ['Spoilage', 'Expired', 'Damage', 'Theft', 'Other'],
+  set: ['Physical Count', 'Initial Stock', 'Correction', 'Other']
+};
+
 // ─── Adjust Modal ─────────────────────────────────────────────────────────────
 
 const AdjustModal: React.FC<{
@@ -190,7 +199,8 @@ const AdjustModal: React.FC<{
 }> = ({ item, onClose, onDone }) => {
   const [adjType, setAdjType] = useState<AdjType>('add');
   const [qty,     setQty]     = useState<number | ''>('');
-  const [reason,  setReason]  = useState('');
+  const [reasonSelect, setReasonSelect] = useState('');
+  const [customReason, setCustomReason] = useState('');
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState(false);
@@ -203,11 +213,15 @@ const AdjustModal: React.FC<{
   };
 
   const handleSubmit = async () => {
-    if (qty === '' || !reason.trim()) { setError('Quantity and reason are required.'); return; }
+    const finalReason = reasonSelect === 'Other' ? customReason : reasonSelect;
+    if (qty === '' || !finalReason.trim()) { setError('Quantity and reason are required.'); return; }
     setSaving(true); setError('');
     try {
       const res = await api.post(`/raw-materials/${item.id}/adjust`, {
-        type: adjType, quantity: Number(qty), reason,
+        type: adjType === 'waste' ? 'subtract' : adjType, 
+        quantity: Number(qty), 
+        reason: finalReason,
+        is_waste: adjType === 'waste'
       });
       onDone(res.data?.data ?? res.data);
       setSuccess(true);
@@ -221,6 +235,7 @@ const AdjustModal: React.FC<{
   const typeConfig = {
     add:      { label: 'Add Stock',      color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: <TrendingUp  size={14} /> },
     subtract: { label: 'Subtract Stock', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: <TrendingDown size={14} /> },
+    waste:    { label: 'Spoilage',       color: '#ea580c', bg: '#fff7ed', border: '#ffedd5', icon: <AlertCircle size={14} /> },
     set:      { label: 'Set Stock',      color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus        size={14} /> },
   };
 
@@ -253,10 +268,13 @@ const AdjustModal: React.FC<{
           ) : (
             <>
               {/* Type selector */}
-              <div className="grid grid-cols-3 gap-2">
-                {(Object.entries(typeConfig) as [AdjType, typeof typeConfig.add][]).map(([key, cfg]) => (
-                  <button key={key} onClick={() => setAdjType(key)}
-                    className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-lg border text-xs font-bold transition-all"
+              <div className="grid grid-cols-4 gap-2">
+                {(Object.entries(typeConfig) as [AdjType | 'waste', typeof typeConfig.add][]).map(([key, cfg]) => (
+                  <button key={key} onClick={() => {
+                    setAdjType(key as any);
+                    setReasonSelect('');
+                  }}
+                    className="flex flex-col items-center gap-1 py-1 px-1 rounded-lg border text-[10px] font-bold transition-all"
                     style={adjType === key
                       ? { background: cfg.bg, color: cfg.color, borderColor: cfg.border }
                       : { background: 'white', color: '#71717a', borderColor: '#e4e4e7' }}>
@@ -288,9 +306,29 @@ const AdjustModal: React.FC<{
               </Field>
 
               <Field label="Reason" required>
-                <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2}
-                  className={`${inputCls()} resize-none`} placeholder="e.g. Received from supplier, damaged goods..." />
+                <select 
+                  value={reasonSelect} 
+                  onChange={e => setReasonSelect(e.target.value)}
+                  className={inputCls()}
+                >
+                  <option value="">Select a reason...</option>
+                  {(REASONS[adjType as keyof typeof REASONS] || []).map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
               </Field>
+
+              {reasonSelect === 'Other' && (
+                <Field label="Custom Reason" required>
+                  <textarea 
+                    value={customReason} 
+                    onChange={e => setCustomReason(e.target.value)} 
+                    rows={2}
+                    className={`${inputCls()} resize-none`} 
+                    placeholder="Enter custom reason..." 
+                  />
+                </Field>
+              )}
 
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">

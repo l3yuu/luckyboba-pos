@@ -183,6 +183,7 @@ const BM_InventoryReports: React.FC = () => {
   const [exporting,     setExporting]     = useState(false);
   const [showGuide,     setShowGuide]     = useState(false);
   const [drawerRow,     setDrawerRow]     = useState<UsageRow | null>(null);
+  const [lastUpdated,   setLastUpdated]   = useState<Date>(new Date());
   const PERIOD = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
 
   const fetchReport = useCallback(async () => {
@@ -192,10 +193,25 @@ const BM_InventoryReports: React.FC = () => {
       const d = res.data;
       setRows(Array.isArray(d) ? d : d?.data ?? []);
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally { 
+      setLoading(false); 
+      setLastUpdated(new Date());
+    }
   }, [PERIOD]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
+
+  // Polling for automated updates
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // Only poll when not explicitly loading and when viewing current period
+      const isCurrentPeriod = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
+      if (!loading && isCurrentPeriod) {
+        fetchReport();
+      }
+    }, 30000); // 30 seconds
+    return () => clearInterval(timer);
+  }, [fetchReport, loading, selectedMonth, selectedYear, now]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -290,7 +306,19 @@ const BM_InventoryReports: React.FC = () => {
         ))}
       </div>      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-zinc-50/20">
-          <p className="text-xs font-black uppercase tracking-widest text-[#1a0f2e]">Inventory Usage Ledger</p>
+          <div className="flex items-center gap-4">
+            <p className="text-xs font-black uppercase tracking-widest text-[#1a0f2e]">Inventory Usage Ledger</p>
+            <div className="flex items-center gap-2 px-2 py-0.5 bg-white border border-emerald-100 rounded-full">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Live</span>
+              <span className="text-[8px] text-zinc-400 font-bold tabular-nums">
+                {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            </div>
+          </div>
           <button onClick={() => setShowGuide(!showGuide)} className="text-[10px] font-bold text-zinc-400 hover:text-[#3b2063] underline">
             {showGuide ? "Hide Guide" : "Show Guide"}
           </button>
