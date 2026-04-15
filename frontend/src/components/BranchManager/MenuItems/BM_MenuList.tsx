@@ -1,12 +1,15 @@
 // components/BranchManager/MenuItems/BM_MenuList.tsx
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Search,
+  Search, Edit2, Plus,
   AlertCircle, X, Package, ChevronDown,
   ToggleLeft, ToggleRight, Coffee,
-  Plus,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import type {
+  MenuItem, Category, CategoryDrink, SugarLevel, ItemOptions, SubCategory, AddOnItem
+} from '../../NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab';
+import { MenuItemForm } from '../../NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab';
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
@@ -18,65 +21,6 @@ const authHeaders = (): Record<string, string> => ({
   "Accept":       "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
-
-
-
-interface ItemOptions {
-  pearl: boolean;
-  ice:   boolean;
-}
-
-interface MenuItem {
-  id:             number;
-  name:           string;
-  category_id:    number | null;
-  category:       string;
-  category_type:  string;
-  subcategory_id: number | null;
-  subcategory:    string;
-  price:          number;
-  grab_price:     number;
-  panda_price:    number;
-  barcode:        string | null;
-  size:           string | null;
-  image_path:     string | null;
-  is_available:   boolean;
-}
-interface Category {
-  id:            number;
-  name:          string;
-  category_type: string; // ✅ added
-}
-
-
-interface CategoryDrink {
-  id:           number;
-  category_id:  number;
-  menu_item_id: number;
-  name:         string;
-  size:         string;
-  price:        number;
-}
-
-interface SugarLevel {
-  id:         number;
-  label:      string;
-  value:      string;
-  sort_order: number;
-  is_active:  boolean;
-}
-
-interface AddOnItem {
-  id: number;
-  name: string;
-  price: number;
-  grab_price: number;
-  panda_price: number;
-  barcode: string | null;
-  category: string;
-  is_available: boolean;
-}
-
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 
 interface BtnProps {
@@ -397,6 +341,10 @@ const BM_MenuList: React.FC = () => {
   const [itemOptions,     setItemOptions]     = useState<Record<number, ItemOptions>>({});
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
   const [sugarLevels,     setSugarLevels]     = useState<SugarLevel[]>([]);
+  const [subcategories,   setSubcategories]   = useState<SubCategory[]>([]);
+  const [allAddOns,       setAllAddOns]       = useState<AddOnItem[]>([]);
+  const [isFormOpen,      setIsFormOpen]      = useState(false);
+  const [editingItem,     setEditingItem]     = useState<MenuItem | null>(null);
 
   const [addOns,         setAddOns]         = useState<AddOnItem[]>([]);
   const [addOnModalOpen, setAddOnModalOpen] = useState(false);
@@ -430,13 +378,15 @@ const BM_MenuList: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [itemsRes, catsRes, sugarRes] = await Promise.all([
+      const [itemsRes, catsRes, sugarRes, subCatsRes, addOnsRes] = await Promise.all([
         fetch("/api/menu-items",   { headers: authHeaders() }),
         fetch("/api/categories",   { headers: authHeaders() }),
         fetch("/api/sugar-levels", { headers: authHeaders() }),
+        fetch("/api/subcategories", { headers: authHeaders() }),
+        fetch("/api/addons", { headers: authHeaders() }),
       ]);
-      const [itemsData, catsData, sugarData] = await Promise.all([
-        itemsRes.json(), catsRes.json(), sugarRes.json(),
+      const [itemsData, catsData, sugarData, subCatsData, addOnsData] = await Promise.all([
+        itemsRes.json(), catsRes.json(), sugarRes.json(), subCatsRes.json(), addOnsRes.json(),
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -474,6 +424,8 @@ const BM_MenuList: React.FC = () => {
         (Array.isArray(sugarData) ? sugarData : (sugarData.data ?? []))
           .filter((s: SugarLevel) => s.is_active)
       );
+      setSubcategories(Array.isArray(subCatsData) ? subCatsData : (subCatsData.data ?? []));
+      setAllAddOns(Array.isArray(addOnsData) ? addOnsData : (addOnsData.data ?? []));
 
     } catch { setError("Failed to load menu items."); }
     finally { setLoading(false); }
@@ -586,6 +538,9 @@ const BM_MenuList: React.FC = () => {
             </select>
             <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
+          <Btn onClick={() => { setEditingItem(null); setIsFormOpen(true); }} className="shrink-0 gap-2">
+            <Plus size={14} /> Add Item
+          </Btn>
         </div>
 
         <div className="flex items-center gap-2 md:justify-end">
@@ -713,12 +668,17 @@ const BM_MenuList: React.FC = () => {
                     </td>
 
                     <td className="px-5 py-3.5">
-                      <button onClick={() => toggleAvailable(item)} className="transition-colors"
-                      title={item.is_available ? "Click to hide" : "Click to show"}>
-                      {item.is_available
-                        ? <ToggleRight size={22} className="text-[#3b2063]" />
-                        : <ToggleLeft  size={22} className="text-zinc-300"  />}
-                    </button>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => { setEditingItem(item); setIsFormOpen(true); }} className="text-zinc-400 hover:text-violet-600 transition-colors" title="Edit Item">
+                          <Edit2 size={16} />
+                        </button>
+                        <button onClick={() => toggleAvailable(item)} className="transition-colors"
+                        title={item.is_available ? "Click to hide" : "Click to show"}>
+                        {item.is_available
+                          ? <ToggleRight size={22} className="text-[#3b2063]" />
+                          : <ToggleLeft  size={22} className="text-zinc-300"  />}
+                        </button>
+                      </div>
                   </td>
 
                 </tr>
@@ -792,6 +752,26 @@ const BM_MenuList: React.FC = () => {
             </div>
           )}
         </ModalShell>
+      )}
+
+      {isFormOpen && (
+        <MenuItemForm
+          item={editingItem ?? undefined}
+          allItems={items}
+          categories={categories}
+          subcategories={subcategories}
+          sugarLevels={sugarLevels}
+          allAddOns={allAddOns}
+          onClose={() => setIsFormOpen(false)}
+          onSaved={(savedItem: MenuItem) => {
+            setItems(prev => {
+              const idx = prev.findIndex(i => i.id === savedItem.id);
+              if (idx >= 0) { const next = [...prev]; next[idx] = savedItem; return next; }
+              return [...prev, savedItem];
+            });
+            setIsFormOpen(false);
+          }}
+        />
       )}
     </div>
   );

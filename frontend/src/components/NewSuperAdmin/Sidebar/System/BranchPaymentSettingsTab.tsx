@@ -75,7 +75,6 @@ const BranchPaymentSettingsTab: React.FC = () => {
     }
     fetchBranches();
   }, []);
-
   const fetchBranches = async () => {
     try {
       const res = await fetch(`${API_BASE}/branches`, { headers: getHeaders() });
