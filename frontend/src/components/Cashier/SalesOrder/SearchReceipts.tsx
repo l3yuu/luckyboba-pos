@@ -319,10 +319,10 @@ const buildPrintProps = (payload: ReprintPayload, displayOrderNumber?: number) =
   const promoDiscount     = Number(sale.discount_amount ?? 0);
   const totalDiscountDisplay = itemDiscountTotal + promoDiscount;
 
-  const subtotal    = cart.reduce((acc, item) => acc + item.finalPrice + getItemSurcharge(item), 0);
-  const amtDue      = sale.total ?? subtotal;
-  const vatableSales = sale.vatable_sales ?? amtDue / 1.12;
-  const vatAmount    = sale.vat_amount    ?? (amtDue - vatableSales);
+  const subtotal = cart.reduce((acc, item) => acc + Number(item.finalPrice ?? 0) + Number(getItemSurcharge(item) ?? 0), 0);
+  const amtDue = Number(sale.total ?? subtotal);
+  const vatableSales = Number(sale.vatable_sales ?? (amtDue / 1.12));
+  const vatAmount = Number(sale.vat_amount ?? (amtDue - vatableSales));
 
 return {
   cart,
@@ -338,7 +338,7 @@ return {
   referenceNumber: sale.reference_number ?? '',
   orderCharge: null as 'grab' | 'panda' | null,
   totalCount: cart.reduce((a, i) => a + i.qty, 0),
-  subtotal: sale.subtotal ?? subtotal,
+  subtotal: Number(sale.subtotal ?? subtotal),
   amtDue,
   vatableSales,
   vatAmount,

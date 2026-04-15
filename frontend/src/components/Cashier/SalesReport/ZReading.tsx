@@ -193,6 +193,7 @@ interface ZReadingReport {
   over_short?: number;
   net_total?: number;
   expected_amount?: number;
+  less_vat?: number;
   vat_type?:   string;
   vat_exempt?: number;
   is_vat?: boolean;
@@ -329,7 +330,8 @@ const ZReading = () => {
         const pwdDisc   = Number(zData.pwd_discount      ?? 0);
         const otherDisc = Number(zData.diplomat_discount ?? 0) + Number(zData.other_discount ?? 0);
         const totalDisc = scDisc + pwdDisc + otherDisc;
-        const computedGross = rawGross > 0 ? rawGross : (netSales + totalDisc);
+        const lessVat   = Number(zData.less_vat ?? 0);
+        const computedGross = rawGross > 0 ? rawGross : (netSales + totalDisc + lessVat);
 
         const merged = {
           ...zData,
@@ -337,7 +339,8 @@ const ZReading = () => {
           cash_denominations: cashDenominations,
           total_cash_count:   totalCashCount,
           expected_amount:    expectedAmount,
-          over_short:         totalCashCount - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+          less_vat:           lessVat,
+          over_short:         totalCashCount - expectedAmount,
           categories:         (qtyRes.data as Record<string, unknown>).categories ?? [],
           all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [],
           logs:               (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : []),
