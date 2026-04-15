@@ -20,6 +20,10 @@ interface ReceiptPrintProps {
   vatRegTin?: string;
   minNumber?: string;
   serialNumber?: string;
+  businessName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  generalAddress?: string;
   orNumber: string;
   queueNumber: string;
   cashierName: string;
@@ -64,6 +68,8 @@ interface ReceiptPrintProps {
     pos_valid_until?: string;
     pos_ptu?: string;
     pos_ptu_date?: string;
+    contact_email?: string;   
+    contact_phone?: string;
   };
 }
 
@@ -488,8 +494,10 @@ export const ReceiptPrint = ({
 
         {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
-          FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />09171699894
-        </div>
+  FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />
+  {posFooter.contact_email ? posFooter.contact_email : 'luckyboba.franchise@gmail.com'}<br />
+  {posFooter.contact_phone ? posFooter.contact_phone : '09171699894'}
+</div>
 
         {/* ── POS Supplier Footer ── */}
         {(posFooter.pos_supplier || posFooter.pos_tin) && (
