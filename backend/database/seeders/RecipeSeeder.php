@@ -12,8 +12,8 @@ class RecipeSeeder extends Seeder
 {
     public function run(): void
     {
-        $rm = RawMaterial::pluck('id', 'name');
-        $units = RawMaterial::pluck('unit', 'name');
+        $rm = RawMaterial::whereNull('branch_id')->pluck('id', 'name');
+        $units = RawMaterial::whereNull('branch_id')->pluck('unit', 'name');
 
         $frac = function (string $material, float $amount) use ($rm, $units): array {
             if (!isset($rm[$material])) {
