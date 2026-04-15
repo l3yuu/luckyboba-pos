@@ -67,7 +67,7 @@ class _HomePageState extends State<HomePage> {
   int    _luckyPoints    = 0;
   bool   _loadingNearby  = true;
   Map<String, dynamic>? _nearestStore;
-  double _nearestDist    = 0;
+  double? _nearestDist;
   String _userName       = '';
   Position? _currentPosition;
 
@@ -427,7 +427,7 @@ class _HomePageState extends State<HomePage> {
                                   style: GoogleFonts.outfit(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: _kTextMid,
+                                    color: AppTheme.textMid,
                                   ),
                                 ),
                               ),
