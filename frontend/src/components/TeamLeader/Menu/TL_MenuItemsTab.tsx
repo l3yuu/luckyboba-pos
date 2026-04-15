@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search, AlertCircle, X, ChevronDown,
-  Barcode, Utensils, Coffee, Check,
+  Barcode, Utensils, Coffee, Check, Plus,
 } from "lucide-react";
 
 
@@ -33,6 +33,16 @@ interface MenuItem {
 
 interface Category { id: number; name: string; category_type: string; }
 interface SubCategory { id: number; name: string; category_id: number; }
+interface AddOnItem {
+  id: number;
+  name: string;
+  price: number;
+  grab_price: number;
+  panda_price: number;
+  barcode: string | null;
+  category: string;
+  is_available: boolean;
+}
 
 const SkeletonBar: React.FC<{ h?: string; w?: string }> = ({ h = "h-4", w = "w-full" }) => (
   <div className={`${w} ${h} bg-zinc-100 rounded animate-pulse`} />
@@ -44,6 +54,10 @@ const TL_MenuItemsTab: React.FC = () => {
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [addOns, setAddOns] = useState<AddOnItem[]>([]);
+  const [addOnModalOpen, setAddOnModalOpen] = useState(false);
+  const [addOnLoading, setAddOnLoading] = useState(false);
+  const [addOnError, setAddOnError] = useState("");
 
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
@@ -73,6 +87,25 @@ const TL_MenuItemsTab: React.FC = () => {
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const fetchAddOns = useCallback(async () => {
+    setAddOnLoading(true);
+    setAddOnError("");
+    try {
+      const res = await fetch("/api/add-ons?all=1", { headers: authHeaders() });
+      const data = await res.json();
+      setAddOns(Array.isArray(data) ? data : (data.data ?? []));
+    } catch {
+      setAddOnError("Failed to load add-ons.");
+    } finally {
+      setAddOnLoading(false);
+    }
+  }, []);
+
+  const openAddOnModal = async () => {
+    setAddOnModalOpen(true);
+    await fetchAddOns();
+  };
 
   const filtered = useMemo(() => {
     return items.filter(i => {
@@ -145,7 +178,14 @@ const TL_MenuItemsTab: React.FC = () => {
           )}
         </div>
 
-        <div className="hidden md:block">
+        <div className="flex items-center gap-2 ml-auto">
+          <button
+            onClick={openAddOnModal}
+            className="inline-flex items-center gap-1.5 text-[10px] font-black tracking-widest text-zinc-500 uppercase bg-white px-3 py-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 transition-colors"
+          >
+            <Plus size={12} />
+            Add-Ons
+          </button>
           <span className="text-[10px] font-black tracking-widest text-zinc-400 uppercase bg-zinc-100 px-3 py-1.5 rounded-lg border border-zinc-200">
             {filtered.length} REFERENCED ITEMS
           </span>
@@ -273,6 +313,78 @@ const TL_MenuItemsTab: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {addOnModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setAddOnModalOpen(false)} />
+          <div className="relative bg-white w-full max-w-2xl border border-zinc-200 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-zinc-100 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-black text-[#1a0f2e]">Add-Ons</p>
+                <p className="text-[11px] text-zinc-500">View mode only. Team Leader cannot modify add-ons.</p>
+              </div>
+              <button
+                onClick={() => setAddOnModalOpen(false)}
+                className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50"
+                aria-label="Close add-ons modal"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
+              {addOnLoading ? (
+                <p className="text-sm text-zinc-400 italic py-8 text-center">Loading add-ons...</p>
+              ) : addOnError ? (
+                <div className="flex flex-col items-center gap-3 py-8">
+                  <p className="text-sm text-red-600 font-medium">{addOnError}</p>
+                  <button
+                    onClick={fetchAddOns}
+                    className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : addOns.length === 0 ? (
+                <p className="text-sm text-zinc-400 italic py-8 text-center">No add-ons found.</p>
+              ) : (
+                <div className="space-y-2">
+                  {addOns.map((addon) => (
+                    <div key={addon.id} className="border border-zinc-200 rounded-xl px-3 py-2.5 bg-zinc-50/40">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-bold text-zinc-700">{addon.name}</p>
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                          addon.is_available
+                            ? "text-emerald-600 bg-emerald-50 border-emerald-200"
+                            : "text-zinc-500 bg-zinc-100 border-zinc-200"
+                        }`}>
+                          {addon.is_available ? "Available" : "Unavailable"}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] font-semibold text-zinc-500">
+                        <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 uppercase">{addon.category}</span>
+                        <span>Base: ₱{Number(addon.price).toFixed(2)}</span>
+                        <span>Grab: ₱{Number(addon.grab_price).toFixed(2)}</span>
+                        <span>Panda: ₱{Number(addon.panda_price).toFixed(2)}</span>
+                        {addon.barcode && <span>Barcode: {addon.barcode}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-3.5 border-t border-zinc-100 flex justify-end">
+              <button
+                onClick={() => setAddOnModalOpen(false)}
+                className="text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
