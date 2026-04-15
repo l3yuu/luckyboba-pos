@@ -191,12 +191,13 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
     });
   }, [drinkPool]);
 
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
   const selectedDrinks = useMemo(
     () => allDrinks.filter(d => selectedIds.has(d.id)),
     [allDrinks, selectedIds]
   );
 
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [loading,     setLoading]     = useState(true);
   const [saving,      setSaving]      = useState(false);
   const [saved,       setSaved]       = useState(false);
