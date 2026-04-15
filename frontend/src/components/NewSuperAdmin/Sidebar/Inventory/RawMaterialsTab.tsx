@@ -97,6 +97,9 @@ const REASONS = {
   set: ['Physical Count Audit', 'Initial Setup', 'Inventory Correction', 'Other']
 } as const;
 
+const reasonsForType = (t: AdjType): readonly string[] => REASONS[t] as readonly string[];
+const isPresetReason = (t: AdjType, r: string) => reasonsForType(t).includes(r);
+
 const TrendSparkline: React.FC<{ data: number[] }> = ({ data }) => {
   if (!data || data.length < 2) return null;
   const min = Math.min(...data);
@@ -346,7 +349,7 @@ const AdjustModal: React.FC<{
               <Field label="Reason" required>
                 <div className="space-y-2">
                   <select 
-                    value={REASONS[adjType as keyof typeof REASONS].includes(reason as any) ? reason : (reason ? 'Other' : '')} 
+                    value={isPresetReason(adjType, reason) ? reason : (reason ? 'Other' : '')} 
                     onChange={e => setReason(e.target.value === 'Other' ? '' : e.target.value)} 
                     className={inputCls()}
                   >
@@ -354,7 +357,7 @@ const AdjustModal: React.FC<{
                     {REASONS[adjType as keyof typeof REASONS].map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
 
-                  {(!REASONS[adjType as keyof typeof REASONS].includes(reason as any) || reason === 'Other') && (
+                  {(!isPresetReason(adjType, reason) || reason === 'Other') && (
                     <input 
                       value={reason === 'Other' ? '' : reason} 
                       onChange={e => setReason(e.target.value)}
