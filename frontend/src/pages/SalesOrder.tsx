@@ -1398,11 +1398,15 @@ const SalesOrder = () => {
             font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
             font-size: 11px !important;
             line-height: 1.1 !important;
-            font-weight: 400 !important;
+            font-weight: 500 !important;
             text-rendering: geometricPrecision !important;
             -webkit-font-smoothing: none !important;
             font-smooth: never !important;
             letter-spacing: 0 !important;
+            font-kerning: none !important;
+            font-variant-ligatures: none !important;
+            text-shadow: none !important;
+            transform: none !important;
             zoom: 1 !important;
           }
           .receipt-area * {
@@ -1412,6 +1416,11 @@ const SalesOrder = () => {
             text-rendering: inherit !important;
             -webkit-font-smoothing: inherit !important;
             font-smooth: inherit !important;
+            letter-spacing: inherit !important;
+            font-kerning: inherit !important;
+            font-variant-ligatures: inherit !important;
+            text-shadow: none !important;
+            transform: none !important;
           }
           .receipt-area strong,
           .receipt-area b,
