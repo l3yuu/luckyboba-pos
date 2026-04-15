@@ -1,4 +1,5 @@
 // components/NewSuperAdmin/Tabs/MenuManagement/MenuItemsTab.tsx
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useCallback, useMemo, startTransition, useRef } from "react";
 import {
   Search, Plus, Edit2, Trash2, RefreshCw,

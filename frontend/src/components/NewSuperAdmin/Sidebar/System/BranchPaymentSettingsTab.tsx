@@ -80,6 +80,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
     if (selectedBranchId) {
       fetchSettings(selectedBranchId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBranchId]);
 
   const fetchBranches = async () => {
@@ -105,7 +106,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
         setMayaPreview(data.data.maya_qr_url);
         setImagePreview(data.data.image_url);
       }
-    } catch (err) {
+    } catch (_err) {
       showToast("Failed to load payment settings", "error");
     } finally {
       setLoading(false);
@@ -158,7 +159,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
       } else {
         showToast(data.message || "Failed to update settings", "error");
       }
-    } catch (err) {
+    } catch (_err) {
       showToast("Network error", "error");
     } finally {
       setSaving(false);
