@@ -168,6 +168,7 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
         if (Array.isArray(d)) arr = d;
         else if (Array.isArray(d?.data)) arr = d.data;
         else if (Array.isArray(d?.data?.data)) arr = d.data.data;
+        else if (Array.isArray(d?.logs)) arr = d.logs;
         setMovements(arr);
       })
       .catch(console.error)

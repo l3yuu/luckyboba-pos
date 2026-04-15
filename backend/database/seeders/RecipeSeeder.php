@@ -26,6 +26,26 @@ class RecipeSeeder extends Seeder
             ];
         };
 
+        $normalize = function (string $value): string {
+            $v = strtoupper(trim($value));
+            $v = preg_replace('/\s+/', ' ', $v) ?? $v;
+            return $v;
+        };
+
+        $menuItemsBySize = MenuItem::select(['id', 'name', 'size'])->get()->groupBy('size');
+        $resolveMenuItem = function (string $itemName, string $size) use ($menuItemsBySize, $normalize) {
+            $candidates = collect([
+                $itemName,
+                str_replace(' COFFEE', '', $itemName),
+                str_replace(' MILK TEA', '', $itemName),
+            ])->map(fn ($n) => $normalize($n))->unique()->values();
+
+            $pool = collect($menuItemsBySize->get($size, []));
+            return $pool->first(function ($m) use ($candidates, $normalize) {
+                return $candidates->contains($normalize($m->name));
+            });
+        };
+
         $straw = 'STRAW';
         $sealing = 'SEALING MACHINE COUNT';
         $mCup = 'M-SLIM CUP 16oz (50pcs/pk)';
@@ -179,11 +199,58 @@ class RecipeSeeder extends Seeder
             ['CARAMEL MACCHIATO MILK TEA',  'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
         ];
 
-        $allRecipes = array_merge($classicRecipes, $creamcheeseRecipes, $cheesecakeRecipes, $rocksaltRecipes, $flavoredRecipes);
+        // ----------------------------------------------------------------
+        // 6. ICED COFFEE SERIES CATEGORY
+        // ----------------------------------------------------------------
+        $groundCoffee = 'GROUND COFFEE (1kg/pk)';
+        $icedCoffeeRecipes = [
+            ['ICED COFFEE CLASSIC',     'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($ndc, 0.013), $frac($groundCoffee, 0.01)]],
+            ['ICED COFFEE CLASSIC',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($ndc, 0.02),  $frac($groundCoffee, 0.01)]],
+            ['ICED MOCHA COFFEE',       'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($ndc, 0.013), $frac($groundCoffee, 0.01)]],
+            ['ICED MOCHA COFFEE',       'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($ndc, 0.02),  $frac($groundCoffee, 0.01)]],
+            ['ICED VANILLA COFFEE',     'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($ndc, 0.013), $frac($groundCoffee, 0.01)]],
+            ['ICED VANILLA COFFEE',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($ndc, 0.02),  $frac($groundCoffee, 0.01)]],
+            ['ICED JAVA CHIP COFFEE',   'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($ndc, 0.013), $frac($groundCoffee, 0.01)]],
+            ['ICED JAVA CHIP COFFEE',   'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($ndc, 0.02),  $frac($groundCoffee, 0.01)]],
+            ['ICED TOFFEE CARAMEL',     'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($ndc, 0.013), $frac($groundCoffee, 0.01)]],
+            ['ICED TOFFEE CARAMEL',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($ndc, 0.02),  $frac($groundCoffee, 0.01)]],
+            ['ICED CARAMEL MACCHIATO',  'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($ndc, 0.013), $frac($groundCoffee, 0.01)]],
+            ['ICED CARAMEL MACCHIATO',  'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($ndc, 0.02),  $frac($groundCoffee, 0.01)]],
+        ];
+
+        // ----------------------------------------------------------------
+        // 7. COFFEE FRAPPE CATEGORY
+        // ----------------------------------------------------------------
+        $mUCup = 'M-U CUP 16oz (50pcs/pk)';
+        $lUCup = 'L-U CUP 22oz (50pcs/pk)';
+        $bearLid = 'BEAR LID (100pcs/pk)';
+        $monalisa = 'MONALISA (1L/BX)';
+        $coffeeFrappeRecipes = [
+            ['MOCHA FRAPPE',              'M', [$frac($straw, 1), $frac($mUCup, 1), $frac($bearLid, 1), $frac($boba, 0.03), $frac($ndc, 0.025), $frac($monalisa, 0.06)]],
+            ['MOCHA FRAPPE',              'L', [$frac($straw, 1), $frac($lUCup, 1), $frac($bearLid, 1), $frac($boba, 0.04), $frac($ndc, 0.3),   $frac($monalisa, 0.06), $frac($groundCoffee, 0.01)]],
+            ['VANILLA FRAPPE',            'M', [$frac($straw, 1), $frac($mUCup, 1), $frac($bearLid, 1), $frac($boba, 0.03), $frac($ndc, 0.3),   $frac($monalisa, 0.06)]],
+            ['VANILLA FRAPPE',            'L', [$frac($straw, 1), $frac($lUCup, 1), $frac($bearLid, 1), $frac($boba, 0.04), $frac($ndc, 0.35),  $frac($monalisa, 0.06), $frac($groundCoffee, 0.01)]],
+            ['JAVA CHIP FRAPPE',          'M', [$frac($straw, 1), $frac($mUCup, 1), $frac($bearLid, 1), $frac($boba, 0.03), $frac($ndc, 0.025), $frac($monalisa, 0.06)]],
+            ['JAVA CHIP FRAPPE',          'L', [$frac($straw, 1), $frac($lUCup, 1), $frac($bearLid, 1), $frac($boba, 0.04), $frac($ndc, 0.3),   $frac($monalisa, 0.06), $frac($groundCoffee, 0.01)]],
+            ['TOFFEE CARAMEL FRAPPE',     'M', [$frac($straw, 1), $frac($mUCup, 1), $frac($bearLid, 1), $frac($boba, 0.3),  $frac($ndc, 0.025), $frac($monalisa, 0.06)]],
+            ['TOFFEE CARAMEL FRAPPE',     'L', [$frac($straw, 1), $frac($lUCup, 1), $frac($bearLid, 1), $frac($boba, 0.04), $frac($ndc, 0.3),   $frac($monalisa, 0.06), $frac($groundCoffee, 0.01)]],
+            ['CARAMEL MACCHIATO FRAPPE',  'M', [$frac($straw, 1), $frac($mUCup, 1), $frac($bearLid, 1), $frac($boba, 0.3),  $frac($ndc, 0.025), $frac($monalisa, 0.06)]],
+            ['CARAMEL MACCHIATO FRAPPE',  'L', [$frac($straw, 1), $frac($lUCup, 1), $frac($bearLid, 1), $frac($boba, 0.04), $frac($ndc, 0.3),   $frac($monalisa, 0.06), $frac($groundCoffee, 0.01)]],
+        ];
+
+        $allRecipes = array_merge(
+            $classicRecipes,
+            $creamcheeseRecipes,
+            $cheesecakeRecipes,
+            $rocksaltRecipes,
+            $flavoredRecipes,
+            $icedCoffeeRecipes,
+            $coffeeFrappeRecipes
+        );
 
         $seededCount = 0;
         foreach ($allRecipes as [$itemName, $size, $ingredients]) {
-            $menuItem = MenuItem::where('name', $itemName)->where('size', $size)->first();
+            $menuItem = $resolveMenuItem($itemName, $size);
             if (!$menuItem) {
                 $this->command->warn("MenuItem not found: $itemName ($size)");
                 continue;

@@ -9,11 +9,6 @@ import { useToast } from "../../../hooks/useToast";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey = "sm" | "md" | "lg";
 
-interface SectionHeaderProps {
-  title: string;
-  desc?: string;
-  action?: React.ReactNode;
-}
 interface BtnProps {
   children: React.ReactNode;
   variant?: VariantKey;
@@ -31,15 +26,6 @@ interface BackupFile {
   timestamp: number;
 }
 
-const SectionHeader: React.FC<SectionHeaderProps> = ({ title, desc, action }) => (
-  <div className="flex items-center justify-between mb-5">
-    <div>
-      <h2 className="text-base font-bold text-[#1a0f2e]">{title}</h2>
-      {desc && <p className="text-xs text-zinc-400 mt-0.5">{desc}</p>}
-    </div>
-    {action}
-  </div>
-);
 
 const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
