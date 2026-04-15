@@ -472,6 +472,7 @@ const DeviceManagementTab: React.FC = () => {
   const [fetchError, setFetchError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
 
   const [registerOpen, setRegisterOpen] = useState(false);
   const [assignTarget, setAssignTarget] = useState<PosDevice | null>(null);
@@ -514,7 +515,8 @@ const DeviceManagementTab: React.FC = () => {
     const q = search.toLowerCase();
     const matchSearch = d.pos_number.toLowerCase().includes(q) || d.device_name.toLowerCase().includes(q) || (d.branch?.name ?? "").toLowerCase().includes(q) || (d.user?.name ?? "").toLowerCase().includes(q);
     const matchStatus = statusFilter ? d.status === statusFilter : true;
-    return matchSearch && matchStatus;
+    const matchBranch = branchFilter ? String(d.branch_id) === branchFilter : true;
+    return matchSearch && matchStatus && matchBranch;
   });
 
   const total = devices.length;
@@ -560,6 +562,13 @@ const DeviceManagementTab: React.FC = () => {
             <option value="ACTIVE">Active</option>
             <option value="INACTIVE">Inactive</option>
           </select>
+          <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none">
+            <option value="">All Branches</option>
+            {branches.map(b => (
+              <option key={b.id} value={String(b.id)}>{b.name}</option>
+            ))}
+          </select>
           <Btn onClick={() => setRegisterOpen(true)}>
             <Plus size={13} /> Register Device
           </Btn>
@@ -598,7 +607,7 @@ const DeviceManagementTab: React.FC = () => {
               {!loading && !fetchError && filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
-                    {search || statusFilter ? "No devices match your filters." : "No devices registered yet."}
+                    {search || statusFilter || branchFilter ? "No devices match your filters." : "No devices registered yet."}
                   </td>
                 </tr>
               )}

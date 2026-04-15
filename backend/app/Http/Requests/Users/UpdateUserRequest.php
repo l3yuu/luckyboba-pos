@@ -25,7 +25,7 @@ class UpdateUserRequest extends FormRequest
         if ($user->role === 'branch_manager') {
             $inputRole = $this->input('role');
             
-            $roleToSet = in_array($inputRole, ['cashier', 'team_leader']) ? $inputRole : null;
+            $roleToSet = in_array($inputRole, ['cashier', 'team_leader', 'supervisor']) ? $inputRole : null;
 
             $mergeData = [
                 'branch_id' => $user->branch_id,
@@ -51,7 +51,7 @@ class UpdateUserRequest extends FormRequest
             'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin,supervisor',
             'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
             'branch_id'   => 'nullable|integer|exists:branches,id',
-            'manager_pin' => 'nullable|string|min:4|max:20',
+            'manager_pin' => 'nullable|digits_between:4,8',
         ];
     }
 }

@@ -90,9 +90,15 @@ const timeAgo = (d: string) => {
   return new Date(d).toLocaleDateString();
 };
 
-const WASTE_REASONS = [
-  'Expired', 'Spilled / Accident', 'Damaged Item', 'Quality Issue', 'Theft / Missing', 'Other'
-];
+const REASONS = {
+  add: ['New Delivery', 'Production', 'Cooked', 'Inventory Correction', 'Restock', 'Other'],
+  subtract: ['Error in Logging', 'Inventory Correction', 'Damage', 'Used in Kitchen', 'Other'],
+  waste: ['Spoilage', 'Expired', 'Spilled', 'Damage', 'Customer Complaint', 'Other'],
+  set: ['Physical Count Audit', 'Initial Setup', 'Inventory Correction', 'Other']
+} as const;
+
+const reasonsForType = (t: AdjType): readonly string[] => REASONS[t] as readonly string[];
+const isPresetReason = (t: AdjType, r: string) => reasonsForType(t).includes(r);
 
 const TrendSparkline: React.FC<{ data: number[] }> = ({ data }) => {
   if (!data || data.length < 2) return null;
@@ -305,7 +311,7 @@ const AdjustModal: React.FC<{
               {/* Type selector */}
               <div className="grid grid-cols-4 gap-2">
                 {(Object.entries(typeConfig) as [AdjType, typeof typeConfig.add][]).map(([key, cfg]) => (
-                  <button key={key} onClick={() => { setAdjType(key); if (key === 'waste' && !WASTE_REASONS.includes(reason)) setReason(WASTE_REASONS[0]); }}
+                   <button key={key} onClick={() => { setAdjType(key); setReason(''); }}
                     className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-lg border text-[10px] font-bold transition-all"
                     style={adjType === key
                       ? { background: cfg.bg, color: cfg.color, borderColor: cfg.border }
@@ -340,18 +346,27 @@ const AdjustModal: React.FC<{
                 </div>
               </Field>
 
-              {adjType === 'waste' ? (
-                <Field label="Waste Category" required>
-                  <select value={reason} onChange={e => setReason(e.target.value)} className={inputCls()}>
-                    {WASTE_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+              <Field label="Reason" required>
+                <div className="space-y-2">
+                  <select 
+                    value={isPresetReason(adjType, reason) ? reason : (reason ? 'Other' : '')} 
+                    onChange={e => setReason(e.target.value === 'Other' ? '' : e.target.value)} 
+                    className={inputCls()}
+                  >
+                    <option value="">Select a reason...</option>
+                    {REASONS[adjType as keyof typeof REASONS].map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
-                </Field>
-              ) : (
-                <Field label="Reason / Notes" required>
-                  <input value={reason} onChange={e => setReason(e.target.value)}
-                    className={inputCls()} placeholder="e.g. Received from supplier" />
-                </Field>
-              )}
+
+                  {(!isPresetReason(adjType, reason) || reason === 'Other') && (
+                    <input 
+                      value={reason === 'Other' ? '' : reason} 
+                      onChange={e => setReason(e.target.value)}
+                      className={inputCls()} 
+                      placeholder="Type custom reason here..." 
+                    />
+                  )}
+                </div>
+              </Field>
 
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -592,7 +607,7 @@ const RawMaterialsTab: React.FC = () => {
   const [stockPopId, setStockPopId] = useState<number | null>(null);
   const [popSearch, setPopSearch] = useState('');
   const [branches, setBranches] = useState<Array<{ id: number; name: string }>>([]);
-  const [branchId, setBranchId] = useState<string>('');
+  const [branchId, setBranchId] = useState<string>(localStorage.getItem('superadmin_selected_branch') || '');
 
   const normalize = (m: RawMaterial): RawMaterial => ({
     ...m,
@@ -631,6 +646,11 @@ const RawMaterialsTab: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [fetchMaterials, fetchBranches]);
+
+  const handleBranchChange = (val: string) => {
+    setBranchId(val);
+    localStorage.setItem('superadmin_selected_branch', val);
+  };
 
   const filtered = materials.filter(m => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase());
@@ -678,7 +698,7 @@ const RawMaterialsTab: React.FC = () => {
               placeholder="Search materials..." />
             {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500 transition-colors"><X size={13} /></button>}
           </div>
-          <select value={branchId} onChange={e => setBranchId(e.target.value)}
+          <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
             className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#3b2063] outline-none h-9 focus:ring-2 focus:ring-[#e9d5ff]">
             <option value="">All Branches</option>
             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}

@@ -42,6 +42,11 @@ class MenuListController extends Controller
 
 public function store(Request $request)
 {
+    $user = $request->user();
+    if ($user && $user->role === 'supervisor') {
+        return response()->json(['message' => 'Supervisors have read-only access.'], 403);
+    }
+
     $validator = Validator::make($request->all(), [
         'name'         => 'required|string|max:255',
         'sellingPrice' => 'required|numeric|min:0',

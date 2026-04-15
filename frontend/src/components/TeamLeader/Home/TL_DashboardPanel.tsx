@@ -162,6 +162,23 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    const onSaleRecorded = () => load(true);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'lucky_boba_live_sales_tick') load(true);
+    };
+
+    window.addEventListener('luckyboba:sale-recorded', onSaleRecorded as EventListener);
+    window.addEventListener('storage', onStorage);
+    const id = setInterval(() => load(true), 10000);
+
+    return () => {
+      window.removeEventListener('luckyboba:sale-recorded', onSaleRecorded as EventListener);
+      window.removeEventListener('storage', onStorage);
+      clearInterval(id);
+    };
+  }, [load]);
+
   if (loading) return (
     <div className="p-8 md:p-12 tl-dashboard">
       <style>{STYLES}</style>

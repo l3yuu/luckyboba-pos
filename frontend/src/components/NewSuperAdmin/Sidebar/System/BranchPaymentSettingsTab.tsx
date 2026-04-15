@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { 
   CreditCard, Smartphone, Upload, 
   CheckCircle2, AlertCircle, Store, Save,
@@ -75,14 +75,6 @@ const BranchPaymentSettingsTab: React.FC = () => {
     }
     fetchBranches();
   }, []);
-
-  useEffect(() => {
-    if (selectedBranchId) {
-      fetchSettings(selectedBranchId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBranchId]);
-
   const fetchBranches = async () => {
     try {
       const res = await fetch(`${API_BASE}/branches`, { headers: getHeaders() });
@@ -95,7 +87,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
     }
   };
 
-  const fetchSettings = async (branchId: number) => {
+  const fetchSettings = useCallback(async (branchId: number) => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/branch/payment-settings?branch_id=${branchId}`, { headers: getHeaders() });
@@ -111,7 +103,13 @@ const BranchPaymentSettingsTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    if (selectedBranchId) {
+      fetchSettings(selectedBranchId);
+    }
+  }, [selectedBranchId, fetchSettings]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'gcash' | 'maya' | 'image') => {
     const file = e.target.files?.[0];
