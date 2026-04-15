@@ -178,10 +178,11 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string |
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const BranchReceiptsTab: React.FC = () => {
+  const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState(""); // Default to empty for global search or use today? User might want to see recent across branches.
-  const [branchId, setBranchId] = useState("");
+  const [branchId, setBranchId] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [searchResults, setSearchResults] = useState<SaleItem[]>([]);
   const [stats, setStats] = useState<Stats>({ gross: 0, voided: 0, net: 0 });
@@ -202,14 +203,24 @@ const BranchReceiptsTab: React.FC = () => {
   const [printPayload, setPrintPayload] = useState<ReprintPayload | null>(null);
   const [printType, setPrintType] = useState<ReprintType | null>(null);
 
-  const fmt = (v: number) => `₱${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
 
   // Fetch branches
   useEffect(() => {
     api.get("/branches").then(res => {
-      if (res.data.success) setBranches(res.data.data);
+      if (res.data.success && res.data.data.length > 0) {
+        setBranches(res.data.data);
+        if (!branchId) {
+          const defaultId = String(res.data.data[0].id);
+          setBranchId(defaultId);
+          localStorage.setItem('superadmin_selected_branch', defaultId);
+        }
+      }
     }).catch(() => { });
-  }, []);
+  }, [branchId]);
 
   const handleSearch = useCallback(async (query = searchQuery, date = selectedDate, bId = branchId) => {
     setIsLoading(true);
@@ -505,7 +516,7 @@ const BranchReceiptsTab: React.FC = () => {
           <div className="relative">
             <select
               value={branchId}
-              onChange={e => setBranchId(e.target.value)}
+              onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none w-full sm:w-56 bg-zinc-50 border border-zinc-200 rounded-lg pl-4 pr-10 py-2.5 text-sm font-semibold text-[#1a0f2e] outline-none focus:ring-2 focus:ring-violet-400/20 transition-all cursor-pointer"
             >
               <option value="">All Branches</option>

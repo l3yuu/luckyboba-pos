@@ -451,7 +451,7 @@ const UsageReportTab: React.FC = () => {
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [varFilter, setVarFilter] = useState('');
-  const [branch, setBranch] = useState('');
+  const [branch, setBranch] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
@@ -472,12 +472,19 @@ const UsageReportTab: React.FC = () => {
     setUserRole(localStorage.getItem('role'));
   }, []);
 
-  // Auto-select first branch if none selected
+  // Auto-select first branch if none selected and persist selection
   useEffect(() => {
     if (!branch && branches.length > 0) {
-      setBranch(String(branches[0].id));
+      const defaultId = String(branches[0].id);
+      setBranch(defaultId);
+      localStorage.setItem('superadmin_selected_branch', defaultId);
     }
   }, [branches, branch]);
+
+  const handleBranchChange = (val: string) => {
+    setBranch(val);
+    localStorage.setItem('superadmin_selected_branch', val);
+  };
 
   const period = viewMode === 'today'
     ? now.toISOString().split('T')[0]
@@ -694,7 +701,7 @@ const UsageReportTab: React.FC = () => {
               )}
             </div>
 
-            <select value={branch} onChange={e => setBranch(e.target.value)}
+            <select value={branch} onChange={e => handleBranchChange(e.target.value)}
               className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
             </select>

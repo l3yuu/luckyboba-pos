@@ -163,7 +163,7 @@ const ReceiptDivider = () => <div className="border-t border-dashed border-black
 const XReadingTab: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
-  const [branchId, setBranchId] = useState("");
+  const [branchId, setBranchId] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [date, setDate] = useState(today);
   const [shift, setShift] = useState("all");
   const [loading, setLoading] = useState(false);
@@ -181,13 +181,22 @@ const XReadingTab: React.FC = () => {
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
 
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
+
   useEffect(() => {
     fetch("/api/branches", { headers: authHeaders() })
       .then(r => r.json())
       .then(d => {
         if (d.success && d.data.length > 0) {
           setBranches(d.data);
-          setBranchId(String(d.data[0].id));
+          if (!branchId) {
+            const defaultId = String(d.data[0].id);
+            setBranchId(defaultId);
+            localStorage.setItem('superadmin_selected_branch', defaultId);
+          }
         }
       })
       .catch(() => { });
@@ -861,7 +870,7 @@ const XReadingTab: React.FC = () => {
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch <span className="text-red-400">*</span></p>
           <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-48">
               <option value="">Select Branch</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}

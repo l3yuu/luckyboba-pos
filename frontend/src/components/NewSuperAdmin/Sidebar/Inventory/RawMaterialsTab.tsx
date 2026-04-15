@@ -604,7 +604,7 @@ const RawMaterialsTab: React.FC = () => {
   const [stockPopId, setStockPopId] = useState<number | null>(null);
   const [popSearch, setPopSearch] = useState('');
   const [branches, setBranches] = useState<Array<{ id: number; name: string }>>([]);
-  const [branchId, setBranchId] = useState<string>('');
+  const [branchId, setBranchId] = useState<string>(localStorage.getItem('superadmin_selected_branch') || '');
 
   const normalize = (m: RawMaterial): RawMaterial => ({
     ...m,
@@ -643,6 +643,11 @@ const RawMaterialsTab: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [fetchMaterials, fetchBranches]);
+
+  const handleBranchChange = (val: string) => {
+    setBranchId(val);
+    localStorage.setItem('superadmin_selected_branch', val);
+  };
 
   const filtered = materials.filter(m => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase());
@@ -690,7 +695,7 @@ const RawMaterialsTab: React.FC = () => {
               placeholder="Search materials..." />
             {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500 transition-colors"><X size={13} /></button>}
           </div>
-          <select value={branchId} onChange={e => setBranchId(e.target.value)}
+          <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
             className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#3b2063] outline-none h-9 focus:ring-2 focus:ring-[#e9d5ff]">
             <option value="">All Branches</option>
             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}

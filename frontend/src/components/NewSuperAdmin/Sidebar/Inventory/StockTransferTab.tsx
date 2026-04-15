@@ -467,7 +467,7 @@ const StockTransferTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [branchFromFilter, setBranchFromFilter] = useState('');
+  const [branchFromFilter, setBranchFromFilter] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [branchToFilter, setBranchToFilter] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('transfer_date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -487,6 +487,15 @@ const StockTransferTab: React.FC = () => {
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const handleBranchFromChange = (val: string) => {
+    setBranchFromFilter(val);
+    if (!val) {
+      localStorage.removeItem('superadmin_selected_branch');
+    } else {
+      localStorage.setItem('superadmin_selected_branch', val);
+    }
+  };
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -556,10 +565,10 @@ const StockTransferTab: React.FC = () => {
         </div>
         <div>
           <p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-1.5 px-0.5">From Branch</p>
-          <select value={branchFromFilter} onChange={e => setBranchFromFilter(e.target.value)}
+          <select value={branchFromFilter} onChange={e => handleBranchFromChange(e.target.value)}
             className="appearance-none text-sm font-bold text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-[150px]">
             <option value="">All Sources</option>
-            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
           </select>
         </div>
         <div>

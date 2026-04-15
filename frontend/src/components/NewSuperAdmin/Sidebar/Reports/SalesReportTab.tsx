@@ -143,7 +143,7 @@ const SalesReportTab: React.FC = () => {
   const [period,     setPeriod]     = useState<"daily" | "weekly" | "monthly">("monthly");
   const [dateFrom,   setDateFrom]   = useState(firstOfMonth);
   const [dateTo,     setDateTo]     = useState(today);
-  const [branchId,   setBranchId]   = useState<string>("");
+  const [branchId,   setBranchId]   = useState<string>(localStorage.getItem('superadmin_selected_branch') || '');
   const [search,     setSearch]     = useState("");
 
   // Data
@@ -160,13 +160,27 @@ const SalesReportTab: React.FC = () => {
   const fmt  = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const fmtK = (v: number) => `₱${((v ?? 0) / 1000).toFixed(0)}k`;
 
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
+
   // Fetch branches once
   useEffect(() => {
     fetch("/api/branches", { headers: authHeaders() })
       .then(r => r.json())
-      .then(d => { if (d.success) setBranches(d.data); })
+      .then(d => { 
+        if (d.success && d.data.length > 0) {
+          setBranches(d.data);
+          if (!branchId) {
+            const defaultId = String(d.data[0].id);
+            setBranchId(defaultId);
+            localStorage.setItem('superadmin_selected_branch', defaultId);
+          }
+        }
+      })
       .catch(() => {});
-  }, []);
+  }, [branchId]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -330,7 +344,7 @@ const SalesReportTab: React.FC = () => {
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
           <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
               <option value="">All Branches</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
