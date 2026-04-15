@@ -174,6 +174,7 @@ class SalesDashboardService
         $voidCount        = $this->saleRepo->getVoidCountBetween($from, $to, $branchId);
         $begSI            = $this->saleRepo->getFirstSiNumberBetween($from, $to, $branchId);
         $endSI            = $this->saleRepo->getLastSiNumberBetween($from, $to, $branchId);
+        $grossOrdered     = $this->saleRepo->getGrossItemSalesBetween($from, $to, $branchId);
 
         $discounts      = $this->saleRepo->getDiscountsBreakdown($from, $to, $branchId);
         $totalDiscounts = round(
@@ -198,13 +199,8 @@ class SalesDashboardService
 
         // totalCollected IS netSales (voids already excluded by status='completed')
         $netSales   = $totalCollected;
-        
-        // Correct Gross calculation for BIR compliance:
-        // Gross = Net + SC/PWD Discounts + Other Discounts + Less VAT (removed 12% for SC/PWD)
-        $scPwdTotal = (float) $discounts['sc_discount'] + (float) $discounts['pwd_discount'];
-        $lessVat = round($scPwdTotal * 0.6, 2); // (12% / 20% = 0.6 multiplier)
-
-        $grossSales = round($totalCollected + $totalDiscounts + $lessVat + $voidAmount, 2);
+        // Gross is based on ordered items before discounts/VAT allocation split.
+        $grossSales = round($grossOrdered + $voidAmount, 2);
         $netTotal   = round($vatableSales + $vatExemptSales, 2);
 
         // Rounding adjustment should be 0 by construction (golden rule)
@@ -271,6 +267,7 @@ class SalesDashboardService
         $cash             = $this->saleRepo->getNetCashPayments($start, $end, $branchId);
         $discounts        = $this->saleRepo->getDiscountsBreakdown($start, $end, $branchId);
         $paymentBreakdown = $this->saleRepo->getPaymentMethodBreakdown($start, $end, $branchId);
+        $grossOrdered     = $this->saleRepo->getGrossItemSalesBetween($start, $end, $branchId);
 
         $totalDiscounts = round(
             $discounts['sc_discount'] + $discounts['pwd_discount'] +
@@ -294,12 +291,8 @@ class SalesDashboardService
 
         // totalCollected IS netSales (voids already excluded by status filter)
         $netSales = $totalCollected;
-
-        // Correct Gross calculation: Include the 12% VAT that was exempted for SC/PWD
-        $scPwdTotal = (float) $discounts['sc_discount'] + (float) $discounts['pwd_discount'];
-        $lessVat = round($scPwdTotal * 0.6, 2);
-
-        $gross    = round($totalCollected + $totalDiscounts + $lessVat + $voidAmount, 2);
+        // Gross is based on ordered items before discounts/VAT allocation split.
+        $gross    = round($grossOrdered + $voidAmount, 2);
         $netTotal = round($vatableSales + $vatExemptSales, 2);
 
         // Rounding adjustment = 0 by construction (golden rule)
@@ -351,7 +344,7 @@ class SalesDashboardService
             'previous_accumulated' => $previousAccumulated,
             'present_accumulated'  => $presentAccumulated,
             'sales_for_the_day'    => $netSales,
-            'less_vat'             => $lessVat,
+            'less_vat'             => 0,
             'rounding_adjustment'  => 0.0,
             'category_breakdown'   => [],
             'generated_at'         => now()->toDateTimeString(),

@@ -110,6 +110,7 @@ export const ReceiptPrint = ({
   const safePromoDiscount = Number(promoDiscount ?? 0);
   const safeTotalDiscountDisplay = Number(totalDiscountDisplay ?? 0);
   const safeChange = Number(change ?? 0);
+  const receiptNetOfVat = isVat ? (safeSubtotal / 1.12) : safeSubtotal;
 
   // 1. Lifted splitGroups calculation
   const getDiscountInfo = (type: 'sc' | 'pwd' | 'none') => {
@@ -365,14 +366,6 @@ export const ReceiptPrint = ({
                       const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
                       return acc + (unitVatExcl * (g.discountPct / 100)) * g.count;
                     }, 0);
-                    const groupNetOfVat = groups.reduce((acc: number, g) => {
-                      const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
-                        const a = addOnsData.find(x => x.name === name);
-                        return sum + (a ? Number(a.price) : 0);
-                      }, 0);
-                      const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
-                      return acc + unitVatExcl * g.count;
-                    }, 0);
                     const groupNetSubtotal = groups.reduce((acc: number, g) => {
                       const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
                         const a = addOnsData.find(x => x.name === name);
@@ -405,7 +398,7 @@ export const ReceiptPrint = ({
                         </div>
                         <div className="flex justify-between">
                           <span>Net of VAT</span>
-                          <span>₱{groupNetOfVat.toFixed(2)}</span>
+                          <span>₱{receiptNetOfVat.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between italic">
                           <span>Net Price (VAT Exempt)</span>
@@ -426,7 +419,6 @@ export const ReceiptPrint = ({
                   {paxTypes.map(p => {
                     const preVatFull = (p.amt / 0.20);
                     const groupLessVat = preVatFull * 0.12;
-                    const netOfVat = preVatFull;
                     const netVatExempt = preVatFull * 0.80;
                     return (
                     <div key={p.type} className="space-y-0.5">
@@ -441,7 +433,7 @@ export const ReceiptPrint = ({
                       </div>
                       <div className="flex justify-between">
                         <span>Net of VAT</span>
-                        <span>₱{netOfVat.toFixed(2)}</span>
+                        <span>₱{receiptNetOfVat.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between italic text-[10px]">
                         <span>Net Price (VAT Exempt)</span>

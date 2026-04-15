@@ -55,6 +55,17 @@ class SaleRepository implements SaleRepositoryInterface
             ->sum('total_amount');
     }
 
+    public function getGrossItemSalesBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null): float
+    {
+        // Gross sales = ordered line totals before any order-level discounts/VAT split adjustments.
+        return (float) DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->sum('sale_items.final_price');
+    }
+
     public function getSalesCountBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null): int
     {
         return (int) DB::table('sales')
