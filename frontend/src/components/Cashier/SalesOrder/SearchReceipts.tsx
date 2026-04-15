@@ -421,44 +421,83 @@ return {
                   margin: 0 !important; 
                   padding: 0 !important; 
                   width: ${printType === 'sticker' ? '38.5mm' : '80mm'} !important;
-                  height: auto !important;
-                  overflow: visible !important;
                 }
-                body * { visibility: hidden !important; }
+                body * { visibility: hidden; }
+                nav, header, aside, button, .print\\:hidden { display: none !important; }
                 .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
                 .printable-receipt-container {
                   position: absolute !important;
                   left: 0 !important;
                   top: 0 !important;
-                  display: block !important;
-                  width: ${printType === 'sticker' ? '38.5mm' : '100%'} !important;
+                  width: 100% !important;
                   max-width: ${printType === 'sticker' ? '38.5mm' : '76mm'} !important;
                   margin: 0 !important;
                   padding: 0 !important;
                   height: auto !important;
-                  overflow: visible !important;
                 }
-                .receipt-area { 
-                  position: relative !important;
-                  width: 66mm !important; 
-                  margin: 0 auto !important; 
-                  padding: 2mm 0 !important; 
-                  box-sizing: border-box !important; 
-                  color: #000 !important; 
-                  font-family: Arial, Helvetica, sans-serif !important; 
-                  font-size: 12px !important; 
-                  line-height: 1.4 !important; 
+                .receipt-area {
+                  width: 66mm !important;
+                  margin: 0 auto !important;
+                  padding: 1mm 0 !important;
+                  box-sizing: border-box !important;
+                  color: #000 !important;
+                  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+                  font-size: 11px !important;
+                  line-height: 1.1 !important;
+                  font-weight: 500 !important;
+                  text-rendering: geometricPrecision !important;
+                  -webkit-font-smoothing: none !important;
+                  font-smooth: never !important;
+                  letter-spacing: 0 !important;
+                  font-kerning: none !important;
+                  font-variant-ligatures: none !important;
+                  text-shadow: none !important;
+                  transform: none !important;
+                  zoom: 1 !important;
                 }
+                .receipt-area * {
+                  font-family: inherit !important;
+                  font-weight: inherit !important;
+                  line-height: inherit !important;
+                  text-rendering: inherit !important;
+                  -webkit-font-smoothing: inherit !important;
+                  font-smooth: inherit !important;
+                  letter-spacing: inherit !important;
+                  font-kerning: inherit !important;
+                  font-variant-ligatures: inherit !important;
+                  text-shadow: none !important;
+                  transform: none !important;
+                }
+                .receipt-area strong,
+                .receipt-area b,
+                .receipt-area .font-semibold {
+                  font-weight: 600 !important;
+                }
+                .receipt-area .font-bold {
+                  font-weight: 700 !important;
+                }
+                /* Keep output compact without browser downscaling (prevents fuzzy text). */
+                .receipt-area .mb-4 { margin-bottom: 0.5rem !important; }
+                .receipt-area .mb-3 { margin-bottom: 0.35rem !important; }
+                .receipt-area .mt-6 { margin-top: 0.6rem !important; }
+                .receipt-area .mt-5 { margin-top: 0.5rem !important; }
+                .receipt-area .mt-3 { margin-top: 0.35rem !important; }
+                .receipt-area .mt-2 { margin-top: 0.25rem !important; }
+                .receipt-area .py-4 { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; }
+                .receipt-area .pb-3 { padding-bottom: 0.35rem !important; }
+                .receipt-area .pt-3 { padding-top: 0.35rem !important; }
+                .receipt-area .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.35rem !important; }
+                .receipt-area .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.2rem !important; }
                 .sticker-area { 
                   width: 38.5mm !important; 
-                  height: 50.8mm !important; 
-                  padding: 2mm !important; 
+                  height: 38.5mm !important; 
+                  padding: 1.5mm !important; 
                   margin: 0 auto !important; 
                   box-sizing: border-box !important; 
                   color: #000 !important; 
                   display: flex !important; 
                   flex-direction: column !important; 
-                  justify-content: space-between !important; 
+                  justify-content: center !important; 
                   align-items: center !important; 
                   text-align: center !important; 
                   font-family: Arial, Helvetica, sans-serif !important; 
