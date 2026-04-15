@@ -83,12 +83,14 @@ class RecalculateVatCommand extends Command
                         })
                         ->sum('discount_amount');
                 }
-                $lessVat = $scPwdDisc > 0 ? round(($scPwdDisc / 0.20) * 0.12, 2) : 0.0;
+                // Keep full precision, then round only once at final total.
+                $lessVat = $scPwdDisc > 0 ? (($scPwdDisc / 0.20) * 0.12) : 0.0;
 
                 $correctTotal = max(0, round($itemSum - $itemDiscSum - $uncategorized - $categorized - $lessVat, 2));
 
                 // Fix total_amount when it materially differs.
-                if (abs($correctTotal - $currentTotal) > 0.01) {
+                // Ignore pure cent-level noise from historical rounded aggregates.
+                if (abs($correctTotal - $currentTotal) > 0.02) {
                     $totalFixed++;
                     $totalAmount += ($correctTotal - $currentTotal);
                     $newTotal = $correctTotal;
@@ -134,7 +136,12 @@ class RecalculateVatCommand extends Command
             // PERFECT BALANCING: Ensure golden rule: vatable + vat + exempt = total
             $residual = round($newTotal - ($vatableSales + $vatAmount + $vatExemptSales), 2);
             if (abs($residual) > 0 && abs($residual) <= 0.05) {
-                $vatableSales = round($vatableSales + $residual, 2);
+                $nearFullyExempt = round($newTotal - $vatExemptSales, 2) <= 0.01;
+                if ($nearFullyExempt) {
+                    $vatExemptSales = round($vatExemptSales + $residual, 2);
+                } else {
+                    $vatAmount = round($vatAmount + $residual, 2);
+                }
             }
 
             $vatChanged = abs((float)$sale->vatable_sales - $vatableSales) > 0.01

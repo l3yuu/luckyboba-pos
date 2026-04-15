@@ -173,7 +173,8 @@ class ProcessCheckoutAction
                     ->sum('discount_amount');
             }
             if ($scPwdDisc > 0) {
-                $lessVat = round(($scPwdDisc / 0.20) * 0.12, 2);
+                // Keep full precision, then round only once at the final amount.
+                $lessVat = ($scPwdDisc / 0.20) * 0.12;
                 $finalTotal = max(0, round($finalTotal - $lessVat, 2));
             }
 
@@ -334,7 +335,15 @@ class ProcessCheckoutAction
         // ── Enforce golden rule: components must sum exactly to total_amount
         $residual = round($totalAmount - ($vatableSales + $vatAmount + $vatExemptSales), 2);
         if (abs($residual) > 0 && abs($residual) <= 0.05) {
-            $vatableSales = round($vatableSales + $residual, 2);
+            // Deterministic centavo allocation:
+            // - For fully VAT-exempt scenarios, keep vatable at 0 and absorb residual in exempt.
+            // - Otherwise, absorb residual in VAT amount (not vatable base) to avoid base drift.
+            $nearFullyExempt = round($totalAmount - $vatExemptSales, 2) <= 0.01;
+            if ($nearFullyExempt) {
+                $vatExemptSales = round($vatExemptSales + $residual, 2);
+            } else {
+                $vatAmount = round($vatAmount + $residual, 2);
+            }
         }
 
         $sale->update([
