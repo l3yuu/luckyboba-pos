@@ -346,7 +346,7 @@ const AdjustModal: React.FC<{
               <Field label="Reason" required>
                 <div className="space-y-2">
                   <select 
-                    value={REASONS[adjType as keyof typeof REASONS].includes(reason as typeof REASONS['add'][number]) ? reason : (reason ? 'Other' : '')} 
+                    value={REASONS[adjType as keyof typeof REASONS].includes(reason as any) ? reason : (reason ? 'Other' : '')} 
                     onChange={e => setReason(e.target.value === 'Other' ? '' : e.target.value)} 
                     className={inputCls()}
                   >
@@ -354,7 +354,7 @@ const AdjustModal: React.FC<{
                     {REASONS[adjType as keyof typeof REASONS].map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
 
-                  {(!REASONS[adjType as keyof typeof REASONS].includes(reason as typeof REASONS['add'][number]) || reason === 'Other') && (
+                  {(!REASONS[adjType as keyof typeof REASONS].includes(reason as any) || reason === 'Other') && (
                     <input 
                       value={reason === 'Other' ? '' : reason} 
                       onChange={e => setReason(e.target.value)}
