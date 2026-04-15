@@ -264,14 +264,30 @@ class RawMaterialController extends Controller
 
     /**
      * GET /api/raw-materials/{id}/history
-     * Get daily log history for a material.
+     * Get movement history for a material.
      */
     public function history(Request $request, RawMaterial $rawMaterial)
     {
-        $logs = RawMaterialLog::where('raw_material_id', $rawMaterial->id)
-            ->orderBy('date', 'desc')
-            ->limit($request->integer('limit', 30))
-            ->get();
+        $user = $request->user();
+        if (in_array($user->role, ['branch_manager', 'team_leader', 'supervisor']) && $rawMaterial->branch_id !== $user->branch_id) {
+            return response()->json(['message' => 'Unauthorized: This material belongs to another branch.'], 403);
+        }
+
+        // Use stock_movements as source of truth for "View History" in UI
+        $logs = StockMovement::with(['user:id,name'])
+            ->where('raw_material_id', $rawMaterial->id)
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit($request->integer('limit', 50))
+            ->get()
+            ->map(fn($m) => [
+                'id'           => $m->id,
+                'type'         => $m->type,
+                'quantity'     => (float) $m->quantity,
+                'reason'       => $m->reason ?? ucfirst($m->type),
+                'performed_by' => $m->user->name ?? 'System',
+                'created_at'   => $m->created_at,
+            ]);
 
         return response()->json([
             'material' => $rawMaterial,
