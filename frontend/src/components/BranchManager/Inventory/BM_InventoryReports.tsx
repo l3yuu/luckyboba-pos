@@ -33,7 +33,6 @@ interface Movement {
   created_at:   string;
 }
 
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const varianceColor = (v: number) => {

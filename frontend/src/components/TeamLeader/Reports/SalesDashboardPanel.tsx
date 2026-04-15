@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, type ElementType } from 'react';
 import api from '../../../services/api';
 import { 
-  PhilippinePeso, ShoppingBag, Calendar, 
+  PhilippinePeso, ShoppingBag, 
   ArrowUpRight, ArrowDownRight, Activity, 
-  RefreshCw, FileText
+  FileText
 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, 
@@ -43,12 +43,10 @@ const STYLES = `
   
   .sdb-tile { 
     background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; 
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .sdb-tile:hover { 
     border-color: #cbd5e1; 
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);
-    transform: translateY(-2px);
   }
 
   .sdb-filter-group {
@@ -109,7 +107,7 @@ const SalesTile = ({ label, value, icon: Icon, color, trend }: SalesTileProps) =
 const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
   const [data,       setData]       = useState<SalesData[]>([]);
   const [loading,    setLoading]    = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
   const [period,     setPeriod]     = useState<'7days' | '30days' | '3months'>('7days');
 
   const load = useCallback(async (isRefresh = false) => {
@@ -167,38 +165,8 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
   );
 
   return (
-    <div className="sdb-root p-8 md:p-12 animate-in fade-in duration-1000">
+    <div className="sdb-root p-8 md:p-12">
       <style>{STYLES}</style>
-
-      {/* ── OFFICIAL REPORT HEADER ── */}
-      <div className="sdb-report-header flex flex-col md:flex-row md:items-end justify-between gap-8">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-[#3b2063]" />
-            <p className="sdb-label !text-[#3b2063]">Reporting & Internal Audit</p>
-          </div>
-          <h1 className="text-[2.2rem] font-black text-[#0f172a] tracking-tight leading-none">
-            Sales Performance Audit
-          </h1>
-          <p className="text-[0.75rem] font-bold text-slate-400 mt-3 flex items-center gap-2">
-            <Calendar size={14} className="text-slate-300" />
-            Comparative analysis for the last {period.replace('days',' days').replace('months',' months')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="sdb-filter-group">
-            {(['7days', '30days', '3months'] as const).map(p => (
-              <button key={p} onClick={() => setPeriod(p)} className={`sdb-filter-btn ${period === p ? 'active' : ''}`}>
-                {p === '7days' ? '7D' : p === '30days' ? '30D' : '3M'}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => load(true)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-[#3b2063] hover:border-[#3b206330] rounded-xl transition-all shadow-sm">
-            <RefreshCw size={16} className={refreshing ? 'sdb-spin' : ''} />
-          </button>
-        </div>
-      </div>
 
       {/* ── HIGH-DENSITY KPI TILES ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
@@ -217,14 +185,23 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
             <h3 className="font-black text-slate-800 tracking-tight uppercase text-xs">Revenue Trend Distribution</h3>
             <p className="sdb-label mt-1">Real-time daily aggregate values</p>
           </div>
-          <div className="flex items-center gap-6 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#3b2063]" />
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Gross Sales</span>
+          <div className="flex items-center gap-4">
+            <div className="sdb-filter-group">
+              {(['7days', '30days', '3months'] as const).map(p => (
+                <button key={p} onClick={() => setPeriod(p)} className={`sdb-filter-btn ${period === p ? 'active' : ''}`}>
+                  {p === '7days' ? '7D' : p === '30days' ? '30D' : '3M'}
+                </button>
+              ))}
             </div>
-            <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-              <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Audit Avg</span>
+            <div className="flex items-center gap-6 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#3b2063]" />
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Gross Sales</span>
+              </div>
+              <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Audit Avg</span>
+              </div>
             </div>
           </div>
         </div>
@@ -262,8 +239,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
                 strokeWidth={3.5} 
                 dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#3b2063' }}
                 activeDot={{ r: 7, strokeWidth: 3, fill: '#fff', stroke: '#3b2063' }}
-                animationDuration={2500}
-                isAnimationActive={true}
+                isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>

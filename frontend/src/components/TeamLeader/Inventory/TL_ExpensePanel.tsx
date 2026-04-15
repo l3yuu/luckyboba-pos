@@ -135,20 +135,6 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
     return (
         <div className="flex-1 bg-[#f4f2fb] min-h-full flex flex-col p-5 md:p-8 gap-6 font-sans" style={dashboardFont}>
 
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Branch Expenses</h2>
-                    <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Track and record operational spending</p>
-                </div>
-                <button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="h-9 px-5 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg shadow-sm flex items-center gap-2"
-                >
-                    <Plus size={14} /> Add New Expense
-                </button>
-            </div>
-
             {/* Filters */}
             <div className="bg-white border border-zinc-200 p-4 rounded-[0.625rem] shadow-sm flex flex-col xl:flex-row items-center gap-4">
                 <div className="flex flex-1 gap-2 w-full xl:w-auto">
@@ -183,6 +169,12 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                 <button onClick={() => fetchExpenses(true)}
                     className="w-full xl:w-auto h-10 px-6 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg">
                     Filter
+                </button>
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="w-full xl:w-auto h-10 px-5 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg shadow-sm flex items-center justify-center gap-2"
+                >
+                    <Plus size={14} /> Add New Expense
                 </button>
             </div>
 

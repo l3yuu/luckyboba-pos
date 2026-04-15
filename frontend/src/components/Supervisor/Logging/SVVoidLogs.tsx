@@ -180,20 +180,7 @@ const SV_VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-base font-bold text-[#3b2063]">Receipt Management</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Search and void transactions</p>
-        </div>
-        <div className="flex gap-2">
-          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-            className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-bold outline-none" />
-          <button 
-            onClick={fetchLogs} 
-            disabled={loading}
-            style={{ backgroundColor: '#3b2063' }}
-            className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-4 py-2 text-xs text-white hover:opacity-90 shadow-xl shadow-[#3b2063]/20 disabled:opacity-50"
-          >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Sync Records
-          </button>
+
         </div>
       </div>
 
@@ -207,7 +194,7 @@ const SV_VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
       {/* ── Table ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
         <div className="px-5 py-4 border-b border-zinc-100">
-          <div className="flex items-center gap-2 bg-[#3b2063]/5 border border-[#3b2063]/10 rounded-lg px-3 py-2 focus-within:ring-4 focus-within:ring-[#3b2063]/5 transition-all">
+          <div className="flex items-center gap-3 bg-[#3b2063]/5 border border-[#3b2063]/10 rounded-lg px-3 py-2 focus-within:ring-4 focus-within:ring-[#3b2063]/5 transition-all">
             <Search size={13} className="text-zinc-400" />
             <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               className="flex-1 bg-transparent text-sm outline-none"
@@ -217,6 +204,18 @@ const SV_VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
                 <X size={13} />
               </button>
             )}
+            <div className="border-l border-[#3b2063]/20 pl-3 flex gap-2 ml-auto">
+              <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+                className="bg-white border border-zinc-200 rounded-lg px-3 py-1 text-xs font-bold outline-none" />
+              <button 
+                onClick={fetchLogs} 
+                disabled={loading}
+                style={{ backgroundColor: '#3b2063' }}
+                className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-4 py-1.5 text-xs text-white hover:opacity-90 shadow-xl shadow-[#3b2063]/20 disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Sync Records
+              </button>
+            </div>
           </div>
         </div>
 
