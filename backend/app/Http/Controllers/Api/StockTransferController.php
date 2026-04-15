@@ -13,12 +13,21 @@ use Illuminate\Support\Facades\DB;
 class StockTransferController extends Controller
 {
     // GET /api/stock-transfers
-    public function index()
+    public function index(Request $request)
     {
         $user  = auth()->user();
         $query = StockTransfer::with(['fromBranch', 'toBranch', 'items.rawMaterial']);
 
-        if ($user->role !== 'superadmin') {
+        // 1. If branch_id is explicitly provided (e.g. from a filter or scoped view)
+        if ($request->filled('branch_id')) {
+            $branchId = $request->branch_id;
+            $query->where(function ($q) use ($branchId) {
+                $q->where('from_branch_id', $branchId)
+                  ->orWhere('to_branch_id', $branchId);
+            });
+        } 
+        // 2. Otherwise, fall back to the user's branch if not a superadmin
+        elseif ($user->role !== 'superadmin') {
             $query->where(function ($q) use ($user) {
                 $q->where('from_branch_id', $user->branch_id)
                   ->orWhere('to_branch_id', $user->branch_id);
