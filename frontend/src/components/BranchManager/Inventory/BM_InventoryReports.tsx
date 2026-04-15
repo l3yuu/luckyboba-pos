@@ -175,6 +175,7 @@ const COLUMN_GUIDE: Record<string, string> = {
 
 const BM_InventoryReports: React.FC = () => {
   const now   = new Date();
+  const [branchId,      setBranchId]      = useState<number | null>(null);
   const [rows,          setRows]          = useState<UsageRow[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [search,        setSearch]        = useState('');
@@ -187,9 +188,14 @@ const BM_InventoryReports: React.FC = () => {
   const PERIOD = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
 
   const fetchReport = useCallback(async () => {
+    if (branchId == null) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const res = await api.get('/inventory/usage-report', { params: { period: PERIOD } });
+      const res = await api.get('/inventory/usage-report', { params: { period: PERIOD, branch_id: branchId } });
       const d = res.data;
       setRows(Array.isArray(d) ? d : d?.data ?? []);
     } catch (e) { console.error(e); }
@@ -197,7 +203,13 @@ const BM_InventoryReports: React.FC = () => {
       setLoading(false); 
       setLastUpdated(new Date());
     }
-  }, [PERIOD]);
+  }, [PERIOD, branchId]);
+
+  useEffect(() => {
+    api.get('/user')
+      .then(res => setBranchId(res.data?.branch_id ?? null))
+      .catch(() => setBranchId(null));
+  }, []);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
 
@@ -218,7 +230,7 @@ const BM_InventoryReports: React.FC = () => {
     setExporting(true);
     try {
       const res = await api.get('/inventory/usage-report/export', {
-        params: { period: PERIOD },
+        params: { period: PERIOD, branch_id: branchId ?? undefined },
         responseType: 'blob',
       });
       const url  = URL.createObjectURL(res.data);

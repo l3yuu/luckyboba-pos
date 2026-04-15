@@ -352,7 +352,11 @@ const DeleteModal: React.FC<{
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const RecipesTab: React.FC = () => {
+interface RecipesTabProps {
+  readOnly?: boolean;
+}
+
+const RecipesTab: React.FC<RecipesTabProps> = ({ readOnly = false }) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -376,6 +380,7 @@ const RecipesTab: React.FC = () => {
   useEffect(() => { fetchRecipes(); }, [fetchRecipes]);
 
   const handleToggle = async (recipe: Recipe) => {
+    if (readOnly) return;
     try {
       const res = await api.patch(`/recipes/${recipe.id}/toggle`);
       const updated = res.data?.data ?? res.data;
@@ -432,17 +437,19 @@ const RecipesTab: React.FC = () => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <button onClick={() => setAddOpen(true)}
-            className="bg-[#3b2063] hover:bg-[#6a12b8] shrink-0 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all ml-auto md:ml-0">
-            <Plus size={13} /> Add Recipe
-          </button>
+          {!readOnly && (
+            <button onClick={() => setAddOpen(true)}
+              className="bg-[#3b2063] hover:bg-[#6a12b8] shrink-0 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all ml-auto md:ml-0">
+              <Plus size={13} /> Add Recipe
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {['Menu Item', 'Size', 'Status', 'Ingredients', 'Actions'].map(h => (
+                {['Menu Item', 'Size', 'Status', 'Ingredients', ...(readOnly ? [] : ['Actions'])].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -459,7 +466,7 @@ const RecipesTab: React.FC = () => {
               ))}
 
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={5} className="py-16 text-center">
+                <tr><td colSpan={readOnly ? 4 : 5} className="py-16 text-center">
                   <BookOpen size={32} className="mx-auto text-zinc-200 mb-3" />
                   <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">
                     {search || statusFilter ? 'No recipes match your filters' : 'No recipes found'}
@@ -495,15 +502,21 @@ const RecipesTab: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <button onClick={() => handleToggle(r)}
-                          className="flex items-center gap-2 group">
-                          <div className={`w-9 h-5 rounded-full transition-colors flex items-center ${r.is_active ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}>
-                            <div className={`w-3.5 h-3.5 bg-white rounded-full mx-0.5 transition-transform ${r.is_active ? 'translate-x-4' : ''}`} />
-                          </div>
+                        {readOnly ? (
                           <span className={`text-[10px] font-bold uppercase tracking-widest ${r.is_active ? 'text-[#3b2063]' : 'text-zinc-400'}`}>
                             {r.is_active ? 'Active' : 'Inactive'}
                           </span>
-                        </button>
+                        ) : (
+                          <button onClick={() => handleToggle(r)}
+                            className="flex items-center gap-2 group">
+                            <div className={`w-9 h-5 rounded-full transition-colors flex items-center ${r.is_active ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}>
+                              <div className={`w-3.5 h-3.5 bg-white rounded-full mx-0.5 transition-transform ${r.is_active ? 'translate-x-4' : ''}`} />
+                            </div>
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${r.is_active ? 'text-[#3b2063]' : 'text-zinc-400'}`}>
+                              {r.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </button>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         {hasItems ? (
@@ -520,24 +533,26 @@ const RecipesTab: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => setEditTarget(r)} title="Edit"
-                            className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
-                            <Edit2 size={13} />
-                          </button>
-                          <button onClick={() => setDelTarget(r)} title="Delete"
-                            className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors">
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
+                      {!readOnly && (
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => setEditTarget(r)} title="Edit"
+                              className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                              <Edit2 size={13} />
+                            </button>
+                            <button onClick={() => setDelTarget(r)} title="Delete"
+                              className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
 
                     {/* Expanded ingredient rows */}
                     {isExpanded && (
                       <tr className="border-b border-zinc-100 bg-[#faf9ff]">
-                        <td colSpan={5} className="px-5 pb-3 pt-1">
+                        <td colSpan={readOnly ? 4 : 5} className="px-5 pb-3 pt-1">
                           <div className="ml-10 border border-[#e9d5ff] rounded-xl overflow-hidden">
                             <div className="grid grid-cols-3 bg-[#f5f0ff] px-4 py-2 border-b border-[#e9d5ff]">
                               {['Material', 'Qty / Serving', 'Unit'].map(h => (
@@ -567,20 +582,20 @@ const RecipesTab: React.FC = () => {
       </div>
 
       {/* Modals */}
-      {addOpen && (
+      {!readOnly && addOpen && (
         <RecipeFormModal
           onClose={() => setAddOpen(false)}
           onSaved={r => setRecipes(p => [r, ...p])}
         />
       )}
-      {editTarget && (
+      {!readOnly && editTarget && (
         <RecipeFormModal
           onClose={() => setEditTarget(null)}
           onSaved={r => { setRecipes(p => p.map(x => x.id === r.id ? r : x)); setEditTarget(null); }}
           editing={editTarget}
         />
       )}
-      {delTarget && (
+      {!readOnly && delTarget && (
         <DeleteModal
           recipe={delTarget}
           onClose={() => setDelTarget(null)}

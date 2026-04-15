@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Edit2, Trash2, X, AlertCircle,
+  Search, Edit2, Trash2, X, AlertCircle,
   ChevronDown, History, TrendingUp, TrendingDown, Minus,
   Package, CheckCircle, FlaskConical,
 } from 'lucide-react';
@@ -554,12 +554,12 @@ const DeleteModal: React.FC<{
 
 const BM_InventoryList: React.FC = () => {
   const [materials,   setMaterials]   = useState<RawMaterial[]>([]);
+  const [branchId,    setBranchId]    = useState<number | null>(null);
   const [loading,     setLoading]     = useState(true);
   const [search,      setSearch]      = useState('');
   const [catFilter,   setCatFilter]   = useState('');
   const [stockFilter, setStockFilter] = useState('');
 
-  const [addOpen,     setAddOpen]     = useState(false);
   const [editTarget,  setEditTarget]  = useState<RawMaterial | null>(null);
   const [delTarget,   setDelTarget]   = useState<RawMaterial | null>(null);
   const [adjTarget,   setAdjTarget]   = useState<RawMaterial | null>(null);
@@ -573,15 +573,26 @@ const BM_InventoryList: React.FC = () => {
     });  
     
     const fetchMaterials = useCallback(async () => {
+    if (branchId == null) {
+      setMaterials([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-        const res = await api.get('/raw-materials');
+        const res = await api.get('/raw-materials', { params: { branch_id: branchId } });
         const data = res.data;
         const raw = Array.isArray(data) ? data : data?.data ?? [];
         setMaterials(raw.map(normalize)); // ← add .map(normalize) here
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-    }, []);
+    }, [branchId]);
+
+  useEffect(() => {
+    api.get('/user')
+      .then(res => setBranchId(res.data?.branch_id ?? null))
+      .catch(() => setBranchId(null));
+  }, []);
 
   useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
 
@@ -631,11 +642,7 @@ const BM_InventoryList: React.FC = () => {
             </select>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <button onClick={() => setAddOpen(true)} className="w-full md:w-auto px-5 py-3 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-xs">
-              <Plus size={14} strokeWidth={3} /> Add Material
-            </button>
-          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto" />
         </div>
       </div>
 
@@ -758,12 +765,6 @@ const BM_InventoryList: React.FC = () => {
       </div>
 
       {/* Modals */}
-      {addOpen && (
-        <MaterialFormModal
-          onClose={() => setAddOpen(false)}
-          onSaved={m => setMaterials(p => [m, ...p])}
-        />
-      )}
       {editTarget && (
         <MaterialFormModal
           onClose={() => setEditTarget(null)}

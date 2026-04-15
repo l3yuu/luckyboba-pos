@@ -1210,6 +1210,9 @@ const SalesOrder = () => {
             sessionStorage.setItem('lucky_boba_receipt_cache_date', today)
           }),
         ]).catch(e => console.error('Failed to fetch fresh data', e))
+        const salesTick = String(Date.now())
+        localStorage.setItem('lucky_boba_live_sales_tick', salesTick)
+        window.dispatchEvent(new CustomEvent('luckyboba:sale-recorded', { detail: { at: salesTick } }))
         setPrintedReceipt(false)
         setPrintedKitchen(false)
         setPrintedStickers(false)

@@ -5,7 +5,7 @@ import api from '../../../services/api';
 import {
   TrendingUp, TrendingDown, DollarSign, AlertCircle,
   ShoppingBag, Activity, ArrowUpRight, ArrowDownRight,
-  Wallet, RefreshCw, Download,
+  Wallet, Download,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -247,6 +247,23 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    const onSaleRecorded = () => fetchData();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'lucky_boba_live_sales_tick') fetchData();
+    };
+
+    window.addEventListener('luckyboba:sale-recorded', onSaleRecorded as EventListener);
+    window.addEventListener('storage', onStorage);
+    const id = setInterval(fetchData, 10000);
+
+    return () => {
+      window.removeEventListener('luckyboba:sale-recorded', onSaleRecorded as EventListener);
+      window.removeEventListener('storage', onStorage);
+      clearInterval(id);
+    };
+  }, [fetchData]);
+
   // ── Formatters ─────────────────────────────────────────────────────────────
   const fmt = (v?: number | string) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
   const fmtK = (v: number) => {
@@ -364,12 +381,6 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                 {label}
               </button>
             ))}
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <Btn variant="secondary" onClick={fetchData} disabled={loading} className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
-            </Btn>
           </div>
         </div>
       </div>
