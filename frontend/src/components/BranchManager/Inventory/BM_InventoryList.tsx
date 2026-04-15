@@ -271,7 +271,7 @@ const AdjustModal: React.FC<{
               <div className="grid grid-cols-4 gap-2">
                 {(Object.entries(typeConfig) as [AdjType | 'waste', typeof typeConfig.add][]).map(([key, cfg]) => (
                   <button key={key} onClick={() => {
-                    setAdjType(key as any);
+                    setAdjType(key as AdjType | 'waste');
                     setReasonSelect('');
                   }}
                     className="flex flex-col items-center gap-1 py-1 px-1 rounded-lg border text-[10px] font-bold transition-all"

@@ -427,7 +427,7 @@ const ZReadingTab: React.FC = () => {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [branchId]);
 
   // ── Full Z-Reading = merge z-reading + cash-counts + item-quantities + void-logs ──
   const fetchFullZReading = useCallback(async () => {

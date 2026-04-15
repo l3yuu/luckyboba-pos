@@ -205,13 +205,14 @@ const BM_InventoryReports: React.FC = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       // Only poll when not explicitly loading and when viewing current period
-      const isCurrentPeriod = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
+      const currentNow = new Date();
+      const isCurrentPeriod = selectedMonth === currentNow.getMonth() && selectedYear === currentNow.getFullYear();
       if (!loading && isCurrentPeriod) {
         fetchReport();
       }
     }, 30000); // 30 seconds
     return () => clearInterval(timer);
-  }, [fetchReport, loading, selectedMonth, selectedYear, now]);
+  }, [fetchReport, loading, selectedMonth, selectedYear]);
 
   const handleExport = async () => {
     setExporting(true);

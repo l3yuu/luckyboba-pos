@@ -200,7 +200,7 @@ const XReadingTab: React.FC = () => {
         }
       })
       .catch(() => { });
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
