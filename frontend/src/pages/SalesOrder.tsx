@@ -9,11 +9,12 @@ import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/Offli
 import {
   type MenuItem, type Category, type CartItem,
   type Bundle, type BundleComponentCustomization,
+  SUGAR_LEVELS
 } from '../types/index';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
-import { ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 import {
   generateORNumber,
@@ -39,8 +40,8 @@ import {
 } from '../components/Cashier/SalesOrderComponents/modals'
 
 import { ReceiptPrint, KitchenPrint, StickerPrint } from '../components/Cashier/SalesOrderComponents/print'
-
 import OrderTypeModal from '../components/Cashier/OrderTypeModal'
+import SyncOverlay from '../components/SyncOverlay'
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 const round = (n: number, d = 2) => Math.round(n * 10 ** d) / 10 ** d
@@ -54,57 +55,6 @@ interface Discount {
   status: 'ON' | 'OFF'
 }
 
-// ── Non-Dismissible Sync Overlay ──────────────────────────────────────────────
-const SyncOverlay = ({ onSync }: { onSync: () => Promise<void> }) => {
-  const [syncing, setSyncing] = React.useState(false)
-
-  // Block Escape key while overlay is visible
-  React.useEffect(() => {
-    const block = (e: KeyboardEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-    window.addEventListener('keydown', block, true)
-    return () => window.removeEventListener('keydown', block, true)
-  }, [])
-
-  const handleSync = async () => {
-    if (syncing) return
-    setSyncing(true)
-    try {
-      await onSync()
-    } catch {
-      setSyncing(false)
-    }
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm"
-      style={{ pointerEvents: 'auto' }}
-    >
-      <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center border border-zinc-100 flex flex-col items-center animate-in fade-in zoom-in duration-300">
-        <div className={`w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-6 shadow-inner ${syncing ? 'animate-spin' : ''}`}>
-          <RefreshCw size={28} />
-        </div>
-        <h2 className="text-xl font-extrabold text-[#1a0f2e] mb-2 tracking-tight">
-          Menu Update Available
-        </h2>
-        <p className="text-sm text-zinc-500 mb-8 font-medium">
-          The menu has been updated by the administrator. You must synchronize the system to continue.
-        </p>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          className="w-full bg-[#1a0f2e] hover:bg-violet-600 disabled:opacity-70 disabled:cursor-not-allowed text-white font-extrabold py-4 px-6 rounded-2xl shadow-lg shadow-violet-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-wide text-sm"
-        >
-          <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
-          {syncing ? 'Syncing...' : 'Sync Now'}
-        </button>
-      </div>
-    </div>
-  )
-}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const SalesOrder = () => {
@@ -197,12 +147,12 @@ const SalesOrder = () => {
   const [remarks, setRemarks] = useState('')
   const [sugarLevel, setSugarLevel] = useState('')
   const [sugarLevels, setSugarLevels] = useState<{ id: number; label: string; value: string }[]>(() => {
-    try {
-      const c = localStorage.getItem('pos_sugar_levels_cache')
-      return c ? JSON.parse(c) : []
-    } catch {
-      return []
-    }
+    // REVERT to standard 0, 25, 50, 75, 100 as per user request
+    return SUGAR_LEVELS.map((label, i) => ({
+      id: i + 1,
+      label,
+      value: label
+    }));
   })
   const [size, setSize] = useState<'M' | 'L' | 'none'>('M')
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
@@ -508,10 +458,9 @@ const SalesOrder = () => {
     const t = Date.now(); // Cache busting timestamp
 
     try {
-      const [menuRes, addonsRes, sugarRes, bundlesRes, discountsRes, branchRes, paymentRes] = await Promise.allSettled([
+      const [menuRes, addonsRes, bundlesRes, discountsRes, branchRes, paymentRes] = await Promise.allSettled([
         api.get(`/menu?t=${t}`),
         api.get(`/add-ons?t=${t}`),
-        api.get(`/sugar-levels?t=${t}`),
         api.get(`/bundles?t=${t}`),
         api.get(`/discounts?t=${t}`),
         branchId ? api.get(`/branches/${branchId}?t=${t}`) : Promise.reject('no_branch'),
@@ -551,13 +500,9 @@ const SalesOrder = () => {
         setAddOnsData(data);
       }
 
-      // 3. Sugar Levels
-      if (sugarRes.status === 'fulfilled') {
-        const data = sugarRes.value.data;
-        const levels = data.data ?? data;
-        localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(levels));
-        setSugarLevels(levels);
-      }
+      // 3. Sugar Levels (Maintain standard levels even after sync)
+      // We ignore server sugar levels to stick to standard 0-100% per user request
+      setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })));
 
       // 4. Bundles
       if (bundlesRes.status === 'fulfilled') {
@@ -935,15 +880,9 @@ const SalesOrder = () => {
 
     const isDrinkItem = catType === 'drink' || catType === 'combo'
     if (isDrinkItem) {
-      try {
-        const { data } = await api.get(`/sugar-levels/by-item/${item.id}`)
-        const levels = data.data ?? []
-        setSugarLevels(levels)
-        setSugarLevel('')
-      } catch {
-        setSugarLevels([])
-        setSugarLevel('')
-      }
+      // REVERT: Use standard sugar levels instead of fetching per-item
+      setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })))
+      setSugarLevel('')
     } else {
       setSugarLevels([])
       setSugarLevel('')
