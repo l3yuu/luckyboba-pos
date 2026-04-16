@@ -36,7 +36,7 @@ class MenuItemAddonController extends Controller
     public function update(Request $request, $menuItemId)
     {
         $request->validate([
-            'addon_ids'   => 'required|array',
+            'addon_ids'   => 'present|array',
             'addon_ids.*' => 'integer|exists:add_ons,id',
         ]);
 

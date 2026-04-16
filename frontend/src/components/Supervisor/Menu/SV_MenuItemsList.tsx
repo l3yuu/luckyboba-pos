@@ -39,7 +39,6 @@ const SV_MenuItemsList = () => {
       setItems(raw.map(mapMenuItem));
     } catch (e) {
       setError('Failed to load menu items.');
-      // eslint-disable-next-line no-console
       console.error(e);
     } finally {
       setLoading(false);

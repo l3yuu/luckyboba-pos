@@ -158,7 +158,7 @@ class SugarLevelController extends Controller
     public function updateAssignment(Request $request, $menuItemId)
     {
         $request->validate([
-            'sugar_level_ids'   => 'required|array',
+            'sugar_level_ids'   => 'present|array',
             'sugar_level_ids.*' => 'integer|exists:sugar_levels,id',
         ]);
 

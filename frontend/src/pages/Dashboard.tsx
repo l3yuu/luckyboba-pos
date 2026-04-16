@@ -141,16 +141,23 @@ const fetchStats = useCallback(async (force = false) => {
 
   // Real-time synchronization prompt
   useEffect(() => {
-    // 1. BroadcastChannel Listener
-    const channel = new BroadcastChannel('pos-updates');
+    const SYNC_CHANNEL_NAME = 'lucky_boba_pos_sync_v1';
+    const SYNC_STORAGE_KEY = 'lb-pos-sync-trigger-v1';
+    const origin = window.location.origin;
+
+    const channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
     
+    // Track the last known backend version
+    let localMenuVersion = parseInt(localStorage.getItem('lb-pos-menu-version') || '0', 10);
+
     const handleSync = () => {
-      console.info("[Sync] 📥 Signal Received: Triggering Notify UI.");
+      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering Notify UI.`);
       showToast(
         "New menu updates available.", 
         "info", 
         "Sync Now", 
         () => {
+          localStorage.setItem('lb-pos-menu-version', Date.now().toString());
           localStorage.removeItem('dashboard_stats_timestamp');
           window.location.reload(); 
         },
@@ -158,24 +165,49 @@ const fetchStats = useCallback(async (force = false) => {
       );
     };
 
+    // 1. BroadcastChannel
     channel.onmessage = (event) => {
-      const msg = typeof event.data === 'string' ? event.data : event.data?.type;
-      console.log("[Sync] channel.onmessage received:", { data: event.data, msg });
+      const data = event.data;
+      const msg = typeof data === 'string' ? data : data?.type;
+      console.log(`[Sync] Broadcast message received at ${origin}:`, data);
       if (msg === 'menu-updated') handleSync();
     };
 
     // 2. LocalStorage Fallback
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'lb-pos-sync-trigger') {
-        console.log("[Sync] storage event received:", { key: e.key, value: e.newValue });
+      if (e.key === SYNC_STORAGE_KEY) {
+        console.log(`[Sync] Storage event received at ${origin}:`, e.newValue);
         handleSync();
       }
     };
     window.addEventListener('storage', handleStorage);
 
+    // 3. API Polling (Cross-Browser / Cross-Device)
+    const checkVersion = async () => {
+      try {
+        const { data } = await api.get('/menu/version');
+        const remoteVersion = parseInt(data.version || '0', 10);
+        
+        if (remoteVersion > 0 && localMenuVersion > 0 && remoteVersion > localMenuVersion) {
+          console.info(`[Sync] 🔄 Remote version (${remoteVersion}) > Local (${localMenuVersion}).`);
+          localMenuVersion = remoteVersion;
+          handleSync();
+        } else if (localMenuVersion === 0 && remoteVersion > 0) {
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+        }
+      } catch (err) {
+        // Silent catch for polling
+      }
+    };
+
+    const intervalId = setInterval(checkVersion, 15000);
+    checkVersion();
+
     return () => {
       channel.close();
       window.removeEventListener('storage', handleStorage);
+      clearInterval(intervalId);
     };
   }, [showToast]);
 

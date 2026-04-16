@@ -2530,7 +2530,7 @@ const MenuItemsTab: React.FC = () => {
         } catch { /* ignore */ }
       }
     } catch { /* silent */ }
-  }, []);
+  }, [showToast]);
 
   const fetchBundleItems = useCallback(async (itemId: number, categoryType: string, barcode: string | null) => {
     if (bundleInfo[itemId] !== undefined || !["combo", "bundle"].includes(categoryType) || !barcode) return;

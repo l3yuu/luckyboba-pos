@@ -564,42 +564,77 @@ const SalesOrder = () => {
   }, [showToast, branchId]);
 
   useEffect(() => {
-    // 1. BroadcastChannel Listener (Same origin/browser)
-    const channel = new BroadcastChannel('pos-updates');
+    const SYNC_CHANNEL_NAME = 'lucky_boba_pos_sync_v1';
+    const SYNC_STORAGE_KEY = 'lb-pos-sync-trigger-v1';
+    const origin = window.location.origin;
+
+    const channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
     
+    // Track the last known backend version
+    let localMenuVersion = parseInt(localStorage.getItem('lb-pos-menu-version') || '0', 10);
+
     const handleSync = () => {
-      console.info("[Sync] 📥 Signal Received: Triggering Notify UI.");
+      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering Notify UI.`);
       showToast(
         "New menu updates available.", 
         "info", 
         "Sync Now", 
-        () => refreshPOSData(true),
+        () => {
+          // Force newest version to be stored immediately so we don't show the toast repeatedly
+          localStorage.setItem('lb-pos-menu-version', Date.now().toString());
+          refreshPOSData(true);
+        },
         15000
       );
     };
 
-    // Global helper for manual testing
-    (window as any).DEV_SYNC = handleSync;
-
+    // 1. BroadcastChannel (Same Browser)
     channel.onmessage = (event) => {
-      const msg = typeof event.data === 'string' ? event.data : event.data?.type;
-      console.log("[Sync] channel.onmessage received:", { data: event.data, msg });
+      const data = event.data;
+      const msg = typeof data === 'string' ? data : data?.type;
+      console.log(`[Sync] Broadcast message received at ${origin}:`, data);
       if (msg === 'menu-updated') handleSync();
     };
 
-    // 2. LocalStorage Fallback (More robust for some browser environments)
+    // 2. LocalStorage (Same Browser, different tab fallback)
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'lb-pos-sync-trigger') {
-        console.log("[Sync] storage event received:", { key: e.key, value: e.newValue });
+      if (e.key === SYNC_STORAGE_KEY) {
+        console.log(`[Sync] Storage event received at ${origin}:`, e.newValue);
         handleSync();
       }
     };
     window.addEventListener('storage', handleStorage);
 
+    // 3. API Polling (Cross-Browser / Cross-Device)
+    const checkVersion = async () => {
+      try {
+        const { data } = await api.get('/menu/version');
+        const remoteVersion = parseInt(data.version || '0', 10);
+        
+        // If the backend has a newer timestamp, and this isn't our very first load (0)
+        if (remoteVersion > 0 && localMenuVersion > 0 && remoteVersion > localMenuVersion) {
+          console.info(`[Sync] 🔄 Remote version (${remoteVersion}) > Local (${localMenuVersion}).`);
+          localMenuVersion = remoteVersion;
+          handleSync();
+        } else if (localMenuVersion === 0 && remoteVersion > 0) {
+          // Initialize local version on first poll without triggering a sync
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+        }
+      } catch (err) {
+        // Silent catch for polling
+      }
+    };
+
+    // Check every 15 seconds
+    const intervalId = setInterval(checkVersion, 15000);
+    // Initial check
+    checkVersion();
+
     return () => {
       channel.close();
       window.removeEventListener('storage', handleStorage);
-      delete (window as any).DEV_SYNC;
+      clearInterval(intervalId);
     };
   }, [refreshPOSData, showToast]);
 

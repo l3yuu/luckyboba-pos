@@ -33,7 +33,6 @@ const SV_SubCategoriesList = () => {
       setRows(raw.map(mapSub));
     } catch (e) {
       setError('Failed to load sub-categories.');
-      // eslint-disable-next-line no-console
       console.error(e);
     } finally {
       setLoading(false);
