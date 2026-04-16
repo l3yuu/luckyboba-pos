@@ -101,7 +101,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
 
         const jsonData = XLSX.utils.sheet_to_json<ExcelRow>(worksheet);
 
-        const parsedData = jsonData.map((row) => ({
+        const parsedData = jsonData.map((row: ExcelRow) => ({
           name: row.name || 'N/A',
           amount: String(row.amount || '0'),
           status: row.status || 'ON',
@@ -443,3 +443,4 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
 };
 
 export default UploadData;
+

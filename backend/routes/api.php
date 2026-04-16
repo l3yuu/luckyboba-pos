@@ -40,6 +40,9 @@ Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'check
 
 // ✅ PUBLIC MOBILE ROUTES
 Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/cards/image/{path}', [CardController::class, 'image'])
+    ->where('path', '.*')
+    ->middleware('throttle:120,1');
 Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');
@@ -455,6 +458,14 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post  ('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
 
+        // ── CUSTOMER MANAGEMENT (SuperAdmin + BranchManager) ────────────────
+        Route::prefix('customers')->group(function () {
+            Route::get('/',                    [CustomerController::class, 'index']);
+            Route::get('/stats',               [CustomerController::class, 'stats']);
+            Route::get('/{id}',                [CustomerController::class, 'show']);
+            Route::patch('/{id}/toggle-status', [CustomerController::class, 'toggleStatus']);
+        });
+
         // ── BRANCH PAYMENT SETTINGS ──
         Route::get('/branch/payment-settings', [BranchSettingsController::class, 'getPaymentSettings']);
         Route::post('/branch/payment-settings', [BranchSettingsController::class, 'updatePaymentSettings']);
@@ -471,13 +482,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('/franchises', FranchiseController::class);
         Route::post('/franchises/{id}/assign-branches', [FranchiseController::class, 'assignBranches']);
 
-        // ── CUSTOMER MANAGEMENT (SuperAdmin) ────────────────────────────────
-        Route::prefix('customers')->group(function () {
-            Route::get('/',                    [CustomerController::class, 'index']);
-            Route::get('/stats',               [CustomerController::class, 'stats']);
-            Route::get('/{id}',                [CustomerController::class, 'show']);
-            Route::patch('/{id}/toggle-status', [CustomerController::class, 'toggleStatus']);
-        });
+        // ── CUSTOMER MANAGEMENT (Moved to shared block) ─────────────────────
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::apiResource('raw-materials', RawMaterialController::class)->except(['index', 'show']);

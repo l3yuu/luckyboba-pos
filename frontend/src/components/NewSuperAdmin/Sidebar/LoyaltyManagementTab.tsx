@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useToast } from "../../../context/ToastContext";
 import { createPortal } from "react-dom";
 import {
   Plus, Trash2, Tag, RefreshCw,
@@ -97,6 +98,7 @@ const LoyaltyManagementTab: React.FC = () => {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [userPoints, setUserPoints] = useState<UserPoint[]>([]);
   const [userMetadata, setUserMetadata] = useState({ total: 0, current_page: 1, last_page: 1 });
+  const { showToast } = useToast();
   
   const [search, setSearch] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
@@ -145,10 +147,16 @@ const LoyaltyManagementTab: React.FC = () => {
         headers: authHeaders(),
         body: JSON.stringify(settings),
       });
-      if (res.ok) alert("Settings saved successfully!");
-      else alert("Failed to save settings.");
-    } catch (_e) { alert("Error saving settings."); }
-    finally { setSaveLoading(false); }
+      if (res.ok) {
+        showToast("Settings saved successfully!", "success");
+      } else {
+        showToast("Failed to save settings.", "error");
+      }
+    } catch (_e) {
+      showToast("Error saving settings.", "error");
+    } finally {
+      setSaveLoading(false);
+    }
   };
 
   const handleSaveReward = async (e: React.FormEvent) => {

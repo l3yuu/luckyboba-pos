@@ -3,6 +3,7 @@ plugins {
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 import java.util.Properties
@@ -38,19 +39,40 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
-            val storeFileProperty = keystoreProperties.getProperty("storeFile")
-            if (storeFileProperty != null) {
-                storeFile = file(storeFileProperty)
+            // Prefer CI env vars; fall back to android/key.properties (not committed).
+            val keyAliasValue = System.getenv("KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
+            val keyPasswordValue = System.getenv("KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
+            val storePasswordValue = System.getenv("STORE_PASSWORD") ?: keystoreProperties.getProperty("storePassword")
+            val storeFileValue = System.getenv("STORE_FILE") ?: keystoreProperties.getProperty("storeFile")
+
+            // Only configure release signing when all required values exist.
+            // This lets contributors build release variants without committing secrets.
+            if (
+                !storeFileValue.isNullOrBlank() &&
+                !keyAliasValue.isNullOrBlank() &&
+                !keyPasswordValue.isNullOrBlank() &&
+                !storePasswordValue.isNullOrBlank()
+            ) {
+                storeFile = file(storeFileValue)
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
+                storePassword = storePasswordValue
             }
-            storePassword = keystoreProperties.getProperty("storePassword")
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // If release keystore isn't provided, fall back to debug signing
+            // so builds still work without secrets. For Play Store upload, provide
+            // android/key.properties (local) or env vars (CI) so release signing is used.
+            val releaseSigning = signingConfigs.getByName("release")
+            signingConfig =
+                if (releaseSigning.storeFile != null && !releaseSigning.keyAlias.isNullOrBlank()) {
+                    releaseSigning
+                } else {
+                    signingConfigs.getByName("debug")
+                }
             isMinifyEnabled = true
         }
     }

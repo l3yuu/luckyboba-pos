@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'checkout_page.dart';
+import '../widgets/app_top_bar.dart';
 
 // ── Global cart state ────────────────────────────────────────────────────────
 List<Map<String, dynamic>> myCart = [];
@@ -84,48 +85,14 @@ class _CartPageState extends State<CartPage> {
         child: Column(
           children: [
 
-            // ── APP BAR ──────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width:  40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                          color: _surface, shape: BoxShape.circle),
-                      child: const Icon(Icons.arrow_back_ios_new_rounded,
-                          size: 18, color: _purple),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('My Cart',
-                            style: GoogleFonts.poppins(
-                              fontSize:   18,
-                              fontWeight: FontWeight.w700,
-                              color:      _textDark,
-                            )),
-                        Text(
-                          myCart.isEmpty
-                              ? 'No items yet'
-                              : '${myCart.length} item${myCart.length > 1 ? 's' : ''} in cart',
-                          style: GoogleFonts.poppins(
-                            fontSize:   12,
-                            color:      _textMid,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (myCart.isNotEmpty)
-                    GestureDetector(
+            AppTopBar(
+              title: 'My Cart',
+              subtitle: myCart.isEmpty
+                  ? 'No items yet'
+                  : '${myCart.length} item${myCart.length > 1 ? 's' : ''} in cart',
+              onBack: () => Navigator.pop(context),
+              trailing: myCart.isNotEmpty
+                  ? GestureDetector(
                       onTap: _showClearCartDialog,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -139,15 +106,14 @@ class _CartPageState extends State<CartPage> {
                         child: Text(
                           'Clear all',
                           style: GoogleFonts.poppins(
-                            fontSize:   12,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color:      Colors.red[400],
+                            color: Colors.red[400],
                           ),
                         ),
                       ),
-                    ),
-                ],
-              ),
+                    )
+                  : null,
             ),
 
             // ── CART ITEMS ───────────────────────────────────────────────
