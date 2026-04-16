@@ -207,7 +207,7 @@ class _SignupPageState extends State<SignupPage>
                               border: Border.all(color: Colors.white, width: 2.5),
                             ),
                             child: ClipOval(
-                              child: Image.asset('assets/images/lucky_logo.jpg', fit: BoxFit.cover),
+                              child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
                             ),
                           ),
                         ),

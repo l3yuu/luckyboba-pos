@@ -17,7 +17,7 @@ class ContentSecurityPolicy
             "font-src 'self' https://fonts.gstatic.com; " .
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
             "img-src 'self' data: https:; " .
-            "connect-src 'self'"
+            "connect-src 'self' https://luckybobastores.com https://staging.luckybobastores.com http://localhost:8000 http://localhost:5173"
         );
 
         return $response;
