@@ -466,7 +466,7 @@ class _LoginPageState extends State<LoginPage>
                             ),
                             child: ClipOval(
                               child: Image.asset(
-                                'assets/images/logo.png',
+                                'assets/images/lucky_logo.jpg',
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -570,51 +570,51 @@ class _LoginPageState extends State<LoginPage>
                             ],
                           ),
                         ),
-                        
-                          const SizedBox(height: 32),
-                          Row(
-                            children: [
-                              Expanded(child: Divider(color: Colors.white24)),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
+
+                        const SizedBox(height: 32),
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.white24)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Text(
+                                'OR CONNECT WITH',
+                                style: AppTheme.body.copyWith(
+                                  color: Colors.white54,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                child: Text(
-                                  'OR CONNECT WITH',
-                                  style: AppTheme.body.copyWith(
-                                    color: Colors.white54,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
                               ),
-                              Expanded(child: Divider(color: Colors.white24)),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _socialIconBtn(
-                                icon: FontAwesomeIcons.google,
-                                color: Colors.white,
-                                onTap: _googleLoading
-                                    ? () {}
-                                    : _handleGoogleSignIn,
-                                isLoading: _googleLoading,
-                              ),
-                              const SizedBox(width: 20),
-                              _socialIconBtn(
-                                icon: FontAwesomeIcons.facebookF,
-                                color: const Color(0xFF1877F2),
-                                onTap: _facebookLoading
-                                    ? () {}
-                                    : _handleFacebookSignIn,
-                                isLoading: _facebookLoading,
-                              ),
-                            ],
-                          ),
-                        
+                            ),
+                            Expanded(child: Divider(color: Colors.white24)),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _socialIconBtn(
+                              icon: FontAwesomeIcons.google,
+                              color: Colors.white,
+                              onTap: _googleLoading
+                                  ? () {}
+                                  : _handleGoogleSignIn,
+                              isLoading: _googleLoading,
+                            ),
+                            const SizedBox(width: 20),
+                            _socialIconBtn(
+                              icon: FontAwesomeIcons.facebookF,
+                              color: const Color(0xFF1877F2),
+                              onTap: _facebookLoading
+                                  ? () {}
+                                  : _handleFacebookSignIn,
+                              isLoading: _facebookLoading,
+                            ),
+                          ],
+                        ),
+
                         const SizedBox(height: 48),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
