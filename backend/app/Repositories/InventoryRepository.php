@@ -13,6 +13,31 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class InventoryRepository implements InventoryRepositoryInterface
 {
+    private function getBranchAwareRawMaterialsQuery(?int $branchId)
+    {
+        $query = RawMaterial::query();
+
+        if (!$branchId) {
+            return $query->whereNull('branch_id');
+        }
+
+        return $query->where(function ($q) use ($branchId) {
+            $q->where('branch_id', $branchId)
+                ->orWhere(function ($globalQ) use ($branchId) {
+                    $globalQ->whereNull('branch_id')
+                        ->whereNotExists(function ($sub) use ($branchId) {
+                            $sub->select(DB::raw(1))
+                                ->from('raw_materials as branch_materials')
+                                ->where('branch_materials.branch_id', $branchId)
+                                ->where(function ($match) {
+                                    $match->whereColumn('branch_materials.parent_id', 'raw_materials.id')
+                                        ->orWhereColumn('branch_materials.name', 'raw_materials.name');
+                                });
+                        });
+                });
+        });
+    }
+
     /**
      * Get isolated branch ID if the user is a branch manager.
      */
@@ -42,10 +67,7 @@ class InventoryRepository implements InventoryRepositoryInterface
         $miOut   = (clone $miQuery)->where('menu_items.quantity', '<=', 0)->count();
 
         // 2. Raw Materials stats (where branch matches)
-        $rmQuery = RawMaterial::query();
-        if ($branchId) {
-            $rmQuery->where('branch_id', $branchId);
-        }
+        $rmQuery = $this->getBranchAwareRawMaterialsQuery($branchId);
 
         $rmTotal = (clone $rmQuery)->count();
         $rmLow   = (clone $rmQuery)->where('current_stock', '>', 0)
@@ -149,7 +171,8 @@ class InventoryRepository implements InventoryRepositoryInterface
         ]);
 
         // 2. Raw Material Alerts
-        $rmQuery = RawMaterial::leftJoin('branches', 'raw_materials.branch_id', '=', 'branches.id')
+        $rmQuery = $this->getBranchAwareRawMaterialsQuery($branchId)
+            ->leftJoin('branches', 'raw_materials.branch_id', '=', 'branches.id')
             ->select(
                 'raw_materials.id',
                 'raw_materials.name',
@@ -161,10 +184,6 @@ class InventoryRepository implements InventoryRepositoryInterface
                 'raw_materials.branch_id'
             )
             ->whereColumn('raw_materials.current_stock', '<=', 'raw_materials.reorder_level');
-
-        if ($branchId) {
-            $rmQuery->where('raw_materials.branch_id', $branchId);
-        }
 
         $rmAlerts = $rmQuery->get()->map(fn($item) => [
             'id'            => 'rm-' . $item->id,
@@ -196,11 +215,7 @@ class InventoryRepository implements InventoryRepositoryInterface
             $endDate   = date('Y-m-t', strtotime($startDate));
         }
 
-        $materialsQuery = RawMaterial::query();
-        if ($branchId) {
-            $materialsQuery->where('branch_id', $branchId);
-        }
-        $materials = $materialsQuery->get();
+        $materials = $this->getBranchAwareRawMaterialsQuery($branchId)->get();
 
         $soldSummary = $this->getMaterialSoldSummary($period, $filters);
 
@@ -291,6 +306,7 @@ class InventoryRepository implements InventoryRepositoryInterface
 
         return DB::table('stock_deductions')
             ->join('sale_items', 'stock_deductions.sale_item_id', '=', 'sale_items.id')
+            ->join('sales', 'stock_deductions.sale_id', '=', 'sales.id')
             ->leftJoin('recipe_items', 'stock_deductions.recipe_item_id', '=', 'recipe_items.id')
             ->select(
                 'sale_items.product_name',
@@ -301,7 +317,7 @@ class InventoryRepository implements InventoryRepositoryInterface
             )
             ->where('stock_deductions.raw_material_id', $rawMaterialId)
             ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-            ->when($branchId, fn($q) => $q->where('sale_items.branch_id', $branchId))
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy('sale_items.product_name', 'sale_items.cup_size_label', 'recipe_items.quantity')
             ->orderBy('total_deducted', 'desc')
             ->get();
@@ -451,13 +467,14 @@ class InventoryRepository implements InventoryRepositoryInterface
 
         return DB::table('stock_deductions')
             ->join('sale_items', 'stock_deductions.sale_item_id', '=', 'sale_items.id')
+            ->join('sales', 'stock_deductions.sale_id', '=', 'sales.id')
             ->select(
                 'stock_deductions.raw_material_id',
                 DB::raw('COUNT(DISTINCT sale_items.id) as units_sold'),
                 DB::raw('SUM(stock_deductions.quantity_deducted) as total_qty_deducted')
             )
             ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-            ->when($branchId, fn($q) => $q->where('sale_items.branch_id', $branchId))
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy('stock_deductions.raw_material_id')
             ->get();
     }

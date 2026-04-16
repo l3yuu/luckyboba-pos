@@ -109,6 +109,7 @@ class ProcessCheckoutAction
 
                 SaleItem::create([
                     'sale_id'            => $sale->id,
+                    'branch_id'          => $branchId,
                     'menu_item_id'       => $item['menu_item_id'] ?? null,
                     'bundle_id'          => $item['bundle_id'] ?? null,
                     'product_name'       => $item['name'],

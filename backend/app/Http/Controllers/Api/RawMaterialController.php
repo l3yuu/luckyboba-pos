@@ -13,20 +13,38 @@ use Illuminate\Support\Facades\Log;
 
 class RawMaterialController extends Controller
 {
+    private function branchAwareQuery(?int $branchId)
+    {
+        $query = RawMaterial::query();
+
+        if (!$branchId) {
+            return $query->whereNull('branch_id');
+        }
+
+        return $query->where(function ($q) use ($branchId) {
+            $q->where('branch_id', $branchId)
+                ->orWhere(function ($globalQ) use ($branchId) {
+                    $globalQ->whereNull('branch_id')
+                        ->whereNotExists(function ($sub) use ($branchId) {
+                            $sub->select(DB::raw(1))
+                                ->from('raw_materials as branch_materials')
+                                ->where('branch_materials.branch_id', $branchId)
+                                ->where(function ($match) {
+                                    $match->whereColumn('branch_materials.parent_id', 'raw_materials.id')
+                                        ->orWhereColumn('branch_materials.name', 'raw_materials.name');
+                                });
+                        });
+                });
+        });
+    }
+
     /**
      * GET /api/raw-materials
      * List all raw materials with low-stock flag.
      */
     public function index(Request $request)
     {
-        $query = RawMaterial::query();
-
-        if ($request->filled('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
-        } else {
-            // Default to global materials if no branch specified
-            $query->whereNull('branch_id');
-        }
+        $query = $this->branchAwareQuery($request->integer('branch_id'));
 
         if ($request->filled('category')) {
             $query->where('category', $request->category);
