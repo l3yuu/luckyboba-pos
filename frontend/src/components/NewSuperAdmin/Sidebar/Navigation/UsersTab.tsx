@@ -1048,6 +1048,7 @@ const UsersTab: React.FC = () => {
   const [fetchError, setFetchError] = useState("");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
 
   const [addOpen, setAddOpen] = useState(false);
   const [viewTarget, setViewTarget] = useState<User | null>(null);
@@ -1117,7 +1118,8 @@ const UsersTab: React.FC = () => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter ? u.role === roleFilter : true;
-    return matchSearch && matchRole;
+    const matchBranch = branchFilter ? String(u.branch_id ?? "") === branchFilter : true;
+    return matchSearch && matchRole && matchBranch;
   });
 
   const showDeviceCol = !roleFilter || roleFilter === "cashier";
@@ -1144,6 +1146,11 @@ const UsersTab: React.FC = () => {
             className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none">
             <option value="">All Roles</option>
             {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+          </select>
+          <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none">
+            <option value="">All Branches</option>
+            {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
           </select>
           <Btn onClick={() => setAddOpen(true)} disabled={loading}>
             <Plus size={13} /> Add User
@@ -1187,7 +1194,7 @@ const UsersTab: React.FC = () => {
               {!loading && !fetchError && filtered.length === 0 && (
                 <tr>
                   <td colSpan={showDeviceCol ? 8 : 7} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
-                    {search || roleFilter ? "No users match your filters." : "No users found."}
+                    {search || roleFilter || branchFilter ? "No users match your filters." : "No users found."}
                   </td>
                 </tr>
               )}

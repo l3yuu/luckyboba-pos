@@ -34,6 +34,13 @@ const CATEGORIES = ['Packaging', 'Ingredients', 'Intermediate', 'Equipment'];
 function fmt(n: number, decimals = 2) { return isNaN(n) ? '—' : n.toFixed(decimals); }
 function parseNum(v: unknown): number { const n = parseFloat(String(v)); return isNaN(n) ? 0 : n; }
 
+const REASONS = {
+  add: ['Delivery', 'Production', 'Cooked', 'Correction', 'Other'],
+  subtract: ['Sales', 'Production', 'Cooked', 'Transfer Out', 'Correction', 'Other'],
+  waste: ['Spoilage', 'Expired', 'Damage', 'Theft', 'Other'],
+  set: ['Physical Count', 'Initial Stock', 'Correction', 'Other']
+};
+
 function exportCSV(rows: ReportRow[], period: string) {
   const headers = ['#', 'Item', 'Unit', 'Category', 'Beginning', 'Delivered', 'Cooked/Mixed', 'Out', 'Spoilage', 'Ending', 'Usage', 'Variance'];
   const lines = [`Lucky Boba - Raw Materials Inventory Report`, `Period: ${period}`, '', headers.join(','), ...rows.map((r, i) => [i + 1, `"${r.material.name}"`, r.material.unit, r.material.category, fmt(r.beginning), fmt(r.delivered), fmt(r.cooked), fmt(r.out), fmt(r.spoilage), fmt(r.ending), fmt(r.usage), fmt(r.variance)].join(','))];
@@ -142,9 +149,10 @@ function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (dat
 // ─── Adjust Modal ──────────────────────────────────────────────────────────────
 
 function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose: () => void; onSuccess: (updated: RawMaterial) => void; }) {
-  const [type, setType] = useState<'add' | 'subtract' | 'set'>('add');
+  const [type, setType] = useState<'add' | 'subtract' | 'waste' | 'set'>('add');
   const [quantity, setQuantity] = useState('');
-  const [reason, setReason] = useState('');
+  const [reasonSelect, setReasonSelect] = useState('');
+  const [customReason, setCustomReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -158,10 +166,18 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
 
   const handleSubmit = async () => {
     const qty = parseFloat(quantity);
+    const finalReason = reasonSelect === 'Other' ? customReason : reasonSelect;
     if (isNaN(qty) || qty < 0) { setError('Enter a valid quantity.'); return; }
+    if (!finalReason) { setError('Reason is required.'); return; }
+
     setSubmitting(true);
     try {
-      const response = await api.post(`/raw-materials/${item.id}/adjust`, { type, quantity: qty, reason });
+      const response = await api.post(`/raw-materials/${item.id}/adjust`, { 
+        type: type === 'waste' ? 'subtract' : type, 
+        quantity: qty, 
+        reason: finalReason,
+        is_waste: type === 'waste'
+      });
       onSuccess({ ...item, current_stock: parseFloat(String(response.data.current_stock)) }); onClose();
     } catch (err) { const msg = axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Adjustment failed.') : 'Adjustment failed.'; setError(msg); }
     finally { setSubmitting(false); }
@@ -185,10 +201,13 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
           {error && <p className="text-[11px] text-red-500 font-semibold bg-red-50 border border-red-200 px-4 py-2">{error}</p>}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Adjustment Type</label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['add', 'subtract', 'set'] as const).map((t) => (
-                <button key={t} onClick={() => setType(t)} className={`h-10 text-[11px] font-bold uppercase tracking-widest rounded-[0.625rem] border transition-all ${type === t ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'bg-white text-zinc-500 border-[#e9d5ff] hover:border-[#3b2063]'}`}>
-                  {t === 'add' ? '+ Add' : t === 'subtract' ? '− Subtract' : '= Set'}
+            <div className="grid grid-cols-4 gap-2">
+              {(['add', 'subtract', 'waste', 'set'] as const).map((t) => (
+                <button key={t} onClick={() => {
+                  setType(t);
+                  setReasonSelect('');
+                }} className={`h-10 text-[10px] font-bold uppercase tracking-widest rounded-[0.625rem] border transition-all ${type === t ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'bg-white text-zinc-500 border-[#e9d5ff] hover:border-[#3b2063]'}`}>
+                  {t === 'add' ? '+ Add' : t === 'subtract' ? '− Sub' : t === 'waste' ? 'Waste' : '= Set'}
                 </button>
               ))}
             </div>
@@ -204,9 +223,29 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
             </div>
           )}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Reason (optional)</label>
-            <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls()} placeholder="e.g. Delivery, Spoilage, Correction..." />
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Reason</label>
+            <select 
+              value={reasonSelect} 
+              onChange={(e) => setReasonSelect(e.target.value)} 
+              className={selectCls}
+            >
+              <option value="">Select a reason...</option>
+              {REASONS[type].map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
           </div>
+          {reasonSelect === 'Other' && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Custom Reason</label>
+              <textarea 
+                value={customReason} 
+                onChange={(e) => setCustomReason(e.target.value)} 
+                className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-20 resize-none" 
+                placeholder="Enter custom reason..." 
+              />
+            </div>
+          )}
         </div>
         <div className="flex gap-3 px-7 py-5 border-t border-[#e9d5ff]">
           <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-[0.625rem]">Cancel</button>
@@ -328,6 +367,7 @@ const InventoryDashboard = () => {
 
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [reportLoading, setReportLoading] = useState(true);
+  const [lastSynced, setLastSynced] = useState<Date>(new Date());
   const [usageSearch, setUsageSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [varianceFilter, setVarianceFilter] = useState<'all' | 'negative' | 'positive' | 'zero'>('all');
@@ -384,10 +424,19 @@ const InventoryDashboard = () => {
       const [matRes, movRes] = await Promise.all([api.get('/raw-materials'), api.get('/raw-materials/movements').catch(() => ({ data: { data: [] } }))]);
       setMaterials(matRes.data); setMovements(movRes.data?.data ?? []); localStorage.setItem(RAW_MATERIALS_CACHE_KEY, JSON.stringify(matRes.data));
     } catch { addToast('Failed to load materials.', 'error'); }
-    finally { setMaterialsLoading(false); setReportLoading(false); }
+    finally { setMaterialsLoading(false); setReportLoading(false); setLastSynced(new Date()); }
   }, [addToast]);
 
   useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!reportLoading && activeTab === 'usage') {
+        fetchMaterials(true);
+      }
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [fetchMaterials, reportLoading, activeTab]);
 
   const fetchRecipes = useCallback(async () => {
     setRecipeLoading(true);
@@ -405,7 +454,7 @@ const InventoryDashboard = () => {
     return materials.map(mat => {
       const mats = movByMat.get(mat.id) ?? []; const ending = parseNum(mat.current_stock);
       let delivered = 0, cooked = 0, out = 0, spoilage = 0;
-      mats.forEach(m => { const r = (m.reason ?? '').toLowerCase(); if (m.type === 'add') { if (/cook|mix|prepar|intermed/.test(r)) cooked += parseNum(m.quantity); else delivered += parseNum(m.quantity); } else if (m.type === 'subtract') { if (/spoil|waste|expir|discard|bad/.test(r)) spoilage += parseNum(m.quantity); else out += parseNum(m.quantity); } });
+      mats.forEach(m => { const r = (m.reason ?? '').toLowerCase(); if (m.type === 'add') { if (/cook|mix|prepar|intermed|prod/.test(r)) cooked += parseNum(m.quantity); else delivered += parseNum(m.quantity); } else if (m.type === 'subtract') { if (/spoil|waste|expir|discard|bad/.test(r)) spoilage += parseNum(m.quantity); else out += parseNum(m.quantity); } });
       const beginning = Math.max(0, ending - delivered - cooked + out + spoilage);
       const usage = Math.max(0, beginning + delivered + cooked - out - spoilage - ending);
       const variance = ending - (beginning + delivered + cooked - out - spoilage);
@@ -458,7 +507,11 @@ const InventoryDashboard = () => {
   }, [recipeRows, recipeFilterStatus, recipeSearch, recipeEntriesLimit]);
 
   const handleAddSuccess = (data: RawMaterial) => { setMaterials(prev => [...prev, data]); localStorage.removeItem(RAW_MATERIALS_CACHE_KEY); addToast(`"${data.name}" added successfully.`); };
-  const handleAdjustSuccess = (updated: RawMaterial) => { setMaterials(prev => prev.map(m => m.id === updated.id ? { ...m, current_stock: parseNum(updated.current_stock) } : m)); localStorage.removeItem(RAW_MATERIALS_CACHE_KEY); addToast(`Stock updated for "${updated.name}".`); };
+  const handleAdjustSuccess = (updated: RawMaterial) => { 
+    // Re-fetch everything to ensure movements are also updated for the report calculation
+    fetchMaterials(true);
+    addToast(`Stock updated for "${updated.name}".`); 
+  };
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return; const target = deleteTarget; setDeleteTarget(null);
     try { await api.delete(`/raw-materials/${target.id}`); setMaterials(prev => prev.filter(m => m.id !== target.id)); localStorage.removeItem(RAW_MATERIALS_CACHE_KEY); addToast(`"${target.name}" deleted.`); }
@@ -643,10 +696,21 @@ const InventoryDashboard = () => {
                 ))}
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 bg-white border border-zinc-200 px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                <span className="text-zinc-300">Column guide:</span>
-                {[{ label: 'BEG', desc: 'Beginning stock (reconstructed)' }, { label: 'DEL', desc: 'Stock received/delivered this period' }, { label: 'COOKED', desc: 'Added as cooked or mixed' }, { label: 'OUT', desc: 'Manual deductions / used' }, { label: 'SPOIL', desc: 'Spoilage / waste' }, { label: 'END', desc: 'Current live stock' }, { label: 'USAGE', desc: 'Computed consumption' }, { label: 'VAR', desc: 'Variance (END − expected)' }]
-                  .map(c => <span key={c.label} title={c.desc} className="cursor-help border-b border-dashed border-zinc-300 hover:text-[#3b2063] hover:border-[#3b2063] transition-colors">{c.label}</span>)}
+              <div className="flex flex-wrap items-center justify-between gap-4 bg-white border border-zinc-200 px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                <div className="flex items-center gap-4">
+                  <span className="text-zinc-300">Column guide:</span>
+                  {[{ label: 'BEG', desc: 'Beginning stock (reconstructed)' }, { label: 'DEL', desc: 'Stock received/delivered this period' }, { label: 'COOKED', desc: 'Added as cooked or mixed' }, { label: 'OUT', desc: 'Manual deductions / used' }, { label: 'SPOIL', desc: 'Spoilage / waste' }, { label: 'END', desc: 'Current live stock' }, { label: 'USAGE', desc: 'Computed consumption' }, { label: 'VAR', desc: 'Variance (END − expected)' }]
+                    .map(c => <span key={c.label} title={c.desc} className="cursor-help border-b border-dashed border-zinc-300 hover:text-[#3b2063] hover:border-[#3b2063] transition-colors">{c.label}</span>)}
+                </div>
+
+                <div className="flex items-center gap-2 px-2 py-0.5 bg-[#f5f0ff] border border-[#e9d5ff] rounded-full">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#3b2063]"></span>
+                  </span>
+                  <span className="text-[8px] font-black text-[#3b2063]">Live Sync</span>
+                  <span className="text-[8px] text-zinc-400 tabular-nums">{lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
               </div>
 
               <div className="bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm pb-6">

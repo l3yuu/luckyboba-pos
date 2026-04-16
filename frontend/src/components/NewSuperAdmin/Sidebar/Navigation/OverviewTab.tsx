@@ -279,6 +279,29 @@ const OverviewTab: React.FC = () => {
     return () => clearInterval(pulseInterval);
   }, [fetchAll, fetchPulse]);
 
+  useEffect(() => {
+    const onSaleRecorded = () => {
+      fetchAll();
+      fetchPulse();
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'lucky_boba_live_sales_tick') {
+        fetchAll();
+        fetchPulse();
+      }
+    };
+
+    window.addEventListener('luckyboba:sale-recorded', onSaleRecorded as EventListener);
+    window.addEventListener('storage', onStorage);
+    const id = setInterval(fetchAll, 10000);
+
+    return () => {
+      window.removeEventListener('luckyboba:sale-recorded', onSaleRecorded as EventListener);
+      window.removeEventListener('storage', onStorage);
+      clearInterval(id);
+    };
+  }, [fetchAll, fetchPulse]);
+
   // ── Chart data derived from API ───────────────────────────────────────────
   const formatDateLabel = (dateStr: string) => {
     try {

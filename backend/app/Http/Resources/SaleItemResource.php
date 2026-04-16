@@ -16,6 +16,7 @@ class SaleItemResource extends JsonResource
             'bundle_id'         => $this->bundle_id,
             'product_name'      => $this->product_name,
             'quantity'          => $this->quantity,
+            'unit_price'        => (float) $this->unit_price,
             'price'             => (float) $this->price,
             'final_price'       => (float) $this->final_price,
             'size'              => $this->size,

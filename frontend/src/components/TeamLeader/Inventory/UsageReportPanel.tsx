@@ -155,38 +155,22 @@ const UsageReportPanel = ({ branchId }: { branchId: number | null }) => {
       <style>{STYLES}</style>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-        <div>
-          <h1 className="text-[1.75rem] font-black text-slate-900 tracking-tight leading-none mb-2">
-            Usage Report Audit
-          </h1>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Today's physical count tracking for Branch #{branchId}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-            <input 
-              type="text" 
-              placeholder="Filter materials..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="bg-slate-50 border-none pl-11 pr-4 py-2.5 rounded-xl text-[11px] font-bold outline-none md:w-64 focus:bg-white focus:ring-2 focus:ring-[#3b206310] transition-all"
-            />
-          </div>
-          <button 
-            onClick={() => loadData()}
-            className="p-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all text-slate-400"
-          >
-            <RefreshCw size={16} />
-          </button>
+      <div className="mb-8">
+        <div className="relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+          <input 
+            type="text" 
+            placeholder="Filter materials..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="bg-slate-50 border-none pl-11 pr-4 py-2.5 rounded-xl text-[11px] font-bold outline-none w-full focus:bg-white focus:ring-2 focus:ring-[#3b206310] transition-all"
+          />
         </div>
       </div>
 
       {/* Audit Commit Notification */}
-      <div className="flex items-center justify-between mb-6 h-12">
+      {(successMsg || Object.keys(editBegs).length > 0 || Object.keys(editActuals).length > 0) && (
+      <div className="flex items-center justify-between mb-6">
         <div>
            {successMsg && (
             <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl animate-tl-ready">
@@ -211,6 +195,7 @@ const UsageReportPanel = ({ branchId }: { branchId: number | null }) => {
           </div>
         )}
       </div>
+      )}
 
       {/* Main Table */}
       <div className="tl-card border-slate-200 shadow-sm">

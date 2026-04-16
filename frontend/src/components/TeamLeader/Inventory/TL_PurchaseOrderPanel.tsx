@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import { isAxiosError } from 'axios';
 import { useToast } from '../../../hooks/useToast';
-import { Loader2, Plus, Trash2, Calendar, FileText, ShoppingBag, DollarSign } from 'lucide-react';
+import { Loader2, Plus, Trash2, Calendar, FileText, ShoppingBag, DollarSign, Search } from 'lucide-react';
 import { getCache, setCache, clearCache } from '../../../utils/cache';
 
 const dashboardFont = { fontFamily: "'DM Sans', sans-serif" };
@@ -80,6 +80,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedPO, setSelectedPO] = useState<POItem | null>(null);
   const [newStatus, setNewStatus] = useState<POStatus>('Pending');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchMenuItems = useCallback(async () => {
     try {
@@ -199,23 +200,14 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
     }
   };
 
+  const filteredOrders = orders.filter(po =>
+    po.poNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    po.supplier.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="flex-1 bg-[#f4f2fb] min-h-full flex flex-col p-5 md:p-8 gap-6 font-sans" style={dashboardFont}>
       
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Purchase Orders</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Manage and track branch procurement</p>
-        </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="h-9 px-5 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg shadow-sm flex items-center gap-2"
-        >
-          <Plus size={14} /> Create New P.O.
-        </button>
-      </div>
-
       {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-[0.625rem] shadow-sm border border-zinc-200 flex items-center gap-4">
@@ -249,6 +241,24 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
 
       {/* Table card */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden flex flex-col shadow-sm">
+        <div className="px-6 py-4 border-b border-zinc-100 flex flex-wrap items-center gap-4">
+          <div className="flex-1 flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2 focus-within:ring-2 focus-within:ring-violet-200 transition-all">
+            <Search size={15} className="text-zinc-400" />
+            <input 
+              type="text"
+              placeholder="Search PO number or supplier..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent text-sm font-bold text-zinc-700 outline-none placeholder:text-zinc-400"
+            />
+          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="h-10 px-5 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg shadow-sm flex items-center gap-2 whitespace-nowrap"
+          >
+            <Plus size={14} /> Create New P.O.
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -266,8 +276,8 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                 [...Array(5)].map((_, i) => (
                   <tr key={i}><td colSpan={6} className="px-6 py-4"><div className="h-4 bg-zinc-50 rounded animate-pulse" /></td></tr>
                 ))
-              ) : orders.length > 0 ? (
-                orders.map((po) => (
+              ) : filteredOrders.length > 0 ? (
+                filteredOrders.map((po) => (
                   <tr key={po.id} className="hover:bg-[#faf9ff] transition-colors">
                     <td className="px-6 py-4">
                       <span className="text-xs font-black text-[#3b2063] font-mono">{po.poNumber}</span>
@@ -321,7 +331,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
             <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">System Cloud Synced</span>
           </div>
           <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-            {orders.length} Branch Orders
+            {filteredOrders.length} Orders
           </p>
         </div>
       </div>

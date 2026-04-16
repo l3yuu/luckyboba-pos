@@ -128,6 +128,7 @@ interface XReadingReport {
   over_short?: number;
   net_total?: number;
   expected_amount?: number;
+  less_vat?: number;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -215,7 +216,7 @@ const CloseShiftModal: React.FC<{
 const ZReadingTab: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
-  const [branchId,     setBranchId]     = useState("");
+  const [branchId,     setBranchId]     = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [dateFrom,     setDateFrom]     = useState(today);
   const [dateTo,       setDateTo]       = useState(today);
   const [loading,      setLoading]      = useState(false);
@@ -236,6 +237,11 @@ const ZReadingTab: React.FC = () => {
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
+
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
   const [zStatus, setZStatus] = useState<{ exists: boolean; is_closed: boolean; has_sales: boolean } | null>(null);
   const [gaps, setGaps] = useState<string[]>([]);
   const [checkingStatus, setCheckingStatus] = useState(false);
@@ -414,11 +420,15 @@ const ZReadingTab: React.FC = () => {
         const list = d.success ? d.data : (Array.isArray(d) ? d : []);
         if (list.length > 0) {
           setBranches(list);
-          setBranchId(String(list[0].id));
+          if (!branchId) {
+            const defaultId = String(list[0].id);
+            setBranchId(defaultId);
+            localStorage.setItem('superadmin_selected_branch', defaultId);
+          }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [branchId]);
 
   // ── Full Z-Reading = merge z-reading + cash-counts + item-quantities + void-logs ──
   const fetchFullZReading = useCallback(async () => {
@@ -468,7 +478,8 @@ const ZReadingTab: React.FC = () => {
         cash_denominations: cashDenominations,
         total_cash_count:   totalCashCount,
         expected_amount:    expectedAmount,
-        over_short:         totalCashCount - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+        less_vat:           Number(zData.less_vat ?? 0),
+        over_short:         totalCashCount - expectedAmount,
         categories:         (qtyRes as Record<string, unknown>).categories ?? [],
         all_addons_summary: (qtyRes as Record<string, unknown>).all_addons_summary ?? [],
         logs:               (voidRes as Record<string, unknown>).logs ?? (Array.isArray(voidRes) ? voidRes : []),
@@ -1064,6 +1075,7 @@ const handlePrint = () => window.print();
     const pwdDiscount    = reportData?.pwd_discount || 0;
     const diplomat       = reportData?.diplomat_discount || 0;
     const otherDiscount  = reportData?.other_discount || 0;
+    const lessVat        = reportData?.less_vat || 0;
     const totalDisc      = reportData?.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
     const txCount        = reportData?.transaction_count || 0;
     const vatableSales   = reportData?.vatable_sales || 0;
@@ -1136,10 +1148,8 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
         <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
-        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
-          <span></span>
-        </div>
         <ReceiptRow label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
+        <ReceiptRow label="LESS VAT (SC/PWD)" value={phCurrency.format(lessVat)} />
         <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
@@ -1378,7 +1388,7 @@ const handlePrint = () => window.print();
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch <span className="text-red-400">*</span></p>
           <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-48">
               <option value="">Select Branch</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}

@@ -530,22 +530,6 @@ const TL_StockTransferPanel: React.FC<{ branchId?: number | null }> = ({ branchI
   return (
     <div className="flex-1 bg-[#f4f2fb] min-h-full flex flex-col p-5 md:p-8 flex flex-col gap-6 font-sans" style={dashboardFont}>
         
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-                <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Stock Transfer</h2>
-                <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Manage intra-branch material movements</p>
-            </div>
-            <div className="flex items-center gap-2">
-                <Btn variant="secondary" onClick={fetchAll} disabled={loading} className="w-10 h-10 p-0 shadow-none border-zinc-200">
-                    <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-                </Btn>
-                <Btn onClick={() => setAddOpen(true)} className="h-9 px-5 shadow-sm rounded-lg">
-                    <Plus size={14} /> Initiate Transfer
-                </Btn>
-            </div>
-        </div>
-
         {/* Quick Metrics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard icon={<Clock size={16}/>} label="Awaiting Approval" value={stats.Pending} color="zinc" 
@@ -561,7 +545,7 @@ const TL_StockTransferPanel: React.FC<{ branchId?: number | null }> = ({ branchI
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] flex flex-col shadow-sm flex-1 overflow-hidden min-h-[400px]">
             {/* Filter Bar */}
             <div className="px-6 py-4 border-b border-zinc-100 flex flex-wrap items-center gap-4">
-                <div className="flex-1 min-w-[200px] flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2 focus-within:ring-2 focus-within:ring-violet-200 transition-all">
+                <div className="flex-1 flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2 focus-within:ring-2 focus-within:ring-violet-200 transition-all">
                     <Search size={15} className="text-zinc-400" />
                     <input value={search} onChange={e => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm font-bold text-zinc-700 outline-none placeholder:text-zinc-400" placeholder="Search transfer number or branch..." />
                 </div>
@@ -570,11 +554,9 @@ const TL_StockTransferPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                     <option value="">All Statuses</option>
                     {TRANSFER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-                {transfers.length > 0 && (
-                    <div className="px-3 py-1.5 bg-[#f5f0ff] border border-violet-100 rounded-lg shrink-0">
-                        <p className="text-[10px] font-black text-[#3b2063] uppercase tracking-widest leading-none">{filtered.length} Orders</p>
-                    </div>
-                )}
+                <Btn onClick={() => setAddOpen(true)} className="h-10 px-5 shadow-sm rounded-lg whitespace-nowrap">
+                    <Plus size={14} /> Initiate Transfer
+                </Btn>
             </div>
 
             <div className="flex-1 overflow-x-auto">

@@ -122,7 +122,7 @@ const ItemsReportTab: React.FC = () => {
 
   const [dateFrom,  setDateFrom]  = useState(firstMonth);
   const [dateTo,    setDateTo]    = useState(today);
-  const [branchId,  setBranchId]  = useState("");
+  const [branchId, setBranchId] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [categoryId, setCategoryId] = useState("");
   const [search,    setSearch]    = useState("");
   const [sortKey,   setSortKey]   = useState<SortKey>("total_quantity");
@@ -136,16 +136,28 @@ const ItemsReportTab: React.FC = () => {
 
   const fmt  = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
+
   // Fetch branches + categories once
   useEffect(() => {
     Promise.all([
       fetch("/api/branches",   { headers: authHeaders() }).then(r => r.json()),
       fetch("/api/categories", { headers: authHeaders() }).then(r => r.json()),
     ]).then(([bData, cData]) => {
-      if (bData.success)   setBranches(bData.data);
+      if (bData.success) {
+        setBranches(bData.data);
+        if (!branchId && bData.data.length > 0) {
+          const defaultId = String(bData.data[0].id);
+          setBranchId(defaultId);
+          localStorage.setItem('superadmin_selected_branch', defaultId);
+        }
+      }
       if (cData.success !== false) setCategories(Array.isArray(cData) ? cData : (cData.data ?? []));
     }).catch(() => {});
-  }, []);
+  }, [branchId]);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -265,7 +277,7 @@ const ItemsReportTab: React.FC = () => {
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
           <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
               <option value="">All Branches</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
@@ -296,7 +308,7 @@ const ItemsReportTab: React.FC = () => {
           </Btn>
           {(branchId || categoryId) && (
             <button
-              onClick={() => { setBranchId(""); setCategoryId(""); }}
+              onClick={() => { handleBranchChange(""); setCategoryId(""); }}
               className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 rounded-lg transition-colors"
             >
               <X size={11} /> Clear
