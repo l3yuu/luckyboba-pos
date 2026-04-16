@@ -403,7 +403,7 @@ const CategoryModal: React.FC<{
   const isEdit = !!category;
 
   const [name, setName] = useState(category?.name ?? "");
-  const [baseType, setBaseType] = useState<CategoryType>(category?.type ?? "food");
+  const [baseType, setBaseType] = useState<CategoryType>((category?.type && POS_BEHAVIOR_BY_TYPE[category.type as CategoryType]) ? (category.type as CategoryType) : "food");
   const [posBehavior, setPosBehavior] = useState<string>(category?.category_type ?? "food");
   const [isActive, setIsActive] = useState(category?.is_active ?? true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -412,10 +412,13 @@ const CategoryModal: React.FC<{
 
   const handleBaseTypeChange = (t: CategoryType) => {
     setBaseType(t);
-    setPosBehavior(POS_BEHAVIOR_BY_TYPE[t][0].value);
+    const options = POS_BEHAVIOR_BY_TYPE[t];
+    if (options && options.length > 0) {
+      setPosBehavior(options[0].value);
+    }
   };
 
-  const behaviorOptions = POS_BEHAVIOR_BY_TYPE[baseType];
+  const behaviorOptions = POS_BEHAVIOR_BY_TYPE[baseType] || [];
   const selectedBehavior = behaviorOptions.find(o => o.value === posBehavior);
 
   const handleSubmit = async () => {
