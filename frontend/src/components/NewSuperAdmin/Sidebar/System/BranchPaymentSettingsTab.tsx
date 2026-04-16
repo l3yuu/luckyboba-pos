@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { 
-  CreditCard, Smartphone, Upload, 
+import {
+  CreditCard, Smartphone, Upload,
   CheckCircle2, AlertCircle, Store, Save,
   ArrowRight
 } from "lucide-react";
 import { useToast } from "../../../../hooks/useToast";
+import { triggerSync } from "../../../../utils/sync";
 
 interface PaymentSettings {
   branch_id?: number;
@@ -137,7 +138,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
     formData.append('gcash_number', settings.gcash_number);
     formData.append('maya_name', settings.maya_name);
     formData.append('maya_number', settings.maya_number);
-    
+
     if (gcashFile) formData.append('gcash_qr', gcashFile);
     if (mayaFile) formData.append('maya_qr', mayaFile);
     if (imageFile) formData.append('image', imageFile);
@@ -150,7 +151,10 @@ const BranchPaymentSettingsTab: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        showToast("Payment settings updated successfully", "success");
+        try {
+          triggerSync();
+          showToast("Payment settings updated successfully", "success");
+        } catch { /* ignore */ }
         setGcashFile(null);
         setMayaFile(null);
         setImageFile(null);
@@ -220,7 +224,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
             </div>
             <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Main Payment</p>
           </div>
-          
+
           <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-1.5">
@@ -247,15 +251,15 @@ const BranchPaymentSettingsTab: React.FC = () => {
 
             <div className="space-y-3">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">GCash QR Code</label>
-              <div 
+              <div
                 onClick={() => gcashInputRef.current?.click()}
                 className="relative group cursor-pointer"
               >
                 {gcashPreview ? (
                   <div className="relative aspect-square max-w-[200px] mx-auto bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200 p-2 overflow-hidden hover:border-[#007DFE] transition-colors">
-                    <img 
-                      src={gcashPreview} 
-                      alt="GCash QR" 
+                    <img
+                      src={gcashPreview}
+                      alt="GCash QR"
                       className="w-full h-full object-contain rounded-xl"
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
@@ -276,10 +280,10 @@ const BranchPaymentSettingsTab: React.FC = () => {
                     </div>
                   </div>
                 )}
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   ref={gcashInputRef}
-                  className="hidden" 
+                  className="hidden"
                   accept="image/*"
                   onChange={(e) => handleFileChange(e, 'gcash')}
                 />
@@ -299,7 +303,7 @@ const BranchPaymentSettingsTab: React.FC = () => {
             </div>
             <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Secondary</p>
           </div>
-          
+
           <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-1.5">
@@ -326,15 +330,15 @@ const BranchPaymentSettingsTab: React.FC = () => {
 
             <div className="space-y-3">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">Maya QR Code</label>
-              <div 
+              <div
                 onClick={() => mayaInputRef.current?.click()}
                 className="relative group cursor-pointer"
               >
                 {mayaPreview ? (
                   <div className="relative aspect-square max-w-[200px] mx-auto bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200 p-2 overflow-hidden hover:border-[#00D084] transition-colors">
-                    <img 
-                      src={mayaPreview} 
-                      alt="Maya QR" 
+                    <img
+                      src={mayaPreview}
+                      alt="Maya QR"
                       className="w-full h-full object-contain rounded-xl"
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
@@ -355,10 +359,10 @@ const BranchPaymentSettingsTab: React.FC = () => {
                     </div>
                   </div>
                 )}
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   ref={mayaInputRef}
-                  className="hidden" 
+                  className="hidden"
                   accept="image/*"
                   onChange={(e) => handleFileChange(e, 'maya')}
                 />
@@ -379,17 +383,17 @@ const BranchPaymentSettingsTab: React.FC = () => {
           </div>
           <p className="text-[10px] font-black uppercase tracking-widest text-white/50">App Branding</p>
         </div>
-        
+
         <div className="p-6">
           <div className="flex flex-col md:flex-row gap-8 items-center">
-            <div 
+            <div
               onClick={() => imageInputRef.current?.click()}
               className="relative group cursor-pointer w-full md:w-64 aspect-video bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center overflow-hidden hover:border-violet-400 transition-all"
             >
               {imagePreview ? (
-                <img 
-                  src={imagePreview} 
-                  alt="Store Preview" 
+                <img
+                  src={imagePreview}
+                  alt="Store Preview"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -404,10 +408,10 @@ const BranchPaymentSettingsTab: React.FC = () => {
                   <span className="text-[10px] font-black uppercase text-white">Change Cover</span>
                 </div>
               </div>
-              <input 
-                type="file" 
+              <input
+                type="file"
                 ref={imageInputRef}
-                className="hidden" 
+                className="hidden"
                 accept="image/*"
                 onChange={(e) => handleFileChange(e, 'image')}
               />
@@ -416,8 +420,8 @@ const BranchPaymentSettingsTab: React.FC = () => {
             <div className="flex-1 space-y-3">
               <h4 className="text-sm font-bold text-[#1a0f2e]">Store Cover Photo</h4>
               <p className="text-xs text-zinc-500 leading-relaxed">
-                This image will be displayed on the store locator cards in the mobile app. 
-                Recommended aspect ratio: <b>16:9</b> (Landscape). 
+                This image will be displayed on the store locator cards in the mobile app.
+                Recommended aspect ratio: <b>16:9</b> (Landscape).
                 Supported formats: PNG, JPG, WebP. Max size: 2MB.
               </p>
               <div className="flex items-center gap-2 text-[10px] font-bold text-violet-600 bg-violet-50 px-3 py-1.5 rounded-lg w-fit">

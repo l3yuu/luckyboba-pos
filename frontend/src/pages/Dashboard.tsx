@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import Sidebar from "../components/Cashier/Sidebar";
 import logo from '../assets/logo.png';
 import api from '../services/api'; 
+import { useToast } from '../hooks/useToast';
 import type { DashboardData, TopSeller } from '../types/dashboard';
 import { Monitor, DollarSign, Receipt, ArrowDownToLine, ArrowUpFromLine, Ban, Trophy, Clock4, RefreshCw, TrendingUp } from 'lucide-react';
 
@@ -57,6 +58,7 @@ const GlobalFont = () => (
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
+  const { showToast } = useToast();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [stats, setStats] = useState<DashboardData | null>(() => {
@@ -136,6 +138,46 @@ const fetchStats = useCallback(async (force = false) => {
       window.removeEventListener('online-order-completed', handleOrderCompleted);
     };
   }, [fetchStats]);
+
+  // Real-time synchronization prompt
+  useEffect(() => {
+    // 1. BroadcastChannel Listener
+    const channel = new BroadcastChannel('pos-updates');
+    
+    const handleSync = () => {
+      console.info("[Sync] 📥 Signal Received: Triggering Notify UI.");
+      showToast(
+        "New menu updates available.", 
+        "info", 
+        "Sync Now", 
+        () => {
+          localStorage.removeItem('dashboard_stats_timestamp');
+          window.location.reload(); 
+        },
+        15000
+      );
+    };
+
+    channel.onmessage = (event) => {
+      const msg = typeof event.data === 'string' ? event.data : event.data?.type;
+      console.log("[Sync] channel.onmessage received:", { data: event.data, msg });
+      if (msg === 'menu-updated') handleSync();
+    };
+
+    // 2. LocalStorage Fallback
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'lb-pos-sync-trigger') {
+        console.log("[Sync] storage event received:", { key: e.key, value: e.newValue });
+        handleSync();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      channel.close();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [showToast]);
 
   if (authLoading || (isInitialLoad && !stats)) return <DashboardSkeleton />;
   if (!user) return null;
