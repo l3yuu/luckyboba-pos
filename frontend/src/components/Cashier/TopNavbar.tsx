@@ -63,16 +63,34 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
   const [fetching,      setFetching]        = useState(false);
 
   // ── Cashier info ──────────────────────────────────────────────────────────
-  const [cashierInfo] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return {
-        name:   (localStorage.getItem('lucky_boba_user_name')   ?? 'SYSTEM ADMIN').toUpperCase(),
-        role:   (localStorage.getItem('lucky_boba_user_role')   ?? '').toUpperCase(),
-        branch: (localStorage.getItem('lucky_boba_user_branch') ?? 'MAIN BRANCH').toUpperCase(),
-      };
-    }
-    return { name: 'SYSTEM ADMIN', role: '', branch: 'MAIN BRANCH' };
+  const [cashierInfo, setCashierInfo] = useState({
+    name: (typeof window !== 'undefined' ? (localStorage.getItem('lucky_boba_user_name') ?? 'SYSTEM ADMIN') : 'SYSTEM ADMIN').toUpperCase(),
+    role: (typeof window !== 'undefined' ? (localStorage.getItem('lucky_boba_user_role') ?? '') : '').toUpperCase(),
+    branch: (typeof window !== 'undefined' ? (localStorage.getItem('lucky_boba_user_branch') ?? 'MAIN BRANCH') : 'MAIN BRANCH').toUpperCase(),
   });
+
+  // Sync cashierInfo when localStorage changes (e.g., after a POS sync)
+  useEffect(() => {
+    const syncInfo = () => {
+      setCashierInfo({
+        name: (localStorage.getItem('lucky_boba_user_name') ?? 'SYSTEM ADMIN').toUpperCase(),
+        role: (localStorage.getItem('lucky_boba_user_role') ?? '').toUpperCase(),
+        branch: (localStorage.getItem('lucky_boba_user_branch') ?? 'MAIN BRANCH').toUpperCase(),
+      });
+    };
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'lucky_boba_user_branch' || e.key === 'lucky_boba_user_name') {
+        syncInfo();
+      }
+    });
+
+    // Also poll slightly or just rely on the sync events from other components
+    // for local-tab changes, we can use a custom event if needed, but storage event 
+    // handles cross-tab, and local state handles local tab if we trigger it.
+    
+    return () => window.removeEventListener('storage', syncInfo);
+  }, []);
 
   // ── Fetch notifications ───────────────────────────────────────────────────
   const fetchNotifications = useCallback(async () => {

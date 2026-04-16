@@ -529,12 +529,22 @@ const SalesOrder = () => {
 
       // 6. Branch Details
       if (branchRes.status === 'fulfilled') {
-        const data = branchRes.value.data;
-        const newName = data.branch_name ?? '';
-        const newVat = data.vat_type ?? 'vat';
+        const respBody = branchRes.value.data;
+        const b = respBody.data ?? respBody; // Handle wrapper
+        const newName = b.name ?? b.branch_name ?? '';
+        const newVat = b.vat_type ?? 'vat';
 
         setBranchName(newName);
         setVatType(newVat as 'vat' | 'non_vat');
+        setBranchDetails({
+          brand: b.brand,
+          companyName: b.company_name,
+          storeAddress: b.store_address,
+          vatRegTin: b.vat_reg_tin,
+          minNumber: b.min_number,
+          serialNumber: b.serial_number,
+          owner_name: b.owner_name,
+        });
 
         localStorage.setItem('lucky_boba_user_branch', newName);
         localStorage.setItem('lucky_boba_user_branch_vat', newVat);
