@@ -69,7 +69,7 @@ class TermsPage extends StatelessWidget {
                           border: Border.all(color: Colors.white, width: 2),
                         ),
                         child: ClipOval(
-                          child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
+                          child: Image.asset('assets/images/lucky_logo.jpg', fit: BoxFit.cover),
                         ),
                       ),
                     ),
