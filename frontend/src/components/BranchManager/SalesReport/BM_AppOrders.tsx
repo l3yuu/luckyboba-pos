@@ -7,10 +7,15 @@ import {
   Activity, RefreshCw,
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000/api';
 const getToken = () =>
   localStorage.getItem('auth_token') ||
   localStorage.getItem('lucky_boba_token') || '';
+
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {}),
+});
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
 const GlobalStyles = () => (
@@ -146,13 +151,9 @@ const OrderRow = ({ order, onStatusChange }: {
     if (!next) return;
     setUpdating(true);
     try {
-      const res = await fetch(`${API_BASE}/branch/app-orders/${order.id}/status`, {
+      const res = await fetch(`/api/branch/app-orders/${order.id}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${getToken()}`,
-        },
+        headers: authHeaders(),
         body: JSON.stringify({ status: next }),
       });
       if (res.ok) onStatusChange(order.id, next);
@@ -284,11 +285,8 @@ const BM_AppOrders = () => {
     else setRefreshing(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/branch/app-orders`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${getToken()}`,
-        },
+      const res = await fetch(`/api/branch/app-orders`, {
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();

@@ -9,14 +9,31 @@ import 'dart:math' as math;
 import '../config/app_config.dart';
 import '../cart/menu_page.dart';
 import '../utils/app_theme.dart';
+import '../widgets/tappable_card.dart';
 import 'points_page.dart';
 
 const Map<String, String> _kCategoryMap = {
   'Lucky Classic': 'Classic Milktea',
+  'Classic':       'Classic Milktea',
+  'Classic Jr':    'Classic Jr.',
+  'Cheese':        'Cheese Series',
   'Frappes':       'Frappes',
-  'Iced Coffees':  'Iced Coffee',
-  'Fruit Juices':  'Fruit Soda Series',
+  'Coffees':       'Iced Coffee',
+  'Hot Drinks':    'Hot Drinks',
+  'Juices':        'Fruit Soda Series',
+  'Pudding':       'Pudding',
 };
+
+final List<Map<String, dynamic>> _kAllCategories = [
+  {'label': 'Classic',    'imagePath': 'assets/images/lucky_classic.png', 'color': const Color(0xFF7C3AED)},
+  {'label': 'Classic Jr', 'imagePath': 'assets/images/classicjr.png',     'color': const Color(0xFFF59E0B)},
+  {'label': 'Cheese',     'imagePath': 'assets/images/cheese_series.png', 'color': const Color(0xFFFBBF24)},
+  {'label': 'Frappes',    'imagePath': 'assets/images/frappe.png',        'color': const Color(0xFFEC4899)},
+  {'label': 'Hot Drinks', 'imagePath': 'assets/images/hot_drinks.png',    'color': const Color(0xFFEF4444)},
+  {'label': 'Coffees',    'imagePath': 'assets/images/iced_coffee.png',   'color': const Color(0xFF8B5CF6)},
+  {'label': 'Juices',     'imagePath': 'assets/images/fruit_juices.png',  'color': const Color(0xFF10B981)},
+  {'label': 'Pudding',    'imagePath': 'assets/images/pudding.png',       'color': const Color(0xFF6366F1)},
+];
 
 // Store locations are now fetched dynamically from the backend API.
 List<Map<String, dynamic>> _kStoreLocations = [];
@@ -50,7 +67,7 @@ class _HomePageState extends State<HomePage> {
   int    _luckyPoints    = 0;
   bool   _loadingNearby  = true;
   Map<String, dynamic>? _nearestStore;
-  double _nearestDist    = 0;
+  double? _nearestDist;
   String _userName       = '';
   Position? _currentPosition;
 
@@ -221,8 +238,13 @@ class _HomePageState extends State<HomePage> {
     sorted.sort((a, b) => (a['_dist'] as double).compareTo(b['_dist'] as double));
     if (mounted) {
       setState(() {
-        _nearestStore = sorted.first;
-        _nearestDist  = sorted.first['_dist'];
+        if (sorted.isNotEmpty) {
+          _nearestStore = sorted.first;
+          _nearestDist = sorted.first['_dist'];
+        } else {
+          _nearestStore = null;
+          _nearestDist = null;
+        }
         _loadingNearby = false;
       });
     }
@@ -296,13 +318,12 @@ class _HomePageState extends State<HomePage> {
                       ),
                     )
                   else if (_featuredDrinks.isEmpty)
-                    _TappableCard(
-                      child: const _HeroBannerLight(
-                        imagePath: 'assets/images/cheese_series.png',
-                        title: 'Cheese Series',
-                        subTitle: 'Premium Collection',
-                        cta: 'ORDER NOW',
-                      ),
+                    _HeroBannerLight(
+                      onTap: () => _showBranchPicker('Cheese'),
+                      imagePath: 'assets/images/cheese_series.png',
+                      title: 'Cheese Series',
+                      subTitle: 'Premium Collection',
+                      cta: 'ORDER NOW',
                     )
                   else
                     SizedBox(
@@ -311,13 +332,12 @@ class _HomePageState extends State<HomePage> {
                         itemCount: _featuredDrinks.length,
                         itemBuilder: (context, index) {
                           final item = _featuredDrinks[index];
-                          return _TappableCard(
-                            child: _HeroBannerLight(
-                              imagePath: item['image_url'] ?? 'assets/images/cheese_series.png',
-                              title: item['title'] ?? '',
-                              subTitle: item['subtitle'] ?? '',
-                              cta: item['cta_text'] ?? 'ORDER NOW',
-                            ),
+                          return _HeroBannerLight(
+                            onTap: () => _showBranchPicker('Classic'),
+                            imagePath: item['image_url'] ?? 'assets/images/cheese_series.png',
+                            title: item['title'] ?? '',
+                            subTitle: item['subtitle'] ?? '',
+                            cta: item['cta_text'] ?? 'ORDER NOW',
                           );
                         },
                       ),
@@ -346,37 +366,21 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 14),
 
                   SizedBox(
-                    height: 100,
-                    child: ListView(
+                    height: 120,
+                    child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       physics: const BouncingScrollPhysics(),
                       padding: EdgeInsets.zero,
-                      children: [
-                        _CategoryCard(
-                          label: 'Classics',
-                          icon: PhosphorIconsFill.coffee,
-                          color: const Color(0xFF7C3AED),
-                          onTap: () => _showBranchPicker('Lucky Classic'),
-                        ),
-                        _CategoryCard(
-                          label: 'Frappes',
-                          icon: PhosphorIconsFill.iceCream,
-                          color: const Color(0xFFEC4899),
-                          onTap: () => _showBranchPicker('Frappes'),
-                        ),
-                        _CategoryCard(
-                          label: 'Coffees',
-                          icon: PhosphorIconsFill.coffee,
-                          color: const Color(0xFF8B5CF6),
-                          onTap: () => _showBranchPicker('Iced Coffees'),
-                        ),
-                        _CategoryCard(
-                          label: 'Juices',
-                          icon: PhosphorIconsFill.drop,
-                          color: const Color(0xFF10B981),
-                          onTap: () => _showBranchPicker('Fruit Juices'),
-                        ),
-                      ],
+                      itemCount: _kAllCategories.length,
+                      itemBuilder: (context, index) {
+                        final cat = _kAllCategories[index];
+                        return _CategoryCard(
+                          label: cat['label'] as String,
+                          imagePath: cat['imagePath'] as String,
+                          color: cat['color'] as Color,
+                          onTap: () => _showBranchPicker(cat['label'] as String),
+                        );
+                      },
                     ),
                   ),
 
@@ -408,8 +412,28 @@ class _HomePageState extends State<HomePage> {
                               child: CircularProgressIndicator(
                                   color: _kPurple)),
                         )
-                      : _NearbyStoreBanner(
-                          store: _nearestStore!, dist: _nearestDist),
+                      : (_nearestStore == null || _nearestDist == null)
+                          ? Container(
+                              height: 180,
+                              decoration: AppTheme.glassDecoration(
+                                borderRadius: 22,
+                                opacity: 0.1,
+                                shadowColor: _kOrange,
+                                shadowBlur: 20,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'No nearby store available yet.',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textMid,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : _NearbyStoreBanner(
+                              store: _nearestStore!, dist: _nearestDist!),
 
                   const SizedBox(height: 120),
                 ],
@@ -683,109 +707,132 @@ class _StatCardLight extends StatelessWidget {
 
 class _HeroBannerLight extends StatelessWidget {
   final String imagePath, title, subTitle, cta;
+  final VoidCallback? onTap;
+
   const _HeroBannerLight({
     required this.imagePath,
     required this.title,
     required this.subTitle,
     required this.cta,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 190,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: _kPurple.withValues(alpha: 0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: imagePath.startsWith('http')
-                  ? Image.network(
-                      imagePath,
-                      fit: BoxFit.cover,
-                      color: Colors.black.withValues(alpha: 0.25),
-                      colorBlendMode: BlendMode.darken,
-                    )
-                  : Image.asset(
-                      imagePath,
-                      fit: BoxFit.cover,
-                      color: Colors.black.withValues(alpha: 0.25),
-                      colorBlendMode: BlendMode.darken,
+    return TappableCard(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 190,
+        decoration: AppTheme.glassDecoration(
+          borderRadius: 22,
+          opacity: 0.05,
+          shadowColor: _kPurple,
+          shadowBlur: 20,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Hero(
+                  tag: 'featured_$title',
+                  child: imagePath.startsWith('http')
+                      ? Image.network(
+                          imagePath,
+                          fit: BoxFit.cover,
+                          color: Colors.black.withValues(alpha: 0.25),
+                          colorBlendMode: BlendMode.darken,
+                          errorBuilder: (context, error, trace) => Container(
+                            color: const Color(0xFF2D2A42),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.local_cafe_rounded,
+                              color: Colors.white70,
+                              size: 36,
+                            ),
+                          ),
+                        )
+                      : Image.asset(
+                          imagePath,
+                          fit: BoxFit.cover,
+                          color: Colors.black.withValues(alpha: 0.25),
+                          colorBlendMode: BlendMode.darken,
+                          errorBuilder: (context, error, trace) => Container(
+                            color: const Color(0xFF2D2A42),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.local_cafe_rounded,
+                              color: Colors.white70,
+                              size: 36,
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.75),
+                      ],
                     ),
-            ),
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.75),
-                    ],
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              left: 18,
-              right: 18,
-              bottom: 18,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        subTitle.toUpperCase(),
-                        style: GoogleFonts.outfit(
-                            fontSize: 9,
-                            color: Colors.white60,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 2),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        title,
-                        style: GoogleFonts.outfit(
-                            fontSize: 22,
-                            color: _kWhite,
-                            fontWeight: FontWeight.w800),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: _kOrange,
-                      borderRadius: BorderRadius.circular(12),
+              Positioned(
+                left: 18,
+                right: 18,
+                bottom: 18,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          subTitle.toUpperCase(),
+                          style: GoogleFonts.outfit(
+                              fontSize: 9,
+                              color: Colors.white60,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          title,
+                          style: GoogleFonts.outfit(
+                              fontSize: 22,
+                              color: _kWhite,
+                              fontWeight: FontWeight.w800),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      cta,
-                      style: GoogleFonts.outfit(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: _kWhite),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: _kOrange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        cta,
+                        style: GoogleFonts.outfit(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: _kWhite),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -796,46 +843,88 @@ class _HeroBannerLight extends StatelessWidget {
 
 class _CategoryCard extends StatelessWidget {
   final String label;
-  final IconData icon;
+  final String imagePath;
   final Color color;
   final VoidCallback onTap;
 
   const _CategoryCard({
     required this.label,
-    required this.icon,
+    required this.imagePath,
     required this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return TappableCard(
       onTap: onTap,
       child: Container(
-        width: 78,
-        margin: const EdgeInsets.only(right: 14),
-        child: Column(
-          children: [
-            Container(
-              width: 68,
-              height: 68,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: color.withValues(alpha: 0.2), width: 1.2),
+        width: 100,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: AppTheme.glassDecoration(
+          borderRadius: 20,
+          opacity: 0.05,
+          shadowColor: color,
+          shadowBlur: 14,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              // Background Image
+              Positioned.fill(
+                child: Hero(
+                  tag: 'cat_$label',
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, trace) => Container(
+                      color: color.withValues(alpha: 0.20),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.fastfood_rounded,
+                        color: color,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: GoogleFonts.outfit(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF4B4B6B)),
-            ),
-          ],
+              // Gradient Overlay
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.7),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Label
+              Positioned(
+                left: 8,
+                right: 8,
+                bottom: 10,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1.1,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -851,19 +940,16 @@ class _NearbyStoreBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _TappableCard(
+    return TappableCard(
+      onTap: () {}, // Handled by outer logic or can be added
       child: Container(
         width: double.infinity,
         height: 180,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
+        decoration: AppTheme.glassDecoration(
+          borderRadius: 22,
+          opacity: 0.1,
+          shadowColor: _kOrange,
+          shadowBlur: 20,
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(22),
@@ -886,6 +972,10 @@ class _NearbyStoreBanner extends StatelessWidget {
                         fit: BoxFit.cover,
                         color: Colors.black.withValues(alpha: 0.35),
                         colorBlendMode: BlendMode.darken,
+                        errorBuilder: (context, error, trace) => Container(
+                          color: Colors.grey[900],
+                          child: const Icon(Icons.store_rounded, color: Colors.white, size: 40),
+                        ),
                       ),
               ),
               Positioned.fill(
@@ -1078,8 +1168,23 @@ class _BranchTile extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset(store['image'],
-                  width: 50, height: 50, fit: BoxFit.cover),
+              child: Image.asset(
+                store['image'],
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, trace) => Container(
+                  width: 50,
+                  height: 50,
+                  color: Colors.white10,
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.storefront_rounded,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -1116,47 +1221,6 @@ class _BranchTile extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ── Tappable card (scale animation) ───────────────────────────────────────────
-
-class _TappableCard extends StatefulWidget {
-  final Widget child;
-  const _TappableCard({required this.child});
-
-  @override
-  State<_TappableCard> createState() => _TappableCardState();
-}
-
-class _TappableCardState extends State<_TappableCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 100));
-    _scale = Tween(begin: 1.0, end: 0.97)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) => _ctrl.reverse(),
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(scale: _scale, child: widget.child),
     );
   }
 }

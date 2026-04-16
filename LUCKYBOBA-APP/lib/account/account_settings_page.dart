@@ -7,6 +7,8 @@ import 'dart:convert';
 import '../config/app_config.dart';
 import '../auth/main.dart';
 import '../state/profile_notifier.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AccountSettingsPage extends StatefulWidget {
   const AccountSettingsPage({super.key});
@@ -25,6 +27,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   String _email = '';
   String _phone = '';
   bool _saving = false;
+  String _appVersion = '';
 
   @override
   void initState() {
@@ -38,6 +41,12 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       _email = prefs.getString('userEmail') ?? '';
       _phone = prefs.getString('userPhone') ?? '';
     });
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() => _appVersion = '${info.version} (${info.buildNumber})');
+      }
+    } catch (_) {}
   }
 
   // ── Change Email ──────────────────────────────────────────────────────────
@@ -159,7 +168,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     setState(() => _saving = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token') ?? '';
+      final token = prefs.getString('session_token') ?? prefs.getString('auth_token') ?? '';
       final userId =
           prefs.getInt('user_id') ?? prefs.getString('user_id_str') ?? '';
 
@@ -192,6 +201,28 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     } catch (e) {
       if (mounted) setState(() => _saving = false);
       _snack('Connection error. Please try again.', success: false);
+    }
+  }
+
+  Future<void> _openPrivacyPolicy() async {
+    final uri = Uri.parse(AppConfig.privacyUrl);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      _snack('Could not open Privacy Policy.', success: false);
+    }
+  }
+
+  Future<void> _contactSupport() async {
+    final subject = Uri.encodeComponent('Lucky Boba Support');
+    final body = Uri.encodeComponent(
+      'Hi Lucky Boba Support,\n\n'
+      'I need help with my account.\n\n'
+      'Thanks.',
+    );
+    final uri = Uri.parse('mailto:${AppConfig.supportEmail}?subject=$subject&body=$body');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      _snack('Could not open email app.', success: false);
     }
   }
 
@@ -675,6 +706,31 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                         ),
                       ),
                     ),
+
+                    const SizedBox(height: 18),
+
+                    _sectionLabel('About'),
+                    const SizedBox(height: 10),
+                    _settingsCard([
+                      _SettingsTile(
+                        icon: Icons.info_outline_rounded,
+                        title: 'App Version',
+                        subtitle: _appVersion.isNotEmpty ? _appVersion : '—',
+                        onTap: () {},
+                      ),
+                      _SettingsTile(
+                        icon: Icons.privacy_tip_outlined,
+                        title: 'Privacy Policy',
+                        subtitle: 'View in browser',
+                        onTap: _openPrivacyPolicy,
+                      ),
+                      _SettingsTile(
+                        icon: Icons.support_agent_rounded,
+                        title: 'Contact Support',
+                        subtitle: AppConfig.supportEmail,
+                        onTap: _contactSupport,
+                      ),
+                    ]),
                   ],
                 ),
               ),

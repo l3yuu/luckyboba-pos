@@ -7,10 +7,35 @@ use App\Models\Card;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class CardController extends Controller
 {
+    private function apiImageUrl(?string $image): string
+    {
+        if (empty($image)) {
+            return '';
+        }
+
+        $parsedPath = parse_url($image, PHP_URL_PATH);
+        $relativePath = '';
+
+        if (!empty($parsedPath) && str_contains($parsedPath, '/storage/')) {
+            $relativePath = ltrim(Str::after($parsedPath, '/storage/'), '/');
+        } elseif (!str_starts_with($image, 'http')) {
+            $relativePath = ltrim($image, '/');
+        } else {
+            return $image;
+        }
+
+        if ($relativePath === '' || !Storage::disk('public')->exists($relativePath)) {
+            return '';
+        }
+
+        return url('/api/cards/image/' . $relativePath);
+    }
+
     // ── PUBLIC: Flutter app fetches this ─────────────────────────────────────
     // GET /api/cards
     public function index()
@@ -22,7 +47,7 @@ class CardController extends Controller
             ->map(fn($card) => [
                 'id'               => $card->id,
                 'title'            => $card->title,
-                'image_url'        => $card->image_url,
+                'image_url'        => $this->apiImageUrl($card->image_url),
                 'price'            => number_format($card->price, 0),
                 'price_raw'        => (float) $card->price,
                 'is_active'        => (bool) $card->is_active,
@@ -290,6 +315,25 @@ class CardController extends Controller
         Card::findOrFail($id)->delete();
 
         return response()->json(['success' => true, 'message' => 'Card deleted.']);
+    }
+
+    // GET /api/cards/image/{path}
+    public function image(string $path)
+    {
+        $normalized = ltrim($path, '/');
+
+        if (!str_starts_with($normalized, 'cards/') || str_contains($normalized, '..')) {
+            abort(404);
+        }
+
+        if (!Storage::disk('public')->exists($normalized)) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->response($normalized, null, [
+            'Access-Control-Allow-Origin' => '*',
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
     }
 
     public function generateQr(Request $request)

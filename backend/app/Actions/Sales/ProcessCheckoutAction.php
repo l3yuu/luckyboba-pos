@@ -113,6 +113,7 @@ class ProcessCheckoutAction
                     'bundle_id'          => $item['bundle_id'] ?? null,
                     'product_name'       => $item['name'],
                     'quantity'           => $item['quantity'],
+                    'unit_price'         => $basePrice,
                     'price'              => $basePrice,
                     'final_price'        => $totalPrice,
                     'size'               => $item['size'] ?? null,

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PosDeviceController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\SugarLevelController;
+use App\Http\Controllers\Api\MenuItemAddonController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
@@ -40,6 +41,9 @@ Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'check
 
 // ✅ PUBLIC MOBILE ROUTES
 Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/cards/image/{path}', [CardController::class, 'image'])
+    ->where('path', '.*')
+    ->middleware('throttle:120,1');
 Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');
@@ -298,6 +302,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get ('/menu-item-options',       [MenuItemOptionController::class, 'index']);
         Route::get ('/menu-item-options/bulk',  [MenuItemOptionController::class, 'bulk']);
         Route::put ('/menu-item-options/{id}',  [MenuItemOptionController::class, 'update']);
+        
+        Route::get ('/menu-item-addons',       [MenuItemAddonController::class, 'index']);
+        Route::put ('/menu-item-addons/{id}',  [MenuItemAddonController::class, 'update']);
 
         Route::get('/bundles',         [BundleController::class,       'index']);
         Route::get('/category-drinks', [CategoryDrinkController::class,'index']);
@@ -309,6 +316,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/cups',                                      [CupController::class,       'index']);
         Route::get('/sugar-levels',                              [SugarLevelController::class,'index']);
         Route::get('/sugar-levels/by-item/{menuItemId}',         [SugarLevelController::class,'byMenuItem']);
+        Route::get('/menu-item-sugar-levels',                    [SugarLevelController::class,'byMenuItemViaQuery']); // Added to match frontend
+        Route::put('/menu-item-sugar-levels/{id}',               [SugarLevelController::class,'updateAssignment']);   // Added to match frontend
 
         Route::prefix('inventory')->group(function () {
             Route::get('/',             [InventoryController::class,          'index']);
@@ -455,6 +464,14 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post  ('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
 
+        // ── CUSTOMER MANAGEMENT (SuperAdmin + BranchManager) ────────────────
+        Route::prefix('customers')->group(function () {
+            Route::get('/',                    [CustomerController::class, 'index']);
+            Route::get('/stats',               [CustomerController::class, 'stats']);
+            Route::get('/{id}',                [CustomerController::class, 'show']);
+            Route::patch('/{id}/toggle-status', [CustomerController::class, 'toggleStatus']);
+        });
+
         // ── BRANCH PAYMENT SETTINGS ──
         Route::get('/branch/payment-settings', [BranchSettingsController::class, 'getPaymentSettings']);
         Route::post('/branch/payment-settings', [BranchSettingsController::class, 'updatePaymentSettings']);
@@ -471,13 +488,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('/franchises', FranchiseController::class);
         Route::post('/franchises/{id}/assign-branches', [FranchiseController::class, 'assignBranches']);
 
-        // ── CUSTOMER MANAGEMENT (SuperAdmin) ────────────────────────────────
-        Route::prefix('customers')->group(function () {
-            Route::get('/',                    [CustomerController::class, 'index']);
-            Route::get('/stats',               [CustomerController::class, 'stats']);
-            Route::get('/{id}',                [CustomerController::class, 'show']);
-            Route::patch('/{id}/toggle-status', [CustomerController::class, 'toggleStatus']);
-        });
+        // ── CUSTOMER MANAGEMENT (Moved to shared block) ─────────────────────
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::apiResource('raw-materials', RawMaterialController::class)->except(['index', 'show']);

@@ -72,6 +72,32 @@ const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   useEffect(() => {
+    const channel = new BroadcastChannel('pos-updates');
+    channel.onmessage = (event) => {
+      if (event.data === 'menu-updated') {
+        // Refresh cache in background
+        api.get('/menu').then(r => {
+          if (Array.isArray(r.data)) localStorage.setItem('pos_menu_cache', JSON.stringify(r.data));
+        }).catch(() => {});
+        api.get('/add-ons').then(r => {
+          if (Array.isArray(r.data)) localStorage.setItem('pos_addons_cache', JSON.stringify(r.data));
+        }).catch(() => {});
+        api.get('/discounts').then(r => {
+          if (Array.isArray(r.data)) localStorage.setItem('pos_discounts_cache', JSON.stringify(r.data));
+        }).catch(() => {});
+        api.get('/sugar-levels').then(r => {
+          const levels = r.data.data ?? r.data;
+          localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(levels));
+        }).catch(() => {});
+        api.get('/bundles').then(r => {
+          localStorage.setItem('pos_bundles_cache', JSON.stringify(r.data));
+        }).catch(() => {});
+      }
+    };
+    return () => channel.close();
+  }, []);
+
+  useEffect(() => {
     const checkStatus = async () => {
       try {
         const r = await api.get('/cash-transactions/status');

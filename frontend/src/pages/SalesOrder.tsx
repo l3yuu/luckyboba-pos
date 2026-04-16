@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOfflineQueue } from '../hooks/useOfflineQueue'
 import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner'
@@ -74,7 +74,9 @@ const SalesOrder = () => {
   }, [])
 
   const branchId = user?.branch_id ?? null
-  const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
+  const [branchName, setBranchName] = useState(() => 
+    user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
+  )
   const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
     () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
   )
@@ -127,13 +129,13 @@ const SalesOrder = () => {
   const [checkingCashIn, setCheckingCashIn] = useState(true)
 
   // Menu / category
-  const [categories] = useState<Category[]>(() => {
+  const [categories, setCategories] = useState<Category[]>(() => {
     const cached = localStorage.getItem('pos_menu_cache')
     return cached ? JSON.parse(cached) : []
   })
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [categorySize, setCategorySize] = useState<string | null>(null)
-  const [loading] = useState(!localStorage.getItem('pos_menu_cache'))
+  const [loading, setLoading] = useState(!localStorage.getItem('pos_menu_cache'))
   const [searchQuery, setSearchQuery] = useState('')
 
   // Item selection modal
@@ -446,6 +448,196 @@ const SalesOrder = () => {
     }
   }
 
+  // ── Sync Logic ─────────────────────────────────────────────────────────────
+
+  const refreshPOSData = useCallback(async (isSilent = false) => {
+    if (!isSilent) showToast("Updating menu data...", "info");
+    const t = Date.now(); // Cache busting timestamp
+    
+    try {
+      const [menuRes, addonsRes, sugarRes, bundlesRes, discountsRes, branchRes, paymentRes] = await Promise.allSettled([
+        api.get(`/menu?t=${t}`),
+        api.get(`/add-ons?t=${t}`),
+        api.get(`/sugar-levels?t=${t}`),
+        api.get(`/bundles?t=${t}`),
+        api.get(`/discounts?t=${t}`),
+        branchId ? api.get(`/branches/${branchId}?t=${t}`) : Promise.reject('no_branch'),
+        api.get(`/payment-settings?t=${t}`)
+      ]);
+
+      // 1. Menu & Categories
+      if (menuRes.status === 'fulfilled') {
+        const data = menuRes.value.data;
+        if (Array.isArray(data)) {
+          localStorage.setItem('pos_menu_cache', JSON.stringify(data));
+          setCategories(data);
+          
+          // CRITICAL: Re-sync selectedCategory reference to avoid stale objects
+          setSelectedCategory(prev => {
+            if (!prev) return null;
+            return data.find((c: Category) => c.id === prev.id) || null;
+          });
+
+          // Re-sync selectedItem if it exists
+          setSelectedItem(prev => {
+            if (!prev) return null;
+            // Find item in any category
+            for (const cat of data) {
+              const item = cat.menu_items?.find((i: MenuItem) => i.id === prev.id);
+              if (item) return item;
+            }
+            return null;
+          });
+        }
+      }
+
+      // 2. Add-ons
+      if (addonsRes.status === 'fulfilled') {
+        const data = addonsRes.value.data;
+        localStorage.setItem('pos_addons_cache', JSON.stringify(data));
+        setAddOnsData(data);
+      }
+
+      // 3. Sugar Levels
+      if (sugarRes.status === 'fulfilled') {
+        const data = sugarRes.value.data;
+        const levels = data.data ?? data;
+        localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(levels));
+        setSugarLevels(levels);
+      }
+
+      // 4. Bundles
+      if (bundlesRes.status === 'fulfilled') {
+        const data = bundlesRes.value.data;
+        localStorage.setItem('pos_bundles_cache', JSON.stringify(data));
+        setBundlesData(data);
+      }
+
+      // 5. Discounts
+      if (discountsRes.status === 'fulfilled') {
+        const data = discountsRes.value.data;
+        localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
+        const seen = new Set<string>();
+        const unique = data
+          .filter((d: Discount) => d.status === 'ON')
+          .filter((d: Discount) => {
+            const key = `${d.name}-${d.amount}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        setDiscounts(unique);
+      }
+
+      // 6. Branch Details
+      if (branchRes.status === 'fulfilled') {
+        const data = branchRes.value.data;
+        const newName = data.branch_name ?? '';
+        const newVat = data.vat_type ?? 'vat';
+        
+        setBranchName(newName);
+        setVatType(newVat as 'vat' | 'non_vat');
+        
+        localStorage.setItem('lucky_boba_user_branch', newName);
+        localStorage.setItem('lucky_boba_user_branch_vat', newVat);
+      }
+
+      // 7. Payment Settings
+      if (paymentRes.status === 'fulfilled') {
+        const data = paymentRes.value.data;
+        setPosFooter(prev => ({ ...prev, ...data }));
+        setGeneralSettings({
+          business_name: data.business_name ?? '',
+          contact_email: data.contact_email ?? '',
+          contact_phone: data.contact_phone ?? '',
+          address: data.address ?? '',
+        });
+      }
+
+      if (!isSilent) showToast("Menu updated successfully", "success");
+    } catch (error) {
+      console.error("Failed to refresh POS data:", error);
+      if (!isSilent) showToast("Failed to update menu", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast, branchId]);
+
+  useEffect(() => {
+    const SYNC_CHANNEL_NAME = 'lucky_boba_pos_sync_v1';
+    const SYNC_STORAGE_KEY = 'lb-pos-sync-trigger-v1';
+    const origin = window.location.origin;
+
+    const channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
+    
+    // Track the last known backend version
+    let localMenuVersion = parseInt(localStorage.getItem('lb-pos-menu-version') || '0', 10);
+
+    const handleSync = () => {
+      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering Notify UI.`);
+      showToast(
+        "New menu updates available.", 
+        "info", 
+        "Sync Now", 
+        () => {
+          // Force newest version to be stored immediately so we don't show the toast repeatedly
+          localStorage.setItem('lb-pos-menu-version', Date.now().toString());
+          refreshPOSData(true);
+        },
+        15000
+      );
+    };
+
+    // 1. BroadcastChannel (Same Browser)
+    channel.onmessage = (event) => {
+      const data = event.data;
+      const msg = typeof data === 'string' ? data : data?.type;
+      console.log(`[Sync] Broadcast message received at ${origin}:`, data);
+      if (msg === 'menu-updated') handleSync();
+    };
+
+    // 2. LocalStorage (Same Browser, different tab fallback)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === SYNC_STORAGE_KEY) {
+        console.log(`[Sync] Storage event received at ${origin}:`, e.newValue);
+        handleSync();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 3. API Polling (Cross-Browser / Cross-Device)
+    const checkVersion = async () => {
+      try {
+        const { data } = await api.get('/menu/version');
+        const remoteVersion = parseInt(data.version || '0', 10);
+        
+        // If the backend has a newer timestamp, and this isn't our very first load (0)
+        if (remoteVersion > 0 && localMenuVersion > 0 && remoteVersion > localMenuVersion) {
+          console.info(`[Sync] 🔄 Remote version (${remoteVersion}) > Local (${localMenuVersion}).`);
+          localMenuVersion = remoteVersion;
+          handleSync();
+        } else if (localMenuVersion === 0 && remoteVersion > 0) {
+          // Initialize local version on first poll without triggering a sync
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+        }
+      } catch (err) {
+        // Silent catch for polling
+      }
+    };
+
+    // Check every 15 seconds
+    const intervalId = setInterval(checkVersion, 15000);
+    // Initial check
+    checkVersion();
+
+    return () => {
+      channel.close();
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(intervalId);
+    };
+  }, [refreshPOSData, showToast]);
+
   // ── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -476,6 +668,11 @@ const SalesOrder = () => {
       }).catch(() => {});
     }
 
+    // Initial sync of non-mount-critical data if cache is missing or for updates
+    if (!localStorage.getItem('pos_menu_cache')) {
+      refreshPOSData(true);
+    }
+
     api
       .get('/payment-settings')
       .then(({ data }) => {
@@ -491,47 +688,6 @@ const SalesOrder = () => {
           contact_phone: data.contact_phone ?? '',
           address: data.address ?? '',
         });
-      })
-      .catch(() => {})
-    api
-      .get('/discounts')
-      .then(({ data }) => {
-        localStorage.setItem('pos_discounts_cache', JSON.stringify(data))
-        const seen = new Set<string>()
-        const unique = data
-          .filter((d: Discount) => d.status === 'ON')
-          .filter((d: Discount) => {
-            const key = `${d.name}-${d.amount}`
-            if (seen.has(key)) return false
-            seen.add(key)
-            return true
-          })
-        setDiscounts(unique)
-      })
-      .catch(() => {})
-
-    api
-      .get('/add-ons')
-      .then(({ data }) => {
-        localStorage.setItem('pos_addons_cache', JSON.stringify(data))
-        setAddOnsData(data)
-      })
-      .catch(() => {})
-
-    api
-      .get('/sugar-levels')
-      .then(({ data }) => {
-        const levels = data.data ?? data
-        localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(levels))
-        setSugarLevels(levels)
-      })
-      .catch(() => {})
-
-    api
-      .get('/bundles')
-      .then(({ data }) => {
-        localStorage.setItem('pos_bundles_cache', JSON.stringify(data))
-        setBundlesData(data)
       })
       .catch(() => {})
 

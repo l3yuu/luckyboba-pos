@@ -136,7 +136,7 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     id: raw.menu_item_id ?? raw.id,
     category_id: 0,
     name: resolvedName,
-    price: Number(raw.unit_price ?? raw.price ?? 0),
+    price: Number(raw.unit_price) || Number(raw.price) || 0,
     barcode: '',
     qty: Number(raw.quantity ?? 1),
     size: (raw.size as 'M' | 'L' | 'none') ?? 'none',
@@ -181,7 +181,7 @@ const BranchReceiptsTab: React.FC = () => {
   const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDate, setSelectedDate] = useState(""); // Default to empty for global search or use today? User might want to see recent across branches.
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); 
   const [branchId, setBranchId] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [searchResults, setSearchResults] = useState<SaleItem[]>([]);
@@ -502,7 +502,15 @@ const BranchReceiptsTab: React.FC = () => {
         </div>
 
         <div className="w-full sm:w-auto">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date Filter</p>
+          <div className="flex justify-between items-center mb-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Date Filter</p>
+            <button 
+              onClick={() => setSelectedDate(selectedDate ? "" : new Date().toISOString().split('T')[0])}
+              className="text-[9px] font-black text-[#3b2063] uppercase tracking-wider hover:underline"
+            >
+              {selectedDate ? "All Time" : "Set Today"}
+            </button>
+          </div>
           <input
             type="date"
             value={selectedDate}
