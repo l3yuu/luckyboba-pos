@@ -226,6 +226,7 @@ const ZReading = () => {
   const [rawApiResponse, setRawApiResponse] = useState<Record<string, unknown> | unknown[] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+  const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   const localVatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = reportData?.is_vat !== undefined ? reportData.is_vat : localVatType === 'vat';
   const [cashierName, setCashierName] = useState("ADMIN USER");
@@ -864,16 +865,19 @@ const ZReading = () => {
     const otherDiscount  = reportData?.other_discount || 0;
 
     // ✅ totalDisc declared BEFORE netSales uses it
-    const totalDisc = reportData?.total_discounts
-      ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
+    const totalDisc = roundTo2(
+      reportData?.total_discounts
+      ?? (scDiscount + pwdDiscount + diplomat + otherDiscount)
+    );
 
     const txCount            = reportData?.transaction_count || 0;
     const vatableSales       = reportData?.vatable_sales || 0;
     const vatAmount          = reportData?.vat_amount || 0;
     const vatExemptSales     = reportData?.vat_exempt_sales || 0;
+    const scPwdVat           = reportData?.less_vat || 0;
 
     // ✅ netSales now has a mathematically exact fallback equal to vatable + vat_amount + vat_exempt
-    const netSales      = isVat ? (vatableSales + vatAmount + vatExemptSales) : (gross - totalDisc);
+    const netSales      = roundTo2(isVat ? (vatableSales + vatAmount + vatExemptSales) : (gross - totalDisc));
     const netInclusive  = netSales;
 
     const voids              = reportData?.total_void_amount || 0;
@@ -917,13 +921,13 @@ const ZReading = () => {
     const totalDebit   = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalCard    = totalCredit + totalDebit;
     const actualCash = paymentMap.get('cash') || 0;
-    const totalPaymentsReceived = reportData?.total_payments ?? Array.from(paymentMap.values()).reduce((a, b) => a + b, 0);
-    const actualNonCash = reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash);
+    const totalPaymentsReceived = roundTo2(reportData?.total_payments ?? Array.from(paymentMap.values()).reduce((a, b) => a + b, 0));
+    const actualNonCash = roundTo2(reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash));
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
     const apiExpected = reportData?.expected_amount ?? 0;
-    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
-    const overShort   = reportData?.over_short ?? (totalCashCount - expectedEOD);
+    const expectedEOD = roundTo2(apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop));
+    const overShort   = roundTo2(reportData?.over_short ?? (totalCashCount - expectedEOD));
     const isRange = dateMode === 'range';
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -952,6 +956,7 @@ const ZReading = () => {
         <Row label="VAT Amount"       value={phCurrency.format(isVat ? vatAmount : 0)} />
         <Row label="VAT Exempt Sales" value={phCurrency.format(reportData?.vat_exempt_sales || 0)} />
         <Row label="Zero-Rated Sales" value={phCurrency.format(0)} />
+        <Row label="SC/PWD VAT"       value={phCurrency.format(scPwdVat)} />
         <Divider />
         <Row label="Service Charge" value={phCurrency.format(0)} />
         <Row label="NET SALES" value={phCurrency.format(netSales)} />
@@ -996,7 +1001,7 @@ const ZReading = () => {
         {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
           <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
         )}
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netInclusive + (reportData?.rounding_adjustment || 0))} />
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(roundTo2(netInclusive + (reportData?.rounding_adjustment || 0)))} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />
