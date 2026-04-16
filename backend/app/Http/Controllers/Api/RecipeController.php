@@ -23,7 +23,7 @@ class RecipeController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Recipe::with('items.rawMaterial', 'menuItem');
+        $query = Recipe::with('items.rawMaterial', 'menuItem.category');
 
         // Filter by menu_item_id
         if ($request->filled('menu_item_id')) {
@@ -57,7 +57,7 @@ class RecipeController extends Controller
      */
     public function show(Recipe $recipe)
     {
-        return response()->json($recipe->load('items.rawMaterial', 'menuItem'));
+        return response()->json($recipe->load('items.rawMaterial', 'menuItem.category'));
     }
 
     /**
@@ -102,7 +102,7 @@ class RecipeController extends Controller
             $recipe->items()->create($item);
         }
 
-        return response()->json($recipe->load('items.rawMaterial', 'menuItem'), 201);
+        return response()->json($recipe->load('items.rawMaterial', 'menuItem.category'), 201);
     }
 
     /**
@@ -134,7 +134,7 @@ class RecipeController extends Controller
             $recipe->items()->create($item);
         }
 
-        return response()->json($recipe->load('items.rawMaterial', 'menuItem'));
+        return response()->json($recipe->load('items.rawMaterial', 'menuItem.category'));
     }
 
     /**

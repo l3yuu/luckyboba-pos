@@ -54,8 +54,11 @@ class RecipeSeeder extends Seeder
         $tea = 'LEAVES, BLACK TEA (60g) (10bags/pk)';
         $ndc = 'POWDER, NDC (1kg/pk)';
         $jelly = 'JELLY, COCONUT (3.5kg/pk)';
+        $mixedJelly = 'JELLY, MIXED FRUIT (3.5kg/pk)';
         $cheese = 'ALL CHEESES (MIXED)';
         $oreo = 'CRUSHED OREO (454g/pk)';
+        $greenTeaBag = 'LEAVES, GREEN TEA -BAG (5g) (50Tbag/pk)';
+        $greenTeaLoose = 'LEAVES, GREEN TEA -LOOSE (500g/pk)';
 
         // ----------------------------------------------------------------
         // 1. CLASSIC MILK TEA CATEGORY
@@ -238,6 +241,48 @@ class RecipeSeeder extends Seeder
             ['CARAMEL MACCHIATO FRAPPE',  'L', [$frac($straw, 1), $frac($lUCup, 1), $frac($bearLid, 1), $frac($boba, 0.04), $frac($ndc, 0.3),   $frac($monalisa, 0.06), $frac($groundCoffee, 0.01)]],
         ];
 
+        // ----------------------------------------------------------------
+        // 8. FRUIT SODA SERIES CATEGORY
+        // ----------------------------------------------------------------
+        $fruitSodaRecipes = [
+            ['BLUEBERRY FRUIT SODA',   'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($mixedJelly, 0.01), $frac($boba, 0.03)]],
+            ['BERRIES FRUIT SODA',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($mixedJelly, 0.01), $frac($boba, 0.03)]],
+            ['STRAWBERRY FRUIT SODA',  'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($mixedJelly, 0.01), $frac($boba, 0.03)]],
+            ['GREEN APPLE FRUIT SODA', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($mixedJelly, 0.01), $frac($boba, 0.03)]],
+            ['LEMON FRUIT SODA',       'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($mixedJelly, 0.01), $frac($boba, 0.03)]],
+            ['PASSION FRUIT SODA',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($mixedJelly, 0.01), $frac($boba, 0.03)]],
+            ['LYCHEE FRUIT SODA',      'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($mixedJelly, 0.01), $frac($boba, 0.03)]],
+        ];
+
+        // ----------------------------------------------------------------
+        // 9. NOVA SERIES CATEGORY
+        // ----------------------------------------------------------------
+        $novaRecipes = [
+            ['BERRIES NOVA',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04)]],
+            ['MANGO LEMON NOVA', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04)]],
+            ['LYCHEE LEM NOVA',  'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04)]],
+            ['STRAWBERRY NOVA',  'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04)]],
+            ['GREEN APPLE NOVA', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04)]],
+        ];
+
+        // ----------------------------------------------------------------
+        // 10. GREEN TEA SERIES CATEGORY
+        // ----------------------------------------------------------------
+        $greenteaRecipes = [
+            ['PASSION FRUIT GREEN TEA',  'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['PASSION FRUIT GREEN TEA',  'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['HONEY LEMON GREEN TEA',    'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['HONEY LEMON GREEN TEA',    'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['WINTERMELON GREEN TEA',    'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['WINTERMELON GREEN TEA',    'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['LEMON CUCUMBER GREEN TEA', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['LEMON CUCUMBER GREEN TEA', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['LEMON CHIA GREEN TEA',     'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['LEMON CHIA GREEN TEA',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['LYCHEE GREEN TEA',         'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+            ['LYCHEE GREEN TEA',         'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
+        ];
+
         $allRecipes = array_merge(
             $classicRecipes,
             $creamcheeseRecipes,
@@ -245,7 +290,10 @@ class RecipeSeeder extends Seeder
             $rocksaltRecipes,
             $flavoredRecipes,
             $icedCoffeeRecipes,
-            $coffeeFrappeRecipes
+            $coffeeFrappeRecipes,
+            $fruitSodaRecipes,
+            $novaRecipes,
+            $greenteaRecipes
         );
 
         $seededCount = 0;
