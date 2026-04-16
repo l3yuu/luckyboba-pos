@@ -47,7 +47,6 @@ const SV_RecipesPanel = ({ branchId: _branchId }: { branchId: number | null }) =
       setRows(raw.map(mapRecipe));
     } catch (e) {
       setError('Failed to load recipes.');
-      // eslint-disable-next-line no-console
       console.error(e);
     } finally {
       setLoading(false);

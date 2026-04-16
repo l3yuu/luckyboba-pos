@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Sidebar from "../components/Cashier/Sidebar";
 import logo from '../assets/logo.png';
-import api from '../services/api'; 
+import api from '../services/api';
+import SyncOverlay from '../components/SyncOverlay';
+import { useToast } from '../hooks/useToast';
 import type { DashboardData, TopSeller } from '../types/dashboard';
 import { Monitor, DollarSign, Receipt, ArrowDownToLine, ArrowUpFromLine, Ban, Trophy, Clock4, RefreshCw, TrendingUp } from 'lucide-react';
 
@@ -54,11 +56,14 @@ const GlobalFont = () => (
   `}</style>
 );
 
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
+  const { showToast } = useToast();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [syncRequired, setSyncRequired] = useState(false);
   const [stats, setStats] = useState<DashboardData | null>(() => {
     const cached = localStorage.getItem('dashboard_stats');
     return cached ? JSON.parse(cached) : null;
@@ -137,6 +142,75 @@ const fetchStats = useCallback(async (force = false) => {
     };
   }, [fetchStats]);
 
+  // Real-time synchronization prompt — NON-DISMISSIBLE overlay
+  useEffect(() => {
+    const SYNC_CHANNEL_NAME = 'lucky_boba_pos_sync_v1';
+    const SYNC_STORAGE_KEY = 'lb-pos-sync-trigger-v1';
+    const origin = window.location.origin;
+
+    const channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
+
+    // Migration: clear stale ms-based values from previous code (PHP uses seconds)
+    const raw = localStorage.getItem('lb-pos-menu-version') || '0';
+    if (parseInt(raw, 10) > 10_000_000_000) {
+      localStorage.removeItem('lb-pos-menu-version');
+    }
+    // Track the last known backend version (in SECONDS, same unit as PHP time())
+    let localMenuVersion = parseInt(localStorage.getItem('lb-pos-menu-version') || '0', 10);
+
+    const handleSync = () => {
+      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering UI overlay.`);
+      setSyncRequired(true);
+    };
+
+    // 1. BroadcastChannel
+    channel.onmessage = (event) => {
+      const data = event.data;
+      const msg = typeof data === 'string' ? data : data?.type;
+      console.log(`[Sync] Broadcast message received at ${origin}:`, data);
+      if (msg === 'menu-updated') handleSync();
+    };
+
+    // 2. LocalStorage Fallback
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === SYNC_STORAGE_KEY) {
+        console.log(`[Sync] Storage event received at ${origin}:`, e.newValue);
+        handleSync();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 3. API Polling (Cross-Browser / Cross-Device)
+    const checkVersion = async () => {
+      try {
+        const { data } = await api.get('/menu/version');
+        const remoteVersion = parseInt(data.version || '0', 10);
+
+        if (remoteVersion > 0 && localMenuVersion > 0 && remoteVersion > localMenuVersion) {
+          console.info(`[Sync] 🔄 Remote version (${remoteVersion}) > Local (${localMenuVersion}).`);
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+          handleSync();
+        } else if (localMenuVersion === 0 && remoteVersion > 0) {
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+        }
+      } catch (err) {
+        // Silent catch for polling
+      }
+    };
+
+    // Check every 10 seconds for faster cross-browser detection
+    const intervalId = setInterval(checkVersion, 10000);
+    checkVersion();
+
+    return () => {
+      channel.close();
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(intervalId);
+    };
+  }, [showToast]);
+
   if (authLoading || (isInitialLoad && !stats)) return <DashboardSkeleton />;
   if (!user) return null;
 
@@ -184,6 +258,22 @@ const fetchStats = useCallback(async (force = false) => {
           <div className="flex-1 overflow-y-auto">{renderContent()}</div>
         </main>
       </div>
+
+      {/* Mandatory Sync Modal Overlay — NON-DISMISSIBLE until sync completes */}
+      {syncRequired && (
+        <SyncOverlay
+          onSync={async () => {
+            localStorage.removeItem('dashboard_stats_timestamp');
+            // Store the server's version (seconds) — NOT Date.now() (milliseconds)
+            try {
+              const { data } = await api.get('/menu/version');
+              const v = parseInt(data.version || '0', 10);
+              if (v > 0) localStorage.setItem('lb-pos-menu-version', v.toString());
+            } catch { /* version will be picked up on next poll */ }
+            window.location.reload();
+          }}
+        />
+      )}
     </>
   );
 };

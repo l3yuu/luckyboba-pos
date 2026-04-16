@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\SugarLevel;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\DB;
 use App\Traits\MenuCache;
 
 class SugarLevelController extends Controller
@@ -131,19 +131,58 @@ class SugarLevelController extends Controller
             'data'    => SugarLevel::ordered()->get(),
         ]);
     }
-    // In SugarLevelController.php
-public function byMenuItem($menuItemId)
-{
-    $levels = SugarLevel::active()
-        ->ordered()
-        ->whereHas('menuItems', function ($q) use ($menuItemId) {
-            $q->where('menu_items.id', $menuItemId);
-        })
-        ->get();
 
-    return response()->json([
-        'success' => true,
-        'data'    => $levels, // empty array if none assigned — no fallback
-    ]);
-}
+    /**
+     * GET /api/menu-item-sugar-levels?menu_item_id=X
+     */
+    public function byMenuItemViaQuery(Request $request)
+    {
+        $menuItemId = $request->query('menu_item_id');
+        if (!$menuItemId) {
+            return response()->json(['success' => false, 'message' => 'menu_item_id required'], 400);
+        }
+        
+        $data = DB::table('menu_item_sugar_levels')
+            ->where('menu_item_id', $menuItemId)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+        ]);
+    }
+
+    /**
+     * PUT /api/menu-item-sugar-levels/{menu_item_id}
+     */
+    public function updateAssignment(Request $request, $menuItemId)
+    {
+        $request->validate([
+            'sugar_level_ids'   => 'present|array',
+            'sugar_level_ids.*' => 'integer|exists:sugar_levels,id',
+        ]);
+
+        DB::table('menu_item_sugar_levels')->where('menu_item_id', $menuItemId)->delete();
+
+        $now  = now();
+        $rows = collect($request->sugar_level_ids)->unique()->map(fn($sid) => [
+            'menu_item_id'   => $menuItemId,
+            'sugar_level_id' => $sid,
+            'created_at'     => $now,
+            'updated_at'     => $now,
+        ])->all();
+
+        if (!empty($rows)) {
+            DB::table('menu_item_sugar_levels')->insert($rows);
+        }
+
+        $this->clearMenuCache();
+
+        return response()->json(['success' => true, 'message' => 'Sugar levels updated.']);
+    }
+    
+    public function byMenuItem($menuItemId)
+    {
+        return $this->byMenuItemViaQuery(new Request(['menu_item_id' => $menuItemId]));
+    }
 }

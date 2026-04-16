@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PosDeviceController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\SugarLevelController;
+use App\Http\Controllers\Api\MenuItemAddonController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
@@ -301,6 +302,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get ('/menu-item-options',       [MenuItemOptionController::class, 'index']);
         Route::get ('/menu-item-options/bulk',  [MenuItemOptionController::class, 'bulk']);
         Route::put ('/menu-item-options/{id}',  [MenuItemOptionController::class, 'update']);
+        
+        Route::get ('/menu-item-addons',       [MenuItemAddonController::class, 'index']);
+        Route::put ('/menu-item-addons/{id}',  [MenuItemAddonController::class, 'update']);
 
         Route::get('/bundles',         [BundleController::class,       'index']);
         Route::get('/category-drinks', [CategoryDrinkController::class,'index']);
@@ -312,6 +316,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/cups',                                      [CupController::class,       'index']);
         Route::get('/sugar-levels',                              [SugarLevelController::class,'index']);
         Route::get('/sugar-levels/by-item/{menuItemId}',         [SugarLevelController::class,'byMenuItem']);
+        Route::get('/menu-item-sugar-levels',                    [SugarLevelController::class,'byMenuItemViaQuery']); // Added to match frontend
+        Route::put('/menu-item-sugar-levels/{id}',               [SugarLevelController::class,'updateAssignment']);   // Added to match frontend
 
         Route::prefix('inventory')->group(function () {
             Route::get('/',             [InventoryController::class,          'index']);

@@ -33,7 +33,6 @@ const SV_CategoriesList = () => {
       setRows(raw.map(mapCategory));
     } catch (e) {
       setError('Failed to load categories.');
-      // eslint-disable-next-line no-console
       console.error(e);
     } finally {
       setLoading(false);

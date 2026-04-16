@@ -8,6 +8,9 @@ import {
   Download, Upload,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useToast } from "../../../../hooks/useToast";
+import { triggerSync } from "../../../../utils/sync";
+
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey = "sm" | "md" | "lg";
@@ -822,6 +825,7 @@ export interface MenuItemFormProps {
 }
 
 export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, allAddOns, onClose, onSaved }) => {
+  const { showToast } = useToast();
   const isEdit = !!item;
 
   const [form, setForm] = useState({
@@ -1154,6 +1158,10 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
       }
 
       onSaved(savedItem);
+      try {
+        triggerSync();
+        showToast(isEdit ? "Item updated successfully" : "Item added successfully", "success");
+      } catch (e) { console.error("Broadcast failed:", e); }
       onClose();
     } catch (err) { console.error('submit error:', err); setApiError("Network error. Please try again."); }
     finally { setLoading(false); }
@@ -1204,11 +1212,22 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
               onChange={e => handleCategoryChange(e.target.value)}
               className={inputCls(errors.category_id) + " appearance-none pr-8"}>
               <option value="">Select Category</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name}{c.category_type === "combo" ? " (Combo)" : c.category_type === "bundle" ? " (Bundle)" : ""}
-                </option>
-              ))}
+              {categories
+                .filter(c => {
+                  if (!isEdit || !item?.category_type) return true;
+                  const isFoodType = (type: string) => ["food", "wings", "waffle"].includes(type);
+                  if (isFoodType(item.category_type)) return isFoodType(c.category_type);
+                  if (item.category_type === "drink") return c.category_type === "drink";
+                  if (item.category_type === "combo") return c.category_type === "combo";
+                  if (item.category_type === "bundle") return c.category_type === "bundle";
+                  if (item.category_type === "mix_and_match") return c.category_type === "mix_and_match";
+                  return true;
+                })
+                .map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}{c.category_type === "combo" ? " (Combo)" : c.category_type === "bundle" ? " (Bundle)" : ""}
+                  </option>
+                ))}
             </select>
             <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
@@ -2376,6 +2395,7 @@ const PrintMenuModal: React.FC<PrintMenuModalProps> = ({ categories, items, onCl
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const MenuItemsTab: React.FC = () => {
+  const { showToast } = useToast();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
@@ -2504,10 +2524,13 @@ const MenuItemsTab: React.FC = () => {
       const data = await res.json();
       if (res.ok && data.success) {
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_available: !i.is_available } : i));
-        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch { /* ignore */ }
+        try {
+          triggerSync();
+          showToast(`Item ${!item.is_available ? 'enabled' : 'disabled'} successfully`, "success");
+        } catch { /* ignore */ }
       }
     } catch { /* silent */ }
-  }, []);
+  }, [showToast]);
 
   const fetchBundleItems = useCallback(async (itemId: number, categoryType: string, barcode: string | null) => {
     if (bundleInfo[itemId] !== undefined || !["combo", "bundle"].includes(categoryType) || !barcode) return;
@@ -2632,7 +2655,7 @@ const MenuItemsTab: React.FC = () => {
               <X size={11} /> Clear
             </button>
           )}
-          
+
           {/* Action Buttons */}
           <div className="flex items-center gap-2 ml-auto shrink-0 flex-wrap">
             {filterType === "mix_and_match" && filterCat && categories.find(c => String(c.id) === filterCat) && (

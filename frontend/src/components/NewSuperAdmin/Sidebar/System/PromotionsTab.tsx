@@ -6,6 +6,8 @@ import {
   AlertCircle, ToggleLeft, ToggleRight, X, MapPin, Edit2,
   Shuffle, Calendar, AlertTriangle, Search,
 } from "lucide-react";
+import { useToast } from "../../../../hooks/useToast";
+import { triggerSync } from "../../../../utils/sync";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type ColorKey = "violet" | "emerald" | "red" | "amber";
@@ -245,6 +247,7 @@ const DiscountModal: React.FC<{
   branches: Branch[];
   editing?: Discount | null;
 }> = ({ onClose, onSaved, branches, editing = null }) => {
+  const { showToast } = useToast();
   const isEdit = editing !== null;
   const [form, setForm] = useState<FormData>(() => isEdit ? discountToForm(editing!) : EMPTY_FORM);
   const [saving, setSaving] = useState(false);
@@ -308,6 +311,10 @@ const DiscountModal: React.FC<{
       }
 
       onSaved(data, isEdit);
+      try {
+        triggerSync();
+        showToast(isEdit ? "Discount updated successfully" : "Discount added successfully", "success");
+      } catch (e) { console.error("Broadcast failed:", e); }
       onClose();
     } catch (err: unknown) {
       console.error("❌ Network error:", err);
@@ -576,6 +583,7 @@ const DiscountCard: React.FC<{
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const PromotionsTab: React.FC = () => {
+  const { showToast } = useToast();
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -618,6 +626,10 @@ const PromotionsTab: React.FC = () => {
       const data = await res.json();
       if (!res.ok) throw new Error();
       setDiscounts(prev => prev.map(d => d.id === discount.id ? data : d));
+      try {
+        triggerSync();
+        showToast(`Discount ${data.status === 'ON' ? 'enabled' : 'disabled'} successfully`, "success");
+      } catch { /* ignore */ }
     } catch { setError("Failed to update status."); }
     finally { setTogglingId(null); }
   };
@@ -629,6 +641,10 @@ const PromotionsTab: React.FC = () => {
       const res = await fetch(`/api/discounts/${deleteTarget.id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok) throw new Error();
       setDiscounts(prev => prev.filter(d => d.id !== deleteTarget.id));
+      try {
+        triggerSync();
+        showToast("Discount deleted successfully", "success");
+      } catch { /* ignore */ }
       setDeleteTarget(null);
     } catch { setError("Failed to delete discount."); }
     finally { setDeletingId(null); }

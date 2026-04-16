@@ -6,6 +6,9 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useToast } from "../../../../hooks/useToast";
+import { triggerSync } from "../../../../utils/sync";
+
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey = "sm" | "md" | "lg";
@@ -67,6 +70,7 @@ const SubCategoryModal: React.FC<{
   onClose: () => void;
   onSaved: (s: SubCategory) => void;
 }> = ({ sub, categories, cups, onClose, onSaved }) => {
+  const { showToast } = useToast();
   const isEdit = !!sub;
   const [name, setName] = useState(sub?.name ?? "");
   const [categoryId, setCategoryId] = useState(sub?.category_id ? String(sub.category_id) : "");
@@ -107,6 +111,10 @@ const SubCategoryModal: React.FC<{
       const raw = data.data ?? data;
       const parentName = categories.find(c => c.id === Number(categoryId))?.name ?? "—";
       onSaved({ ...raw, category: parentName, item_count: raw.itemCount ?? sub?.item_count ?? 0 });
+      try {
+        triggerSync();
+        showToast(isEdit ? "Sub-category updated successfully" : "Sub-category added successfully", "success");
+      } catch (e) { console.error("Broadcast failed:", e); }
       onClose();
     } catch { setApiError("Network error."); }
     finally { setLoading(false); }
@@ -232,6 +240,7 @@ const SubCategoryModal: React.FC<{
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const SubCategoriesTab: React.FC = () => {
+  const { showToast } = useToast();
   const [subs, setSubs] = useState<SubCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [cups, setCups] = useState<Cup[]>([]);
@@ -285,7 +294,10 @@ const SubCategoriesTab: React.FC = () => {
       });
       if (res.ok) {
         setSubs(p => p.map(s => s.id === sub.id ? { ...s, is_active: !s.is_active } : s));
-        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch { /* ignore */ }
+        try {
+          triggerSync();
+          showToast(`Sub-category ${!sub.is_active ? 'enabled' : 'disabled'} successfully`, "success");
+        } catch { /* ignore */ }
       }
     } catch { /* silent */ }
   };
@@ -295,7 +307,13 @@ const SubCategoriesTab: React.FC = () => {
     try {
       const res = await fetch(`/api/sub-categories/${sub.id}`, { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
-      if (res.ok) { setSubs(p => p.filter(s => s.id !== sub.id)); setDelTarget(null); }
+      if (res.ok) {
+        setSubs(p => p.filter(s => s.id !== sub.id)); setDelTarget(null);
+        try {
+          triggerSync();
+          showToast("Sub-category deleted successfully", "success");
+        } catch { /* ignore */ }
+      }
       else setError(data.message ?? "Failed to delete.");
     } catch { setError("Network error."); }
     finally { setDelLoading(false); }
@@ -308,7 +326,13 @@ const SubCategoriesTab: React.FC = () => {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ name: inlineVal, category_id: sub.category_id }),
       });
-      if (res.ok) setSubs(p => p.map(s => s.id === sub.id ? { ...s, name: inlineVal } : s));
+      if (res.ok) {
+        setSubs(p => p.map(s => s.id === sub.id ? { ...s, name: inlineVal } : s));
+        try {
+          triggerSync();
+          showToast("Sub-category updated successfully", "success");
+        } catch { /* ignore */ }
+      }
     } catch { /* silent */ }
     finally { setInlineEdit(null); }
   };

@@ -4,6 +4,8 @@ import {
   Plus, CheckCircle, Tag, RefreshCw,
   Search, ToggleRight, ToggleLeft, AlertCircle
 } from "lucide-react";
+import { useToast } from "../../../../hooks/useToast";
+import { triggerSync } from "../../../../utils/sync";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type ColorKey = "violet" | "emerald" | "red" | "amber";
@@ -76,7 +78,7 @@ const DiscountCard: React.FC<{
   toggling: boolean;
 }> = ({ discount, onToggle, toggling }) => {
   const active = discount.status === "ON";
-  
+
   return (
     <div className={`bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${active ? "border-violet-200 shadow-sm shadow-violet-50" : "border-zinc-200"}`}>
       <div className={`h-1 w-full ${active ? "bg-violet-400" : "bg-zinc-300"}`} />
@@ -106,12 +108,12 @@ const DiscountCard: React.FC<{
             <p className="text-xs font-bold text-zinc-700">{discount.used_count.toLocaleString()}</p>
           </div>
           <div>
-              <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-0.5">System ID</p>
-              <p className="text-[10px] font-mono text-zinc-500">#{discount.id}</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-0.5">System ID</p>
+            <p className="text-[10px] font-mono text-zinc-500">#{discount.id}</p>
           </div>
           <div>
-              <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-0.5">Created</p>
-              <p className="text-[10px] font-bold text-zinc-400">{formatDate(discount.created_at)}</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-0.5">Created</p>
+            <p className="text-[10px] font-bold text-zinc-400">{formatDate(discount.created_at)}</p>
           </div>
         </div>
 
@@ -130,6 +132,7 @@ const DiscountCard: React.FC<{
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const VouchersTab: React.FC = () => {
+  const { showToast } = useToast();
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -143,12 +146,12 @@ const VouchersTab: React.FC = () => {
       if (!res.ok) throw new Error("Failed to load loyalty discounts.");
       const data = await res.json();
       const all: Discount[] = Array.isArray(data) ? data : (data.data || []);
-      
+
       // Filter for specific Lucky Card discounts as per USER request
-      const filtered = all.filter(d => 
+      const filtered = all.filter(d =>
         d.name.includes("LUCKY CARD - 10%") || d.name.includes("LUCKY CARD - BOGO")
       );
-      
+
       setDiscounts(filtered);
     } catch {
       setError("Failed to fetch loyalty portal.");
@@ -170,13 +173,18 @@ const VouchersTab: React.FC = () => {
       });
       if (res.ok) {
         const updated = await res.json();
-        setDiscounts(prev => prev.map(x => x.id === d.id ? (updated.data || updated) : x));
+        const finalData = updated.data || updated;
+        setDiscounts(prev => prev.map(x => x.id === d.id ? finalData : x));
+        try {
+          triggerSync();
+          showToast(`Voucher ${finalData.status === 'ON' ? 'enabled' : 'disabled'} successfully`, "success");
+        } catch { /* ignore */ }
       }
     } catch (e) { console.error(e); }
     finally { setTogglingId(null); }
   };
 
-  const filtered = discounts.filter(d => 
+  const filtered = discounts.filter(d =>
     search === "" || d.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -204,7 +212,7 @@ const VouchersTab: React.FC = () => {
           />
         </div>
         <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#3b2063] text-white rounded-xl text-[10px] font-black uppercase tracking-[0.15em] shadow-lg shadow-violet-100">
-            <Plus size={14} /> Loyalty Exclusive
+          <Plus size={14} /> Loyalty Exclusive
         </div>
       </div>
 
@@ -218,9 +226,9 @@ const VouchersTab: React.FC = () => {
         </div>
       ) : error ? (
         <div className="p-6 bg-red-50 border border-red-100 rounded-2xl text-center max-w-sm mx-auto">
-            <AlertCircle size={32} className="text-red-500 mx-auto mb-3" />
-            <p className="text-red-600 text-sm font-black mb-1">Connection Error</p>
-            <p className="text-red-400 text-[10px]">{error}</p>
+          <AlertCircle size={32} className="text-red-500 mx-auto mb-3" />
+          <p className="text-red-600 text-sm font-black mb-1">Connection Error</p>
+          <p className="text-red-400 text-[10px]">{error}</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 px-6 border-2 border-dashed border-zinc-200 rounded-2xl bg-zinc-50/30">
@@ -233,11 +241,11 @@ const VouchersTab: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map(d => (
-            <DiscountCard 
-                key={d.id} 
-                discount={d} 
-                onToggle={handleToggle} 
-                toggling={togglingId === d.id} 
+            <DiscountCard
+              key={d.id}
+              discount={d}
+              onToggle={handleToggle}
+              toggling={togglingId === d.id}
             />
           ))}
         </div>
