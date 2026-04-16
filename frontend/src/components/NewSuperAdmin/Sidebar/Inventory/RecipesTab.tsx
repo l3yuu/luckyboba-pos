@@ -33,6 +33,7 @@ interface Recipe {
 }
 
 interface RawMaterial { id: number; name: string; unit: string; }
+interface RecipeMenuItem { id: number; name: string; category?: string; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ const RecipeFormModal: React.FC<{
   const [isActive, setIsActive] = useState(editing?.is_active ?? true);
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [recipeItems, setRecipeItems] = useState<RecipeItem[]>(resolveItems(editing ?? {} as Recipe));
-  const [menuItems, setMenuItems] = useState<any[]>([]); // Using any[] because m.category is a string here
+  const [menuItems, setMenuItems] = useState<RecipeMenuItem[]>([]); // Using RecipeMenuItem[] because m.category is a string here
   const [catFilter, setCatFilter] = useState('');
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
   const [saving, setSaving] = useState(false);

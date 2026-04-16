@@ -195,7 +195,7 @@ const fetchStats = useCallback(async (force = false) => {
           localMenuVersion = remoteVersion;
           localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
         }
-      } catch (err) {
+      } catch {
         // Silent catch for polling
       }
     };

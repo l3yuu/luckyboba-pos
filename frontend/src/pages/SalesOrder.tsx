@@ -624,7 +624,7 @@ const SalesOrder = () => {
           localMenuVersion = remoteVersion;
           localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
         }
-      } catch (err) {
+      } catch {
         // Silent catch for polling
       }
     };
