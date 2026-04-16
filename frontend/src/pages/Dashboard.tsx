@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Sidebar from "../components/Cashier/Sidebar";
 import logo from '../assets/logo.png';
-import api from '../services/api'; 
+import api from '../services/api';
 import { useToast } from '../hooks/useToast';
 import type { DashboardData, TopSeller } from '../types/dashboard';
 import { Monitor, DollarSign, Receipt, ArrowDownToLine, ArrowUpFromLine, Ban, Trophy, Clock4, RefreshCw, TrendingUp } from 'lucide-react';
@@ -55,12 +55,65 @@ const GlobalFont = () => (
   `}</style>
 );
 
+// ── Non-Dismissible Sync Overlay for Dashboard ───────────────────────────────
+const DashboardSyncOverlay = ({ onSync }: { onSync: () => Promise<void> }) => {
+  const [syncing, setSyncing] = React.useState(false)
+
+  // Block Escape key while overlay is visible
+  React.useEffect(() => {
+    const block = (e: KeyboardEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    window.addEventListener('keydown', block, true)
+    return () => window.removeEventListener('keydown', block, true)
+  }, [])
+
+  const handleSync = async () => {
+    if (syncing) return
+    setSyncing(true)
+    try {
+      await onSync()
+    } catch {
+      setSyncing(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm"
+      style={{ pointerEvents: 'auto' }}
+    >
+      <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center border border-zinc-100 flex flex-col items-center animate-in fade-in zoom-in duration-300">
+        <div className={`w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-6 shadow-inner ${syncing ? 'animate-spin' : ''}`}>
+          <RefreshCw size={28} />
+        </div>
+        <h2 className="text-xl font-extrabold text-[#1a0f2e] mb-2 tracking-tight">
+          Menu Update Available
+        </h2>
+        <p className="text-sm text-zinc-500 mb-8 font-medium">
+          The menu has been updated by the administrator. You must synchronize the system to continue.
+        </p>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="w-full bg-[#1a0f2e] hover:bg-violet-600 disabled:opacity-70 disabled:cursor-not-allowed text-white font-extrabold py-4 px-6 rounded-2xl shadow-lg shadow-violet-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-wide text-sm"
+        >
+          <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? 'Syncing...' : 'Sync Now'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [syncRequired, setSyncRequired] = useState(false);
   const [stats, setStats] = useState<DashboardData | null>(() => {
     const cached = localStorage.getItem('dashboard_stats');
     return cached ? JSON.parse(cached) : null;
@@ -139,30 +192,25 @@ const fetchStats = useCallback(async (force = false) => {
     };
   }, [fetchStats]);
 
-  // Real-time synchronization prompt
+  // Real-time synchronization prompt — NON-DISMISSIBLE overlay
   useEffect(() => {
     const SYNC_CHANNEL_NAME = 'lucky_boba_pos_sync_v1';
     const SYNC_STORAGE_KEY = 'lb-pos-sync-trigger-v1';
     const origin = window.location.origin;
 
     const channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
-    
-    // Track the last known backend version
+
+    // Migration: clear stale ms-based values from previous code (PHP uses seconds)
+    const raw = localStorage.getItem('lb-pos-menu-version') || '0';
+    if (parseInt(raw, 10) > 10_000_000_000) {
+      localStorage.removeItem('lb-pos-menu-version');
+    }
+    // Track the last known backend version (in SECONDS, same unit as PHP time())
     let localMenuVersion = parseInt(localStorage.getItem('lb-pos-menu-version') || '0', 10);
 
     const handleSync = () => {
-      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering Notify UI.`);
-      showToast(
-        "New menu updates available.", 
-        "info", 
-        "Sync Now", 
-        () => {
-          localStorage.setItem('lb-pos-menu-version', Date.now().toString());
-          localStorage.removeItem('dashboard_stats_timestamp');
-          window.location.reload(); 
-        },
-        15000
-      );
+      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering UI overlay.`);
+      setSyncRequired(true);
     };
 
     // 1. BroadcastChannel
@@ -187,10 +235,11 @@ const fetchStats = useCallback(async (force = false) => {
       try {
         const { data } = await api.get('/menu/version');
         const remoteVersion = parseInt(data.version || '0', 10);
-        
+
         if (remoteVersion > 0 && localMenuVersion > 0 && remoteVersion > localMenuVersion) {
           console.info(`[Sync] 🔄 Remote version (${remoteVersion}) > Local (${localMenuVersion}).`);
           localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
           handleSync();
         } else if (localMenuVersion === 0 && remoteVersion > 0) {
           localMenuVersion = remoteVersion;
@@ -201,7 +250,8 @@ const fetchStats = useCallback(async (force = false) => {
       }
     };
 
-    const intervalId = setInterval(checkVersion, 15000);
+    // Check every 10 seconds for faster cross-browser detection
+    const intervalId = setInterval(checkVersion, 10000);
     checkVersion();
 
     return () => {
@@ -258,6 +308,22 @@ const fetchStats = useCallback(async (force = false) => {
           <div className="flex-1 overflow-y-auto">{renderContent()}</div>
         </main>
       </div>
+
+      {/* Mandatory Sync Modal Overlay — NON-DISMISSIBLE until sync completes */}
+      {syncRequired && (
+        <DashboardSyncOverlay
+          onSync={async () => {
+            localStorage.removeItem('dashboard_stats_timestamp');
+            // Store the server's version (seconds) — NOT Date.now() (milliseconds)
+            try {
+              const { data } = await api.get('/menu/version');
+              const v = parseInt(data.version || '0', 10);
+              if (v > 0) localStorage.setItem('lb-pos-menu-version', v.toString());
+            } catch { /* version will be picked up on next poll */ }
+            window.location.reload();
+          }}
+        />
+      )}
     </>
   );
 };

@@ -10,10 +10,10 @@ import {
   type MenuItem, type Category, type CartItem,
   type Bundle, type BundleComponentCustomization,
 } from '../types/index';
-import { useToast }  from '../hooks/useToast';
-import { useAuth }   from '../hooks/useAuth';
-import api           from '../services/api';
-import { ChevronRight } from 'lucide-react';
+import { useToast } from '../hooks/useToast';
+import { useAuth } from '../hooks/useAuth';
+import api from '../services/api';
+import { ChevronRight, RefreshCw } from 'lucide-react';
 
 import {
   generateORNumber,
@@ -54,6 +54,58 @@ interface Discount {
   status: 'ON' | 'OFF'
 }
 
+// ── Non-Dismissible Sync Overlay ──────────────────────────────────────────────
+const SyncOverlay = ({ onSync }: { onSync: () => Promise<void> }) => {
+  const [syncing, setSyncing] = React.useState(false)
+
+  // Block Escape key while overlay is visible
+  React.useEffect(() => {
+    const block = (e: KeyboardEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    window.addEventListener('keydown', block, true)
+    return () => window.removeEventListener('keydown', block, true)
+  }, [])
+
+  const handleSync = async () => {
+    if (syncing) return
+    setSyncing(true)
+    try {
+      await onSync()
+    } catch {
+      setSyncing(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm"
+      style={{ pointerEvents: 'auto' }}
+    >
+      <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center border border-zinc-100 flex flex-col items-center animate-in fade-in zoom-in duration-300">
+        <div className={`w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-6 shadow-inner ${syncing ? 'animate-spin' : ''}`}>
+          <RefreshCw size={28} />
+        </div>
+        <h2 className="text-xl font-extrabold text-[#1a0f2e] mb-2 tracking-tight">
+          Menu Update Available
+        </h2>
+        <p className="text-sm text-zinc-500 mb-8 font-medium">
+          The menu has been updated by the administrator. You must synchronize the system to continue.
+        </p>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="w-full bg-[#1a0f2e] hover:bg-violet-600 disabled:opacity-70 disabled:cursor-not-allowed text-white font-extrabold py-4 px-6 rounded-2xl shadow-lg shadow-violet-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-wide text-sm"
+        >
+          <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? 'Syncing...' : 'Sync Now'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 const SalesOrder = () => {
   const navigate = useNavigate()
@@ -74,7 +126,7 @@ const SalesOrder = () => {
   }, [])
 
   const branchId = user?.branch_id ?? null
-  const [branchName, setBranchName] = useState(() => 
+  const [branchName, setBranchName] = useState(() =>
     user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
   )
   const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
@@ -94,10 +146,10 @@ const SalesOrder = () => {
 
 
   const [branchDetails, setBranchDetails] = useState<{
-  brand?: string; companyName?: string; storeAddress?: string;
-  vatRegTin?: string; minNumber?: string; serialNumber?: string;
-  owner_name?: string;
-}>({});
+    brand?: string; companyName?: string; storeAddress?: string;
+    vatRegTin?: string; minNumber?: string; serialNumber?: string;
+    owner_name?: string;
+  }>({});
   const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | 'delivery' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
@@ -127,6 +179,7 @@ const SalesOrder = () => {
   // Cash-in gate
   const [menuAvailable, setMenuAvailable] = useState(false)
   const [checkingCashIn, setCheckingCashIn] = useState(true)
+  const [syncRequired, setSyncRequired] = useState(false)
 
   // Menu / category
   const [categories, setCategories] = useState<Category[]>(() => {
@@ -161,8 +214,8 @@ const SalesOrder = () => {
 
   // FIX #1 — use branchId in the key so it's always defined at the time
   // syncNextSequence reads it (avoids stale closure on branchId).
-  const seqKey    = `last_or_sequence_${branchId ?? 'default'}`
-  const queueKey  = `last_queue_sequence_${branchId ?? 'default'}`
+  const seqKey = `last_or_sequence_${branchId ?? 'default'}`
+  const queueKey = `last_queue_sequence_${branchId ?? 'default'}`
 
   // Add-ons data
   const [addOnsData, setAddOnsData] = useState<
@@ -288,7 +341,7 @@ const SalesOrder = () => {
 
   const filteredAddOns = addOnsData.filter(a => {
     if (isWaffleCategory) return a.category === 'waffle';
-    if (isFoodCategory)   return a.category === 'food';
+    if (isFoodCategory) return a.category === 'food';
     return a.category !== 'waffle' && a.category !== 'food';
   });
 
@@ -369,8 +422,8 @@ const SalesOrder = () => {
     ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
     : 0
   const vatableSales = isVat ? round(vatableBase / 1.12) : 0
-  const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
-  const lessVat      = isVat && hasPaxDiscount ? round(totalVatExemptSales * 0.12) : 0
+  const vatAmount = isVat ? round(vatableBase - vatableSales) : 0
+  const lessVat = isVat && hasPaxDiscount ? round(totalVatExemptSales * 0.12) : 0
 
   const amtDue = isVat
     ? Math.max(0, round(vatableBase + vatExemptSales))
@@ -416,7 +469,7 @@ const SalesOrder = () => {
         module: 'sales_order',
         details: `Cashier: ${currentCashierName} | Branch: ${branchName} | ${new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour12: true })}`,
       })
-      .catch(() => {})
+      .catch(() => { })
   }
 
   // ── FIX #1 — Define syncNextSequence BEFORE the boot useEffect so it is
@@ -453,7 +506,7 @@ const SalesOrder = () => {
   const refreshPOSData = useCallback(async (isSilent = false) => {
     if (!isSilent) showToast("Updating menu data...", "info");
     const t = Date.now(); // Cache busting timestamp
-    
+
     try {
       const [menuRes, addonsRes, sugarRes, bundlesRes, discountsRes, branchRes, paymentRes] = await Promise.allSettled([
         api.get(`/menu?t=${t}`),
@@ -471,7 +524,7 @@ const SalesOrder = () => {
         if (Array.isArray(data)) {
           localStorage.setItem('pos_menu_cache', JSON.stringify(data));
           setCategories(data);
-          
+
           // CRITICAL: Re-sync selectedCategory reference to avoid stale objects
           setSelectedCategory(prev => {
             if (!prev) return null;
@@ -534,10 +587,10 @@ const SalesOrder = () => {
         const data = branchRes.value.data;
         const newName = data.branch_name ?? '';
         const newVat = data.vat_type ?? 'vat';
-        
+
         setBranchName(newName);
         setVatType(newVat as 'vat' | 'non_vat');
-        
+
         localStorage.setItem('lucky_boba_user_branch', newName);
         localStorage.setItem('lucky_boba_user_branch_vat', newVat);
       }
@@ -569,23 +622,18 @@ const SalesOrder = () => {
     const origin = window.location.origin;
 
     const channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
-    
-    // Track the last known backend version
+
+    // Migration: clear stale ms-based values from previous code (PHP uses seconds)
+    const raw = localStorage.getItem('lb-pos-menu-version') || '0';
+    if (parseInt(raw, 10) > 10_000_000_000) {
+      localStorage.removeItem('lb-pos-menu-version');
+    }
+    // Track the last known backend version (in SECONDS, same unit as PHP time())
     let localMenuVersion = parseInt(localStorage.getItem('lb-pos-menu-version') || '0', 10);
 
     const handleSync = () => {
-      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering Notify UI.`);
-      showToast(
-        "New menu updates available.", 
-        "info", 
-        "Sync Now", 
-        () => {
-          // Force newest version to be stored immediately so we don't show the toast repeatedly
-          localStorage.setItem('lb-pos-menu-version', Date.now().toString());
-          refreshPOSData(true);
-        },
-        15000
-      );
+      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering UI overlay.`);
+      setSyncRequired(true);
     };
 
     // 1. BroadcastChannel (Same Browser)
@@ -610,11 +658,11 @@ const SalesOrder = () => {
       try {
         const { data } = await api.get('/menu/version');
         const remoteVersion = parseInt(data.version || '0', 10);
-        
-        // If the backend has a newer timestamp, and this isn't our very first load (0)
+
         if (remoteVersion > 0 && localMenuVersion > 0 && remoteVersion > localMenuVersion) {
           console.info(`[Sync] 🔄 Remote version (${remoteVersion}) > Local (${localMenuVersion}).`);
           localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
           handleSync();
         } else if (localMenuVersion === 0 && remoteVersion > 0) {
           // Initialize local version on first poll without triggering a sync
@@ -626,8 +674,8 @@ const SalesOrder = () => {
       }
     };
 
-    // Check every 15 seconds
-    const intervalId = setInterval(checkVersion, 15000);
+    // Check every 10 seconds for faster cross-browser detection
+    const intervalId = setInterval(checkVersion, 10000);
     // Initial check
     checkVersion();
 
@@ -665,7 +713,7 @@ const SalesOrder = () => {
           setVatType(b.vat_type as 'vat' | 'non_vat');
           localStorage.setItem('lucky_boba_user_branch_vat', b.vat_type);
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     // Initial sync of non-mount-critical data if cache is missing or for updates
@@ -689,7 +737,7 @@ const SalesOrder = () => {
           address: data.address ?? '',
         });
       })
-      .catch(() => {})
+      .catch(() => { })
 
     const onCashIn = () => {
       setMenuAvailable(true)
@@ -726,7 +774,7 @@ const SalesOrder = () => {
       cart.forEach((item, i) => {
         const key = String(i)
         const existing = prev[key] ?? []
-        const arr = Array(item.qty).fill('none').map((_, ui) => existing[ui] ?? 'none') as ('none'|'sc'|'pwd')[];
+        const arr = Array(item.qty).fill('none').map((_, ui) => existing[ui] ?? 'none') as ('none' | 'sc' | 'pwd')[];
         updated[key] = arr;
       });
       return updated;
@@ -743,10 +791,10 @@ const SalesOrder = () => {
     setSelectedCategory(cat);
     setCategorySize(null);
     setActiveCategoryGroup(null);
-    const catType    = cat.category_type ?? cat.type;
+    const catType = cat.category_type ?? cat.type;
     const isDrinkCat = catType === 'drink' || catType === 'bundle';
     const isWingsCat = catType === 'wings';
-    const subCats    = cat.sub_categories ?? [];
+    const subCats = cat.sub_categories ?? [];
     if (!isDrinkCat && !isWingsCat) { setCategorySize('all'); return; }
     if (isWingsCat) return;
     if (subCats.length === 1) { setCategorySize(subCats[0].name); return; }
@@ -825,13 +873,13 @@ const SalesOrder = () => {
             return found
               ? { ...found, size: validSize(d.size || found.size || 'none') }
               : ({
-                  id: d.menu_item_id,
-                  name: d.name,
-                  price: d.price,
-                  size: validSize(d.size),
-                  barcode: '',
-                  category_id: categoryId,
-                } as unknown as MenuItem)
+                id: d.menu_item_id,
+                name: d.name,
+                price: d.price,
+                size: validSize(d.size),
+                barcode: '',
+                category_id: categoryId,
+              } as unknown as MenuItem)
           })
         } catch {
           allDrinks = []
@@ -996,9 +1044,9 @@ const SalesOrder = () => {
       remarks,
       charges: { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
       sugarLevel: isDrink ? sugarLevel : undefined,
-      size:       cartSize, cupSizeLabel,
-      options:    isDrink ? selectedOptions : undefined,
-      addOns:     (isDrink || isWaffle || isFoodCategory) ? selectedAddOns : undefined,
+      size: cartSize, cupSizeLabel,
+      options: isDrink ? selectedOptions : undefined,
+      addOns: (isDrink || isWaffle || isFoodCategory) ? selectedAddOns : undefined,
       finalPrice: unitPrice * qty,
     }
     if (isCombo) {
@@ -1478,11 +1526,11 @@ const SalesOrder = () => {
   // ── Filtered categories ────────────────────────────────────────────────────
 
   const GROUP_TYPES: Record<string, string[]> = {
-    drinks:        ['drink'],
-    bundles:       ['bundle'],
-    food:          ['food', 'combo', 'waffle', 'wings'],
+    drinks: ['drink'],
+    bundles: ['bundle'],
+    food: ['food', 'combo', 'waffle', 'wings'],
     mix_and_match: ['mix_and_match'],
-    others:        ['promo', 'other'],
+    others: ['promo', 'other'],
   };
 
   const filteredCategories = categories
@@ -1492,12 +1540,12 @@ const SalesOrder = () => {
       )
       const enrichedItems = searchQuery
         ? matchedItems.map(item => {
-            if (!item.size || item.size === 'none') return item
-            const cupM = cat.cup?.size_m ?? 'M'
-            const cupL = cat.cup?.size_l ?? 'L'
-            const sizeLabel = item.size === 'L' ? cupL : cupM
-            return { ...item, name: `${item.name} (${sizeLabel})` }
-          })
+          if (!item.size || item.size === 'none') return item
+          const cupM = cat.cup?.size_m ?? 'M'
+          const cupL = cat.cup?.size_l ?? 'L'
+          const sizeLabel = item.size === 'L' ? cupL : cupM
+          return { ...item, name: `${item.name} (${sizeLabel})` }
+        })
         : matchedItems
       return { ...cat, menu_items: enrichedItems }
     })
@@ -1869,11 +1917,10 @@ const SalesOrder = () => {
           <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto scrollbar-none">
 
             <span
-              className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${
-                !selectedCategory
+              className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${!selectedCategory
                   ? 'text-[#7c14d4] bg-[#7c14d4]/10'
                   : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100'
-              }`}
+                }`}
               onClick={() => { setSelectedCategory(null); setCategorySize(null); setActiveCategoryGroup(null); }}
             >
               All
@@ -1883,11 +1930,10 @@ const SalesOrder = () => {
               <>
                 <ChevronRight size={11} className="text-zinc-300 shrink-0" />
                 <span
-                  className={`text-xs font-semibold shrink-0 px-2 py-1.5 rounded-lg transition-colors ${
-                    !categorySize
+                  className={`text-xs font-semibold shrink-0 px-2 py-1.5 rounded-lg transition-colors ${!categorySize
                       ? 'text-[#7c14d4] bg-[#7c14d4]/10'
                       : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100 cursor-pointer'
-                  }`}
+                    }`}
                   onClick={() => { if (categorySize && !categoryHasOnlyOneSize) setCategorySize(null); }}
                 >
                   {selectedCategory.name}
@@ -1909,11 +1955,11 @@ const SalesOrder = () => {
             )}
 
             {!selectedCategory && [
-              { key: 'drinks',        label: 'Drinks' },
-              { key: 'bundles',       label: 'Bundles' },
-              { key: 'food',          label: 'Food' },
+              { key: 'drinks', label: 'Drinks' },
+              { key: 'bundles', label: 'Bundles' },
+              { key: 'food', label: 'Food' },
               { key: 'mix_and_match', label: 'Mix & Match' },
-              { key: 'others',        label: 'Others' },
+              { key: 'others', label: 'Others' },
             ].map(group => {
               const isActive = activeCategoryGroup === group.key;
               const count = filteredCategories.filter(c =>
@@ -1924,16 +1970,14 @@ const SalesOrder = () => {
                 <button
                   key={group.key}
                   onClick={() => setActiveCategoryGroup(isActive ? null : group.key)}
-                  className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all border ${
-                    isActive
+                  className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all border ${isActive
                       ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-sm'
                       : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#7c14d4]/40 hover:text-[#7c14d4] hover:bg-violet-50'
-                  }`}
+                    }`}
                 >
                   <span>{group.label}</span>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                    isActive ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-500'
-                  }`}>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-500'
+                    }`}>
                     {count}
                   </span>
                 </button>
@@ -2007,8 +2051,24 @@ const SalesOrder = () => {
           posFooter={posFooter}
         />
       )}
-      {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
+      {printTarget === 'kitchen' && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
+
+      {/* Mandatory Sync Modal Overlay — NON-DISMISSIBLE until sync completes */}
+      {syncRequired && (
+        <SyncOverlay
+          onSync={async () => {
+            await refreshPOSData(true);
+            // Store the server's version (seconds) — NOT Date.now() (milliseconds)
+            try {
+              const { data } = await api.get('/menu/version');
+              const v = parseInt(data.version || '0', 10);
+              if (v > 0) localStorage.setItem('lb-pos-menu-version', v.toString());
+            } catch { /* version will be picked up on next poll */ }
+            setSyncRequired(false);
+          }}
+        />
+      )}
     </>
   )
 }
