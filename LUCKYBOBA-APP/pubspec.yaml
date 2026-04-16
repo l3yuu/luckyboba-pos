@@ -50,6 +50,6 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icon/app_icon.png"
+  image_path: "assets/images/lucky_logo.jpg"
   min_sdk_android: 21
 
