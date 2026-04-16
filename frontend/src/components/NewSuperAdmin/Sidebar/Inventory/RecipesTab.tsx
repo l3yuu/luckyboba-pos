@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, Plus, Edit2, Trash2, X, AlertCircle,
-  ChevronDown, CheckCircle, BookOpen, FlaskConical, Minus,
+  ChevronDown, CheckCircle, BookOpen, FlaskConical, Minus, FileDown
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { createPortal } from 'react-dom';
 import api from '../../../../services/api';
 
@@ -403,6 +404,61 @@ const RecipesTab: React.FC<RecipesTabProps> = ({ readOnly = false }) => {
     } catch (e) { console.error(e); }
   };
 
+  const handleExport = () => {
+    const sortedRecipes = [...recipes].sort((a, b) => {
+      const catA = a.menu_item?.category?.name || '';
+      const catB = b.menu_item?.category?.name || '';
+      if (catA !== catB) return catA.localeCompare(catB);
+      const nameA = a.menu_item?.name ?? a.menu_item_name ?? '';
+      const nameB = b.menu_item?.name ?? b.menu_item_name ?? '';
+      return nameA.localeCompare(nameB);
+    });
+
+    const rows = sortedRecipes.flatMap(r => {
+      const items = r.items ?? r.recipe_items ?? [];
+      const baseInfo = {
+        'MENU ITEM': r.menu_item?.name ?? r.menu_item_name ?? '',
+        'CATEGORY': r.menu_item?.category?.name ?? 'Uncategorized',
+        'SIZE': sizeLabel(r.size),
+        'STATUS': r.is_active ? 'Active' : 'Inactive',
+        'NOTES': r.notes ?? ''
+      };
+
+      if (items.length === 0) {
+        return [{
+          'MENU ITEM': baseInfo['MENU ITEM'],
+          'CATEGORY': baseInfo['CATEGORY'],
+          'SIZE': baseInfo['SIZE'],
+          'STATUS': baseInfo['STATUS'],
+          'INGREDIENT': '(No Ingredients Defined)',
+          'QUANTITY': 0,
+          'UNIT': '-',
+          'NOTES': baseInfo['NOTES']
+        }];
+      }
+
+      return items.map((i, idx) => ({
+        'MENU ITEM': idx === 0 ? baseInfo['MENU ITEM'] : '',
+        'CATEGORY': idx === 0 ? baseInfo['CATEGORY'] : '',
+        'SIZE': idx === 0 ? baseInfo['SIZE'] : '',
+        'STATUS': idx === 0 ? baseInfo['STATUS'] : '',
+        'INGREDIENT': i.raw_material?.name ?? i.material_name ?? '',
+        'QUANTITY': i.quantity,
+        'UNIT': i.raw_material?.unit ?? i.unit ?? '',
+        'NOTES': idx === 0 ? baseInfo['NOTES'] : ''
+      }));
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'All Recipes');
+    ws['!cols'] = [
+      { wch: 35 }, { wch: 25 }, { wch: 15 }, { wch: 12 },
+      { wch: 40 }, { wch: 12 }, { wch: 12 }, { wch: 25 }
+    ];
+    XLSX.writeFile(wb, `LuckyBoba_All_Recipes_${new Date().toLocaleDateString('en-PH').replace(/\//g, '-')}.xlsx`);
+  };
+
   const filtered = recipes.filter(r => {
     const name = r.menu_item?.name ?? r.menu_item_name ?? '';
     const matchSearch = name.toLowerCase().includes(search.toLowerCase());
@@ -464,9 +520,13 @@ const RecipesTab: React.FC<RecipesTabProps> = ({ readOnly = false }) => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
+          <button onClick={handleExport}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[#e9d5ff] text-[#3b2063] rounded-lg text-xs font-bold hover:bg-[#f5f0ff] transition-all ml-auto md:ml-0">
+            <FileDown size={14} /> Export All
+          </button>
           {!readOnly && (
             <button onClick={() => setAddOpen(true)}
-              className="bg-[#3b2063] hover:bg-[#6a12b8] shrink-0 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all ml-auto md:ml-0">
+              className="bg-[#3b2063] hover:bg-[#6a12b8] shrink-0 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
               <Plus size={13} /> Add Recipe
             </button>
           )}
