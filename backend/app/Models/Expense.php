@@ -12,12 +12,17 @@ class Expense extends Model
     protected $fillable = [
         'branch_id',
         'recorded_by',
+        'supplier_id',
+        'purchase_order_id',
         'ref_num',
         'title',
         'notes',
         'date',
+        'due_date',
         'category',
         'amount',
+        'payment_status',
+        'payment_method',
         'receipt_path'
     ];
 
@@ -41,5 +46,15 @@ class Expense extends Model
     public function recorder()
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function purchaseOrder()
+    {
+        return $this->belongsTo(PurchaseOrder::class);
     }
 }

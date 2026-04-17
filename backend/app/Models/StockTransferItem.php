@@ -18,4 +18,9 @@ class StockTransferItem extends Model
     {
         return $this->belongsTo(RawMaterial::class);
     }
+
+    public function stockTransfer()
+    {
+        return $this->belongsTo(StockTransfer::class);
+    }
 }

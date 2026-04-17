@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
-  Download, Receipt, Wallet, Building2, Calendar,
-  User, ChevronDown, ChevronUp,
+  Download, Receipt, Wallet, Calendar,
+  ChevronDown, ChevronUp,
   TrendingDown, Package, FileImage
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -28,10 +28,17 @@ interface Expense {
   branch?: { name: string };
   branch_name?: string;
   expense_date: string;
+  due_date?: string | null;
   receipt_path?: string;
   notes?: string;
   recorded_by?: string;
   ref_num?: string;
+  supplier_id?: number | null;
+  supplier_name?: string | null;
+  purchase_order_id?: number | null;
+  po_number?: string | null;
+  payment_status: 'Paid' | 'Pending' | 'Partial';
+  payment_method?: string | null;
   created_at?: string;
 }
 
@@ -41,8 +48,12 @@ interface FormState {
   category: ExpenseCategory;
   branch_id: number | '';
   expense_date: string;
+  due_date: string;
   notes: string;
   receipt_file: File | null;
+  supplier_id: number | '';
+  payment_status: 'Paid' | 'Pending';
+  payment_method: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -52,7 +63,11 @@ const CATEGORIES: ExpenseCategory[] = ['Utilities', 'Rent', 'Salaries', 'Supplie
 const blankForm = (): FormState => ({
   title: '', amount: '', category: 'Utilities', branch_id: '',
   expense_date: new Date().toISOString().split('T')[0],
+  due_date: '',
   notes: '', receipt_file: null,
+  supplier_id: '',
+  payment_status: 'Paid',
+  payment_method: 'Bank Transfer'
 });
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -134,13 +149,25 @@ const ExpenseFormModal: React.FC<ModalProps> = ({ editing, branches, onClose, on
       category: editing.category,
       branch_id: editing.branch_id,
       expense_date: editing.expense_date,
+      due_date: editing.due_date ?? '',
       notes: editing.notes ?? '',
       receipt_file: null,
+      supplier_id: editing.supplier_id ?? '',
+      payment_status: editing.payment_status === 'Partial' ? 'Pending' : editing.payment_status,
+      payment_method: editing.payment_method ?? 'Bank Transfer',
     } : blankForm()
   );
+  const [suppliers, setSuppliers] = useState<{id: number, name: string}[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [apiErr, setApiErr] = useState('');
+
+  useEffect(() => {
+    api.get('/suppliers').then(res => {
+      const d = res.data;
+      setSuppliers(Array.isArray(d) ? d : d.data ?? []);
+    }).catch(console.error);
+  }, []);
 
   const [preview, setPreview] = useState<string | null>(editing?.receipt_path ?? null);
   const [isDragging, setIsDragging] = useState(false);
@@ -165,7 +192,11 @@ const ExpenseFormModal: React.FC<ModalProps> = ({ editing, branches, onClose, on
       fd.append('category', form.category);
       fd.append('branch_id', String(form.branch_id));
       fd.append('expense_date', form.expense_date);
+      fd.append('due_date', form.due_date);
       fd.append('notes', form.notes);
+      fd.append('payment_status', form.payment_status);
+      fd.append('payment_method', form.payment_method);
+      if (form.supplier_id) fd.append('supplier_id', String(form.supplier_id));
       if (form.receipt_file) fd.append('receipt', form.receipt_file);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
@@ -266,6 +297,36 @@ const ExpenseFormModal: React.FC<ModalProps> = ({ editing, branches, onClose, on
             <Field label="Date" required error={errors.expense_date}>
               <input type="date" value={form.expense_date} onChange={e => { setForm(p => ({ ...p, expense_date: e.target.value })); setErrors(p => { const n = { ...p }; delete n.expense_date; return n; }); }}
                 className={`${inputCls(errors.expense_date)} font-bold`} />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Supplier (Optional)">
+              <select value={form.supplier_id} onChange={e => setForm(p => ({ ...p, supplier_id: e.target.value === '' ? '' : Number(e.target.value) }))} className={inputCls()}>
+                <option value="">No Supplier</option>
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Payment Status">
+              <select value={form.payment_status} onChange={e => setForm(p => ({ ...p, payment_status: e.target.value as any }))} className={inputCls()}>
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending / Unpaid</option>
+              </select>
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Payment Method">
+              <select value={form.payment_method} onChange={e => setForm(p => ({ ...p, payment_method: e.target.value }))} className={inputCls()}>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Cash">Cash / Petty Cash</option>
+                <option value="GCash">GCash / Maya</option>
+                <option value="Check">Check</option>
+              </select>
+            </Field>
+            <Field label="Due Date (Liability)">
+              <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value }))}
+                className={`${inputCls()} ${form.payment_status === 'Pending' ? 'border-amber-300 bg-amber-50' : ''}`} />
             </Field>
           </div>
 
@@ -377,7 +438,7 @@ const ExpensesTab: React.FC = () => {
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
-  const [summary, setSummary] = useState({ total_expense: 0, total_sales: 0, count: 0 });
+  const [summary, setSummary] = useState({ total_expense: 0, total_sales: 0, count: 0, pending_liability: 0 });
 
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Expense | null>(null);
@@ -400,8 +461,11 @@ const ExpensesTab: React.FC = () => {
       ]);
 
       if (expRes.status === 'fulfilled') {
-        setExpenses(expRes.value.data.data ?? []);
-        setSummary(expRes.value.data.summary ?? { total_expense: 0, total_sales: 0, count: 0 });
+        const data = expRes.value.data.data ?? [];
+        setExpenses(data);
+        const stats = expRes.value.data.summary ?? { total_expense: 0, total_sales: 0, count: 0 };
+        const pending = data.filter((e: Expense) => e.payment_status === 'Pending').reduce((acc: number, e: Expense) => acc + e.amount, 0);
+        setSummary({ ...stats, pending_liability: pending });
       }
       if (branchRes.status === 'fulfilled') {
         const d = branchRes.value.data;
@@ -437,6 +501,16 @@ const ExpensesTab: React.FC = () => {
       link.click(); URL.revokeObjectURL(url);
     } catch (e) { console.error(e); }
     finally { setExporting(false); }
+  };
+  
+  const handleMarkAsPaid = async (id: number) => {
+    try {
+      await api.post(`/expenses/${id}/mark-as-paid`, { payment_method: 'Bank Transfer' });
+      fetchAll();
+    } catch (e) {
+      console.error(e);
+      alert('Failed to update status.');
+    }
   };
 
   const resolveBranch = useCallback((exp: Expense) => exp.branch?.name ?? branches.find(b => b.id === exp.branch_id)?.name ?? '—', [branches]);
@@ -522,11 +596,12 @@ const ExpensesTab: React.FC = () => {
       </div>
 
       {/* ── Stats ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <StatCard icon={<Wallet size={18} />} label="Total Expense Range" value={`₱${summary.total_expense.toLocaleString(undefined, { minimumFractionDigits: 0 })}`} color="violet" />
-        <StatCard icon={<TrendingDown size={18} />} label="Total Sales Range" value={`₱${summary.total_sales.toLocaleString(undefined, { minimumFractionDigits: 0 })}`} color="amber"
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
+        <StatCard icon={<Wallet size={18} />} label="Total Expenses" value={`₱${summary.total_expense.toLocaleString(undefined, { minimumFractionDigits: 0 })}`} color="violet" />
+        <StatCard icon={<AlertCircle size={18} />} label="Pending Liabilities" value={`₱${summary.pending_liability.toLocaleString(undefined, { minimumFractionDigits: 0 })}`} color="amber" sub="Awaiting payment" />
+        <StatCard icon={<TrendingDown size={18} />} label="Total Sales" value={`₱${summary.total_sales.toLocaleString(undefined, { minimumFractionDigits: 0 })}`} color="emerald"
           sub="Scope comparison" />
-        <StatCard icon={<Package size={18} />} label="Records Count" value={loading ? "—" : summary.count.toLocaleString()} color="emerald" sub="Total expenses in set range" />
+        <StatCard icon={<Package size={18} />} label="Records count" value={loading ? "—" : summary.count.toLocaleString()} color="violet" sub="Total expenses in range" />
       </div>
 
       {/* ── Table ── */}
@@ -545,10 +620,10 @@ const ExpensesTab: React.FC = () => {
             <thead>
               <tr className="bg-zinc-50/50 border-b border-zinc-100">
                 <SortTh col="date" label="Date" className="pl-6" />
+                <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Supplier / PO</th>
                 <SortTh col="title" label="Description" />
-                <SortTh col="category" label="Category" />
-                <SortTh col="branch_name" label="Branch" />
                 <SortTh col="amount" label="Amount" />
+                <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 text-center">Status</th>
                 <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Recorded By</th>
                 <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Proof</th>
                 <th className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-400">Actions</th>
@@ -567,29 +642,48 @@ const ExpensesTab: React.FC = () => {
                       <span className="text-xs font-bold text-zinc-600 tabular-nums">{new Date(exp.expense_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
                   </td>
+                  <td className="px-5 py-4">
+                    {exp.supplier_name ? (
+                      <div>
+                        <p className="text-xs font-black text-[#1a0f2e]">{exp.supplier_name}</p>
+                        {exp.po_number && <p className="text-[9px] font-bold text-violet-500 uppercase tracking-tighter">PO: {exp.po_number}</p>}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] font-bold text-zinc-300 uppercase italic">N/A</span>
+                    )}
+                  </td>
                   <td className="px-5 py-4 overflow-hidden">
                     <p className="font-black text-[#1a0f2e] text-xs truncate max-w-[200px]">{exp.title}</p>
-                    {exp.notes && <p className="text-[10px] font-bold text-zinc-400 truncate max-w-[180px] mt-0.5 italic">{exp.notes}</p>}
-                    {exp.ref_num && <p className="text-[9px] font-mono text-zinc-300 mt-0.5">#{exp.ref_num}</p>}
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-zinc-100 text-zinc-600 border border-zinc-200">
-                      {exp.category}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
-                      <Building2 size={12} className="text-zinc-400" />
-                      <span className="text-xs font-bold text-zinc-600">{resolveBranch(exp)}</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                       <span className="text-[9px] font-black uppercase tracking-widest bg-zinc-100 text-zinc-500 border border-zinc-200 px-1.5 rounded">
+                        {exp.category}
+                      </span>
+                      {exp.branch_name && <span className="text-[9px] font-bold text-zinc-400"> @ {exp.branch_name}</span>}
                     </div>
                   </td>
                   <td className="px-5 py-4">
                     <p className="text-sm font-black text-[#3b2063] tabular-nums">₱{exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                    {exp.payment_method && <p className="text-[9px] font-bold text-zinc-400 truncate mt-0.5 italic">{exp.payment_method}</p>}
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                        exp.payment_status === 'Paid' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 
+                        exp.payment_status === 'Pending' ? 'bg-amber-50 text-amber-600 border-amber-200 animate-pulse' : 
+                        'bg-zinc-100 text-zinc-600 border-zinc-200'
+                      }`}>
+                        {exp.payment_status}
+                      </span>
+                      {exp.due_date && exp.payment_status !== 'Paid' && (
+                        <p className={`text-[8px] font-bold ${new Date(exp.due_date) < new Date() ? 'text-red-500' : 'text-zinc-400'}`}>
+                          Due: {new Date(exp.due_date).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">
-                      <User size={12} className="text-zinc-400" />
-                      <span className="text-xs font-bold text-zinc-600">{exp.recorded_by ?? 'N/A'}</span>
+                       <span className="text-xs font-bold text-zinc-600">{exp.recorded_by ?? 'N/A'}</span>
                     </div>
                   </td>
                   <td className="px-5 py-4">
@@ -601,6 +695,11 @@ const ExpensesTab: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {exp.payment_status === 'Pending' && (
+                        <button onClick={() => handleMarkAsPaid(exp.id)} title="Mark as Paid" className="p-2 hover:bg-emerald-50 rounded-lg text-zinc-400 hover:text-emerald-600 transition-all">
+                          <Plus size={14} />
+                        </button>
+                      )}
                       <button onClick={() => setEditTarget(exp)} className="p-2 hover:bg-violet-50 rounded-lg text-zinc-400 hover:text-violet-600 transition-all"><Edit2 size={14} /></button>
                       <button onClick={() => setDelTarget(exp)} className="p-2 hover:bg-red-50 rounded-lg text-zinc-400 hover:text-red-500 transition-all"><Trash2 size={14} /></button>
                     </div>

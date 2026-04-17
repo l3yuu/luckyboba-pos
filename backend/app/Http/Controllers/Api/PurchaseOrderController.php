@@ -231,16 +231,19 @@ class PurchaseOrderController extends Controller
 
             $receipt->update(['total_amount_received' => $totalAmountReceived]);
 
-            // 5. Create Expense for this specific shipment
+            // 5. Create Integrated Expense for this receipt
             Expense::create([
-                'branch_id'   => $purchaseOrder->branch_id,
-                'recorded_by' => auth()->id(),
-                'ref_num'     => $validated['reference_number'] ?? $purchaseOrder->po_number,
-                'title'       => 'Inventory Receipt: ' . $purchaseOrder->po_number,
-                'notes'       => $validated['notes'] ?? "Receipt for PO {$purchaseOrder->po_number}",
-                'date'        => now()->toDateString(),
-                'category'    => 'Inventory',
-                'amount'      => $totalAmountReceived,
+                'branch_id'         => $purchaseOrder->branch_id,
+                'supplier_id'       => $purchaseOrder->supplier_id,
+                'purchase_order_id' => $purchaseOrder->id,
+                'recorded_by'       => auth()->id(),
+                'ref_num'           => $validated['reference_number'] ?? $purchaseOrder->po_number,
+                'title'             => ($receipt->reference_number ? "Receipt {$receipt->reference_number} | " : "") . "PO: " . $purchaseOrder->po_number,
+                'notes'             => $validated['notes'] ?? "Automatic expense from PO receipt.",
+                'date'              => now()->toDateString(),
+                'category'          => 'Inventory',
+                'amount'            => $totalAmountReceived,
+                'payment_status'    => 'Pending', // Financial Liability created
             ]);
 
             // 6. Update PO Status

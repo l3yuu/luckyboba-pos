@@ -382,8 +382,9 @@ const ReceiveItemsModal: React.FC<{
       });
       onReceived(res.data?.data ?? res.data);
       onClose();
-    } catch (e: any) {
-      setError(e.response?.data?.message ?? 'Failed to process receipt.');
+    } catch (err: unknown) {
+      const errorMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to process receipt.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

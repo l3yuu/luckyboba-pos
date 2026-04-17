@@ -347,6 +347,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get ('/recipes',  [RecipeController::class, 'index']);
         Route::get ('/expenses',        [ExpenseController::class,'index']);
         Route::post('/expenses',        [ExpenseController::class,'store']);
+        Route::post('/expenses/{id}/mark-as-paid', [ExpenseController::class,'markAsPaid']);
         Route::get ('/expenses/export', [ExpenseController::class,'export']);
         Route::put ('/expenses/{id}',   [ExpenseController::class,'update']);
         Route::delete('/expenses/{id}', [ExpenseController::class,'destroy']);
