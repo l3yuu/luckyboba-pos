@@ -470,7 +470,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
   }), [reportRows]);
 
   const usageCategories = useMemo(() => ['All', ...[...new Set(materials.map(m => m.category))].sort()], [materials]);
-  const recipeCategoryList = useMemo(() => ['All', ...[...new Set(recipes.map(r => (r.menu_item as any)?.category || 'General'))].sort()], [recipes]);
+  const recipeCategoryList = useMemo(() => ['All', ...[...new Set(recipes.map(r => r.menu_item.category || 'General'))].sort()], [recipes]);
   const lowStockCount = useMemo(() => materials.filter(m => parseNum(m.current_stock) < parseNum(m.reorder_level) && parseNum(m.reorder_level) > 0).length, [materials]);
 
   const displayUsageRows = useMemo(() => {
@@ -503,7 +503,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
     let data = [...recipeRows];
     if (recipeFilterStatus === 'with') data = data.filter(r => r.hasRecipe);
     if (recipeFilterStatus === 'without') data = data.filter(r => !r.hasRecipe);
-    if (recipeCategoryFilter !== 'All') data = data.filter(r => ((r.menuItem as any).category || 'General') === recipeCategoryFilter);
+    if (recipeCategoryFilter !== 'All') data = data.filter(r => (r.menuItem.category || 'General') === recipeCategoryFilter);
     if (recipeSearch) { const q = recipeSearch.toLowerCase(); data = data.filter(r => r.menuItem.name.toLowerCase().includes(q)); }
     return recipeEntriesLimit === -1 ? data : data.slice(0, recipeEntriesLimit);
   }, [recipeRows, recipeFilterStatus, recipeCategoryFilter, recipeSearch, recipeEntriesLimit]);

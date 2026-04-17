@@ -8,6 +8,7 @@ import {
   Package, LayoutGrid, ArrowRight, FileText
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import axios from 'axios';
 import api from '../../../services/api';
 import TopNavbar from '../../Cashier/TopNavbar';
 import { AuthContext } from '../../../context/AuthContext';
@@ -199,10 +200,16 @@ const CreateTransferModal: React.FC<{
       onCreated(res.data?.data ?? res.data);
       onClose();
     } catch (err: unknown) {
-      const resp = (err as any).response;
-      let msg = resp?.data?.message || 'Something went wrong.';
-      if (resp?.data?.errors) {
-        msg = Object.values(resp.data.errors).flat().join(' ');
+      let msg = 'Something went wrong.';
+      if (axios.isAxiosError(err)) {
+        msg = err.response?.data?.message || msg;
+        const errorData = err.response?.data?.errors;
+        if (errorData && typeof errorData === 'object') {
+          msg = Object.values(errorData)
+            .flatMap((value) => (Array.isArray(value) ? value : [value]))
+            .map((value) => String(value))
+            .join(' ');
+        }
       }
       setApiErr(msg);
     } finally { setSaving(false); }
