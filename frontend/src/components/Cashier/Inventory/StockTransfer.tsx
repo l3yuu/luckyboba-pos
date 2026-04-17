@@ -152,8 +152,10 @@ const CreateTransferModal: React.FC<{
   const [apiErr,         setApiErr]         = useState('');
 
   useEffect(() => {
-    api.get('/raw-materials').then(r => setRawMaterials(Array.isArray(r.data) ? r.data : r.data?.data ?? [])).catch(console.error);
-  }, []);
+    if (currentBranchId) {
+      api.get(`/raw-materials?branch_id=${currentBranchId}`).then(r => setRawMaterials(Array.isArray(r.data) ? r.data : r.data?.data ?? [])).catch(console.error);
+    }
+  }, [currentBranchId]);
 
   const addRow    = () => setTransferItems(p => [...p, { raw_material_id: 0, material_name: '', unit: '', quantity: '' }]);
   const removeRow = (idx: number) => setTransferItems(p => p.filter((_, i) => i !== idx));
@@ -172,7 +174,7 @@ const CreateTransferModal: React.FC<{
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!toBranchId)                 e.to      = 'Destination branch is required.';
+    if (toBranchId === '')               e.to      = 'Destination branch is required.';
     if (!transferDate)               e.date    = 'Transfer date is required.';
     if (transferItems.length === 0)  e.items   = 'Add at least one item.';
     transferItems.forEach((item, i) => {
@@ -188,8 +190,8 @@ const CreateTransferModal: React.FC<{
     setSaving(true); setApiErr('');
     try {
       const res = await api.post('/stock-transfers', {
-        from_branch_id: currentBranchId,
-        to_branch_id:   toBranchId,
+        from_branch_id: currentBranchId === 0 ? null : currentBranchId,
+        to_branch_id:   toBranchId === 0 ? null : toBranchId,
         transfer_date:  transferDate,
         notes,
         items: transferItems.map(i => ({ raw_material_id: i.raw_material_id, quantity: Number(i.quantity) })),
@@ -197,7 +199,12 @@ const CreateTransferModal: React.FC<{
       onCreated(res.data?.data ?? res.data);
       onClose();
     } catch (err: unknown) {
-      setApiErr((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Something went wrong.');
+      const resp = (err as any).response;
+      let msg = resp?.data?.message || 'Something went wrong.';
+      if (resp?.data?.errors) {
+        msg = Object.values(resp.data.errors).flat().join(' ');
+      }
+      setApiErr(msg);
     } finally { setSaving(false); }
   };
 
@@ -241,8 +248,9 @@ const CreateTransferModal: React.FC<{
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-0.5">Destination</label>
-              <select value={toBranchId} onChange={e => setToBranchId(Number(e.target.value))} className={inputCls(errors.to)}>
+              <select value={toBranchId} onChange={e => setToBranchId(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls(errors.to)}>
                 <option value="">Select branch...</option>
+                <option value="0">Global (Main Office)</option>
                 {branches.filter(b => b.id !== currentBranchId).map(b => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
@@ -389,14 +397,14 @@ const ViewTransferModal: React.FC<{
              <div className="flex-1 text-center">
                 <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">Source</p>
                 <div className="bg-white border border-zinc-200 rounded-lg p-2 min-h-[40px] flex items-center justify-center">
-                  <span className="text-xs font-black text-[#1a0f2e] leading-tight line-clamp-2">{transfer.from_branch?.name ?? transfer.from_branch_name ?? '—'}</span>
+                  <span className="text-xs font-black text-[#1a0f2e] leading-tight line-clamp-2">{transfer.from_branch?.name ?? transfer.from_branch_name ?? (transfer.from_branch_id === null ? 'Main Office' : '—')}</span>
                 </div>
              </div>
              <ArrowRight size={16} className="text-violet-300 pt-4 shrink-0" />
              <div className="flex-1 text-center">
                 <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">Target</p>
                 <div className="bg-white border border-zinc-200 rounded-lg p-2 min-h-[40px] flex items-center justify-center shadow-sm">
-                  <span className="text-xs font-black text-[#1a0f2e] leading-tight line-clamp-2">{transfer.to_branch?.name ?? transfer.to_branch_name ?? '—'}</span>
+                  <span className="text-xs font-black text-[#1a0f2e] leading-tight line-clamp-2">{transfer.to_branch?.name ?? transfer.to_branch_name ?? (transfer.to_branch_id === null ? 'Main Office' : '—')}</span>
                 </div>
              </div>
           </div>

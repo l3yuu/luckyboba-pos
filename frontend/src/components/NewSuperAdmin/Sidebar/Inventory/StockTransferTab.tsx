@@ -148,8 +148,14 @@ const CreateTransferModal: React.FC<{
   const [apiErr, setApiErr] = useState('');
 
   useEffect(() => {
-    api.get('/raw-materials').then(r => setRawMaterials(Array.isArray(r.data) ? r.data : r.data?.data ?? [])).catch(console.error);
-  }, []);
+    if (fromBranchId) {
+      api.get(`/raw-materials?branch_id=${fromBranchId}`).then(r => setRawMaterials(Array.isArray(r.data) ? r.data : r.data?.data ?? [])).catch(console.error);
+    } else {
+      setRawMaterials([]);
+    }
+    // Optional: if branch changes, old items might be invalid. We clear them to be safe.
+    setTransferItems([]);
+  }, [fromBranchId]);
 
   const addRow = () => setTransferItems(p => [...p, { raw_material_id: 0, material_name: '', unit: '', quantity: '' }]);
   const removeRow = (idx: number) => setTransferItems(p => p.filter((_, i) => i !== idx));
@@ -168,9 +174,9 @@ const CreateTransferModal: React.FC<{
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!fromBranchId) e.from = 'Source required.';
-    if (!toBranchId) e.to = 'Destination required.';
-    if (fromBranchId === toBranchId && fromBranchId) e.to = 'Branches must differ.';
+    if (fromBranchId === '') e.from = 'Source required.';
+    if (toBranchId === '') e.to = 'Destination required.';
+    if (fromBranchId === toBranchId && fromBranchId !== '') e.to = 'Branches must differ.';
     if (!transferDate) e.date = 'Date required.';
     if (transferItems.length === 0) e.items = 'Add at least one item.';
     transferItems.forEach((item, i) => {
@@ -186,8 +192,8 @@ const CreateTransferModal: React.FC<{
     setSaving(true); setApiErr('');
     try {
       const res = await api.post('/stock-transfers', {
-        from_branch_id: fromBranchId,
-        to_branch_id: toBranchId,
+        from_branch_id: fromBranchId === 0 ? null : fromBranchId,
+        to_branch_id: toBranchId === 0 ? null : toBranchId,
         transfer_date: transferDate,
         notes,
         items: transferItems.map(i => ({ raw_material_id: i.raw_material_id, quantity: Number(i.quantity) })),
@@ -230,8 +236,9 @@ const CreateTransferModal: React.FC<{
           <div className="grid grid-cols-[1fr_40px_1fr] items-center gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-0.5">Source Branch</label>
-              <select value={fromBranchId} onChange={e => setFromBranchId(Number(e.target.value))} className={inputCls(errors.from)}>
+              <select value={fromBranchId} onChange={e => setFromBranchId(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls(errors.from)}>
                 <option value="">Select branch...</option>
+                <option value="0">Global (Main Office)</option>
                 {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
               {errors.from && <p className="text-[10px] text-red-500 italic mt-1">{errors.from}</p>}
@@ -241,8 +248,9 @@ const CreateTransferModal: React.FC<{
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-0.5">Destination</label>
-              <select value={toBranchId} onChange={e => setToBranchId(Number(e.target.value))} className={inputCls(errors.to)}>
+              <select value={toBranchId} onChange={e => setToBranchId(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls(errors.to)}>
                 <option value="">Select destination...</option>
+                <option value="0">Global (Main Office)</option>
                 {branches.filter(b => b.id !== Number(fromBranchId)).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
               {errors.to && <p className="text-[10px] text-red-500 italic mt-1">{errors.to}</p>}
@@ -381,7 +389,7 @@ const ViewTransferModal: React.FC<{
               <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">From Source</p>
               <div className="flex items-center gap-2 bg-white border border-zinc-200 px-3 py-2 rounded-xl shadow-sm w-full min-h-[44px] justify-center text-center">
                 <Building2 size={14} className="text-zinc-400 shrink-0" />
-                <span className="text-xs font-black text-[#1a0f2e]">{transfer.from_branch?.name ?? transfer.from_branch_name ?? '—'}</span>
+                <span className="text-xs font-black text-[#1a0f2e]">{transfer.from_branch?.name ?? transfer.from_branch_name ?? (transfer.from_branch_id === null ? 'Main Office' : '—')}</span>
               </div>
             </div>
             <div className="shrink-0 flex items-center justify-center pt-5">
@@ -393,7 +401,7 @@ const ViewTransferModal: React.FC<{
               <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">To Destination</p>
               <div className="flex items-center gap-2 bg-white border border-zinc-200 px-3 py-2 rounded-xl shadow-sm w-full min-h-[44px] justify-center text-center">
                 <Building2 size={14} className="text-zinc-400 shrink-0" />
-                <span className="text-xs font-black text-[#1a0f2e]">{transfer.to_branch?.name ?? transfer.to_branch_name ?? '—'}</span>
+                <span className="text-xs font-black text-[#1a0f2e]">{transfer.to_branch?.name ?? transfer.to_branch_name ?? (transfer.to_branch_id === null ? 'Main Office' : '—')}</span>
               </div>
             </div>
           </div>

@@ -50,14 +50,25 @@ class StockTransferController extends Controller
         }
 
         $request->validate([
-            'from_branch_id'          => 'required|exists:branches,id',
-            'to_branch_id'            => 'required|exists:branches,id|different:from_branch_id',
+            'from_branch_id'          => 'nullable|exists:branches,id',
+            'to_branch_id'            => 'nullable|exists:branches,id|different:from_branch_id',
             'transfer_date'           => 'required|date',
             'notes'                   => 'nullable|string|max:500',
             'items'                   => 'required|array|min:1',
             'items.*.raw_material_id' => 'required|exists:raw_materials,id',
             'items.*.quantity'        => 'required|numeric|min:0.0001',
         ]);
+
+        foreach ($request->items as $item) {
+            $stock = RawMaterial::where('id', $item['raw_material_id'])
+                ->where('branch_id', $request->from_branch_id)
+                ->value('current_stock');
+
+            if ($item['quantity'] > ($stock ?? 0)) {
+                $matName = RawMaterial::find($item['raw_material_id'])->name ?? 'Unknown';
+                return response()->json(['message' => "Insufficient stock for {$matName}. Available: " . (float)$stock], 422);
+            }
+        }
 
         $transfer = DB::transaction(function () use ($request) {
             $transfer = StockTransfer::create([
@@ -67,6 +78,7 @@ class StockTransferController extends Controller
                 'transfer_date'   => $request->transfer_date,
                 'notes'           => $request->notes,
                 'status'          => 'Pending',
+                'created_by_id'   => auth()->id(),
             ]);
 
             foreach ($request->items as $item) {
@@ -97,7 +109,21 @@ class StockTransferController extends Controller
             'Only Pending transfers can be approved.'
         );
 
-        $stockTransfer->update(['status' => 'Approved']);
+        foreach ($stockTransfer->items as $item) {
+            $stock = RawMaterial::where('id', $item->raw_material_id)
+                ->where('branch_id', $stockTransfer->from_branch_id)
+                ->value('current_stock');
+
+            if ($item->quantity > ($stock ?? 0)) {
+                $matName = $item->rawMaterial->name ?? 'Unknown';
+                abort(422, "Insufficient stock for {$matName}. Available: " . (float)$stock . ". Cannot approve.");
+            }
+        }
+
+        $stockTransfer->update([
+            'status' => 'Approved',
+            'approved_by_id' => auth()->id()
+        ]);
 
         return response()->json([
             'data' => $this->format(
@@ -120,7 +146,40 @@ class StockTransferController extends Controller
             'Only Approved transfers can be dispatched.'
         );
 
-        $stockTransfer->update(['status' => 'In Transit']);
+        foreach ($stockTransfer->items as $item) {
+            $stock = RawMaterial::where('id', $item->raw_material_id)
+                ->where('branch_id', $stockTransfer->from_branch_id)
+                ->value('current_stock');
+
+            if ($item->quantity > ($stock ?? 0)) {
+                $matName = $item->rawMaterial->name ?? 'Unknown';
+                abort(422, "Insufficient stock for {$matName}. Available: " . (float)$stock . ". Cannot dispatch.");
+            }
+        }
+
+        DB::transaction(function () use ($stockTransfer) {
+            foreach ($stockTransfer->items as $item) {
+                // Deduct current_stock from source
+                RawMaterial::where('id', $item->raw_material_id)
+                    ->where('branch_id', $stockTransfer->from_branch_id)
+                    ->decrement('current_stock', $item->quantity);
+
+                // Log to stock_movements for history consistency
+                StockMovement::create([
+                    'raw_material_id' => $item->raw_material_id,
+                    'branch_id'       => $stockTransfer->from_branch_id,
+                    'user_id'         => auth()->id(),
+                    'type'            => 'subtract',
+                    'quantity'        => $item->quantity,
+                    'reason'          => 'Stock transfer out (In Transit) — ' . $stockTransfer->transfer_number,
+                ]);
+            }
+
+            $stockTransfer->update([
+                'status' => 'In Transit',
+                'dispatched_by_id' => auth()->id()
+            ]);
+        });
 
         return response()->json([
             'data' => $this->format(
@@ -145,41 +204,32 @@ class StockTransferController extends Controller
 
         DB::transaction(function () use ($stockTransfer) {
             foreach ($stockTransfer->items as $item) {
-                // Deduct current_stock from source
-                RawMaterial::where('id', $item->raw_material_id)
-                    ->decrement('current_stock', $item->quantity);
-
-                // Log to stock_movements for history consistency
-                StockMovement::create([
-                    'raw_material_id' => $item->raw_material_id,
-                    'user_id'         => auth()->id(),
-                    'type'            => 'subtract',
-                    'quantity'        => $item->quantity,
-                    'reason'          => 'Stock transfer out — ' . $stockTransfer->transfer_number,
-                ]);
-
-                // IMPORTANT: In this system, we might need to increment at destination too if 
-                // raw materials are branch-scoped. 
-                // However, based on the previous code, it only decremented from source.
-                // If each branch has its own RawMaterial records, 
-                // we should search for the destination branch's matching material.
+                // Find matching material in destination branch using parent_id logic
                 $destMat = RawMaterial::where('branch_id', $stockTransfer->to_branch_id)
-                    ->where('name', $item->rawMaterial->name)
+                    ->where(function ($q) use ($item) {
+                        $parentId = $item->rawMaterial->parent_id ?? $item->raw_material_id;
+                        $q->where('parent_id', $parentId)
+                          ->orWhere('id', $parentId);
+                    })
                     ->first();
                 
                 if ($destMat) {
                     $destMat->increment('current_stock', $item->quantity);
                     StockMovement::create([
                         'raw_material_id' => $destMat->id,
+                        'branch_id'       => $stockTransfer->to_branch_id,
                         'user_id'         => auth()->id(),
                         'type'            => 'add',
                         'quantity'        => $item->quantity,
-                        'reason'          => 'Stock transfer in — ' . $stockTransfer->transfer_number,
+                        'reason'          => 'Stock transfer received — ' . $stockTransfer->transfer_number,
                     ]);
                 }
             }
 
-            $stockTransfer->update(['status' => 'Received']);
+            $stockTransfer->update([
+                'status' => 'Received',
+                'received_by_id' => auth()->id()
+            ]);
         });
 
         return response()->json([
@@ -217,17 +267,21 @@ class StockTransferController extends Controller
     private function format(StockTransfer $t): array
     {
         return [
-            'id'              => $t->id,
-            'transfer_number' => $t->transfer_number,
-            'from_branch_id'  => $t->from_branch_id,
-            'to_branch_id'    => $t->to_branch_id,
-            'from_branch'     => $t->fromBranch ? ['name' => $t->fromBranch->name] : null,
-            'to_branch'       => $t->toBranch   ? ['name' => $t->toBranch->name]   : null,
-            'transfer_date'   => $t->transfer_date,
-            'status'          => $t->status,
-            'notes'           => $t->notes,
-            'created_at'      => $t->created_at,
-            'items'           => $t->items->map(fn($i) => [
+            'id'               => $t->id,
+            'transfer_number'  => $t->transfer_number,
+            'from_branch_id'   => $t->from_branch_id,
+            'to_branch_id'     => $t->to_branch_id,
+            'from_branch'      => $t->fromBranch ? ['name' => $t->fromBranch->name] : null,
+            'to_branch'        => $t->toBranch   ? ['name' => $t->toBranch->name]   : null,
+            'transfer_date'    => $t->transfer_date,
+            'status'           => $t->status,
+            'notes'            => $t->notes,
+            'created_at'       => $t->created_at,
+            'created_by'       => $t->createdBy ? ['name' => $t->createdBy->name] : null,
+            'approved_by'      => $t->approvedBy ? ['name' => $t->approvedBy->name] : null,
+            'dispatched_by'    => $t->dispatchedBy ? ['name' => $t->dispatchedBy->name] : null,
+            'received_by'      => $t->receivedBy ? ['name' => $t->receivedBy->name] : null,
+            'items'            => $t->items->map(fn($i) => [
                 'id'              => $i->id,
                 'raw_material_id' => $i->raw_material_id,
                 'quantity'        => $i->quantity,
