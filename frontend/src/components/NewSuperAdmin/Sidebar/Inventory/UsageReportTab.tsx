@@ -21,9 +21,10 @@ interface UsageRow {
   cooked: number;  // intermediate produced
   out: number;  // consumed/sold
   spoil: number;  // spoilage
-  end: number;  // theoretical ending stock (current_stock in DB)
-  usage: number;  // total used
-  variance: number; 
+  ending: number;
+  usage: number;
+  variance: number;
+  incoming: number;
 }
 
 interface Movement {
@@ -442,6 +443,7 @@ const COLUMN_GUIDE: Record<string, string> = {
   'SHOULD BE': 'Calculated theoretical ending stock',
   ACTUAL: 'Physically counted stock (Audited)',
   VAR: 'Variance = ACTUAL − SHOULD BE',
+  INCOMING: 'Pending stock from approved purchase orders',
 };
 
 const UsageReportTab: React.FC = () => {
@@ -618,7 +620,7 @@ const UsageReportTab: React.FC = () => {
           { label: 'Total Items', value: rows.length, color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Total Usage', value: totalUsage, color: '#1a0f2e', bg: '#faf9ff', border: '#e9d5ff' },
           { label: 'Total Spoilage', value: totalSpoil, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
-          { label: 'Negative Var.', value: negVar, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+          { label: 'Pending Arrival', value: rows.reduce((s, r) => s + (r.incoming || 0), 0), color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
         ].map(s => (
           <div key={s.label} className="bg-white border rounded-[0.625rem] px-5 py-4 shadow-sm" style={{ borderColor: s.border }}>
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{s.label}</p>
@@ -766,7 +768,7 @@ const UsageReportTab: React.FC = () => {
               <thead>
                 <tr className="border-b border-zinc-100">
                   <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 sticky left-0 bg-white">Item</th>
-                  {['BEG', 'DEL', 'IN', 'COOKED', 'OUT', 'SPOIL', 'SHOULD BE', 'ACTUAL', 'VAR'].map(h => (
+                  {['BEG', 'DEL', 'IN', 'COOKED', 'OUT', 'SPOIL', 'END', 'INCOMING', 'VAR'].map(h => (
                     <th key={h} 
                       className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-400 group/h relative cursor-help"
                       title={COLUMN_GUIDE[h]}

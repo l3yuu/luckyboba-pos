@@ -128,8 +128,11 @@ class RawMaterialController extends Controller
             'current_stock'   => 'nullable|numeric|min:0',
             'reorder_level'   => 'nullable|numeric|min:0',
             'is_intermediate' => 'nullable|boolean',
-            'notes'           => 'nullable|string',
-            'branch_id'       => 'nullable|exists:branches,id',
+            'notes'                     => 'nullable|string',
+            'purchase_unit'             => 'nullable|string',
+            'purchase_to_base_factor'   => 'nullable|numeric|min:0',
+            'last_purchase_price'       => 'nullable|numeric|min:0',
+            'branch_id'                 => 'nullable|exists:branches,id',
         ]);
 
         return DB::transaction(function() use ($validated, $request) {
@@ -171,7 +174,10 @@ class RawMaterialController extends Controller
             'category'        => 'sometimes|string',
             'reorder_level'   => 'sometimes|numeric|min:0',
             'is_intermediate' => 'sometimes|boolean',
-            'notes'           => 'nullable|string',
+            'notes'                     => 'nullable|string',
+            'purchase_unit'             => 'sometimes|string|nullable',
+            'purchase_to_base_factor'   => 'sometimes|numeric|min:0',
+            'last_purchase_price'       => 'sometimes|numeric|min:0',
         ]);
 
         $rawMaterial->update($validated);

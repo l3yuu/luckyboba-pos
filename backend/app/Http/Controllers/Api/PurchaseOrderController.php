@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Expense;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\PurchaseOrderReceipt;
+use App\Models\PurchaseOrderReceiptItem;
 use App\Models\RawMaterial;
 use App\Models\StockMovement;
 use Carbon\Carbon;
@@ -41,12 +44,12 @@ class PurchaseOrderController extends Controller
             }
 
             $stats = [
-                'active_orders'   => (clone $statsQuery)->whereIn('status', ['Draft', 'Approved'])->count(),
+                'active_orders'   => (clone $statsQuery)->whereIn('status', ['Draft', 'Approved', 'Partially Received'])->count(),
                 'pending_payment' => (float) (clone $statsQuery)->where('status', 'Draft')->sum('total_amount'),
-                'monthly_spend'   => (float) (clone $statsQuery)
-                    ->whereMonth('date_ordered', Carbon::now()->month)
-                    ->where('status', 'Received')
-                    ->sum('total_amount'),
+                'monthly_spend'   => (float) PurchaseOrderReceipt::query()
+                    ->when($user->role !== 'superadmin' && $user->branch_id, fn($q) => $q->where('branch_id', $user->branch_id))
+                    ->whereMonth('received_at', Carbon::now()->month)
+                    ->sum('total_amount_received'),
             ];
 
             return response()->json([
@@ -72,6 +75,8 @@ class PurchaseOrderController extends Controller
                 'items.*.raw_material_id' => 'required|exists:raw_materials,id',
                 'items.*.quantity'        => 'required|numeric|min:0.01',
                 'items.*.unit_cost'       => 'nullable|numeric|min:0',
+                'items.*.ordered_unit'      => 'nullable|string',
+                'items.*.conversion_factor' => 'nullable|numeric|min:0.0001',
             ]);
 
             $user = $request->user();
@@ -100,6 +105,8 @@ class PurchaseOrderController extends Controller
                     PurchaseOrderItem::create([
                         'purchase_order_id' => $po->id,
                         'raw_material_id'   => $item['raw_material_id'],
+                        'ordered_unit'      => $item['ordered_unit'] ?? null,
+                        'conversion_factor' => $item['conversion_factor'] ?? 1,
                         'quantity'          => $item['quantity'],
                         'unit_cost'         => $item['unit_cost'] ?? 0,
                     ]);
@@ -138,7 +145,7 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    // ─── Receive ───────────────────────────────────────────────────────
+    // ─── Receive ALL (Legacy/Shortcut) ────────────────────────────────
     public function receive(PurchaseOrder $purchaseOrder)
     {
         abort_if(
@@ -147,86 +154,151 @@ class PurchaseOrderController extends Controller
             'Only Draft or Approved POs can be received.'
         );
 
-        DB::transaction(function () use ($purchaseOrder) {
-            foreach ($purchaseOrder->items as $poItem) {
-                // Find the raw material for this branch
-                $mat = RawMaterial::where('id', $poItem->raw_material_id)
-                    ->where('branch_id', $purchaseOrder->branch_id)
-                    ->first();
+        $itemsToReceive = $purchaseOrder->items->map(function ($item) {
+            $remaining = $item->quantity - $item->quantity_received;
+            return [
+                'purchase_order_item_id' => $item->id,
+                'quantity_received'      => $remaining > 0 ? $remaining : 0,
+            ];
+        })->filter(fn($i) => $i['quantity_received'] > 0)->values()->toArray();
 
-                // If material doesn't exist in this branch, try parent_id logic
-                if (!$mat) {
-                    $sourceMat = RawMaterial::find($poItem->raw_material_id);
-                    $parentId  = $sourceMat?->parent_id ?? $poItem->raw_material_id;
+        if (empty($itemsToReceive)) {
+            return response()->json(['message' => 'All items already received.'], 422);
+        }
 
-                    $mat = RawMaterial::where('branch_id', $purchaseOrder->branch_id)
-                        ->where(function ($q) use ($parentId) {
-                            $q->where('parent_id', $parentId)
-                              ->orWhere('id', $parentId);
-                        })
-                        ->first();
+        return $this->receiveItems(new Request(['items' => $itemsToReceive]), $purchaseOrder);
+    }
 
-                    // If still not found, clone from source
-                    if (!$mat && $sourceMat) {
-                        $mat = RawMaterial::create([
-                            'name'            => $sourceMat->name,
-                            'unit'            => $sourceMat->unit,
-                            'category'        => $sourceMat->category,
-                            'current_stock'   => 0,
-                            'reorder_level'   => $sourceMat->reorder_level,
-                            'is_intermediate' => $sourceMat->is_intermediate,
-                            'notes'           => $sourceMat->notes,
-                            'branch_id'       => $purchaseOrder->branch_id,
-                            'parent_id'       => $parentId,
-                        ]);
-                    }
-                }
+    // ─── Partial / Specific Item Receiving ────────────────────────────
+    public function receiveItems(Request $request, PurchaseOrder $purchaseOrder)
+    {
+        $validated = $request->validate([
+            'reference_number' => 'nullable|string|max:255',
+            'notes'            => 'nullable|string',
+            'items'            => 'required|array|min:1',
+            'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id',
+            'items.*.quantity_received'      => 'required|numeric|min:0.01',
+        ]);
 
-                if (!$mat) {
-                    Log::warning('PO receive: material not found for branch', [
-                        'po_id'           => $purchaseOrder->id,
-                        'raw_material_id' => $poItem->raw_material_id,
+        return DB::transaction(function () use ($validated, $purchaseOrder) {
+            $receipt = PurchaseOrderReceipt::create([
+                'purchase_order_id' => $purchaseOrder->id,
+                'branch_id'         => $purchaseOrder->branch_id,
+                'received_by_id'    => auth()->id(),
+                'reference_number'  => $validated['reference_number'] ?? null,
+                'notes'             => $validated['notes'] ?? null,
+            ]);
+
+            $totalAmountReceived = 0;
+
+            foreach ($validated['items'] as $itemData) {
+                $poItem = PurchaseOrderItem::findOrFail($itemData['purchase_order_item_id']);
+                $qtyToReceive = (float) $itemData['quantity_received'];
+
+                // 1. Update PO Item
+                $poItem->increment('quantity_received', $qtyToReceive);
+
+                // 2. Find/Initialize Raw Material for Branch
+                $mat = $this->ensureBranchMaterial($purchaseOrder->branch_id, $poItem->raw_material_id);
+                
+                if ($mat) {
+                    $stockIncrement = $qtyToReceive * $poItem->conversion_factor;
+                    $mat->increment('current_stock', $stockIncrement);
+                    $mat->update(['last_purchase_price' => $poItem->unit_cost]);
+
+                    // 3. Log Stock Movement
+                    StockMovement::create([
+                        'raw_material_id' => $mat->id,
                         'branch_id'       => $purchaseOrder->branch_id,
+                        'user_id'         => auth()->id(),
+                        'type'            => 'add',
+                        'quantity'        => $stockIncrement,
+                        'reason'          => "PO Receipt {$receipt->reference_number} — {$purchaseOrder->po_number}",
                     ]);
-                    continue;
                 }
 
-                $mat->increment('current_stock', $poItem->quantity);
-
-                StockMovement::create([
-                    'raw_material_id' => $mat->id,
-                    'branch_id'       => $purchaseOrder->branch_id,
-                    'user_id'         => auth()->id(),
-                    'type'            => 'add',
-                    'quantity'        => $poItem->quantity,
-                    'reason'          => 'Purchase order received — ' . $purchaseOrder->po_number,
+                // 4. Create Receipt Item
+                PurchaseOrderReceiptItem::create([
+                    'purchase_order_receipt_id' => $receipt->id,
+                    'purchase_order_item_id'    => $poItem->id,
+                    'raw_material_id'           => $poItem->raw_material_id,
+                    'quantity_received'         => $qtyToReceive,
+                    'unit_cost'                 => $poItem->unit_cost,
                 ]);
+
+                $totalAmountReceived += ($qtyToReceive * $poItem->unit_cost);
             }
 
-            // Create Expense record
-            \App\Models\Expense::create([
+            $receipt->update(['total_amount_received' => $totalAmountReceived]);
+
+            // 5. Create Expense for this specific shipment
+            Expense::create([
                 'branch_id'   => $purchaseOrder->branch_id,
                 'recorded_by' => auth()->id(),
-                'ref_num'     => $purchaseOrder->po_number,
-                'title'       => 'Inventory Purchase — ' . ($purchaseOrder->supplier?->name ?? 'Unknown Supplier'),
-                'notes'       => $purchaseOrder->notes ?? 'Order Received',
+                'ref_num'     => $validated['reference_number'] ?? $purchaseOrder->po_number,
+                'title'       => 'Inventory Receipt: ' . $purchaseOrder->po_number,
+                'notes'       => $validated['notes'] ?? "Receipt for PO {$purchaseOrder->po_number}",
                 'date'        => now()->toDateString(),
                 'category'    => 'Inventory',
-                'amount'      => $purchaseOrder->total_amount,
+                'amount'      => $totalAmountReceived,
             ]);
+
+            // 6. Update PO Status
+            $purchaseOrder->refresh();
+            $fullyReceived = true;
+            foreach ($purchaseOrder->items as $item) {
+                if ($item->quantity_received < $item->quantity) {
+                    $fullyReceived = false;
+                    break;
+                }
+            }
 
             $purchaseOrder->update([
-                'status'         => 'Received',
+                'status'         => $fullyReceived ? 'Received' : 'Partially Received',
                 'received_by_id' => auth()->id(),
             ]);
-        });
 
-        return response()->json([
-            'data' => $this->format($purchaseOrder->fresh([
-                'items.rawMaterial', 'branch', 'supplier',
-                'createdBy', 'approvedBy', 'receivedBy',
-            ])),
-        ]);
+            return response()->json([
+                'message' => 'Items received successfully.',
+                'data'    => $this->format($purchaseOrder->fresh([
+                    'items.rawMaterial', 'branch', 'supplier', 'receipts.receiptItems.rawMaterial'
+                ])),
+            ]);
+        });
+    }
+
+    private function ensureBranchMaterial($branchId, $rawMaterialId)
+    {
+        $mat = RawMaterial::where('id', $rawMaterialId)
+            ->where('branch_id', $branchId)
+            ->first();
+
+        if (!$mat) {
+            $sourceMat = RawMaterial::find($rawMaterialId);
+            $parentId  = $sourceMat?->parent_id ?? $rawMaterialId;
+
+            $mat = RawMaterial::where('branch_id', $branchId)
+                ->where(function ($q) use ($parentId) {
+                    $q->where('parent_id', $parentId)
+                      ->orWhere('id', $parentId);
+                })
+                ->first();
+
+            if (!$mat && $sourceMat) {
+                $mat = RawMaterial::create([
+                    'name'            => $sourceMat->name,
+                    'unit'            => $sourceMat->unit,
+                    'category'        => $sourceMat->category,
+                    'current_stock'   => 0,
+                    'reorder_level'   => $sourceMat->reorder_level,
+                    'is_intermediate' => $sourceMat->is_intermediate,
+                    'notes'           => $sourceMat->notes,
+                    'branch_id'       => $branchId,
+                    'parent_id'       => $parentId,
+                ]);
+            }
+        }
+        return $mat;
     }
 
     // ─── Cancel ────────────────────────────────────────────────────────
@@ -302,13 +374,29 @@ class PurchaseOrderController extends Controller
             'received_by'     => $po->receivedBy ? ['name' => $po->receivedBy->name] : null,
             'created_at'      => $po->created_at?->toISOString(),
             'items'           => $po->items->map(fn ($i) => [
-                'id'              => $i->id,
-                'raw_material_id' => $i->raw_material_id,
-                'material_name'   => $i->rawMaterial?->name,
-                'unit'            => $i->rawMaterial?->unit,
-                'quantity'        => $i->quantity,
-                'unit_cost'       => $i->unit_cost,
+                'id'                => $i->id,
+                'raw_material_id'   => $i->raw_material_id,
+                'material_name'     => $i->rawMaterial?->name,
+                'unit'              => $i->rawMaterial?->unit,
+                'ordered_unit'      => $i->ordered_unit ?? $i->rawMaterial?->unit,
+                'conversion_factor' => $i->conversion_factor,
+                'quantity'          => $i->quantity,
+                'quantity_received' => $i->quantity_received,
+                'quantity_pending'  => max(0, $i->quantity - $i->quantity_received),
+                'unit_cost'         => $i->unit_cost,
+                'incoming_stock'    => $i->rawMaterial?->incoming_stock ?? 0,
             ])->toArray(),
+            'receipts'        => $po->receipts->map(fn ($r) => [
+                'id'               => $r->id,
+                'reference_number' => $r->reference_number,
+                'received_at'      => $r->received_at?->toDateTimeString(),
+                'total_amount'     => $r->total_amount_received,
+                'notes'            => $r->notes,
+                'items'            => $r->receiptItems->map(fn ($ri) => [
+                    'material_name'     => $ri->rawMaterial?->name,
+                    'quantity_received' => $ri->quantity_received,
+                ]),
+            ]),
         ];
     }
 }

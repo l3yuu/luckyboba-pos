@@ -25,8 +25,12 @@ interface RawMaterial {
   id: number;
   name: string;
   unit: Unit;
+  purchase_unit?: string | null;
+  purchase_to_base_factor: number;
+  last_purchase_price: number;
   category: Category;
   current_stock: number;
+  incoming_stock?: number;
   reorder_level: number;
   is_intermediate: boolean;
   notes?: string;
@@ -48,6 +52,9 @@ interface Movement {
 interface FormState {
   name: string;
   unit: Unit;
+  purchase_unit: string;
+  purchase_to_base_factor: number | '';
+  last_purchase_price: number | '';
   category: Category;
   current_stock: number | '';
   reorder_level: number | '';
@@ -68,7 +75,8 @@ const CATEGORY_COLORS: Record<Category, { bg: string; text: string; border: stri
 };
 
 const blankForm = (): FormState => ({
-  name: '', unit: 'PC', category: 'Ingredients',
+  name: '', unit: 'PC', purchase_unit: '', purchase_to_base_factor: 1, last_purchase_price: '',
+  category: 'Ingredients',
   current_stock: '', reorder_level: '', is_intermediate: false, notes: '',
 });
 
@@ -100,39 +108,6 @@ const REASONS = {
 const reasonsForType = (t: AdjType): readonly string[] => REASONS[t] as readonly string[];
 const isPresetReason = (t: AdjType, r: string) => reasonsForType(t).includes(r);
 
-const TrendSparkline: React.FC<{ data: number[] }> = ({ data }) => {
-  if (!data || data.length < 2) return null;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const padding = 2;
-  const width = 60;
-  const height = 24;
-
-  const points = data.map((val, i) => ({
-    x: (i / (data.length - 1)) * width,
-    y: height - ((val - min) / range) * (height - padding * 2) - padding
-  }));
-
-  const first = data[0];
-  const last = data[data.length - 1];
-  const isUp = last > first;
-  const isDown = last < first;
-  const color = isUp ? '#16a34a' : isDown ? '#dc2626' : '#94a3b8';
-
-  const d = points.reduce((acc, p, i) =>
-    i === 0 ? `M ${p.x},${p.y}` : `${acc} L ${p.x},${p.y}`, ''
-  );
-
-  return (
-    <div className="flex flex-col gap-1">
-      <svg width={width} height={height} className="overflow-visible">
-        <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="2" fill={color} />
-      </svg>
-    </div>
-  );
-};
 
 const inputCls = (err?: string) =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
@@ -409,6 +384,9 @@ const MaterialFormModal: React.FC<{
     editing
       ? {
         name: editing.name, unit: editing.unit, category: editing.category,
+        purchase_unit: editing.purchase_unit || '',
+        purchase_to_base_factor: editing.purchase_to_base_factor,
+        last_purchase_price: editing.last_purchase_price || '',
         current_stock: editing.current_stock, reorder_level: editing.reorder_level,
         is_intermediate: editing.is_intermediate, notes: editing.notes ?? ''
       }
@@ -431,7 +409,13 @@ const MaterialFormModal: React.FC<{
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true); setApiErr('');
     try {
-      const payload = { ...form, current_stock: Number(form.current_stock), reorder_level: Number(form.reorder_level) };
+      const payload = { 
+        ...form, 
+        current_stock: Number(form.current_stock), 
+        reorder_level: Number(form.reorder_level),
+        purchase_to_base_factor: Number(form.purchase_to_base_factor || 1),
+        last_purchase_price: form.last_purchase_price === '' ? null : Number(form.last_purchase_price)
+      };
       const res = editing
         ? await api.put(`/raw-materials/${editing.id}`, payload)
         : await api.post('/raw-materials', payload);
@@ -475,7 +459,7 @@ const MaterialFormModal: React.FC<{
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Unit" required>
+            <Field label="Base Unit (Inv)" required>
               <select value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value as Unit }))} className={inputCls()}>
                 {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
@@ -486,6 +470,28 @@ const MaterialFormModal: React.FC<{
               </select>
             </Field>
           </div>
+
+          {!form.is_intermediate && (
+            <div className="p-4 bg-violet-50 border border-violet-100 rounded-xl space-y-3">
+              <p className="text-[10px] font-bold text-violet-600 uppercase tracking-widest">Procurement Settings</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Purchase Unit">
+                  <input value={form.purchase_unit} onChange={e => setForm(p => ({ ...p, purchase_unit: e.target.value }))}
+                    className={inputCls()} placeholder="e.g. SACK, CASE" />
+                </Field>
+                <Field label="Conversion (To Base)">
+                  <input type="number" min="1" value={form.purchase_to_base_factor}
+                    onChange={e => setForm(p => ({ ...p, purchase_to_base_factor: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    className={inputCls()} placeholder="1" />
+                </Field>
+              </div>
+              <Field label="Last Purchase Price (₱)">
+                <input type="number" min="0" value={form.last_purchase_price}
+                  onChange={e => setForm(p => ({ ...p, last_purchase_price: e.target.value === '' ? '' : Number(e.target.value) }))}
+                  className={inputCls()} placeholder="0.00" />
+              </Field>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Current Stock" required error={errors.current_stock}>
@@ -727,7 +733,7 @@ const RawMaterialsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {['Item', 'Category', 'Unit', '7D Trend', 'Current Stock', 'Reorder Level', 'Status', 'Actions'].map(h => (
+                {['Item', 'Category', 'Unit', 'Last Price', 'Incoming', 'Current Stock', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -780,7 +786,15 @@ const RawMaterialsTab: React.FC = () => {
                       <span className="text-xs font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded">{m.unit}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      {m.stock_history && <TrendSparkline data={m.stock_history} />}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-zinc-700">₱{Number(m.last_purchase_price || 0).toFixed(2)}</span>
+                        {m.purchase_unit && <span className="text-[9px] text-zinc-400 font-bold uppercase">per {m.purchase_unit}</span>}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`text-xs font-bold ${m.incoming_stock ? 'text-blue-500' : 'text-zinc-300'}`}>
+                        {m.incoming_stock ? `+${Number(m.incoming_stock).toFixed(1)}` : '—'}
+                      </span>
                     </td>
                     <td className="px-5 py-3.5 relative">
                       <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setStockPopId(stockPopId === m.id ? null : m.id)}>

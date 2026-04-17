@@ -421,6 +421,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::patch('/{id}/status',  [PurchaseOrderController::class, 'updateStatus']);
             Route::post ('/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve']);
             Route::post ('/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive']);
+            Route::post ('/{purchaseOrder}/receive-items', [PurchaseOrderController::class, 'receiveItems']);
             Route::post ('/{purchaseOrder}/cancel',  [PurchaseOrderController::class, 'cancel']);
         });
 

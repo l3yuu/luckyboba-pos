@@ -11,6 +11,9 @@ class RawMaterial extends Model
     protected $fillable = [
         'name',
         'unit',
+        'purchase_unit',
+        'purchase_to_base_factor',
+        'last_purchase_price',
         'category',
         'current_stock',
         'reorder_level',
@@ -20,10 +23,14 @@ class RawMaterial extends Model
         'parent_id',
     ];
 
+    protected $appends = ['incoming_stock'];
+
     protected $casts = [
-        'current_stock'   => 'decimal:4',
-        'reorder_level'   => 'decimal:4',
-        'is_intermediate' => 'boolean',
+        'current_stock'            => 'decimal:4',
+        'reorder_level'            => 'decimal:4',
+        'purchase_to_base_factor'  => 'decimal:4',
+        'last_purchase_price'      => 'decimal:2',
+        'is_intermediate'          => 'boolean',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────
@@ -51,6 +58,26 @@ class RawMaterial extends Model
     public function stockDeductions(): HasMany
     {
         return $this->hasMany(StockDeduction::class);
+    }
+
+    public function purchaseOrderItems(): HasMany
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    // ── Accessors ─────────────────────────────────────────────────────────────
+
+    public function getIncomingStockAttribute(): float
+    {
+        // For branch-level materials, sum items from Approved/Partially Received POs
+        // that haven't been received yet.
+        return (float) $this->purchaseOrderItems()
+            ->whereHas('purchaseOrder', function ($q) {
+                $q->whereIn('status', ['Approved', 'Partially Received'])
+                   ->where('branch_id', $this->branch_id);
+            })
+            ->get()
+            ->sum(fn($i) => ($i->quantity - $i->quantity_received) * $i->conversion_factor);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
