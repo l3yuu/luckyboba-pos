@@ -28,6 +28,7 @@ interface RawMaterial {
   purchase_unit?: string | null;
   purchase_to_base_factor: number;
   last_purchase_price: number;
+  unit_cost: number;
   category: Category;
   current_stock: number;
   incoming_stock?: number;
@@ -733,7 +734,7 @@ const RawMaterialsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {['Item', 'Category', 'Unit', 'Last Price', 'Incoming', 'Current Stock', 'Status', 'Actions'].map(h => (
+                {['Item', 'Category', 'Unit', 'Last Price', 'Base Cost', 'Incoming', 'Current Stock', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -789,6 +790,12 @@ const RawMaterialsTab: React.FC = () => {
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-zinc-700">₱{Number(m.last_purchase_price || 0).toFixed(2)}</span>
                         {m.purchase_unit && <span className="text-[9px] text-zinc-400 font-bold uppercase">per {m.purchase_unit}</span>}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-violet-600">₱{Number(m.unit_cost || 0).toFixed(2)}</span>
+                        <span className="text-[9px] text-zinc-400 font-bold uppercase">per {m.unit}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5">

@@ -21,7 +21,7 @@ interface UsageRow {
   cooked: number;  // intermediate produced
   out: number;  // consumed/sold
   spoil: number;  // spoilage
-  ending: number;
+  end: number;
   usage: number;
   variance: number;
   incoming: number;

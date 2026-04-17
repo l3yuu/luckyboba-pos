@@ -203,8 +203,18 @@ class PurchaseOrderController extends Controller
                 
                 if ($mat) {
                     $stockIncrement = $qtyToReceive * $poItem->conversion_factor;
+                    
+                    // Update Costing (WAC) BEFORE incrementing stock
+                    $mat->updateBaseCost($stockIncrement, (float)$poItem->unit_cost);
                     $mat->increment('current_stock', $stockIncrement);
-                    $mat->update(['last_purchase_price' => $poItem->unit_cost]);
+
+                    // Propagate latest purchase price to Global Parent for template consistency
+                    if ($mat->parent_id) {
+                        $parent = RawMaterial::find($mat->parent_id);
+                        if ($parent) {
+                            $parent->update(['last_purchase_price' => $poItem->unit_cost]);
+                        }
+                    }
 
                     // 3. Log Stock Movement
                     StockMovement::create([
