@@ -71,7 +71,11 @@ class DeductStockFromSaleAction
                     continue;
                 }
 
-                $material->decrement('current_stock', $totalQty);
+                $material->recordMovement(
+                    $totalQty,
+                    'subtract',
+                    "Sale #{$sale->invoice_number} · {$saleItem->product_name}"
+                );
 
                 StockDeduction::create([
                     'sale_id'           => $sale->id,
@@ -79,14 +83,6 @@ class DeductStockFromSaleAction
                     'raw_material_id'   => $material->id,
                     'recipe_item_id'    => $recipeItem->id,
                     'quantity_deducted' => $totalQty,
-                ]);
-
-                StockMovement::create([
-                    'raw_material_id' => $material->id,
-                    'branch_id'       => $sale->branch_id,
-                    'type'            => 'subtract',
-                    'quantity'        => $totalQty,
-                    'reason'          => "Sale #{$sale->invoice_number} · {$saleItem->product_name}",
                 ]);
             }
         }

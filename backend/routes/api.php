@@ -346,6 +346,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get ('/recipes',  [RecipeController::class, 'index']);
         Route::get ('/expenses',        [ExpenseController::class,'index']);
         Route::post('/expenses',        [ExpenseController::class,'store']);
+        Route::post('/expenses/{id}/mark-as-paid', [ExpenseController::class,'markAsPaid']);
         Route::get ('/expenses/export', [ExpenseController::class,'export']);
         Route::put ('/expenses/{id}',   [ExpenseController::class,'update']);
         Route::delete('/expenses/{id}', [ExpenseController::class,'destroy']);
@@ -418,6 +419,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('purchase-orders')->group(function () {
             Route::post ('/',             [PurchaseOrderController::class, 'store']);
             Route::patch('/{id}/status',  [PurchaseOrderController::class, 'updateStatus']);
+            Route::post ('/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve']);
+            Route::post ('/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive']);
+            Route::post ('/{purchaseOrder}/receive-items', [PurchaseOrderController::class, 'receiveItems']);
+            Route::post ('/{purchaseOrder}/cancel',  [PurchaseOrderController::class, 'cancel']);
         });
 
         Route::prefix('item-serials')->group(function () {
@@ -480,8 +485,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
     Route::middleware(['role:superadmin'])->group(function () {
-        Route::get('/search', [SearchController::class, 'index']);
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
+
+        // ── EXPENSE APPROVALS (SuperAdmin) ──────────────────────────────────
+        Route::post('/expenses/{id}/approve', [ExpenseController::class, 'approve']);
+        Route::post('/expenses/{id}/reject',  [ExpenseController::class, 'reject']);
 
         // ── FRANCHISES (SuperAdmin) ──────────────────────────────────────────
         Route::apiResource('/franchises', FranchiseController::class);

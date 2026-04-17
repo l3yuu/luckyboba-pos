@@ -162,14 +162,14 @@ const salesReportItems: MenuItem[] = [
   ];
   const inventoryItems: MenuItem[] = [
     { id: 'inventory-dashboard', label: 'Dashboard' },
+    { id: 'inventory-raw-materials', label: 'Raw Materials' },
+    { id: 'inventory-usage', label: 'Usage Report' },
+    { id: 'inventory-recipes', label: 'Recipes' },
     { id: 'inventory-list', label: 'Inventory List' },
-    { id: 'inventory-category', label: 'Category List' },
     { id: 'supplier', label: 'Supplier' },
     { id: 'item-checker', label: 'Item Checker' },
-    { id: 'item-serials', label: 'Item Serials' },
     { id: 'purchase-order', label: 'Purchase Order' },
     { id: 'stock-transfer', label: 'Stock Transfer' },
-    { id: 'inventory-report', label: 'Inventory Report' },
   ];
 
   const [isPosOpen, setPosOpen] = useState(() => posMenuItems.some(i => i.id === currentTab));
