@@ -46,10 +46,18 @@ class ExpenseController extends Controller
             });
         }
 
+        // Filter by Workflow Status
+        if ($request->workflow_status) {
+            $query->where('workflow_status', $request->workflow_status);
+        } else {
+            // By default, don't show Rejected expenses in the main list
+            $query->where('workflow_status', '!=', 'Rejected');
+        }
+
         $expenses = $query->orderBy('date', 'desc')->get();
 
-        // Calculate Totals for Stats
-        $totalExpense = (float) $expenses->sum('amount');
+        // Calculate Totals for Stats (Only Approved expenses)
+        $totalExpense = (float) $expenses->where('workflow_status', 'Approved')->sum('amount');
 
         // Total Sales calculation (scoped same as expenses for comparison)
         $salesQuery = Sale::whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
@@ -100,6 +108,9 @@ class ExpenseController extends Controller
             $receiptPath = asset('storage/' . $path);
         }
 
+        $user = $request->user();
+        $isAutoApproved = in_array($user->role, ['superadmin', 'branch_manager']);
+
         $expense = Expense::create([
             'title'             => $validated['title'],
             'amount'            => $validated['amount'],
@@ -108,13 +119,16 @@ class ExpenseController extends Controller
             'date'              => $validated['expense_date'],
             'notes'             => $validated['notes'] ?? null,
             'receipt_path'      => $receiptPath,
-            'recorded_by'       => $request->user()->id,
+            'recorded_by'       => $user->id,
             'ref_num'           => $validated['refNum'] ?? 'EXP-' . strtoupper(uniqid()),
             'supplier_id'       => $validated['supplier_id'] ?? null,
             'purchase_order_id' => $validated['purchase_order_id'] ?? null,
             'payment_status'    => $validated['payment_status'] ?? 'Paid',
             'payment_method'    => $validated['payment_method'] ?? null,
             'due_date'          => $validated['due_date'] ?? null,
+            'workflow_status'   => $isAutoApproved ? 'Approved' : 'Pending',
+            'approved_by'       => $isAutoApproved ? $user->id : null,
+            'approved_at'       => $isAutoApproved ? now() : null,
         ]);
 
         return response()->json([
@@ -229,6 +243,53 @@ class ExpenseController extends Controller
     }
 
     /**
+     * Approve a pending expense.
+     */
+    public function approve(Request $request, $id)
+    {
+        $user = $request->user();
+        if ($user->role !== 'superadmin') {
+            return response()->json(['message' => 'Only superadmins can approve expenses'], 403);
+        }
+
+        $expense = Expense::findOrFail($id);
+        $expense->update([
+            'workflow_status' => 'Approved',
+            'approved_by'     => $user->id,
+            'approved_at'     => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Expense approved',
+            'data'    => $this->transform($expense->load(['branch', 'recorder', 'supplier', 'purchaseOrder']))
+        ]);
+    }
+
+    /**
+     * Reject a pending expense.
+     */
+    public function reject(Request $request, $id)
+    {
+        $user = $request->user();
+        if ($user->role !== 'superadmin') {
+            return response()->json(['message' => 'Only superadmins can reject expenses'], 403);
+        }
+
+        $expense = Expense::findOrFail($id);
+        $expense->update([
+            'workflow_status' => 'Rejected',
+            'rejection_reason' => $request->reason ?? 'No reason provided',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Expense rejected',
+            'data'    => $this->transform($expense->load(['branch', 'recorder', 'supplier', 'purchaseOrder']))
+        ]);
+    }
+
+    /**
      * Export expenses to CSV.
      */
     public function export(Request $request)
@@ -309,6 +370,10 @@ class ExpenseController extends Controller
             'po_number'         => $e->purchaseOrder->po_number ?? null,
             'payment_status'    => $e->payment_status,
             'payment_method'    => $e->payment_method,
+            'workflow_status'   => $e->workflow_status,
+            'rejection_reason'  => $e->rejection_reason,
+            'approved_by_name'  => $e->approver->name ?? null,
+            'approved_at'       => $e->approved_at,
             'created_at'        => $e->created_at->toISOString(),
         ];
     }

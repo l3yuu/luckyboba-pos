@@ -23,7 +23,11 @@ class Expense extends Model
         'amount',
         'payment_status',
         'payment_method',
-        'receipt_path'
+        'receipt_path',
+        'workflow_status',
+        'approved_by',
+        'approved_at',
+        'rejection_reason'
     ];
 
     protected $casts = [
@@ -56,5 +60,10 @@ class Expense extends Model
     public function purchaseOrder()
     {
         return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

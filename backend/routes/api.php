@@ -486,8 +486,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
     Route::middleware(['role:superadmin'])->group(function () {
-        Route::get('/search', [SearchController::class, 'index']);
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
+
+        // ── EXPENSE APPROVALS (SuperAdmin) ──────────────────────────────────
+        Route::post('/expenses/{id}/approve', [ExpenseController::class, 'approve']);
+        Route::post('/expenses/{id}/reject',  [ExpenseController::class, 'reject']);
 
         // ── FRANCHISES (SuperAdmin) ──────────────────────────────────────────
         Route::apiResource('/franchises', FranchiseController::class);
