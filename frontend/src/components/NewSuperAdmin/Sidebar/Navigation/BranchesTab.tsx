@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
   Search, Plus, Eye, Edit2, Trash2, Store,
   CheckCircle, XCircle, PhilippinePeso, ArrowUpRight, ArrowDownRight,
-  X, AlertCircle, MapPin, Trash,
+  X, AlertCircle, MapPin, Trash, Monitor,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -971,6 +971,10 @@ const BranchesTab: React.FC = () => {
                         className={`p-1.5 rounded-[0.4rem] transition-colors ${b.status === "active" ? "hover:bg-amber-50 text-zinc-400 hover:text-amber-500" : "hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600"}`}
                         title={b.status === "active" ? "Deactivate" : "Activate"}>
                         {b.status === "active" ? <XCircle size={13} /> : <CheckCircle size={13} />}
+                      </button>
+                      <button onClick={() => window.open(`/kiosk?branch_id=${b.id}`, '_blank')}
+                        className="p-1.5 hover:bg-emerald-50 rounded-[0.4rem] text-zinc-400 hover:text-emerald-600 transition-colors" title="Launch Kiosk">
+                        <Monitor size={13} />
                       </button>
                       <button onClick={() => setDelTarget(b)}
                         className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">

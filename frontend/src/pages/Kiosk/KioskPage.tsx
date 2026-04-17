@@ -9,6 +9,8 @@ import {
   Trash2, 
   Plus, 
   Minus,
+  Search,
+  X,
 } from 'lucide-react';
 import { KioskTicketPrint } from '../../components/Cashier/SalesOrderComponents/print';
 import { getImageUrl } from '../../utils/imageUtils';
@@ -21,6 +23,12 @@ interface MenuItem {
   category: string;
   sellingPrice: number;
   image: string | null;
+}
+
+interface Branch {
+  id: number;
+  name: string;
+  address?: string;
 }
 
 interface CartItem extends MenuItem {
@@ -57,7 +65,7 @@ const useKioskIdle = (onReset: () => void) => {
 // --- Main Component ---
 
 const KioskPage = () => {
-  const [step, setStep] = useState<'splash' | 'order_type' | 'menu' | 'confirm'>('splash');
+  const [step, setStep] = useState<'splash' | 'order_type' | 'menu' | 'confirm' | 'select_branch'>('splash');
   const [orderType, setOrderType] = useState<'dine_in' | 'take_out' | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('');
@@ -66,11 +74,14 @@ const KioskPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
-  const [branchId, setBranchId] = useState<number | null>(null);
   const [printData, setPrintData] = useState<{
     invoice: string;
     cart: CartItem[];
   } | null>(null);
+  const [branchId, setBranchId] = useState<number | null>(null);
+  const [allBranches, setAllBranches] = useState<Branch[]>([]);
+  const [branchSearch, setBranchSearch] = useState('');
+  const [branchName, setBranchName] = useState<string>('Lucky Boba');
 
   // Auto-reset helper
   const handleReset = useCallback(() => {
@@ -85,28 +96,103 @@ const KioskPage = () => {
 
   // Initialization
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const bId = params.get('branch_id');
-    if (bId) setBranchId(parseInt(bId));
+    const initKiosk = async () => {
+      const params = new URLSearchParams(window.location.search);
+      let bIdAttr = params.get('branch_id');
+      
+      // If not in URL, check localStorage
+      if (!bIdAttr) {
+        bIdAttr = localStorage.getItem('kiosk_branch_id');
+      }
 
-    const fetchData = async () => {
+      if (bIdAttr) {
+        const parsedId = parseInt(bIdAttr);
+        setBranchId(parsedId);
+        localStorage.setItem('kiosk_branch_id', bIdAttr);
+        
+        try {
+          setLoading(true);
+          const res = await api.get(`/public-menu?branch_id=${parsedId}`);
+          const rawItems: MenuItem[] = res.data;
+          setItems(rawItems);
+          
+          const cats = Array.from(new Set(rawItems.map(i => i.category))).filter(Boolean);
+          setCategories(cats);
+          if (cats.length > 0) setActiveCategory(cats[0]);
+
+          // Also fetch branch name
+          const bRes = await api.get('/branches/available');
+          const branches: Branch[] = bRes.data.data;
+          const current = branches.find(b => b.id === parsedId);
+          if (current) setBranchName(current.name);
+
+        } catch (err) {
+          console.error("Failed to fetch menu", err);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // No branch ID found anywhere, go to selection
+        setStep('select_branch');
+        fetchBranches();
+      }
+    };
+
+    initKiosk();
+  }, []);
+
+  const fetchBranches = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/branches/available');
+      setAllBranches(res.data.data || []);
+    } catch (err) {
+      console.error("Failed to fetch branches", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectBranch = (branch: Branch) => {
+    setBranchId(branch.id);
+    setBranchName(branch.name);
+    localStorage.setItem('kiosk_branch_id', branch.id.toString());
+    setStep('splash');
+    // Refresh items for this branch
+    const fetchMenu = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/public-menu' + (bId ? `?branch_id=${bId}` : ''));
+        const res = await api.get(`/public-menu?branch_id=${branch.id}`);
         const rawItems: MenuItem[] = res.data;
         setItems(rawItems);
-        
         const cats = Array.from(new Set(rawItems.map(i => i.category))).filter(Boolean);
         setCategories(cats);
         if (cats.length > 0) setActiveCategory(cats[0]);
       } catch (err) {
-        console.error('Failed to fetch kiosk menu', err);
+        console.error("Failed to fetch menu", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
+    fetchMenu();
+  };
+
+  const [, setLogoClickCount] = useState(0);
+  const handleLogoClick = () => {
+    setLogoClickCount(prev => {
+      const newCount = prev + 1;
+      if (newCount >= 5) {
+        if (window.confirm("Do you want to reset this kiosk's branch settings?")) {
+          localStorage.removeItem('kiosk_branch_id');
+          window.location.reload();
+        }
+        return 0;
+      }
+      return newCount;
+    });
+    // Reset counter after 2 seconds of inactivity
+    setTimeout(() => setLogoClickCount(0), 2000);
+  };
 
   const addToCart = (item: MenuItem) => {
     setCart((prev: CartItem[]) => {
@@ -129,7 +215,7 @@ const KioskPage = () => {
   const calculateTotal = () => cart.reduce((sum: number, item: CartItem) => sum + (Number(item.sellingPrice) * item.qty), 0);
 
   const handleSubmit = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || !branchId) return;
     try {
       setLoading(true);
       const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -194,7 +280,7 @@ const KioskPage = () => {
         <ShoppingBag size={80} className="text-white" />
       </div>
       <h1 className="text-5xl font-black text-zinc-900 mb-4 text-center">Touch to Start Order</h1>
-      <p className="text-2xl text-zinc-400 font-bold uppercase tracking-widest">Lucky Boba Milk Tea</p>
+      <p className="text-2xl text-zinc-400 font-bold uppercase tracking-widest">{branchName}</p>
       
       <div className="mt-20 flex items-center gap-4 text-violet-500 font-black text-xl">
         <ChevronRight size={32} />
@@ -271,7 +357,13 @@ const KioskPage = () => {
         {/* Categories Sidebar */}
         <div className="w-48 bg-white flex flex-col overflow-y-auto scrollbar-hide border-r border-zinc-100">
           <div className="p-8 pb-4">
-            <span className="text-[10px] font-black text-violet-900/40 uppercase tracking-[0.2em] mb-4 block">Categories</span>
+            <img 
+              src={logo} 
+              alt="Lucky Boba" 
+              className="w-80 h-auto cursor-pointer active:scale-95 transition-transform" 
+              onClick={handleLogoClick}
+            />
+            <span className="text-[10px] font-black text-violet-900/40 uppercase tracking-[0.2em] mb-4 block mt-6">Categories</span>
           </div>
           <button
             onClick={() => {
@@ -516,9 +608,72 @@ const KioskPage = () => {
     </div>
   );
 
+  const BranchSelectorView = () => {
+    const filtered = allBranches.filter(b => 
+      b.name.toLowerCase().includes(branchSearch.toLowerCase()) ||
+      b.address?.toLowerCase().includes(branchSearch.toLowerCase())
+    );
+
+    return (
+      <div className="flex-1 flex flex-col bg-[#f5f4f8] p-10 overflow-hidden">
+        <div className="max-w-4xl mx-auto w-full flex flex-col h-full">
+          <div className="flex flex-col items-center mb-10 shrink-0">
+            <img src={logo} alt="Lucky Boba" className="w-40 h-auto mb-6" />
+            <h1 className="text-3xl font-black text-[#3b2063] uppercase italic">Kiosk Setup</h1>
+            <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mt-2">Select the branch for this device</p>
+          </div>
+
+          <div className="mb-6 shrink-0">
+            <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-2xl px-5 py-4 shadow-sm">
+              <Search size={20} className="text-zinc-400" />
+              <input
+                value={branchSearch}
+                onChange={e => setBranchSearch(e.target.value)}
+                className="flex-1 bg-transparent text-lg font-bold text-[#3b2063] outline-none placeholder:text-zinc-300"
+                placeholder="Search branches..."
+              />
+              {branchSearch && (
+                <button onClick={() => setBranchSearch("")} className="text-zinc-300 hover:text-zinc-500 transition-colors">
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">
+            {filtered.map(branch => (
+              <button
+                key={branch.id}
+                onClick={() => handleSelectBranch(branch)}
+                className="bg-white p-6 rounded-3xl shadow-sm border border-zinc-100 flex flex-col items-start text-left hover:border-violet-300 hover:shadow-md transition-all group active:scale-[0.98]"
+              >
+                <div className="w-10 h-10 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-violet-600 group-hover:text-white transition-colors">
+                  <ShoppingBag size={20} />
+                </div>
+                <h3 className="text-lg font-black text-[#3b2063] uppercase italic">{branch.name}</h3>
+                <p className="text-sm text-zinc-400 font-medium line-clamp-1 mt-1">{branch.address || 'No address provided'}</p>
+                <div className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-violet-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span>Configure Device</span>
+                  <Plus size={12} />
+                </div>
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <div className="col-span-full py-20 flex flex-col items-center justify-center text-zinc-400">
+                <Trash2 size={40} className="mb-4 opacity-20" />
+                <p className="font-bold uppercase tracking-widest text-sm italic">No branches found</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <KioskLayout>
-      <div className="h-full flex flex-col bg-white print:hidden">
+      <div className="h-full flex flex-col bg-white print:hidden overflow-hidden">
+        {step === 'select_branch' && <BranchSelectorView />}
         {step === 'splash' && <SplashView />}
         {step === 'order_type' && <OrderTypeView />}
         {step === 'menu' && <MenuView />}
@@ -528,7 +683,7 @@ const KioskPage = () => {
       {printData && (
         <KioskTicketPrint
           cart={printData.cart}
-          branchName="Lucky Boba - Main"
+          branchName={branchName}
           orNumber={printData.invoice}
           queueNumber={printData.invoice.slice(-4)}
           formattedDate={new Date().toLocaleDateString()}
