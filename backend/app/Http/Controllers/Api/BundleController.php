@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Bundle;
 use App\Models\Category;
+use App\Traits\MenuCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
 
 class BundleController extends Controller
 {
+    use MenuCache;
     /**
      * GET /api/bundles
      * Returns all bundles with their items — used by POS cache
@@ -122,7 +123,7 @@ public function index(Request $request)
             }
 
             DB::commit();
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json([
                 'success' => true,
@@ -190,7 +191,7 @@ public function index(Request $request)
             }
 
             DB::commit();
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json([
                 'success' => true,
@@ -218,7 +219,7 @@ public function index(Request $request)
             $bundle->items()->delete();
             $bundle->delete();
 
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json([
                 'success' => true,
@@ -241,7 +242,7 @@ public function index(Request $request)
         $bundle = Bundle::findOrFail($id);
         $bundle->update(['is_active' => !$bundle->is_active]);
 
-        Cache::forget('menu_data_v3');
+        $this->clearMenuCache();
 
         return response()->json([
             'success'   => true,

@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Traits\MenuCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Cache;
 
 class MenuListController extends Controller
 {
+    use MenuCache;
     public function index()
     {
         try {
@@ -120,7 +121,7 @@ public function store(Request $request)
         ]);
 
         DB::commit();
-        Cache::forget('menu_data_v3');
+        $this->clearMenuCache();
 
         return response()->json([
             'message' => 'Item added successfully',
