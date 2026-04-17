@@ -549,8 +549,19 @@ export const ReceiptPrint = ({
 // KioskTicketPrint
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface KioskCartItem {
+  name: string;
+  qty: number;
+  sellingPrice?: number;
+  price?: number;
+  finalPrice?: number;
+  cupSizeLabel?: string;
+  sugarLevel?: string;
+  options?: string[];
+}
+
 interface KioskTicketPrintProps {
-  cart: any[];
+  cart: KioskCartItem[];
   branchName: string;
   orNumber: string;
   queueNumber: string;

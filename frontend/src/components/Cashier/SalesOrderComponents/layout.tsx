@@ -3,7 +3,6 @@
 
 import { type Category, type MenuItem, type CartItem, WINGS_QUANTITIES } from '../../../types/index';
 import { DrinkIcon, BASE_CARD, TYPE_BADGE } from './shared';
-import { getImageUrl } from '../../../utils/imageUtils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Header
@@ -342,11 +341,6 @@ interface CartSidebarProps {
   onConfirmOrder: () => void;
 }
 
-const getItemSurcharge = (item: CartItem): number => {
-  if (item.charges?.grab)  return Number(item.grab_price  ?? 0) * item.qty;
-  if (item.charges?.panda) return Number(item.panda_price ?? 0) * item.qty;
-  return 0;
-};
 
 export const CartSidebar = ({
   cart, cashierName, orNumber, totalCount, subtotal, terminalNumber, onEditItem, onConfirmOrder,

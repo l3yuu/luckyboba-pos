@@ -1,8 +1,23 @@
 import { useState } from 'react';
 import { CloseIcon, PAYMENT_METHODS } from './shared';
 
+interface OnlineOrderItem {
+  qty?: number;
+  quantity?: number;
+  price?: number;
+  product_name?: string;
+  sugar_level?: string | null;
+  add_ons?: Array<{ name?: string; price?: number } | string>;
+}
+
+interface OrderForPayment {
+  total_amount?: number;
+  total?: number;
+  items?: OnlineOrderItem[];
+}
+
 interface PaymentModalProps {
-  order: any; // Using any here to safely accept the raw OnlineOrder object shape from the panel
+  order: OrderForPayment | null;
   onClose: () => void;
   onConfirm: (paymentMethod: string, cashTendered: number | '', referenceNumber: string) => void;
 }
@@ -42,7 +57,7 @@ export const OnlineOrderPaymentModal = ({ order, onClose, onConfirm }: PaymentMo
             <div className="flex-1 p-6 overflow-y-auto">
               <h3 className="font-black text-sm text-black uppercase mb-4 tracking-wider">Order Items</h3>
               <div className="space-y-4">
-                {(order.items || []).map((item: any, i: number) => {
+                {(order.items || []).map((item: OnlineOrderItem, i: number) => {
                   const qty = item.qty ?? item.quantity ?? 1;
                   const price = Number(item.price ?? 0);
                   const total = price * qty;
@@ -59,8 +74,8 @@ export const OnlineOrderPaymentModal = ({ order, onClose, onConfirm }: PaymentMo
                           {(sugarLevel != null || addOns.length > 0) && (
                             <div className="text-[10px] text-zinc-500 mt-1 ml-2">
                               {sugarLevel != null && <p>• Sugar {sugarLevel}</p>}
-                              {addOns.map((add: any, ai: number) => (
-                                <p key={ai}>• {add.name ?? add} {add.price ? `(₱${Number(add.price).toFixed(2)})` : ''}</p>
+                              {addOns.map((add: { name?: string; price?: number } | string, ai: number) => (
+                                <p key={ai}>• {typeof add === 'string' ? add : add.name} {typeof add !== 'string' && add.price ? `(₱${Number(add.price).toFixed(2)})` : ''}</p>
                               ))}
                             </div>
                           )}

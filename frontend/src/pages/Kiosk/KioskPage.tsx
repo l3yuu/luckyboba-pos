@@ -166,7 +166,7 @@ const KioskPage = () => {
       
       // Auto-reset timer
       setTimeout(handleReset, 15000);
-    } catch (err) {
+    } catch (_err) {
       alert('Failed to place order. Please call staff.');
     } finally {
       setLoading(false);
@@ -527,7 +527,7 @@ const KioskPage = () => {
 
       {printData && (
         <KioskTicketPrint
-          cart={printData.cart as any}
+          cart={printData.cart}
           branchName="Lucky Boba - Main"
           orNumber={printData.invoice}
           queueNumber={printData.invoice.slice(-4)}

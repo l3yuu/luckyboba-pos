@@ -691,7 +691,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         printedKitchen: false,
         printedStickers: false
       });
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to update order status.');
     } finally {
       setUpdatingId(null);
