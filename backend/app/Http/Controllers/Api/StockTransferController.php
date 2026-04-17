@@ -236,33 +236,47 @@ class StockTransferController extends Controller
             'Only Approved or In Transit transfers can be received.'
         );
 
-        $isDirectReceiveFromApproved = $stockTransfer->status === 'Approved';
+        // Determine if source stock was already deducted during dispatch (inTransit).
+        // Use dispatched_at as the reliable indicator — if it's set, inTransit already ran the deduction.
+        $sourceAlreadyDeducted = !empty($stockTransfer->dispatched_at);
 
-        DB::transaction(function () use ($stockTransfer, $isDirectReceiveFromApproved) {
+        DB::transaction(function () use ($stockTransfer, $sourceAlreadyDeducted) {
             foreach ($stockTransfer->items as $item) {
                 $sourceMaterial = $item->rawMaterial;
                 $parentId = $sourceMaterial?->parent_id ?? $item->raw_material_id;
 
-                // If receiving directly from Approved (without dispatch), deduct source now.
-                if ($isDirectReceiveFromApproved) {
-                    RawMaterial::where('id', $item->raw_material_id)
+                // ── Deduct from source branch ────────────────────────────────
+                // Always deduct unless inTransit already handled it.
+                if (!$sourceAlreadyDeducted) {
+                    // Find the exact source material by ID + branch
+                    $srcMat = RawMaterial::where('id', $item->raw_material_id)
                         ->where('branch_id', $stockTransfer->from_branch_id)
-                        ->decrement('current_stock', $item->quantity);
+                        ->first();
 
-                    StockMovement::create([
-                        'raw_material_id' => $item->raw_material_id,
-                        'branch_id'       => $stockTransfer->from_branch_id,
-                        'user_id'         => auth()->id(),
-                        'type'            => 'subtract',
-                        'quantity'        => $item->quantity,
-                        'reason'          => 'Stock transfer out (Direct Receive) — ' . $stockTransfer->transfer_number,
-                    ]);
+                    if ($srcMat) {
+                        $srcMat->decrement('current_stock', $item->quantity);
+
+                        StockMovement::create([
+                            'raw_material_id' => $srcMat->id,
+                            'branch_id'       => $stockTransfer->from_branch_id,
+                            'user_id'         => auth()->id(),
+                            'type'            => 'subtract',
+                            'quantity'        => $item->quantity,
+                            'reason'          => 'Stock transfer out — ' . $stockTransfer->transfer_number,
+                        ]);
+                    } else {
+                        \Log::warning("StockTransfer receive: source material not found", [
+                            'transfer_id'     => $stockTransfer->id,
+                            'raw_material_id' => $item->raw_material_id,
+                            'from_branch_id'  => $stockTransfer->from_branch_id,
+                        ]);
+                    }
                 }
 
+                // ── Increment destination branch ─────────────────────────────
                 // Find matching material in destination branch using parent_id logic
                 $destMat = RawMaterial::where('branch_id', $stockTransfer->to_branch_id)
-                    ->where(function ($q) use ($item) {
-                        $parentId = $item->rawMaterial?->parent_id ?? $item->raw_material_id;
+                    ->where(function ($q) use ($parentId, $item) {
                         $q->where('parent_id', $parentId)
                           ->orWhere('id', $parentId);
                     })
