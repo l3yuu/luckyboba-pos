@@ -555,9 +555,12 @@ interface KioskCartItem {
   sellingPrice?: number;
   price?: number;
   finalPrice?: number;
+  itemTotal?: number;
   cupSizeLabel?: string;
   sugarLevel?: string;
   options?: string[];
+  selectedSugarLevel?: string;
+  selectedAddOns?: { id: number; name: string; price: number }[];
 }
 
 interface KioskTicketPrintProps {
@@ -575,6 +578,24 @@ export const KioskTicketPrint = ({
 }: KioskTicketPrintProps) => {
   return (
     <div className="printable-receipt-container hidden print:block" style={{ width: '80mm', maxWidth: '80mm' }}>
+      <style>{`
+        @page {
+          size: 80mm auto;
+          margin: 0;
+        }
+        @media print {
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          .printable-receipt-container {
+            display: block !important;
+            width: 80mm !important;
+            padding: 4mm;
+            background: white;
+          }
+        }
+      `}</style>
       <div className="receipt-area bg-white text-black">
         {/* Store header */}
         <div className="text-center mb-6 pt-2 pb-4 border-b-2 border-dashed border-black">
@@ -617,13 +638,20 @@ export const KioskTicketPrint = ({
                   {item.cupSizeLabel && <div className="pl-6 text-[10px] font-bold uppercase text-gray-600 italic leading-none mt-1">{item.cupSizeLabel} SIZE</div>}
                 </div>
                 <div className="font-black text-sm" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  ₱{(Number(item.sellingPrice || item.price || item.finalPrice) * item.qty).toFixed(2)}
+                  ₱{((item.itemTotal || Number(item.sellingPrice || item.price || item.finalPrice)) * item.qty).toFixed(2)}
                 </div>
               </div>
 
               {/* Add-ons/Options */}
               <div className="pl-6 space-y-0.5 mt-1">
-                {item.sugarLevel && <div className="text-[10px] font-medium text-gray-500">• Sugar {item.sugarLevel}</div>}
+                {(item.selectedSugarLevel || item.sugarLevel) && (
+                  <div className="text-[10px] font-medium text-gray-500">
+                    • Sugar {item.selectedSugarLevel || item.sugarLevel}
+                  </div>
+                )}
+                {item.selectedAddOns?.map(ao => (
+                  <div key={ao.id} className="text-[10px] font-bold text-gray-600 uppercase italic leading-none">• {ao.name}</div>
+                ))}
                 {item.options?.map((o: string) => (
                   <div key={o} className="text-[10px] font-medium text-gray-500">• {o}</div>
                 ))}

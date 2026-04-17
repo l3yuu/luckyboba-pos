@@ -40,6 +40,7 @@ Route::post('/purchase-card',             [CardPurchaseController::class, 'purch
 Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus'])->middleware('throttle:30,1');
 
 // ✅ PUBLIC MOBILE ROUTES
+Route::post('/kiosk-sales', [SalesController::class, 'store']); // Allow kiosk orders without auth
 Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/cards/image/{path}', [CardController::class, 'image'])
     ->where('path', '.*')
@@ -47,6 +48,7 @@ Route::get('/cards/image/{path}', [CardController::class, 'image'])
 Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');
+Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:60,1');
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
 Route::get('/public-menu', function (Illuminate\Http\Request $request) {
@@ -256,8 +258,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         
         Route::get('/menu',                    [MenuController::class, 'index']);
         Route::get('/bundles',                 [BundleController::class, 'index']);
-        Route::get('/sugar-levels',            [SugarLevelController::class, 'index']);
-        Route::get('/add-ons',                 [AddOnController::class, 'index']);
         Route::get('/notifications/summary',   [NotificationController::class, 'summary']);
 
         Route::prefix('sales')->group(function () {
@@ -314,7 +314,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
 
         Route::get('/cups',                                      [CupController::class,       'index']);
-        Route::get('/sugar-levels',                              [SugarLevelController::class,'index']);
         Route::get('/sugar-levels/by-item/{menuItemId}',         [SugarLevelController::class,'byMenuItem']);
         Route::get('/menu-item-sugar-levels',                    [SugarLevelController::class,'byMenuItemViaQuery']); // Added to match frontend
         Route::put('/menu-item-sugar-levels/{id}',               [SugarLevelController::class,'updateAssignment']);   // Added to match frontend

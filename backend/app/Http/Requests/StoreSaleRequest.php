@@ -21,6 +21,7 @@ class StoreSaleRequest extends FormRequest
     {
         return [
             'si_number'                => 'required|string',
+            'branch_id'                => 'nullable|exists:branches,id',
             'items'                    => 'required|array|min:1',
             'items.*.menu_item_id'     => 'nullable|exists:menu_items,id',
             'items.*.bundle_id'        => 'nullable|exists:bundles,id',
