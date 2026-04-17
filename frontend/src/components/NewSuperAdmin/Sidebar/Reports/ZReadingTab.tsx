@@ -1146,10 +1146,10 @@ const handlePrint = () => window.print();
         <ReceiptRow label="VAT AMOUNT" value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
         <ReceiptRow label="VAT EXEMPT SALES" value={phCurrency.format(reportData?.vat_exempt_sales || 0)} />
         <ReceiptRow label="ZERO-RATED SALES" value={phCurrency.format(0)} />
-        <ReceiptRow label="SC/PWD VAT" value={phCurrency.format(lessVat)} />
         <ReceiptDivider />
         <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
         <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="SC/PWD VAT" value={phCurrency.format(lessVat)} />
         <ReceiptRow label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <ReceiptDivider />

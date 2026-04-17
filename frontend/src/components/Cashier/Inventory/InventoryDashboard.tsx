@@ -16,9 +16,22 @@ const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 
 interface TopProduct { name: string; barcode: string; qty: number; unit_cost: number; total_cost: number; sold_total: number; profit: number; }
 interface DashboardData { products: TopProduct[]; weekly_sold_total: number; weekly_profit_total: number; }
-interface RawMaterial { id: number; name: string; unit: string; category: string; current_stock: number; reorder_level: number; is_intermediate: boolean; notes: string | null; }
+interface RawMaterial { 
+  id: number; 
+  name: string; 
+  unit: string; 
+  purchase_unit: string | null;
+  purchase_to_base_factor: number;
+  last_purchase_price: number;
+  category: string; 
+  current_stock: number; 
+  incoming_stock: number;
+  reorder_level: number; 
+  is_intermediate: boolean; 
+  notes: string | null; 
+}
 interface StockMovement { id: number; raw_material_id: number; type: 'add' | 'subtract' | 'set'; quantity: number; reason: string | null; created_at: string; }
-interface ReportRow { material: RawMaterial; beginning: number; delivered: number; cooked: number; out: number; spoilage: number; ending: number; usage: number; sold: number; variance: number; movements: StockMovement[]; }
+interface ReportRow { material: RawMaterial; beginning: number; delivered: number; cooked: number; out: number; spoilage: number; ending: number; incoming: number; usage: number; sold: number; variance: number; movements: StockMovement[]; }
 interface Toast { id: number; message: string; type: 'success' | 'error'; }
 interface MenuItem { id: number; name: string; category_id: number; category?: string | null; price: number; size: string; type: string; }
 interface RecipeItem { id: number; recipe_id: number; raw_material_id: number; quantity: number; unit: string; notes: string | null; raw_material?: RawMaterial; }
@@ -458,7 +471,8 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
       const beginning = Math.max(0, ending - delivered - cooked + out + spoilage);
       const usage = Math.max(0, beginning + delivered + cooked - out - spoilage - ending);
       const variance = ending - (beginning + delivered + cooked - out - spoilage);
-      return { material: mat, beginning, delivered, cooked, out, spoilage, ending, usage, sold: out, variance, movements: mats };
+      const incoming = parseNum(mat.incoming_stock);
+      return { material: mat, beginning, delivered, cooked, out, spoilage, ending, incoming, usage, sold: out, variance, movements: mats };
     });
   }, [materials, movements]);
 
@@ -744,6 +758,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                           <th className="px-4 py-3.5 text-[9px] font-bold text-zinc-400 uppercase tracking-widest text-right w-20 bg-[#f5f0ff]">OUT</th>
                           <th className="px-4 py-3.5 text-[9px] font-bold text-red-400 uppercase tracking-widest text-right w-20 bg-[#f5f0ff]">SPOIL</th>
                           <th className="px-4 py-3.5 text-[9px] font-bold text-[#3b2063] uppercase tracking-widest text-right w-20 bg-[#f5f0ff] border-r border-[#e9d5ff]">END</th>
+                          <th className="px-4 py-3.5 text-[9px] font-bold text-blue-500 uppercase tracking-widest text-right w-20">INCOMING</th>
                           <th className="px-4 py-3.5 text-[9px] font-bold text-zinc-500 uppercase tracking-widest text-right w-20">USAGE</th>
                           <th className="px-4 py-3.5 text-[9px] font-bold text-zinc-500 uppercase tracking-widest text-right w-20">VAR</th>
                           <th className="px-5 py-3.5 text-[9px] font-bold text-zinc-400 uppercase tracking-widest text-center w-14">Log</th>
@@ -771,6 +786,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                               <td className="px-4 py-3 text-right bg-zinc-50/70"><span className={`text-[12px] font-bold ${row.out > 0 ? 'text-zinc-600' : 'text-zinc-300'}`}>{row.out > 0 ? fmt(row.out) : '—'}</span></td>
                               <td className="px-4 py-3 text-right bg-zinc-50/70"><span className={`text-[12px] font-bold ${row.spoilage > 0 ? 'text-red-500' : 'text-zinc-300'}`}>{row.spoilage > 0 ? fmt(row.spoilage) : '—'}</span></td>
                               <td className="px-4 py-3 text-right bg-zinc-50/70 border-r border-zinc-100"><span className={`text-[13px] font-extrabold ${isLow ? 'text-red-600' : 'text-[#3b2063]'}`}>{fmt(row.ending)}</span></td>
+                              <td className="px-4 py-3 text-right border-r border-zinc-50"><span className={`text-[12px] font-bold ${row.incoming > 0 ? 'text-blue-500' : 'text-zinc-300'}`}>{row.incoming > 0 ? fmt(row.incoming) : '—'}</span></td>
                               <td className="px-4 py-3 text-right"><span className="text-[12px] font-bold text-zinc-700">{fmt(row.usage)}</span></td>
                               <td className="px-4 py-3 text-right"><span className={`text-[12px] ${varClass}`}>{row.variance > 0 ? '+' : ''}{fmt(row.variance)}</span></td>
                               <td className="px-5 py-3 text-center">
@@ -788,8 +804,18 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                         <tfoot>
                           <tr className="border-t-2 border-zinc-200 bg-[#1a0f2e]">
                             <td colSpan={3} className="px-5 py-3.5"><span className="text-[10px] font-bold text-purple-300 uppercase tracking-widest">Totals · {displayUsageRows.length} items</span></td>
-                            {[displayUsageRows.reduce((s,r)=>s+r.beginning,0), displayUsageRows.reduce((s,r)=>s+r.delivered,0), displayUsageRows.reduce((s,r)=>s+r.cooked,0), displayUsageRows.reduce((s,r)=>s+r.out,0), displayUsageRows.reduce((s,r)=>s+r.spoilage,0), displayUsageRows.reduce((s,r)=>s+r.ending,0), displayUsageRows.reduce((s,r)=>s+r.usage,0), displayUsageRows.reduce((s,r)=>s+r.variance,0)].map((total, i) => (
-                              <td key={i} className="px-4 py-3.5 text-right"><span className={`text-[12px] font-extrabold ${i===5?'text-purple-200':i===7?(total<-0.01?'text-red-400':total>0.01?'text-amber-400':'text-emerald-400'):'text-white'}`}>{i===1&&total>0?'+':''}{fmt(total)}</span></td>
+                            {[
+                              displayUsageRows.reduce((s,r)=>s+r.beginning,0), 
+                              displayUsageRows.reduce((s,r)=>s+r.delivered,0), 
+                              displayUsageRows.reduce((s,r)=>s+r.cooked,0), 
+                              displayUsageRows.reduce((s,r)=>s+r.out,0), 
+                              displayUsageRows.reduce((s,r)=>s+r.spoilage,0), 
+                              displayUsageRows.reduce((s,r)=>s+r.ending,0), 
+                              displayUsageRows.reduce((s,r)=>s+r.incoming,0),
+                              displayUsageRows.reduce((s,r)=>s+r.usage,0), 
+                              displayUsageRows.reduce((s,r)=>s+r.variance,0)
+                            ].map((total, i) => (
+                              <td key={i} className="px-4 py-3.5 text-right"><span className={`text-[12px] font-extrabold ${i===5?'text-purple-200' : i===6?'text-blue-300' : i===8?(total<-0.01?'text-red-400':total>0.01?'text-amber-400':'text-emerald-400'):'text-white'}`}>{i===1&&total>0?'+':''}{fmt(total)}</span></td>
                             ))}
                             <td className="px-5 py-3.5" />
                           </tr>
@@ -840,6 +866,8 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                         <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Item Name</th>
                         <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Category</th>
                         <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Unit</th>
+                        <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-right">Last Price</th>
+                        <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">In Transit</th>
                         <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Current Stock</th>
                         <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Reorder Level</th>
                       </tr>
@@ -859,12 +887,21 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                             </td>
                             <td className="px-5 py-3.5"><span className="text-[12px] font-semibold text-zinc-500">{item.category}</span></td>
                             <td className="px-5 py-3.5 text-center"><span className="text-[12px] font-bold text-zinc-700">{item.unit}</span></td>
+                            <td className="px-5 py-3.5 text-right">
+                              <span className="text-[12px] font-bold text-[#1c1c1e]">{item.last_purchase_price > 0 ? `₱${parseNum(item.last_purchase_price).toFixed(2)}` : '—'}</span>
+                              {item.purchase_unit && <p className="text-[9px] text-zinc-400 font-bold uppercase">per {item.purchase_unit}</p>}
+                            </td>
+                            <td className="px-5 py-3.5 text-center">
+                              <span className={`text-[12px] font-bold ${item.incoming_stock > 0 ? 'text-blue-500' : 'text-zinc-300'}`}>
+                                {item.incoming_stock > 0 ? parseNum(item.incoming_stock).toFixed(1) : '—'}
+                              </span>
+                            </td>
                             <td className="px-5 py-3.5 text-center"><span className={`text-[13px] font-extrabold ${isLow ? 'text-red-600' : 'text-[#1c1c1e]'}`}>{parseNum(item.current_stock).toFixed(2)}</span></td>
                             <td className="px-5 py-3.5 text-center"><span className="text-[12px] font-semibold text-zinc-400">{parseNum(item.reorder_level).toFixed(2)}</span></td>
                           </tr>
                         );
                       }) : (
-                        <tr><td colSpan={5} className="px-8 py-20 text-center"><p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{matSearch ? `No results for "${matSearch}"` : 'No raw materials found'}</p></td></tr>
+                        <tr><td colSpan={7} className="px-8 py-20 text-center"><p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{matSearch ? `No results for "${matSearch}"` : 'No raw materials found'}</p></td></tr>
                       )}
                     </tbody>
                   </table>

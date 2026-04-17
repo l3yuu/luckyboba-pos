@@ -55,4 +55,14 @@ class PurchaseOrder extends Model
     {
         return $this->belongsTo(User::class, 'received_by_id');
     }
+
+    public function receipts()
+    {
+        return $this->hasMany(PurchaseOrderReceipt::class);
+    }
+
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
+    }
 }

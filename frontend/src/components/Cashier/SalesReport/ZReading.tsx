@@ -956,10 +956,10 @@ const ZReading = () => {
         <Row label="VAT Amount"       value={phCurrency.format(isVat ? vatAmount : 0)} />
         <Row label="VAT Exempt Sales" value={phCurrency.format(reportData?.vat_exempt_sales || 0)} />
         <Row label="Zero-Rated Sales" value={phCurrency.format(0)} />
-        <Row label="SC/PWD VAT"       value={phCurrency.format(scPwdVat)} />
         <Divider />
         <Row label="Service Charge" value={phCurrency.format(0)} />
         <Row label="NET SALES" value={phCurrency.format(netSales)} />
+        <Row label="SC/PWD VAT"       value={phCurrency.format(scPwdVat)} />
         <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1">
           <span></span>
         </div>

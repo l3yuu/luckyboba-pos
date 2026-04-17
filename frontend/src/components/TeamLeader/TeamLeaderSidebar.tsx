@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   LayoutGrid, Users, History, BarChart2, 
   Package, Search, LogOut, ShieldCheck,
-  CreditCard, ArrowLeftRight, FileText, Tag, Layers, Utensils
+  ArrowLeftRight, FileText, Tag, Layers, Utensils, Wallet
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: 'Floor Ops',
     items: [
       { id: 'void-logs',  label: 'Void Journal',    icon: <ShieldCheck size={14} /> },
-      { id: 'expenses',   label: 'Branch Expenses', icon: <CreditCard size={14} /> },
+      { id: 'expenses',   label: 'Branch Expenses', icon: <Wallet size={14} /> },
     ]
   },
   {

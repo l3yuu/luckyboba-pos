@@ -5,6 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $recipe_id
+ * @property int $raw_material_id
+ * @property float $quantity
+ * @property string $unit
+ * @property string|null $notes
+ */
 class RecipeItem extends Model
 {
     protected $fillable = [

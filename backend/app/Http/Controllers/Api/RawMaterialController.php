@@ -128,8 +128,11 @@ class RawMaterialController extends Controller
             'current_stock'   => 'nullable|numeric|min:0',
             'reorder_level'   => 'nullable|numeric|min:0',
             'is_intermediate' => 'nullable|boolean',
-            'notes'           => 'nullable|string',
-            'branch_id'       => 'nullable|exists:branches,id',
+            'notes'                     => 'nullable|string',
+            'purchase_unit'             => 'nullable|string',
+            'purchase_to_base_factor'   => 'nullable|numeric|min:0',
+            'last_purchase_price'       => 'nullable|numeric|min:0',
+            'branch_id'                 => 'nullable|exists:branches,id',
         ]);
 
         return DB::transaction(function() use ($validated, $request) {
@@ -171,7 +174,10 @@ class RawMaterialController extends Controller
             'category'        => 'sometimes|string',
             'reorder_level'   => 'sometimes|numeric|min:0',
             'is_intermediate' => 'sometimes|boolean',
-            'notes'           => 'nullable|string',
+            'notes'                     => 'nullable|string',
+            'purchase_unit'             => 'sometimes|string|nullable',
+            'purchase_to_base_factor'   => 'sometimes|numeric|min:0',
+            'last_purchase_price'       => 'sometimes|numeric|min:0',
         ]);
 
         $rawMaterial->update($validated);
@@ -234,35 +240,35 @@ class RawMaterialController extends Controller
 
         try {
             DB::transaction(function () use ($validated, $rawMaterial) {
-                switch ($validated['type']) {
-                    case 'add':
-                        $rawMaterial->increment('current_stock', $validated['quantity']);
-                        break;
-                    case 'subtract':
-                    case 'waste':
-                        $rawMaterial->decrement('current_stock', $validated['quantity']);
-                        break;
-                    case 'set':
-                        $rawMaterial->update(['current_stock' => $validated['quantity']]);
-                        break;
-                }
+                $type = $validated['type'];
+                $qty  = (float) $validated['quantity'];
+                $reason = $validated['reason'] ?? ucfirst($type) . ' (manual)';
 
-                // Record in stock_movements so Usage Report reflects manual adjustments
-                StockMovement::create([
-                    'raw_material_id' => $rawMaterial->id,
-                    'branch_id'       => $rawMaterial->branch_id,
-                    'user_id'         => auth()->id(),
-                    'type'            => $validated['type'],
-                    'quantity'        => $validated['quantity'],
-                    'reason'          => $validated['reason'] ?? ucfirst($validated['type']) . ' (manual)',
-                ]);
+                if ($type === 'set') {
+                    $before = (float) $rawMaterial->current_stock;
+                    $rawMaterial->update(['current_stock' => $qty]);
+                    $after = $qty;
+
+                    StockMovement::create([
+                        'raw_material_id' => $rawMaterial->id,
+                        'branch_id'       => $rawMaterial->branch_id,
+                        'user_id'         => auth()->id(),
+                        'before_stock'    => $before,
+                        'after_stock'     => $after,
+                        'type'            => 'set',
+                        'quantity'        => $qty,
+                        'reason'          => $reason,
+                    ]);
+                } else {
+                    $rawMaterial->recordMovement($qty, $type, $reason);
+                }
 
                 // ✅ Log Activity
                 AuditLog::create([
                     'user_id'    => auth()->id(),
                     'action'     => "Manual Stock Adjustment",
                     'module'     => 'Inventory',
-                    'details'    => "Material: {$rawMaterial->name}. Type: {$validated['type']}, Qty: {$validated['quantity']} {$rawMaterial->unit}. Reason: " . ($validated['reason'] ?? 'None'),
+                    'details'    => "Material: {$rawMaterial->name}. Type: {$type}, Qty: {$qty} {$rawMaterial->unit}. Reason: " . $reason,
                     'ip_address' => request()->ip(),
                 ]);
             });
@@ -302,6 +308,8 @@ class RawMaterialController extends Controller
                 'id'           => $m->id,
                 'type'         => $m->type,
                 'quantity'     => (float) $m->quantity,
+                'before'       => $m->before_stock !== null ? (float)$m->before_stock : null,
+                'after'        => $m->after_stock !== null ? (float)$m->after_stock : null,
                 'reason'       => $m->reason ?? ucfirst($m->type),
                 'performed_by' => $m->user->name ?? 'System',
                 'created_at'   => $m->created_at,
@@ -364,6 +372,8 @@ class RawMaterialController extends Controller
                 'raw_material' => $m->rawMaterial->name ?? 'Unknown',
                 'type'         => $m->type,
                 'quantity'     => $m->quantity,
+                'before'       => $m->before_stock !== null ? (float)$m->before_stock : null,
+                'after'        => $m->after_stock !== null ? (float)$m->after_stock : null,
                 'unit'         => $m->rawMaterial->unit ?? '',
                 'branch_name'  => $m->branch->name ?? ($selectedBranchName ?? 'Main Office'),
                 'reason'       => $m->reason,
@@ -419,16 +429,18 @@ class RawMaterialController extends Controller
                             ->where('type', 'subtract')
                             ->sum('quantity');
 
+                        $before = (float) $material->current_stock;
                         $material->current_stock = $begValue + $todayAdditions - $todaySubtractions;
                         $material->save();
+                        $after = (float) $material->current_stock;
 
                         // Record a movement at the very start of today (00:00:01)
-                        // This ensures the Usage Report's "BEG" calculation for "today"
-                        // respects this manual entry.
                         StockMovement::create([
                             'raw_material_id' => $material->id,
                             'branch_id'       => $material->branch_id,
                             'user_id'         => auth()->id(),
+                            'before_stock'    => $before,
+                            'after_stock'     => $after,
                             'type'            => 'set',
                             'quantity'        => $begValue,
                             'reason'          => 'Manual Opening Adjustment',
@@ -438,16 +450,21 @@ class RawMaterialController extends Controller
 
                     // 2. Update current inventory if 'actual' (Closing) is provided
                     if (isset($auditItem['actual'])) {
-                        $actual = $auditItem['actual'];
+                        $actual = (float) $auditItem['actual'];
+                        $before = (float) $material->current_stock;
+                        
                         $material->update(['current_stock' => $actual]);
+                        $after = $actual;
 
                         StockMovement::create([
                             'raw_material_id' => $material->id,
                             'branch_id'       => $material->branch_id,
                             'user_id'         => auth()->id(),
+                            'before_stock'    => $before,
+                            'after_stock'     => $after,
                             'type'            => 'set',
                             'quantity'        => $actual,
-                            'reason'          => $reason . " (Prev: " . round((float)$oldStock, 2) . ")",
+                            'reason'          => $reason . " (Prev: " . round($before, 2) . ")",
                         ]);
                     }
                 }

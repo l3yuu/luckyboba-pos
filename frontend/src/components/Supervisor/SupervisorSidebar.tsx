@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   LayoutGrid, Users, History, BarChart2, 
   Package, Search, LogOut, ShieldCheck,
-  ArrowRightLeft
+  ArrowRightLeft, Wallet
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -40,6 +40,7 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid size={14} /> },
       { id: 'users',     label: 'Staff Overview', icon: <Users size={14} /> },
+      { id: 'expenses',  label: 'Expenses', icon: <Wallet size={14} /> },
     ]
   },
   {

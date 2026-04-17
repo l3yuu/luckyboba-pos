@@ -33,7 +33,7 @@ api.interceptors.response.use(
             localStorage.removeItem('dashboard_stats');
             localStorage.removeItem('dashboard_stats_timestamp');
             
-            if (!window.location.pathname.includes('/login')) {
+            if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/kiosk')) {
                 window.location.href = '/login?reason=expired';
             }
         }

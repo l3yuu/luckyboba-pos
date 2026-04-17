@@ -21,7 +21,7 @@ class ExpenseController extends Controller
         $to   = $request->date_to   ?? $request->to   ?? now()->toDateString();
         $user = $request->user();
 
-        $query = Expense::with(['branch:id,name', 'recorder:id,name']);
+        $query = Expense::with(['branch:id,name', 'recorder:id,name', 'supplier:id,name', 'purchaseOrder:id,po_number']);
 
         // Role-based filtering
         if ($user->role !== 'superadmin') {
@@ -46,10 +46,18 @@ class ExpenseController extends Controller
             });
         }
 
+        // Filter by Workflow Status
+        if ($request->workflow_status) {
+            $query->where('workflow_status', $request->workflow_status);
+        } else {
+            // By default, don't show Rejected expenses in the main list
+            $query->where('workflow_status', '!=', 'Rejected');
+        }
+
         $expenses = $query->orderBy('date', 'desc')->get();
 
-        // Calculate Totals for Stats
-        $totalExpense = (float) $expenses->sum('amount');
+        // Calculate Totals for Stats (Only Approved expenses)
+        $totalExpense = (float) $expenses->where('workflow_status', 'Approved')->sum('amount');
 
         // Total Sales calculation (scoped same as expenses for comparison)
         $salesQuery = Sale::whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
@@ -79,14 +87,19 @@ class ExpenseController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title'        => 'required|string|max:255',
-            'amount'       => 'required|numeric|min:0',
-            'category'     => 'required|string',
-            'branch_id'    => 'required|integer|exists:branches,id',
-            'expense_date' => 'required|date',
-            'notes'        => 'nullable|string',
-            'receipt'      => 'nullable|image|max:2048',
-            'refNum'       => 'nullable|string|unique:expenses,ref_num'
+            'title'             => 'required|string|max:255',
+            'amount'            => 'required|numeric|min:0',
+            'category'          => 'required|string',
+            'branch_id'         => 'required|integer|exists:branches,id',
+            'expense_date'      => 'required|date',
+            'notes'             => 'nullable|string',
+            'receipt'           => 'nullable|image|max:2048',
+            'refNum'            => 'nullable|string|unique:expenses,ref_num',
+            'supplier_id'       => 'nullable|integer|exists:suppliers,id',
+            'purchase_order_id' => 'nullable|integer|exists:purchase_orders,id',
+            'payment_status'    => 'nullable|string|in:Pending,Paid,Partial',
+            'payment_method'    => 'nullable|string',
+            'due_date'          => 'nullable|date',
         ]);
 
         $receiptPath = null;
@@ -95,16 +108,27 @@ class ExpenseController extends Controller
             $receiptPath = asset('storage/' . $path);
         }
 
+        $user = $request->user();
+        $isAutoApproved = in_array($user->role, ['superadmin', 'branch_manager']);
+
         $expense = Expense::create([
-            'title'        => $validated['title'],
-            'amount'       => $validated['amount'],
-            'category'     => $validated['category'],
-            'branch_id'    => $validated['branch_id'],
-            'date'         => $validated['expense_date'],
-            'notes'        => $validated['notes'] ?? null,
-            'receipt_path' => $receiptPath,
-            'recorded_by'  => $request->user()->id,
-            'ref_num'      => $validated['refNum'] ?? 'EXP-' . strtoupper(uniqid()),
+            'title'             => $validated['title'],
+            'amount'            => $validated['amount'],
+            'category'          => $validated['category'],
+            'branch_id'         => $validated['branch_id'],
+            'date'              => $validated['expense_date'],
+            'notes'             => $validated['notes'] ?? null,
+            'receipt_path'      => $receiptPath,
+            'recorded_by'       => $user->id,
+            'ref_num'           => $validated['refNum'] ?? 'EXP-' . strtoupper(uniqid()),
+            'supplier_id'       => $validated['supplier_id'] ?? null,
+            'purchase_order_id' => $validated['purchase_order_id'] ?? null,
+            'payment_status'    => $validated['payment_status'] ?? 'Paid',
+            'payment_method'    => $validated['payment_method'] ?? null,
+            'due_date'          => $validated['due_date'] ?? null,
+            'workflow_status'   => $isAutoApproved ? 'Approved' : 'Pending',
+            'approved_by'       => $isAutoApproved ? $user->id : null,
+            'approved_at'       => $isAutoApproved ? now() : null,
         ]);
 
         return response()->json([
@@ -122,14 +146,19 @@ class ExpenseController extends Controller
         $expense = Expense::findOrFail($id);
 
         $validated = $request->validate([
-            'title'        => 'required|string|max:255',
-            'amount'       => 'required|numeric|min:0',
-            'category'     => 'required|string',
-            'branch_id'    => 'required|integer|exists:branches,id',
-            'expense_date' => 'required|date',
-            'notes'        => 'nullable|string',
-            'receipt'      => 'nullable|image|max:2048',
-            'refNum'       => 'nullable|string|unique:expenses,ref_num,' . $id
+            'title'             => 'required|string|max:255',
+            'amount'            => 'required|numeric|min:0',
+            'category'          => 'required|string',
+            'branch_id'         => 'required|integer|exists:branches,id',
+            'expense_date'      => 'required|date',
+            'notes'             => 'nullable|string',
+            'receipt'           => 'nullable|image|max:2048',
+            'refNum'            => 'nullable|string|unique:expenses,ref_num,' . $id,
+            'supplier_id'       => 'nullable|integer|exists:suppliers,id',
+            'purchase_order_id' => 'nullable|integer|exists:purchase_orders,id',
+            'payment_status'    => 'nullable|string|in:Pending,Paid,Partial',
+            'payment_method'    => 'nullable|string',
+            'due_date'          => 'nullable|date',
         ]);
 
         $user = $request->user();
@@ -138,13 +167,18 @@ class ExpenseController extends Controller
         }
 
         $data = [
-            'title'     => $validated['title'],
-            'amount'    => $validated['amount'],
-            'category'  => $validated['category'],
-            'branch_id' => $validated['branch_id'],
-            'date'      => $validated['expense_date'],
-            'notes'     => $validated['notes'] ?? null,
-            'ref_num'   => $validated['refNum'] ?? $expense->ref_num,
+            'title'             => $validated['title'],
+            'amount'            => $validated['amount'],
+            'category'          => $validated['category'],
+            'branch_id'         => $validated['branch_id'],
+            'date'              => $validated['expense_date'],
+            'notes'             => $validated['notes'] ?? null,
+            'ref_num'           => $validated['refNum'] ?? $expense->ref_num,
+            'supplier_id'       => $validated['supplier_id'] ?? $expense->supplier_id,
+            'purchase_order_id' => $validated['purchase_order_id'] ?? $expense->purchase_order_id,
+            'payment_status'    => $validated['payment_status'] ?? $expense->payment_status,
+            'payment_method'    => $validated['payment_method'] ?? $expense->payment_method,
+            'due_date'          => $validated['due_date'] ?? $expense->due_date,
         ];
 
         if ($request->hasFile('receipt')) {
@@ -187,6 +221,71 @@ class ExpenseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Expense deleted successfully'
+        ]);
+    }
+
+    /**
+     * Mark an expense as paid.
+     */
+    public function markAsPaid(Request $request, $id)
+    {
+        $expense = Expense::findOrFail($id);
+        $expense->update([
+            'payment_status' => 'Paid',
+            'payment_method' => $request->payment_method ?? 'Bank Transfer',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Expense marked as paid',
+            'data'    => $this->transform($expense->load(['branch', 'recorder', 'supplier', 'purchaseOrder']))
+        ]);
+    }
+
+    /**
+     * Approve a pending expense.
+     */
+    public function approve(Request $request, $id)
+    {
+        $user = $request->user();
+        if ($user->role !== 'superadmin') {
+            return response()->json(['message' => 'Only superadmins can approve expenses'], 403);
+        }
+
+        $expense = Expense::findOrFail($id);
+        $expense->update([
+            'workflow_status' => 'Approved',
+            'approved_by'     => $user->id,
+            'approved_at'     => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Expense approved',
+            'data'    => $this->transform($expense->load(['branch', 'recorder', 'supplier', 'purchaseOrder']))
+        ]);
+    }
+
+    /**
+     * Reject a pending expense.
+     */
+    public function reject(Request $request, $id)
+    {
+        $user = $request->user();
+        if ($user->role !== 'superadmin') {
+            return response()->json(['message' => 'Only superadmins can reject expenses'], 403);
+        }
+
+        $expense = Expense::findOrFail($id);
+        $expense->update([
+            'workflow_status' => 'Rejected',
+            'rejection_reason' => $request->reason ?? 'No reason provided',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Expense rejected',
+            'data'    => $this->transform($expense->load(['branch', 'recorder', 'supplier', 'purchaseOrder']))
         ]);
     }
 
@@ -253,18 +352,29 @@ class ExpenseController extends Controller
     private function transform(Expense $e)
     {
         return [
-            'id'           => $e->id,
-            'title'        => $e->title,
-            'amount'       => (float) $e->amount,
-            'category'     => $e->category,
-            'branch_id'    => $e->branch_id,
-            'branch_name'  => $e->branch->name ?? '—',
-            'expense_date' => Carbon::parse($e->date)->format('Y-m-d'),
-            'receipt_path' => $e->receipt_path,
-            'notes'        => $e->notes,
-            'ref_num'      => $e->ref_num,
-            'recorded_by'  => $e->recorder->name ?? 'Admin',
-            'created_at'   => $e->created_at->toISOString(),
+            'id'                => $e->id,
+            'title'             => $e->title,
+            'amount'            => (float) $e->amount,
+            'category'          => $e->category,
+            'branch_id'         => $e->branch_id,
+            'branch_name'       => $e->branch->name ?? '—',
+            'expense_date'      => Carbon::parse($e->date)->format('Y-m-d'),
+            'due_date'          => $e->due_date ? Carbon::parse($e->due_date)->format('Y-m-d') : null,
+            'receipt_path'      => $e->receipt_path,
+            'notes'             => $e->notes,
+            'ref_num'           => $e->ref_num,
+            'recorded_by'       => $e->recorder->name ?? 'Admin',
+            'supplier_id'       => $e->supplier_id,
+            'supplier_name'     => $e->supplier->name ?? null,
+            'purchase_order_id' => $e->purchase_order_id,
+            'po_number'         => $e->purchaseOrder->po_number ?? null,
+            'payment_status'    => $e->payment_status,
+            'payment_method'    => $e->payment_method,
+            'workflow_status'   => $e->workflow_status,
+            'rejection_reason'  => $e->rejection_reason,
+            'approved_by_name'  => $e->approver->name ?? null,
+            'approved_at'       => $e->approved_at,
+            'created_at'        => $e->created_at->toISOString(),
         ];
     }
 }

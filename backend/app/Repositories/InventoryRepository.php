@@ -294,9 +294,11 @@ class InventoryRepository implements InventoryRepositoryInterface
                 'out'      => round($out, 2),
                 'spoil'    => round($spoil, 2),
                 'end'      => round($end, 2),
+                'ending'   => round($end, 2),
                 'usage'    => round($usage, 2),
                 'sold'     => $soldItemsCount,
                 'variance' => round($variance, 2),
+                'incoming' => (float) $mat->incoming_stock,
             ];
         });
     }

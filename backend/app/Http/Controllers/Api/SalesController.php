@@ -33,12 +33,21 @@ class SalesController extends Controller
     public function store(StoreSaleRequest $request)
     {
         $validated   = $request->validated();
-        $user        = auth('sanctum')->user() ?? $request->user();
+        $user        = auth('sanctum')->user();
+        
+        // Use verified user branch or fallback to validated branch_id (for Kiosk)
+        $branchId    = $user?->getAttribute('branch_id') ?? ($validated['branch_id'] ?? null);
         $userId      = $user?->getAttribute('id');
-        $branchId    = $user?->getAttribute('branch_id');
-        $cashierName = $request->input('cashier_name') ?? ($user?->getAttribute('name') ?? 'System Admin');
+        $cashierName = $request->input('cashier_name') ?? ($user?->getAttribute('name') ?? 'Kiosk System');
 
-        $result = $this->processCheckoutAction->execute($validated, $userId, $branchId, $cashierName);
+        if (!$branchId) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Branch ID is required for checkout.'
+            ], 400);
+        }
+
+        $result = $this->processCheckoutAction->execute($validated, $userId, (int)$branchId, $cashierName);
 
         // Map status to correct HTTP code
         $statusCode = $result['is_new'] ? 201 : 200;
