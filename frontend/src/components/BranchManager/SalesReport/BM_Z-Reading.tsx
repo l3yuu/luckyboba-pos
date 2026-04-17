@@ -1244,11 +1244,11 @@ const handlePrint = async () => {
         <ReceiptRow label="VAT Amount"       value={phCurrency.format(isVat ? vatAmount : 0)} />
         <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(data.vat_exempt_sales || 0)} />
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
-        <ReceiptRow label="SC/PWD VAT" value={phCurrency.format(scPwdVat)} />
         <ReceiptRow label="Service Charge" value={phCurrency.format(0)} />
         <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="SC/PWD VAT" value={phCurrency.format(scPwdVat)} />
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
-        <ReceiptRow label="GROSS Amount" value={phCurrency.format(gross)} />
+        <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
         <ReceiptRow label="S.C Disc." value={phCurrency.format(scDiscount)} />

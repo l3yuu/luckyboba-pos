@@ -14,6 +14,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 import api from '../../../services/api';
+import { SkeletonBar, SkeletonBox } from '../../TeamLeader/SharedSkeletons';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -428,7 +429,7 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
                 </div>
              </div>
              <div className="h-48 w-full">
-                {loading ? <div className="w-full h-full bg-zinc-50 animate-pulse rounded-xl" /> : trendData.length > 0 ? (
+                {loading ? <SkeletonBox /> : trendData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                      <BarChart data={trendData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -460,7 +461,7 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
               <PieChartIcon size={18} className="text-zinc-300" />
            </div>
            <div className="h-60 w-full relative">
-              {loading ? <div className="w-full h-full rounded-full border-8 border-violet-50 animate-pulse" /> : categoryData.length > 0 ? (
+              {loading ? <SkeletonBox className="!rounded-full" /> : categoryData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                    <PieChart>
                       <Pie data={categoryData} innerRadius={65} outerRadius={85} paddingAngle={8} dataKey="value" stroke="none">
@@ -522,8 +523,14 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
                   </tr>
                </thead>
                <tbody className="divide-y divide-zinc-50">
-                  {loading ? [...Array(4)].map((_, i) => (
-                    <tr key={i}><td colSpan={5} className="px-8 py-6"><div className="h-5 bg-zinc-50 rounded-lg animate-pulse w-full max-w-[200px]" /></td></tr>
+                  {loading ? [...Array(5)].map((_, i) => (
+                    <tr key={i} className="border-b border-zinc-50">
+                      {[...Array(5)].map((_, j) => (
+                         <td key={j} className="px-6 py-5">
+                            <SkeletonBar h="h-4" w={j === 4 ? "w-16" : "w-full"} />
+                         </td>
+                      ))}
+                    </tr>
                   )) : expenses.length === 0 ? (
                     <tr><td colSpan={5} className="py-24 text-center"><div className="flex flex-col items-center gap-3"><Package size={40} className="text-zinc-200" /><p className="text-xs font-black uppercase tracking-[3px] text-zinc-300">No Expenses Recorded</p></div></td></tr>
                   ) : expenses.map(e => (

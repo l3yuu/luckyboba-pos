@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
+import { SkeletonBox } from '../SharedSkeletons';
 import { 
-  Search, RefreshCw, 
+  Search, 
   ChevronDown, ChevronUp, FlaskConical,
   AlertCircle
 } from 'lucide-react';
@@ -79,16 +80,17 @@ const RecipesPanel = () => {
   });
 
   if (loading) return (
-    <div className="p-8 flex items-center justify-center h-[400px]">
-      <div className="flex flex-col items-center gap-4">
-        <RefreshCw className="animate-spin text-slate-300" size={32} />
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Compiling Recipe Book...</p>
-      </div>
+    <div className="p-8 space-y-4">
+      <div className="mb-8 relative"><SkeletonBox h="h-10" /></div>
+      <SkeletonBox h="h-20" />
+      <SkeletonBox h="h-20" />
+      <SkeletonBox h="h-20" />
+      <SkeletonBox h="h-20" />
     </div>
   );
 
   return (
-    <div className="p-8 tl-recipes-panel animate-tl-fade">
+    <div className="p-8 tl-recipes-panel">
       <style>{STYLES}</style>
 
       {/* Header */}

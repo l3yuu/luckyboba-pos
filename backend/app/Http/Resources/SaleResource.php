@@ -39,6 +39,7 @@ class SaleResource extends JsonResource
             'is_synced'                => (bool) $this->is_synced,
             'cancellation_reason'      => $this->cancellation_reason,
             'cancelled_at'             => $this->cancelled_at,
+            'order_type'               => $this->order_type,
             'created_at'               => $this->created_at,
             'updated_at'               => $this->updated_at,
             'items'                    => SaleItemResource::collection($this->whenLoaded('items')),

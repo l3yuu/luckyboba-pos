@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, CheckCircle, XCircle, Search, CreditCard, Image as ImageIcon, Upload } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 
 interface CardItem {
   id: number;
@@ -35,7 +35,7 @@ const CardManagementTab = () => {
 
   const getToken = () => localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 
-  const fetchCards = React.useCallback(async () => {
+  const fetchCards = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/cards", {
@@ -46,10 +46,10 @@ const CardManagementTab = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setCards(data.data);
+        setCards(data.data || []);
       }
-    } catch (_err) {
-      console.error("Failed to fetch cards", _err);
+    } catch (err) {
+      console.error("Failed to fetch cards", err);
     } finally {
       setLoading(false);
     }

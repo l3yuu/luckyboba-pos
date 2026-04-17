@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, Plus, Edit2, Trash2, X, AlertCircle,
   ChevronDown, History, TrendingUp, TrendingDown, Minus,
-  Package, CheckCircle, FlaskConical,
+  Package, CheckCircle, FlaskConical, Info,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../../services/api';
@@ -25,8 +25,13 @@ interface RawMaterial {
   id: number;
   name: string;
   unit: Unit;
+  purchase_unit?: string | null;
+  purchase_to_base_factor: number;
+  last_purchase_price: number;
+  unit_cost: number;
   category: Category;
   current_stock: number;
+  incoming_stock?: number;
   reorder_level: number;
   is_intermediate: boolean;
   notes?: string;
@@ -40,6 +45,8 @@ interface Movement {
   id: number;
   type: AdjType;
   quantity: number;
+  before: number | null;
+  after: number | null;
   reason: string;
   performed_by: string;
   created_at: string;
@@ -48,6 +55,9 @@ interface Movement {
 interface FormState {
   name: string;
   unit: Unit;
+  purchase_unit: string;
+  purchase_to_base_factor: number | '';
+  last_purchase_price: number | '';
   category: Category;
   current_stock: number | '';
   reorder_level: number | '';
@@ -68,7 +78,8 @@ const CATEGORY_COLORS: Record<Category, { bg: string; text: string; border: stri
 };
 
 const blankForm = (): FormState => ({
-  name: '', unit: 'PC', category: 'Ingredients',
+  name: '', unit: 'PC', purchase_unit: '', purchase_to_base_factor: 1, last_purchase_price: '',
+  category: 'Ingredients',
   current_stock: '', reorder_level: '', is_intermediate: false, notes: '',
 });
 
@@ -100,39 +111,6 @@ const REASONS = {
 const reasonsForType = (t: AdjType): readonly string[] => REASONS[t] as readonly string[];
 const isPresetReason = (t: AdjType, r: string) => reasonsForType(t).includes(r);
 
-const TrendSparkline: React.FC<{ data: number[] }> = ({ data }) => {
-  if (!data || data.length < 2) return null;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const padding = 2;
-  const width = 60;
-  const height = 24;
-
-  const points = data.map((val, i) => ({
-    x: (i / (data.length - 1)) * width,
-    y: height - ((val - min) / range) * (height - padding * 2) - padding
-  }));
-
-  const first = data[0];
-  const last = data[data.length - 1];
-  const isUp = last > first;
-  const isDown = last < first;
-  const color = isUp ? '#16a34a' : isDown ? '#dc2626' : '#94a3b8';
-
-  const d = points.reduce((acc, p, i) =>
-    i === 0 ? `M ${p.x},${p.y}` : `${acc} L ${p.x},${p.y}`, ''
-  );
-
-  return (
-    <div className="flex flex-col gap-1">
-      <svg width={width} height={height} className="overflow-visible">
-        <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="2" fill={color} />
-      </svg>
-    </div>
-  );
-};
 
 const inputCls = (err?: string) =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
@@ -175,62 +153,173 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
       .finally(() => setLoading(false));
   }, [item.id]);
 
-  const typeColor = (t: AdjType) => t === 'add' ? '#16a34a' : t === 'subtract' ? '#dc2626' : '#3b2063';
+  const getStatusCfg = (m: Movement) => {
+    switch (m.type) {
+      case 'add': return { icon: <TrendingUp size={14} />, color: '#16a34a', bg: '#f0fdf4', label: 'Restock' };
+      case 'subtract': return { icon: <TrendingDown size={14} />, color: '#dc2626', bg: '#fef2f2', label: 'Usage' };
+      case 'waste': return { icon: <Trash2 size={14} />, color: '#ea580c', bg: '#fff7ed', label: 'Waste' };
+      case 'set': return { icon: <FlaskConical size={14} />, color: '#3b2063', bg: '#f5f0ff', label: 'Audit' };
+      default: return { icon: <Info size={14} />, color: '#71717a', bg: '#f4f4f5', label: 'Update' };
+    }
+  };
 
   return createPortal(
     <div className="fixed inset-0 z-9999 flex justify-end"
-      style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.35)' }}>
+      style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(26, 15, 46, 0.4)' }}>
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-sm h-full flex flex-col shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#3b2063] rounded-lg flex items-center justify-center">
-              <History size={14} className="text-white" />
+      <div className="relative bg-white w-full max-w-md h-full flex flex-col shadow-[-20px_0_50px_rgba(0,0,0,0.15)] animate-in slide-in-from-right duration-300">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-6 border-b border-zinc-100 bg-white">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#3b2063] rounded-2xl flex items-center justify-center shadow-lg shadow-purple-100">
+              <History size={20} className="text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#1a0f2e] leading-tight">{item.name}</p>
-              <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Movement history</p>
+              <p className="text-base font-black text-[#1a0f2e] tracking-tight">{item.name}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] text-zinc-400 uppercase font-black tracking-widest">Enterprise Audit Trail</span>
+                <span className="w-1 h-1 bg-zinc-200 rounded-full" />
+                <span className="text-[10px] text-violet-600 font-bold uppercase tracking-wider">{item.unit}</span>
+              </div>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400">
-            <X size={16} />
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-400 hover:text-zinc-600 transition-all">
+            <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar bg-[#fafafa]">
           {loading ? (
-            <div className="p-5 space-y-3">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-12 bg-zinc-100 rounded-lg animate-pulse" />
+            <div className="space-y-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-zinc-100 animate-pulse shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-zinc-100 rounded animate-pulse w-1/3" />
+                    <div className="h-12 bg-zinc-100 rounded-xl animate-pulse" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : movements.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-2 text-center px-6">
-              <History size={28} className="text-zinc-200" />
-              <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">No movements recorded</p>
-            </div>
-          ) : movements.map(m => (
-            <div key={m.id} className="flex items-start gap-3 px-5 py-3.5 border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                style={{ background: m.type === 'add' ? '#f0fdf4' : m.type === 'subtract' ? '#fef2f2' : m.type === 'waste' ? '#fff7ed' : '#f5f0ff' }}>
-                {m.type === 'add' ? <TrendingUp size={12} className="text-[#16a34a]" /> :
-                  m.type === 'subtract' ? <TrendingDown size={12} className="text-[#dc2626]" /> :
-                    m.type === 'waste' ? <Trash2 size={12} className="text-[#ea580c]" /> :
-                      <Minus size={12} className="text-[#3b2063]" />}
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center opacity-40">
+              <div className="w-20 h-20 bg-zinc-100 rounded-full flex items-center justify-center">
+                <Package size={32} className="text-zinc-300" />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold" style={{ color: typeColor(m.type) }}>
-                    {m.type === 'add' ? '+' : m.type === 'subtract' ? '-' : '='}{m.quantity} {item.unit}
-                  </span>
-                  <span className="text-[10px] text-zinc-400">{timeAgo(m.created_at)}</span>
-                </div>
-                <p className="text-[11px] text-zinc-500 mt-0.5 truncate">{m.reason}</p>
-                <p className="text-[10px] text-zinc-400">by {m.performed_by}</p>
+              <div>
+                <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Clean Slate</p>
+                <p className="text-xs text-zinc-400 mt-1">No movement history found for this item.</p>
               </div>
             </div>
-          ))}
+          ) : (
+            <div className="relative space-y-8">
+              {/* Vertical Line */}
+              <div className="absolute left-[15px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-zinc-100 via-zinc-200 to-zinc-100" />
+
+              {movements.map((m) => {
+                const cfg = getStatusCfg(m);
+                const isLegacy = m.before === null || m.after === null;
+                const diff = m.after !== null && m.before !== null ? (m.after - m.before) : 0;
+                
+                return (
+                  <div key={m.id} className="relative flex gap-6 group">
+                    {/* Time Marker */}
+                    <div className="absolute -left-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap -translate-x-full pr-4 pt-1.5 pointer-events-none">
+                      <p className="text-[10px] font-bold text-zinc-400 text-right">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+
+                    {/* Node */}
+                    <div className="z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-sm"
+                         style={{ background: cfg.bg, color: cfg.color }}>
+                      {cfg.icon}
+                    </div>
+
+                    {/* Card */}
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[11px] font-black text-zinc-900 uppercase tracking-tight">{cfg.label}</p>
+                          <span className="text-[10px] text-zinc-400">•</span>
+                          <span className="text-[11px] text-zinc-500 font-medium">{timeAgo(m.created_at)}</span>
+                        </div>
+                        {isLegacy && (
+                          <span className="text-[9px] font-black bg-zinc-100 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-200 uppercase tracking-tighter">Legacy</span>
+                        )}
+                      </div>
+
+                      <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm group-hover:shadow-md transition-shadow">
+                        {/* Snapshot Flow */}
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className="flex-1 overflow-hidden">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Before</p>
+                            <p className="text-sm font-black text-zinc-600 tabular-nums truncate">
+                              {m.before !== null ? Number(m.before).toFixed(2) : '??'}
+                            </p>
+                          </div>
+                          <div className="shrink-0 flex flex-col items-center">
+                            <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                              {diff >= 0 ? '+' : ''}{diff.toFixed(2)}
+                            </div>
+                            <div className="h-4 w-[1px] bg-zinc-100 my-0.5" />
+                          </div>
+                          <div className="flex-1 text-right overflow-hidden">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">After</p>
+                            <p className="text-sm font-black text-zinc-900 tabular-nums truncate" style={{ color: cfg.color }}>
+                              {m.after !== null ? Number(m.after).toFixed(2) : '??'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Details */}
+                        <div className="pt-3 border-t border-zinc-50 space-y-2">
+                          <div className="flex items-start gap-2">
+                            <p className="text-xs text-zinc-700 leading-relaxed font-medium capitalize prose-sm">
+                              {m.reason}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between pt-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-4 h-4 bg-zinc-100 rounded-full flex items-center justify-center text-[8px] font-bold text-zinc-400">
+                                {m.performed_by.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-[10px] text-zinc-500 font-bold">{m.performed_by}</span>
+                            </div>
+                            <span className="text-[9px] text-zinc-300 font-bold tabular-nums">ID #{m.id}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {/* Footer Summary */}
+        {!loading && movements.length > 0 && (
+          <div className="px-6 py-5 bg-white border-t border-zinc-100">
+            <div className="flex items-center justify-between p-4 bg-[#3b2063] rounded-2xl shadow-lg shadow-purple-100 overflow-hidden relative">
+              <div className="absolute -right-4 -top-4 opacity-10">
+                <FlaskConical size={80} className="text-white" />
+              </div>
+              <div className="relative z-10">
+                <p className="text-[10px] font-bold text-purple-200 uppercase tracking-widest">Opening Stock</p>
+                <p className="text-xl font-black text-white">{Number(movements[movements.length - 1].before || 0).toFixed(2)}</p>
+              </div>
+              <div className="h-8 w-[1px] bg-purple-500 relative z-10" />
+              <div className="text-right relative z-10">
+                <p className="text-[10px] font-bold text-purple-200 uppercase tracking-widest">Ending Stock</p>
+                <div className="flex items-center gap-2 justify-end">
+                  <p className="text-xl font-black text-white">{Number(item.current_stock).toFixed(2)}</p>
+                  <TrendingUp size={14} className="text-emerald-400" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>,
     document.body
@@ -409,6 +498,9 @@ const MaterialFormModal: React.FC<{
     editing
       ? {
         name: editing.name, unit: editing.unit, category: editing.category,
+        purchase_unit: editing.purchase_unit || '',
+        purchase_to_base_factor: editing.purchase_to_base_factor,
+        last_purchase_price: editing.last_purchase_price || '',
         current_stock: editing.current_stock, reorder_level: editing.reorder_level,
         is_intermediate: editing.is_intermediate, notes: editing.notes ?? ''
       }
@@ -431,7 +523,13 @@ const MaterialFormModal: React.FC<{
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true); setApiErr('');
     try {
-      const payload = { ...form, current_stock: Number(form.current_stock), reorder_level: Number(form.reorder_level) };
+      const payload = { 
+        ...form, 
+        current_stock: Number(form.current_stock), 
+        reorder_level: Number(form.reorder_level),
+        purchase_to_base_factor: Number(form.purchase_to_base_factor || 1),
+        last_purchase_price: form.last_purchase_price === '' ? null : Number(form.last_purchase_price)
+      };
       const res = editing
         ? await api.put(`/raw-materials/${editing.id}`, payload)
         : await api.post('/raw-materials', payload);
@@ -475,7 +573,7 @@ const MaterialFormModal: React.FC<{
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Unit" required>
+            <Field label="Base Unit (Inv)" required>
               <select value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value as Unit }))} className={inputCls()}>
                 {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
@@ -486,6 +584,28 @@ const MaterialFormModal: React.FC<{
               </select>
             </Field>
           </div>
+
+          {!form.is_intermediate && (
+            <div className="p-4 bg-violet-50 border border-violet-100 rounded-xl space-y-3">
+              <p className="text-[10px] font-bold text-violet-600 uppercase tracking-widest">Procurement Settings</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Purchase Unit">
+                  <input value={form.purchase_unit} onChange={e => setForm(p => ({ ...p, purchase_unit: e.target.value }))}
+                    className={inputCls()} placeholder="e.g. SACK, CASE" />
+                </Field>
+                <Field label="Conversion (To Base)">
+                  <input type="number" min="1" value={form.purchase_to_base_factor}
+                    onChange={e => setForm(p => ({ ...p, purchase_to_base_factor: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    className={inputCls()} placeholder="1" />
+                </Field>
+              </div>
+              <Field label="Last Purchase Price (₱)">
+                <input type="number" min="0" value={form.last_purchase_price}
+                  onChange={e => setForm(p => ({ ...p, last_purchase_price: e.target.value === '' ? '' : Number(e.target.value) }))}
+                  className={inputCls()} placeholder="0.00" />
+              </Field>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Current Stock" required error={errors.current_stock}>
@@ -727,7 +847,7 @@ const RawMaterialsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {['Item', 'Category', 'Unit', '7D Trend', 'Current Stock', 'Reorder Level', 'Status', 'Actions'].map(h => (
+                {['Item', 'Category', 'Unit', 'Last Price', 'Base Cost', 'Incoming', 'Current Stock', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -780,7 +900,21 @@ const RawMaterialsTab: React.FC = () => {
                       <span className="text-xs font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded">{m.unit}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      {m.stock_history && <TrendSparkline data={m.stock_history} />}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-zinc-700">₱{Number(m.last_purchase_price || 0).toFixed(2)}</span>
+                        {m.purchase_unit && <span className="text-[9px] text-zinc-400 font-bold uppercase">per {m.purchase_unit}</span>}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-violet-600">₱{Number(m.unit_cost || 0).toFixed(2)}</span>
+                        <span className="text-[9px] text-zinc-400 font-bold uppercase">per {m.unit}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`text-xs font-bold ${m.incoming_stock ? 'text-blue-500' : 'text-zinc-300'}`}>
+                        {m.incoming_stock ? `+${Number(m.incoming_stock).toFixed(1)}` : '—'}
+                      </span>
                     </td>
                     <td className="px-5 py-3.5 relative">
                       <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setStockPopId(stockPopId === m.id ? null : m.id)}>

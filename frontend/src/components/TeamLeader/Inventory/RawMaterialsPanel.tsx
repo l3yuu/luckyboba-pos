@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
+import { SkeletonBox } from '../SharedSkeletons';
 import { 
-  Search, RefreshCw, Package, 
+  Search, Package, 
   Filter, Sliders, X, CheckCircle2,
   Info, AlertCircle
 } from 'lucide-react';
@@ -176,16 +177,17 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
 
 
   if (loading) return (
-    <div className="p-8 flex items-center justify-center h-[400px]">
-      <div className="flex flex-col items-center gap-4">
-        <RefreshCw className="animate-spin text-slate-300" size={32} />
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Inventory...</p>
-      </div>
+    <div className="p-8 space-y-4">
+      <div className="mb-8 relative"><SkeletonBox h="h-10" /></div>
+      <div className="flex gap-2 mb-6"><SkeletonBox h="h-8" w="w-20" /><SkeletonBox h="h-8" w="w-20" /></div>
+      <SkeletonBox h="h-20" />
+      <SkeletonBox h="h-20" />
+      <SkeletonBox h="h-20" />
     </div>
   );
 
   return (
-    <div className="p-8 tl-inventory-panel animate-tl-fade">
+    <div className="p-8 tl-inventory-panel">
       <style>{STYLES}</style>
 
       {/* Status Alert */}

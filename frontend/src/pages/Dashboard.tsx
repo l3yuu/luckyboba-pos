@@ -195,7 +195,7 @@ const fetchStats = useCallback(async (force = false) => {
           localMenuVersion = remoteVersion;
           localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
         }
-      } catch (err) {
+      } catch {
         // Silent catch for polling
       }
     };
@@ -233,7 +233,10 @@ const fetchStats = useCallback(async (force = false) => {
       case 'menu-list':           return <MenuList />;
       case 'category-list':       return <CategoryList />;
       case 'sub-category-list':   return <SubCategoryList />;
-      case 'inventory-dashboard': return <InventoryDashboard />;
+      case 'inventory-dashboard': return <InventoryDashboard view="dashboard" />;
+      case 'inventory-raw-materials': return <InventoryDashboard view="materials" />;
+      case 'inventory-usage': return <InventoryDashboard view="usage" />;
+      case 'inventory-recipes': return <InventoryDashboard view="recipes" />;
       case 'inventory-list':      return <InventoryList />;
       case 'inventory-category':  return <InventoryCategoryList />;
       case 'supplier':            return <Supplier />;

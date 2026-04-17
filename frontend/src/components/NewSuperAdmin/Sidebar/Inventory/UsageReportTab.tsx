@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, X, Download, ChevronDown, ChevronUp,
-  BarChart3, TrendingUp, TrendingDown, Minus, Clock, Info,
-  Coffee, Calendar
+  BarChart3, TrendingUp, TrendingDown, Clock, Info,
+  Coffee, Calendar, Trash2
 } from 'lucide-react';
 import api from '../../../../services/api';
 
@@ -21,15 +21,18 @@ interface UsageRow {
   cooked: number;  // intermediate produced
   out: number;  // consumed/sold
   spoil: number;  // spoilage
-  end: number;  // theoretical ending stock (current_stock in DB)
-  usage: number;  // total used
-  variance: number; 
+  end: number;
+  usage: number;
+  variance: number;
+  incoming: number;
 }
 
 interface Movement {
   id: number;
   type: string;
   quantity: number;
+  before: number | null;
+  after: number | null;
   reason: string;
   performed_by: string;
   created_at: string;
@@ -73,8 +76,6 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-// ─── Movement Drawer ──────────────────────────────────────────────────────────
-
 const MovementDrawer: React.FC<{
   row: UsageRow;
   period: string;
@@ -90,82 +91,151 @@ const MovementDrawer: React.FC<{
       .finally(() => setLoading(false));
   }, [row.id, period]);
 
-  const typeColor = (t: string) => {
-    if (t === 'add') return '#16a34a';
-    if (t === 'subtract') return '#dc2626';
-    return '#3b2063';
+  const getStatusCfg = (m: Movement) => {
+    switch (m.type) {
+      case 'add': return { icon: <TrendingUp size={14} />, color: '#16a34a', bg: '#f0fdf4', label: 'Restock' };
+      case 'subtract': return { icon: <TrendingDown size={14} />, color: '#dc2626', bg: '#fef2f2', label: 'Usage' };
+      case 'waste': return { icon: <Trash2 size={14} className="text-red-500" />, color: '#ea580c', bg: '#fff7ed', label: 'Waste' };
+      case 'set': return { icon: <Clock size={14} />, color: '#3b2063', bg: '#f5f0ff', label: 'Audit' };
+      default: return { icon: <Info size={14} />, color: '#71717a', bg: '#f4f4f5', label: 'Update' };
+    }
   };
-  const typePrefix = (t: string) => t === 'add' ? '+' : t === 'subtract' ? '-' : '=';
 
   return (
     <div className="fixed inset-0 z-9999 flex justify-end"
-      style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.35)' }}>
+      style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(26, 15, 46, 0.4)' }}>
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-sm h-full flex flex-col shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#3b2063] rounded-lg flex items-center justify-center">
-              <Clock size={14} className="text-white" />
+      <div className="relative bg-white w-full max-w-md h-full flex flex-col shadow-[-20px_0_50px_rgba(0,0,0,0.15)] animate-in slide-in-from-right duration-300">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-6 border-b border-zinc-100 bg-white">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#3b2063] rounded-2xl flex items-center justify-center shadow-lg shadow-purple-100">
+              <Clock size={20} className="text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#1a0f2e] leading-tight">{row.name}</p>
-              <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Movements for {period}</p>
+              <p className="text-base font-black text-[#1a0f2e] tracking-tight">{row.name}</p>
+              <p className="text-[10px] text-zinc-400 uppercase font-black tracking-widest mt-0.5">Report Period: {period}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400">
-            <X size={16} />
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-400 hover:text-zinc-600 transition-all">
+            <X size={20} />
           </button>
         </div>
 
-        {/* Summary strip */}
-        <div className="grid grid-cols-3 border-b border-zinc-100">
+        {/* Global Summary for the Period */}
+        <div className="grid grid-cols-3 bg-[#faf9ff] border-b border-zinc-100">
           {[
             { label: 'BEG', value: row.beg, color: '#71717a' },
             { label: 'USED', value: row.usage, color: '#3b2063' },
             { label: 'END', value: row.end, color: '#1a0f2e' },
           ].map(s => (
-            <div key={s.label} className="text-center py-3 border-r border-zinc-100 last:border-0">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{s.label}</p>
-              <p className="text-base font-black tabular-nums" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-[9px] text-zinc-400">{row.unit}</p>
+            <div key={s.label} className="text-center py-4 border-r border-zinc-100 last:border-0">
+              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">{s.label}</p>
+              <p className="text-lg font-black tabular-nums" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-[9px] text-zinc-400 font-bold">{row.unit}</p>
             </div>
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* Timeline Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar bg-[#fafafa]">
           {loading ? (
-            <div className="p-5 space-y-3">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-12 bg-zinc-100 rounded-lg animate-pulse" />
+             <div className="space-y-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-zinc-100 animate-pulse shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-zinc-100 rounded animate-pulse w-1/3" />
+                    <div className="h-12 bg-zinc-100 rounded-xl animate-pulse" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : movements.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-2 px-6 text-center">
-              <Clock size={28} className="text-zinc-200" />
-              <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">No movements for this period</p>
-            </div>
-          ) : movements.map(m => (
-            <div key={m.id} className="flex items-start gap-3 px-5 py-3.5 border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                style={{ background: m.type === 'add' ? '#f0fdf4' : m.type === 'subtract' ? '#fef2f2' : '#f5f0ff' }}>
-                {m.type === 'add'
-                  ? <TrendingUp size={12} color="#16a34a" />
-                  : m.type === 'subtract'
-                    ? <TrendingDown size={12} color="#dc2626" />
-                    : <Minus size={12} color="#3b2063" />}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold" style={{ color: typeColor(m.type) }}>
-                    {typePrefix(m.type)}{m.quantity} {row.unit}
-                  </span>
-                  <span className="text-[10px] text-zinc-400">{timeAgo(m.created_at)}</span>
-                </div>
-                <p className="text-[11px] text-zinc-500 mt-0.5 truncate">{m.reason}</p>
-                <p className="text-[10px] text-zinc-400">by {m.performed_by}</p>
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center opacity-40">
+              <Clock size={32} className="text-zinc-300" />
+              <div>
+                <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">No Movements</p>
+                <p className="text-[10px] text-zinc-400 mt-1">No recorded changes for this item in {period}.</p>
               </div>
             </div>
-          ))}
+          ) : (
+            <div className="relative space-y-8">
+              {/* Vertical Line */}
+              <div className="absolute left-[15px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-zinc-100 via-zinc-200 to-zinc-100" />
+
+              {movements.map((m) => {
+                const cfg = getStatusCfg(m);
+                const isLegacy = m.before === null || m.after === null;
+                const diff = (m.after || 0) - (m.before || 0);
+
+                return (
+                  <div key={m.id} className="relative flex gap-6 group">
+                    {/* Node */}
+                    <div className="z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-sm"
+                         style={{ background: cfg.bg, color: cfg.color }}>
+                      {cfg.icon}
+                    </div>
+
+                    {/* Card */}
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[11px] font-black text-zinc-900 uppercase tracking-tight">{cfg.label}</p>
+                          <span className="text-[10px] text-zinc-400">•</span>
+                          <span className="text-[11px] text-zinc-500 font-medium">{timeAgo(m.created_at)}</span>
+                        </div>
+                        {isLegacy && (
+                          <span className="text-[9px] font-black bg-zinc-100 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-200 uppercase tracking-tighter">Legacy</span>
+                        )}
+                      </div>
+
+                      <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm group-hover:shadow-md transition-shadow">
+                        {/* Snapshot Flow */}
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className="flex-1 overflow-hidden">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Before</p>
+                            <p className="text-sm font-black text-zinc-600 tabular-nums">
+                              {m.before !== null ? Number(m.before).toFixed(2) : '??'}
+                            </p>
+                          </div>
+                          <div className="shrink-0 flex flex-col items-center">
+                            <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                              {diff >= 0 ? '+' : ''}{diff.toFixed(2)}
+                            </div>
+                            <div className="h-4 w-[1px] bg-zinc-100 my-0.5" />
+                          </div>
+                          <div className="flex-1 text-right overflow-hidden">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">After</p>
+                            <p className="text-sm font-black text-zinc-900 tabular-nums" style={{ color: cfg.color }}>
+                              {m.after !== null ? Number(m.after).toFixed(2) : '??'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Details */}
+                        <div className="pt-3 border-t border-zinc-50 space-y-2">
+                          <p className="text-xs text-zinc-700 leading-relaxed font-medium capitalize truncate">
+                            {m.reason}
+                          </p>
+                          <div className="flex items-center justify-between pt-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-4 h-4 bg-zinc-100 rounded-full flex items-center justify-center text-[8px] font-bold text-zinc-400">
+                                {m.performed_by.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-[10px] text-zinc-500 font-bold">{m.performed_by}</span>
+                            </div>
+                            <span className="text-[9px] text-zinc-300 font-bold tabular-nums">ID #{m.id}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -442,6 +512,7 @@ const COLUMN_GUIDE: Record<string, string> = {
   'SHOULD BE': 'Calculated theoretical ending stock',
   ACTUAL: 'Physically counted stock (Audited)',
   VAR: 'Variance = ACTUAL − SHOULD BE',
+  INCOMING: 'Pending stock from approved purchase orders',
 };
 
 const UsageReportTab: React.FC = () => {
@@ -618,7 +689,7 @@ const UsageReportTab: React.FC = () => {
           { label: 'Total Items', value: rows.length, color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Total Usage', value: totalUsage, color: '#1a0f2e', bg: '#faf9ff', border: '#e9d5ff' },
           { label: 'Total Spoilage', value: totalSpoil, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
-          { label: 'Negative Var.', value: negVar, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+          { label: 'Pending Arrival', value: rows.reduce((s, r) => s + (r.incoming || 0), 0), color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
         ].map(s => (
           <div key={s.label} className="bg-white border rounded-[0.625rem] px-5 py-4 shadow-sm" style={{ borderColor: s.border }}>
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{s.label}</p>
@@ -766,7 +837,7 @@ const UsageReportTab: React.FC = () => {
               <thead>
                 <tr className="border-b border-zinc-100">
                   <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 sticky left-0 bg-white">Item</th>
-                  {['BEG', 'DEL', 'IN', 'COOKED', 'OUT', 'SPOIL', 'SHOULD BE', 'ACTUAL', 'VAR'].map(h => (
+                  {['BEG', 'DEL', 'IN', 'COOKED', 'OUT', 'SPOIL', 'END', 'INCOMING', 'VAR'].map(h => (
                     <th key={h} 
                       className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-400 group/h relative cursor-help"
                       title={COLUMN_GUIDE[h]}

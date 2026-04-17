@@ -36,7 +36,9 @@ export interface OfflineQueueState {
   /** Manually trigger a sync attempt */
   syncNow:    () => void;
   /** Remove a specific item from the queue (e.g. after manual resolution) */
-  remove:     (id: string) => void;
+  remove:          (id: string) => void;
+  /** Reset attempts on a dead item so it can be retried */
+  resetAttempts:   (id: string) => void;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -98,6 +100,17 @@ export function useOfflineQueue(): OfflineQueueState {
   const remove = useCallback((id: string) => {
     setQueue(prev => {
       const next = prev.filter(item => item.id !== id);
+      saveQueue(next);
+      return next;
+    });
+  }, []);
+
+  // ── Reset Attempts ────────────────────────────────────────────────────────────
+  const resetAttempts = useCallback((id: string) => {
+    setQueue(prev => {
+      const next = prev.map(item =>
+        item.id === id ? { ...item, attempts: 0, lastError: undefined } : item
+      );
       saveQueue(next);
       return next;
     });
@@ -185,5 +198,6 @@ export function useOfflineQueue(): OfflineQueueState {
     queue,
     syncNow,
     remove,
+    resetAttempts,
   };
 }

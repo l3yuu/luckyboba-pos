@@ -29,8 +29,8 @@ const AdminPinOverlay = ({
   onCancel: () => void;
   onSuccess: () => void;
 }) => {
-  const [pin, setPin]         = React.useState('');
-  const [error, setError]     = React.useState('');
+  const [pin, setPin] = React.useState('');
+  const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
@@ -53,10 +53,10 @@ const AdminPinOverlay = ({
     setLoading(true);
     setError('');
     try {
-      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
-        method:  'POST',
+      const res = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method: 'POST',
         headers: getHeaders(),
-        body:    JSON.stringify({ pin }),
+        body: JSON.stringify({ pin }),
       });
       const json = await res.json();
       if (json.success) {
@@ -160,15 +160,15 @@ export const CartItemEditModal = ({
           {(editingCartItem.sugarLevel != null || (editingCartItem.options?.length ?? 0) > 0 ||
             (editingCartItem.addOns?.length ?? 0) > 0 || editingCartItem.charges?.grab ||
             editingCartItem.charges?.panda || editingCartItem.remarks) && (
-            <div className="flex flex-wrap gap-1.5 pb-1">
-              {editingCartItem.sugarLevel != null && <span className="inline-flex items-center bg-[#3b2063]/10 text-black border border-[#3b2063]/20 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>}
-              {editingCartItem.options?.map(opt => <span key={opt} className="inline-flex items-center bg-sky-50 text-sky-700 border border-sky-200 text-[10px] px-2 py-1 rounded-md font-semibold">{opt}</span>)}
-              {editingCartItem.addOns?.map(a => <span key={a} className="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-1 rounded-md font-semibold">+{a}</span>)}
-              {editingCartItem.charges?.grab && <span className="inline-flex items-center bg-green-50 text-green-700 border border-green-200 text-[10px] px-2 py-1 rounded-md font-semibold">🛵 Grab</span>}
-              {editingCartItem.charges?.panda && <span className="inline-flex items-center bg-pink-50 text-pink-700 border border-pink-200 text-[10px] px-2 py-1 rounded-md font-semibold">🐼 Panda</span>}
-              {editingCartItem.remarks && <span className="inline-flex items-center bg-zinc-100 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-1 rounded-md font-semibold italic">📝 {editingCartItem.remarks}</span>}
-            </div>
-          )}
+              <div className="flex flex-wrap gap-1.5 pb-1">
+                {editingCartItem.sugarLevel != null && <span className="inline-flex items-center bg-[#3b2063]/10 text-black border border-[#3b2063]/20 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>}
+                {editingCartItem.options?.map(opt => <span key={opt} className="inline-flex items-center bg-sky-50 text-sky-700 border border-sky-200 text-[10px] px-2 py-1 rounded-md font-semibold">{opt}</span>)}
+                {editingCartItem.addOns?.map(a => <span key={a} className="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-1 rounded-md font-semibold">+{a}</span>)}
+                {editingCartItem.charges?.grab && <span className="inline-flex items-center bg-green-50 text-green-700 border border-green-200 text-[10px] px-2 py-1 rounded-md font-semibold">🛵 Grab</span>}
+                {editingCartItem.charges?.panda && <span className="inline-flex items-center bg-pink-50 text-pink-700 border border-pink-200 text-[10px] px-2 py-1 rounded-md font-semibold">🐼 Panda</span>}
+                {editingCartItem.remarks && <span className="inline-flex items-center bg-zinc-100 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-1 rounded-md font-semibold italic">📝 {editingCartItem.remarks}</span>}
+              </div>
+            )}
           <div>
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Quantity</label>
             <QtyControl value={editingCartItem.qty} onDecrement={() => onAdjustQty(-1)} onIncrement={() => onAdjustQty(1)} />
@@ -212,7 +212,7 @@ export const CartItemEditModal = ({
         <div className="px-6 py-4 bg-[#f5f0ff] border-t border-[#e9d5ff] flex gap-3 shrink-0">
           <button onClick={onRemove} className="flex-1 py-3 rounded-[0.625rem] border-2 border-red-100 bg-white text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
             </svg>
             Remove
           </button>
@@ -251,25 +251,27 @@ interface ItemSelectionModalProps {
   onAddToOrder: () => void;
   onClose: () => void;
   sugarLevels?: { id: number; label: string; value: string }[];
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
 }
 
 export const ItemSelectionModal = ({
   selectedItem, qty, remarks, sugarLevel, selectedOptions, selectedAddOns,
   orderCharge, isDrink, isCombo, isWaffleCategory, onQtyChange, onRemarksChange, isFoodCategory, filteredAddOns,
   onSugarChange, onToggleOption, onToggleOrderCharge, onOpenAddOns, onAddToOrder, onClose, sugarLevels,
+  orderType = 'take-out',
 }: ItemSelectionModalProps) => {
   const itemOpts = (selectedItem as { options?: string[] })?.options ?? [];
   const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
     const pearlOpts = ['NO PRL', 'W/ PRL'];
-    const iceOpts   = ['NO ICE', '-ICE', '+ICE'];
+    const iceOpts = ['NO ICE', '-ICE', '+ICE'];
     if (pearlOpts.includes(opt)) return itemOpts.includes('pearl');
-    if (iceOpts.includes(opt))   return itemOpts.includes('ice');
-    if (opt === 'WARM')          return false;
+    if (iceOpts.includes(opt)) return itemOpts.includes('ice');
+    if (opt === 'WARM') return false;
     return true;
   });
   const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includes('pearl') ?? false;
   const hasSugarLevels = sugarLevels && sugarLevels.length > 0;
-  const sugarSelected  = !isDrink || !hasSugarLevels || sugarLevel !== '';
+  const sugarSelected = !isDrink || !hasSugarLevels || sugarLevel !== '';
   const canAdd = sugarSelected && (isCombo || !isDrink || !hasPearlOption || selectedOptions.some((o: string) => ['NO PRL', 'W/ PRL'].includes(o)));
 
   return (
@@ -359,14 +361,15 @@ export const ItemSelectionModal = ({
             </label>
             <div className="grid grid-cols-2 gap-3">
               {(['grab', 'panda'] as const).map(type => {
-                const isActive   = orderCharge === type;
-                const isDisabled = orderCharge !== null && orderCharge !== type;
+                const isActive = orderCharge === type;
+                const isLockedByOrderType = orderType !== 'delivery';
+                const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
                 return (
                   <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
                     className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2
                       ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40'
                         : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700'
-                        : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
+                          : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
                     <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
                   </button>
                 );
@@ -410,6 +413,7 @@ interface BundleModalProps {
   onClose: () => void;
   orderCharge?: 'grab' | 'panda' | null;
   onToggleOrderCharge?: (type: 'grab' | 'panda') => void;
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
   bundleGrabPrice: number;
   bundlePandaPrice: number;
 }
@@ -419,13 +423,14 @@ export const BundleModal = ({
   bundleComponentAddOns, bundleGrabPrice, bundlePandaPrice, filteredAddOns,
   bundleComponentAddOnModalOpen, sugarLevels, onSugarChange, onToggleOption,
   onOpenAddOns, onCloseAddOns, onToggleAddOn, onConfirm, onClose, orderCharge, onToggleOrderCharge,
+  orderType = 'take-out',
 }: BundleModalProps) => {
-  const component   = activeBundleItem.items[bundleComponentIndex];
-  const totalSteps  = activeBundleItem.items.length;
-  const isLastStep  = bundleComponentIndex === totalSteps - 1;
+  const component = activeBundleItem.items[bundleComponentIndex];
+  const totalSteps = activeBundleItem.items.length;
+  const isLastStep = bundleComponentIndex === totalSteps - 1;
   const displayName = component.display_name ?? component.custom_name ?? '';
-  const isMilkTea   = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea');
-  const hasPearl    = bundleComponentOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
+  const isMilkTea = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea');
+  const hasPearl = bundleComponentOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
   const hasSugarLevels = sugarLevels && sugarLevels.length > 0;
   const canNext = (!hasSugarLevels || bundleComponentSugar !== '') && (!isMilkTea || hasPearl);
 
@@ -492,9 +497,11 @@ export const BundleModal = ({
                 <div className="grid grid-cols-2 gap-3">
                   {(['grab', 'panda'] as const).map(type => {
                     const isActive = orderCharge === type;
+                    const isLockedByOrderType = orderType !== 'delivery';
+                    const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
                     return (
-                      <button key={type} type="button" onClick={() => onToggleOrderCharge(type)}
-                        className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center ${isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
+                      <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
+                        className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40 cursor-not-allowed' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
                         <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
                       </button>
                     );
@@ -578,7 +585,7 @@ export const ComboDrinkModal = ({
             <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
             <div className="flex flex-wrap gap-2">
               {EXTRA_OPTIONS.filter((opt: string) => {
-                const isPizzaCombo   = pendingComboCart.name?.toUpperCase().includes('PIZZA +');
+                const isPizzaCombo = pendingComboCart.name?.toUpperCase().includes('PIZZA +');
                 const isClassicPearl = pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL');
                 if (['NO PRL', 'W/ PRL'].includes(opt)) return isPizzaCombo && !isClassicPearl;
                 return true;
@@ -617,6 +624,7 @@ interface MixAndMatchDrinkModalProps {
   filteredAddOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
   drinkAddOnModalOpen: boolean;
   orderCharge: 'grab' | 'panda' | null;
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
   onSelectDrink: (item: MenuItem) => void;
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
@@ -633,13 +641,13 @@ export const MixAndMatchDrinkModal = ({
   pendingMixMatchCart, drinkItems, selectedDrink, drinkSugar, drinkOptions, drinkAddOns,
   filteredAddOns, drinkAddOnModalOpen, orderCharge, onSelectDrink, onSugarChange,
   onToggleOption, onOpenAddOns, onCloseAddOns, onToggleAddOn, onToggleOrderCharge,
-  onConfirm, onClose, drinkSugarLevels,
+  onConfirm, onClose, drinkSugarLevels, orderType = 'take-out',
 }: MixAndMatchDrinkModalProps) => {
-  const drinkOpts           = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
-  const hasPearlOption      = drinkOpts.includes('pearl');
-  const hasPearlSelected    = drinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
+  const drinkOpts = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
+  const hasPearlOption = drinkOpts.includes('pearl');
+  const hasPearlSelected = drinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
   const hasDrinkSugarLevels = drinkSugarLevels && drinkSugarLevels.length > 0;
-  const canConfirm          = selectedDrink !== null && (!hasDrinkSugarLevels || drinkSugar !== '') && (!hasPearlOption || hasPearlSelected);
+  const canConfirm = selectedDrink !== null && (!hasDrinkSugarLevels || drinkSugar !== '') && (!hasPearlOption || hasPearlSelected);
 
   return (
     <>
@@ -720,8 +728,9 @@ export const MixAndMatchDrinkModal = ({
                   <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Charges</label>
                   <div className="grid grid-cols-2 gap-3">
                     {(['grab', 'panda'] as const).map(type => {
-                      const isActive   = orderCharge === type;
-                      const isDisabled = orderCharge !== null && orderCharge !== type;
+                      const isActive = orderCharge === type;
+                      const isLockedByOrderType = orderType !== 'delivery';
+                      const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
                       return (
                         <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
                           className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2 ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40 cursor-not-allowed' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
@@ -793,6 +802,7 @@ interface ConfirmOrderModalProps {
   onClose: () => void;
   onResetOrder?: () => void;
   vatType?: 'vat' | 'non_vat';
+  orderType?: 'dine-in' | 'take-out' | 'delivery'; // ← ADD
   addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
 }
 
@@ -801,7 +811,8 @@ export const ConfirmOrderModal = ({
   vatableSales, vatAmount, vatExemptSales: _vatExemptSales = 0, lessVat = 0, change, totalDiscountDisplay,
   orderCharge, selectedDiscount, paymentMethod, cashTendered,
   referenceNumber, discountRemarks, itemPaxAssignments, seniorIds, pwdIds, discounts,
-  activeTab, submitting, vatType = 'vat', addOnsData = [],
+  activeTab, submitting, vatType = 'vat', orderType = 'take-out',
+  addOnsData = [],
   onTabChange, onPaymentMethodChange, onCashTenderedChange, onReferenceNumberChange,
   onDiscountChange, onDiscountRemarksChange,
   onItemPaxAssignmentsChange, onSeniorIdsChange, onPwdIdsChange,
@@ -834,7 +845,7 @@ export const ConfirmOrderModal = ({
   };
 
   const typeBadge = (type: 'none' | 'sc' | 'pwd') => {
-    if (type === 'sc')  return <span className="text-[9px] font-black bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded uppercase">SC</span>;
+    if (type === 'sc') return <span className="text-[9px] font-black bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded uppercase">SC</span>;
     if (type === 'pwd') return <span className="text-[9px] font-black bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded uppercase">PWD</span>;
     return null;
   };
@@ -916,14 +927,14 @@ export const ConfirmOrderModal = ({
                           <div className="flex justify-between items-start">
                             <div>
                               <p className="font-black text-sm text-black shrink-0 ml-2">
-                              {/* Show strikethrough original if item has a discount */}
-                              {discountType === 'none' && item.discountLabel && Number(item.discountValue) > 0 && (
-                                <span className="line-through text-zinc-400 text-xs mr-1">
-                                  ₱ {(unitTotal * count).toFixed(2)}
-                                </span>
-                              )}
-                              ₱ {groupPrice.toFixed(2)}
-                            </p>
+                                {/* Show strikethrough original if item has a discount */}
+                                {discountType === 'none' && item.discountLabel && Number(item.discountValue) > 0 && (
+                                  <span className="line-through text-zinc-400 text-xs mr-1">
+                                    ₱ {(unitTotal * count).toFixed(2)}
+                                  </span>
+                                )}
+                                ₱ {groupPrice.toFixed(2)}
+                              </p>
                               {/* Show sugar/options/remarks only on first group per item */}
                               {isFirstGroupForItem && (
                                 <div className="text-[10px] text-zinc-500 mt-1 ml-2">
@@ -1003,9 +1014,9 @@ export const ConfirmOrderModal = ({
             <div className="flex-1 flex flex-col bg-white overflow-hidden">
               <div className="flex border-b border-[#e9d5ff] shrink-0 bg-[#f5f0ff] p-2 gap-2">
                 {([
-                  { id: 'payment',  label: 'Payment',    dot: false },
-                  { id: 'discount', label: 'Promo',      dot: !!selectedDiscount },
-                  { id: 'pax',      label: 'Senior/PWD', dot: hasAnyAssignment },
+                  { id: 'payment', label: 'Payment', dot: false },
+                  { id: 'discount', label: 'Promo', dot: !!selectedDiscount },
+                  { id: 'pax', label: 'Senior/PWD', dot: hasAnyAssignment },
                 ] as const).map(tab => (
                   <button key={tab.id} onClick={() => onTabChange(tab.id)}
                     className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] transition-all border-2 relative
@@ -1026,10 +1037,19 @@ export const ConfirmOrderModal = ({
                       <div className="grid grid-cols-3 gap-2 mb-5">
                         {PAYMENT_METHODS.map(({ id, label }) => {
                           const isDeliveryMethod = id === 'grab' || id === 'food_panda';
-                          const isLocked = (orderCharge === 'grab' && id !== 'grab') || (orderCharge === 'panda' && id !== 'food_panda') || (!orderCharge && isDeliveryMethod);
+                          const isLocked = orderType === 'delivery'
+                            ? !isDeliveryMethod // If delivery, non-delivery methods are locked
+                            : isDeliveryMethod;  // If not delivery, Grab/Panda are locked
+
+                          // Also maintain the orderCharge lock if one is active
+                          const isChargeLocked = (orderCharge === 'grab' && id !== 'grab') ||
+                            (orderCharge === 'panda' && id !== 'food_panda');
+
+                          const finalLocked = isLocked || isChargeLocked;
+
                           return (
-                            <button key={id} onClick={() => { if (!isLocked) { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); }}} disabled={isLocked}
-                              className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${isLocked ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40' : paymentMethod === id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#3b2063]/40'}`}>
+                            <button key={id} onClick={() => { if (!finalLocked) { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); } }} disabled={finalLocked}
+                              className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${finalLocked ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40' : paymentMethod === id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#3b2063]/40'}`}>
                               {label}
                             </button>
                           );
@@ -1153,16 +1173,16 @@ export const ConfirmOrderModal = ({
                             <div className="space-y-2">
                               {seniorIds.map((id, index) => (
                                 <div key={index} className="flex gap-2">
-                                  <input 
-                                    type="text" 
-                                    value={id} 
+                                  <input
+                                    type="text"
+                                    value={id}
                                     onChange={e => {
                                       const newIds = [...seniorIds];
                                       newIds[index] = e.target.value;
                                       onSeniorIdsChange(newIds);
-                                    }} 
+                                    }}
                                     placeholder={`SC ID ${index + 1}`}
-                                    className="flex-1 px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-blue-500 focus:outline-none transition-colors" 
+                                    className="flex-1 px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-blue-500 focus:outline-none transition-colors"
                                   />
                                   {seniorIds.length > 1 && (
                                     <button
@@ -1186,7 +1206,7 @@ export const ConfirmOrderModal = ({
                             </div>
                           </div>
                         )}
-                        
+
                         {totalPwdUnits > 0 && (
                           <div>
                             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">
@@ -1195,16 +1215,16 @@ export const ConfirmOrderModal = ({
                             <div className="space-y-2">
                               {pwdIds.map((id, index) => (
                                 <div key={index} className="flex gap-2">
-                                  <input 
-                                    type="text" 
-                                    value={id} 
+                                  <input
+                                    type="text"
+                                    value={id}
                                     onChange={e => {
                                       const newIds = [...pwdIds];
                                       newIds[index] = e.target.value;
                                       onPwdIdsChange(newIds);
-                                    }} 
+                                    }}
                                     placeholder={`PWD ID ${index + 1}`}
-                                    className="flex-1 px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-purple-500 focus:outline-none transition-colors" 
+                                    className="flex-1 px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-purple-500 focus:outline-none transition-colors"
                                   />
                                   {pwdIds.length > 1 && (
                                     <button
@@ -1277,7 +1297,7 @@ export const ConfirmOrderModal = ({
                                 const assignment = assignments[unitIndex] ?? 'none';
                                 const unitVatExcl = Number(item.price) / 1.12;
                                 const discountAmt = unitVatExcl * 0.20;
-                                const netPrice    = unitVatExcl - discountAmt;
+                                const netPrice = unitVatExcl - discountAmt;
 
                                 return (
                                   <div key={unitIndex} className="px-4 py-2.5 flex items-center justify-between gap-3">
@@ -1304,13 +1324,13 @@ export const ConfirmOrderModal = ({
                                               ? opt === 'none'
                                                 ? 'bg-zinc-500 text-white border-zinc-500'
                                                 : opt === 'sc'
-                                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                                : 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                                  : 'bg-purple-600 text-white border-purple-600 shadow-sm'
                                               : opt === 'none'
-                                              ? 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-400'
-                                              : opt === 'sc'
-                                              ? 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-400'
-                                              : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50 hover:border-purple-400'
+                                                ? 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-400'
+                                                : opt === 'sc'
+                                                  ? 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-400'
+                                                  : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50 hover:border-purple-400'
                                             }`}>
                                           {opt === 'none' ? '—' : opt.toUpperCase()}
                                         </button>
@@ -1385,7 +1405,7 @@ export const CustomerNameModal = ({ customerName, onChange, onConfirm, onSkip, s
           onKeyDown={e => { if (e.key === 'Enter' && !submitting && customerName.trim() !== '') onConfirm(); }}
           placeholder="e.g. Juan" autoFocus disabled={submitting}
           className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#3b2063] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#3b2063]/30 disabled:opacity-50" />
-        
+
         <div className="flex gap-3">
           <button onClick={onSkip} disabled={submitting}
             className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors disabled:opacity-40">
@@ -1426,8 +1446,10 @@ export const SuccessModal = ({
     { label: 'Order Ticket', done: printedKitchen, onPrint: onPrintKitchen, icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg> },
     ...(hasStickers ? [{ label: 'Stickers', done: printedStickers, onPrint: onPrintStickers, icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg> }] : []),
   ];
-  const pending    = printItems.filter(p => !p.done);
-  const allPrinted = true;
+  const pending = printItems.filter(p => !p.done);
+
+  // Requirement: User must print at least Receipt and Kitchen once before "New Order" unlocks
+  const allRequiredPrinted = printedReceipt && printedKitchen;
 
   return (
     <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -1436,40 +1458,49 @@ export const SuccessModal = ({
           <div className="absolute -top-6 -right-6 w-28 h-28 border-2 border-white/10 rounded-[0.625rem] rotate-12" />
           <div className="absolute -bottom-4 -left-4 w-16 h-16 border border-white/10 rounded-[0.625rem] -rotate-6" />
           <div className="relative flex items-center gap-5">
-            <div className="w-14 h-14 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center shrink-0">
+            <div className="w-14 h-14 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/50 leading-none mb-1.5">Transaction Complete</p>
               <h2 className="text-2xl font-black uppercase tracking-widest leading-none">Order Saved</h2>
-              <p className="text-white/60 text-xs font-bold mt-2 font-mono">{orNumber}</p>
+              <p className="text-white/60 text-xs font-bold mt-2 font-mono tracking-tighter">{orNumber}</p>
             </div>
           </div>
         </div>
         <div className="px-8 pt-6 pb-4 space-y-3 bg-white">
-          <p className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4">Required Prints</p>
+          <div className="flex justify-between items-center mb-1">
+            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-400">Print Control</p>
+            <p className="text-[8px] font-bold uppercase text-zinc-300">Click to (re)print</p>
+          </div>
           {printItems.map(({ label, done, onPrint, icon }) => (
             <button key={label} onClick={onPrint}
-              className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem] ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-[#e9d5ff] text-black hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'}`}>
-              <div className="flex items-center gap-3">{icon}<span>{label}</span></div>
-              {done ? <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Printed ✓</span> : <ChevronRight />}
+              className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem] active:scale-[0.98] ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-[#e9d5ff] text-black hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`${done ? 'text-emerald-500' : 'text-[#3b2063]'}`}>{icon}</div>
+                <span>{label}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {done && <span className="text-[9px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded shadow-sm">Printed ✓</span>}
+                <ChevronRight size={14} className={done ? 'text-emerald-300' : 'text-zinc-300'} />
+              </div>
             </button>
           ))}
         </div>
         <div className="px-8 pb-8 bg-white">
-          <div className="mt-1 mb-4">
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{pending.length === 0 ? 'All done' : `${printItems.length - pending.length} / ${printItems.length} printed`}</span>
-              {pending.length > 0 && <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pending: {pending.map(p => p.label).join(', ')}</span>}
+          <div className="mt-1 mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{pending.length === 0 ? 'All prints done' : `${printItems.length - pending.length} / ${printItems.length} printed`}</span>
+              {pending.length > 0 && <span className="text-[9px] font-bold text-[#3b2063] uppercase tracking-widest animate-pulse">Required: {pending.filter(x => x.label !== 'Stickers').map(p => p.label).join(', ')}</span>}
             </div>
-            <div className="w-full h-1 bg-zinc-100 rounded-full overflow-hidden">
-              <div className={`h-full transition-all duration-500 rounded-full ${pending.length === 0 ? 'bg-emerald-400' : 'bg-[#3b2063]'}`}
+            <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div className={`h-full transition-all duration-700 rounded-full ${allRequiredPrinted ? 'bg-emerald-400' : 'bg-[#3b2063]'}`}
                 style={{ width: `${((printItems.length - pending.length) / printItems.length) * 100}%` }} />
             </div>
           </div>
-          <button onClick={onNewOrder} disabled={!allPrinted}
-            className={`w-full h-14 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-2 ${allPrinted ? 'bg-[#3b2063] hover:bg-[#6a12b8] text-white cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>
-            {allPrinted ? <><span>New Order</span><ArrowRightIcon /></> : `Print ${pending.length} remaining to continue`}
+          <button onClick={onNewOrder} disabled={!allRequiredPrinted}
+            className={`w-full h-16 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] ${allRequiredPrinted ? 'bg-[#3b2063] hover:bg-[#2d184d] text-white cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed shadow-none'}`}>
+            {allRequiredPrinted ? <><span>Start New Order</span><ArrowRightIcon size={20} /></> : `Printing Required...`}
           </button>
         </div>
       </div>
@@ -1492,6 +1523,65 @@ export const AddOnTriggerButton = ({ count, onClick }: { count: number; onClick:
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PaymentSelectModal
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PaymentSelectModalProps {
+  onSelect: (method: string) => void;
+  onClose: () => void;
+  orderCharge: 'grab' | 'panda' | null;
+}
+
+export const PaymentSelectModal = ({ onSelect, onClose, orderCharge }: PaymentSelectModalProps) => {
+  const methods = PAYMENT_METHODS.filter(m => {
+    if (orderCharge === 'grab') return m.id === 'grab';
+    if (orderCharge === 'panda') return m.id === 'food_panda';
+    return m.id !== 'grab' && m.id !== 'food_panda';
+  });
+
+  return (
+    <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-sm rounded-[1.25rem] shadow-2xl overflow-hidden border border-zinc-200">
+        <div className="px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff] flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#3b2063] rounded-lg flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Select Payment</p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Choose how to pay</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#3b2063]/10 flex items-center justify-center transition-colors">
+            <CloseIcon size={4} />
+          </button>
+        </div>
+        <div className="p-5 grid grid-cols-2 gap-3">
+          {methods.map(method => (
+            <button
+              key={method.id}
+              onClick={() => onSelect(method.id)}
+              className="group flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#3b2063] hover:border-[#3b2063] transition-all duration-200 active:scale-95"
+            >
+              <div className="text-[#3b2063] group-hover:text-white mb-3 transition-colors">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {method.id === 'cash' ? <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /> : <path d="M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM12 12h.01" />}
+                </svg>
+              </div>
+              <span className="text-xs font-black uppercase tracking-widest text-[#1a0f2e] group-hover:text-white transition-colors">
+                {method.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // OrderTypeModal
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1507,7 +1597,7 @@ export const OrderTypeModal = ({ onSelect, onClose }: OrderTypeModalProps) => (
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-[#3b2063] rounded-lg flex items-center justify-center shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/>
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="2" /><path d="M9 12h6M9 16h4" />
             </svg>
           </div>
           <div>
@@ -1517,14 +1607,14 @@ export const OrderTypeModal = ({ onSelect, onClose }: OrderTypeModalProps) => (
         </div>
         {onClose && (
           <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#3b2063]/20 transition-colors text-[#1a0f2e] hover:text-[#3b2063]">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         )}
       </div>
       <div className="p-5 flex flex-col gap-3">
         {[
-          { type: 'dine-in' as const, label: 'Dine In', sub: 'Customer eats here', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b2063" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><circle cx="12" cy="12" r="9"/><path d="M8 7v4a2 2 0 0 0 4 0V7"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="16" y1="7" x2="16" y2="17"/></svg> },
-          { type: 'take-out' as const, label: 'Take Out', sub: 'Order to go', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b2063" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> },
+          { type: 'dine-in' as const, label: 'Dine In', sub: 'Customer eats here', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b2063" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><circle cx="12" cy="12" r="9" /><path d="M8 7v4a2 2 0 0 0 4 0V7" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="16" y1="7" x2="16" y2="17" /></svg> },
+          { type: 'take-out' as const, label: 'Take Out', sub: 'Order to go', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b2063" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg> },
         ].map(({ type, label, sub, icon }) => (
           <button key={type} onClick={() => onSelect(type)}
             className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#3b2063] hover:border-[#3b2063] transition-all duration-200 active:scale-[0.98]">
@@ -1534,7 +1624,7 @@ export const OrderTypeModal = ({ onSelect, onClose }: OrderTypeModalProps) => (
               <p className="text-[10px] font-semibold text-zinc-400 group-hover:text-white/70 transition-colors mt-0.5">{sub}</p>
             </div>
             <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
             </div>
           </button>
         ))}

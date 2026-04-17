@@ -67,7 +67,7 @@ class ProcessCheckoutAction
                 'branch_id'                => $branchId,
                 'total_amount'             => 0, // Placeholder
                 'invoice_number'           => $officialOR,
-                'status'                   => 'completed',
+                'status'                   => $data['status'] ?? 'completed',
                 'payment_method'           => $data['payment_method'] ?? 'cash',
                 'reference_number'         => $data['reference_number'] ?? null,
                 'charge_type'              => $chargeType,
@@ -84,11 +84,13 @@ class ProcessCheckoutAction
                 'customer_name'            => $data['customer_name'] ?? null,
                 'is_synced'                => false,
                 'cash_tendered'            => (float) ($data['cash_tendered'] ?? 0),
-                'pax_senior'               => $data['pax_senior'] ?? null,
-                'pax_pwd'                  => $data['pax_pwd'] ?? null,
+                'pax_senior'               => $data['pax_senior'] ?? 0,
+                'pax_pwd'                  => $data['pax_pwd'] ?? 0,
                 'senior_id'                => $data['senior_id'] ?? null,
                 'pwd_id'                   => $data['pwd_id'] ?? null,
                 'pax_discount_ids'         => $data['pax_discount_ids'] ?? null,
+                'source'                   => $data['source'] ?? 'pos',
+                'order_type'               => $data['order_type'] ?? 'dine_in',
             ]);
 
             // 3. Create Sale Items
@@ -109,6 +111,7 @@ class ProcessCheckoutAction
 
                 SaleItem::create([
                     'sale_id'            => $sale->id,
+                    'branch_id'          => $branchId,
                     'menu_item_id'       => $item['menu_item_id'] ?? null,
                     'bundle_id'          => $item['bundle_id'] ?? null,
                     'product_name'       => $item['name'],

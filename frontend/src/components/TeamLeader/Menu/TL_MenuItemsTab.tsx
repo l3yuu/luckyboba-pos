@@ -4,6 +4,7 @@ import {
   Search, AlertCircle, X, ChevronDown,
   Barcode, Utensils, Coffee, Check, Plus,
 } from "lucide-react";
+import { SkeletonBar, SkeletonBox } from "../SharedSkeletons";
 
 
 const getToken = () =>
@@ -44,9 +45,6 @@ interface AddOnItem {
   is_available: boolean;
 }
 
-const SkeletonBar: React.FC<{ h?: string; w?: string }> = ({ h = "h-4", w = "w-full" }) => (
-  <div className={`${w} ${h} bg-zinc-100 rounded animate-pulse`} />
-);
 
 const TL_MenuItemsTab: React.FC = () => {
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -126,17 +124,21 @@ const TL_MenuItemsTab: React.FC = () => {
     <div className="p-6 md:p-8 fade-in">
       {/* Stat Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: "Total Items", value: items.length, color: "bg-violet-50 text-violet-600 border-violet-100" },
-          { label: "Available", value: items.filter(i => i.is_available).length, color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
-          { label: "Drink Items", value: items.filter(i => i.category_type === "drink").length, color: "bg-blue-50 text-blue-600 border-blue-100" },
-          { label: "Food Items", value: items.filter(i => i.category_type === "food").length, color: "bg-amber-50 text-amber-600 border-amber-100" },
-        ].map((s, i) => (
-          <div key={i} className={`px-5 py-4 rounded-2xl border ${s.color}`}>
-            <p className="text-2xl font-black mb-0.5 tabular-nums">{loading ? "—" : s.value}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{s.label}</p>
-          </div>
-        ))}
+        {loading ? (
+          [...Array(4)].map((_, i) => <SkeletonBox key={i} className="h-[88px] bg-white/50" />)
+        ) : (
+          [
+            { label: "Total Items", value: items.length, color: "bg-violet-50 text-violet-600 border-violet-100" },
+            { label: "Available", value: items.filter(i => i.is_available).length, color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+            { label: "Drink Items", value: items.filter(i => i.category_type === "drink").length, color: "bg-blue-50 text-blue-600 border-blue-100" },
+            { label: "Food Items", value: items.filter(i => i.category_type === "food").length, color: "bg-amber-50 text-amber-600 border-amber-100" },
+          ].map((s, i) => (
+            <div key={i} className={`px-5 py-4 rounded-2xl border ${s.color}`}>
+              <p className="text-2xl font-black mb-0.5 tabular-nums">{s.value}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{s.label}</p>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Toolbar */}
