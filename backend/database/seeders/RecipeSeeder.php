@@ -59,6 +59,10 @@ class RecipeSeeder extends Seeder
         $oreo = 'CRUSHED OREO (454g/pk)';
         $greenTeaBag = 'LEAVES, GREEN TEA -BAG (5g) (50Tbag/pk)';
         $greenTeaLoose = 'LEAVES, GREEN TEA -LOOSE (500g/pk)';
+        $pCup8 = '8oz PAPER CUP (25pcs/pk)';
+        $pCup12 = '12oz PAPER CUP (25pcs/pk)';
+        $milkFoam = 'POWDER, MILK FOAM (1kg/pk)';
+        $groundCoffee = 'GROUND COFFEE (1kg/pk)';
 
         // ----------------------------------------------------------------
         // 1. CLASSIC MILK TEA CATEGORY
@@ -203,9 +207,20 @@ class RecipeSeeder extends Seeder
         ];
 
         // ----------------------------------------------------------------
-        // 6. ICED COFFEE SERIES CATEGORY
+        // 6. HOT COFFEE SERIES CATEGORY
         // ----------------------------------------------------------------
-        $groundCoffee = 'GROUND COFFEE (1kg/pk)';
+        $hotCoffeeRecipes = [
+            ['DARK ROAST COFFEE',     'M', [$frac($straw, 1), $frac($pCup8, 1), $frac($groundCoffee, 0.01)]],
+            ['DARK ROAST COFFEE',     'L', [$frac($straw, 1), $frac($pCup12, 1), $frac($groundCoffee, 0.01)]],
+            ['HOT MOCHA COFFEE',      'M', [$frac($straw, 1), $frac($pCup8, 1), $frac($groundCoffee, 0.01)]],
+            ['HOT MOCHA COFFEE',      'L', [$frac($straw, 1), $frac($pCup12, 1), $frac($groundCoffee, 0.01)]],
+            ['HOT CARAMEL MACCHIATO', 'M', [$frac($straw, 1), $frac($pCup8, 1), $frac($groundCoffee, 0.01)]],
+            ['HOT CARAMEL MACCHIATO', 'L', [$frac($straw, 1), $frac($pCup12, 1), $frac($groundCoffee, 0.01)]],
+        ];
+
+        // ----------------------------------------------------------------
+        // 7. ICED COFFEE SERIES CATEGORY
+        // ----------------------------------------------------------------
         $icedCoffeeRecipes = [
             ['ICED COFFEE CLASSIC',     'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($ndc, 0.013), $frac($groundCoffee, 0.01)]],
             ['ICED COFFEE CLASSIC',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($ndc, 0.02),  $frac($groundCoffee, 0.01)]],
@@ -222,7 +237,7 @@ class RecipeSeeder extends Seeder
         ];
 
         // ----------------------------------------------------------------
-        // 7. COFFEE FRAPPE CATEGORY
+        // 8. COFFEE FRAPPE CATEGORY
         // ----------------------------------------------------------------
         $mUCup = 'M-U CUP 16oz (50pcs/pk)';
         $lUCup = 'L-U CUP 22oz (50pcs/pk)';
@@ -242,7 +257,7 @@ class RecipeSeeder extends Seeder
         ];
 
         // ----------------------------------------------------------------
-        // 8. FRUIT SODA SERIES CATEGORY
+        // 9. FRUIT SODA SERIES CATEGORY
         // ----------------------------------------------------------------
         $fruitSodaRecipes = [
             ['BLUEBERRY FRUIT SODA',   'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($mixedJelly, 0.01), $frac($boba, 0.03)]],
@@ -255,7 +270,7 @@ class RecipeSeeder extends Seeder
         ];
 
         // ----------------------------------------------------------------
-        // 9. NOVA SERIES CATEGORY
+        // 10. NOVA SERIES CATEGORY
         // ----------------------------------------------------------------
         $novaRecipes = [
             ['BERRIES NOVA',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04)]],
@@ -266,7 +281,7 @@ class RecipeSeeder extends Seeder
         ];
 
         // ----------------------------------------------------------------
-        // 10. GREEN TEA SERIES CATEGORY
+        // 11. GREEN TEA SERIES CATEGORY
         // ----------------------------------------------------------------
         $greenteaRecipes = [
             ['PASSION FRUIT GREEN TEA',  'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($greenTeaBag, 1), $frac($greenTeaLoose, 0.01)]],
@@ -289,6 +304,7 @@ class RecipeSeeder extends Seeder
             $cheesecakeRecipes,
             $rocksaltRecipes,
             $flavoredRecipes,
+            $hotCoffeeRecipes,
             $icedCoffeeRecipes,
             $coffeeFrappeRecipes,
             $fruitSodaRecipes,
