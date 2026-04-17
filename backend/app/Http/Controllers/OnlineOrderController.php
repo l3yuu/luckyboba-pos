@@ -41,7 +41,7 @@ class OnlineOrderController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'status'      => ['required', 'in:pending,preparing,completed'],
+            'status'      => ['required', 'in:pending,preparing,completed,cancelled'],
             'branch_name' => 'required|string|exists:branches,name',
         ]);
 
@@ -65,7 +65,38 @@ class OnlineOrderController extends Controller
             }
         }
 
-        $sale         = $query->firstOrFail();
+        $sale = $query->firstOrFail();
+        $oldStatus = $sale->status;
+
+        // If transitioning from pending to preparing or completed, finalize the order checkout
+        if ($oldStatus === 'pending' && in_array($request->status, ['preparing', 'completed'])) {
+            $branch = \App\Models\Branch::find($sale->branch_id);
+
+            // Create Receipt to formally register the sale in POS totals
+            \App\Models\Receipt::create([
+                'si_number'     => $sale->invoice_number,
+                'terminal'      => '01',
+                'items_count'   => $sale->items()->sum('quantity') ?? 0,
+                'cashier_name'  => $request->user()->name ?? 'Cashier',
+                'total_amount'  => $sale->total_amount,
+                'sale_id'       => $sale->id,
+                'branch_id'     => $sale->branch_id,
+                'brand'         => $branch?->brand ?? 'Lucky Boba Milk Tea',
+                'owner_name'    => $branch?->owner_name ?? '',
+                'company_name'  => $branch?->company_name ?? '',
+                'store_address' => $branch?->store_address ?? '',
+                'vat_reg_tin'   => $branch?->vat_reg_tin ?? '',
+                'min_number'    => $branch?->min_number ?? '',
+                'serial_number' => $branch?->serial_number ?? '',
+                'vat_type'      => $branch?->vat_type ?? 'vat',
+            ]);
+
+            // Deduct Raw Materials now that it is officially paid/started
+            app(\App\Actions\Inventory\DeductStockFromSaleAction::class)->execute($sale->load('items'));
+
+            app(\App\Services\DashboardService::class)->clearTodayCache($sale->branch_id);
+        }
+
         $sale->status = $request->status;
         $sale->save();
 

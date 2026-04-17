@@ -186,33 +186,34 @@ class ProcessCheckoutAction
             // 5. VAT Compliance
             $this->recalculateVat($sale->fresh(), $isVat);
 
-            // 6. Generate Receipt
-            Receipt::create([
-                'si_number'     => $officialOR,
-                'terminal'      => '01',
-                'items_count'   => $totalQty,
-                'cashier_name'  => $cashierName,
-                'total_amount'  => $finalTotal,
-                'sale_id'       => $sale->id,
-                'branch_id'     => $branchId,
-                'brand'         => $branch?->brand ?? 'Lucky Boba Milk Tea',
-                'owner_name'    => $branch?->owner_name ?? '',
-                'company_name'  => $branch?->company_name ?? '',
-                'store_address' => $branch?->store_address ?? '',
-                'vat_reg_tin'   => $branch?->vat_reg_tin ?? '',
-                'min_number'    => $branch?->min_number ?? '',
-                'serial_number' => $branch?->serial_number ?? '',
-                'vat_type'      => $branch?->vat_type ?? 'vat',
-            ]);
+            // 6. Generate Receipt & 7. Deduct Raw Materials (Only if not pending)
+            if ($sale->status !== 'pending') {
+                Receipt::create([
+                    'si_number'     => $officialOR,
+                    'terminal'      => '01',
+                    'items_count'   => $totalQty,
+                    'cashier_name'  => $cashierName,
+                    'total_amount'  => $finalTotal,
+                    'sale_id'       => $sale->id,
+                    'branch_id'     => $branchId,
+                    'brand'         => $branch?->brand ?? 'Lucky Boba Milk Tea',
+                    'owner_name'    => $branch?->owner_name ?? '',
+                    'company_name'  => $branch?->company_name ?? '',
+                    'store_address' => $branch?->store_address ?? '',
+                    'vat_reg_tin'   => $branch?->vat_reg_tin ?? '',
+                    'min_number'    => $branch?->min_number ?? '',
+                    'serial_number' => $branch?->serial_number ?? '',
+                    'vat_type'      => $branch?->vat_type ?? 'vat',
+                ]);
 
-            // 7. Deduct Raw Materials
-            $this->deductStockAction->execute($sale);
+                $this->deductStockAction->execute($sale);
+
+                // 8. Post-Transaction Hooks
+                $this->incrementDiscountUsageCount($effectiveDiscountId, $data['pax_discount_ids'] ?? null, $data['items']);
+                $this->dashboardService->clearTodayCache($branchId);
+            }
 
             DB::commit();
-
-            // 8. Post-Transaction Hooks
-            $this->incrementDiscountUsageCount($effectiveDiscountId, $data['pax_discount_ids'] ?? null, $data['items']);
-            $this->dashboardService->clearTodayCache($branchId);
 
             return [
                 'status' => 'success',

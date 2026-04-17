@@ -10,7 +10,7 @@ import api from '../../../services/api';
 import logo from '../../../assets/logo.png';
 import {
   RefreshCw, Clock, CheckCircle2, ChefHat, QrCode,
-  User, ShoppingBag, Package, AlertCircle, ArrowLeft, Utensils, Printer,
+  User, ShoppingBag, Package, AlertCircle, ArrowLeft, Utensils, Printer, Trash2
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -318,11 +318,12 @@ interface OrderCardProps {
   order: OnlineOrder;
   seqNumber: string;
   onMove: (id: number, status: Status) => void;
+  onCancel?: (id: number) => void;
   onPrint: (order: OnlineOrder, seqNumber: string) => void;
   updating: boolean;
 }
 
-const OrderCard = ({ order, seqNumber, onMove, onPrint, updating }: OrderCardProps) => {
+const OrderCard = ({ order, seqNumber, onMove, onCancel, onPrint, updating }: OrderCardProps) => {
   const [showQr, setShowQr] = useState(false);
   const meta = STATUS_META[order.status as Status];
   const invoice = orderInvoice(order);
@@ -462,19 +463,31 @@ const OrderCard = ({ order, seqNumber, onMove, onPrint, updating }: OrderCardPro
         </div>
 
         {/* Action button */}
-        {next && (
-          <button
-            onClick={() => onMove(order.id, next)}
-            disabled={updating}
-            className={`w-full py-2.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${next === 'preparing' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
-          >
-            {updating
-              ? 'Updating...'
-              : next === 'preparing'
-                ? '→ Start Preparing'
-                : '✓ Mark as Done'}
-          </button>
-        )}
+        <div className="flex gap-2 w-full pt-1">
+          {order.status === 'pending' && onCancel && (
+            <button
+              onClick={() => onCancel(order.id)}
+              disabled={updating}
+              className="py-2.5 px-3 rounded-lg border-2 border-red-100 bg-red-50 text-red-500 hover:bg-red-100 transition-colors disabled:opacity-50"
+              title="Reject Order"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+          {next && (
+            <button
+              onClick={() => onMove(order.id, next)}
+              disabled={updating}
+              className={`flex-1 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${next === 'preparing' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+            >
+              {updating
+                ? 'Updating...'
+                : next === 'preparing'
+                  ? '→ Start Preparing'
+                  : '✓ Mark as Done'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -486,12 +499,13 @@ interface ColumnProps {
   status: Status;
   orders: OnlineOrder[];
   onMove: (id: number, status: Status) => void;
+  onCancel?: (id: number) => void;
   onPrint: (order: OnlineOrder, seqNumber: string) => void;
   updatingId: number | null;
   orderSequenceMap: Map<number, string>;
 }
 
-const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId, orderSequenceMap }: ColumnProps) => {
+const KanbanColumn = ({ status, orders, onMove, onCancel, onPrint, updatingId, orderSequenceMap }: ColumnProps) => {
   const meta = STATUS_META[status];
   const COLUMN_LABELS: Record<Status, string> = {
     pending: 'New Orders',
@@ -525,6 +539,7 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId, orderSequen
               order={order}
               seqNumber={orderSequenceMap.get(order.id) ?? '???'}
               onMove={onMove}
+              onCancel={onCancel}
               onPrint={onPrint}
               updating={updatingId === order.id}
             />
@@ -712,6 +727,23 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     }
   };
 
+  // ── Cancel order ──────────────────────────────────────────────────────────
+  const handleCancel = async (id: number) => {
+    if (!window.confirm('Are you sure you want to reject this order?')) return;
+    setUpdatingId(id);
+    setError(null);
+    try {
+      const order = orders.find(o => o.id === id);
+      const branchName = order?.branch_name ?? '';
+      await api.patch(`/online-orders/${id}/status`, { status: 'cancelled', branch_name: branchName });
+      setOrders(prev => prev.filter(o => o.id !== id));
+    } catch (err: unknown) {
+      setError('Failed to cancel order.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const grouped = COLUMNS.reduce((acc, s) => {
     acc[s] = orders.filter(o => o.status === s);
     return acc;
@@ -793,6 +825,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
               status={status}
               orders={grouped[status]}
               onMove={handleConfirm}
+              onCancel={handleCancel}
               onPrint={handleReprintReceipt}
               updatingId={updatingId}
               orderSequenceMap={orderSequenceMap}
