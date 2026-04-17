@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   LayoutGrid, Users, History, BarChart2, 
-  Package, Search, LogOut, ShieldCheck
+  Package, Search, LogOut, ShieldCheck,
+  ArrowRightLeft
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
