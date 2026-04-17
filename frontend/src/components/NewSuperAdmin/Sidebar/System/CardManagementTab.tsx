@@ -37,9 +37,7 @@ const CardManagementTab = () => {
   const [adminPhone, setAdminPhone] = useState("");
   const [adminGcashQrPreview, setAdminGcashQrPreview] = useState<string | null>(null);
   const [adminGcashQrFile, setAdminGcashQrFile] = useState<File | null>(null);
-  const [isSavingGlobal, setIsSavingGlobal] = useState(false);
 
-  }, []);
 
   const fetchGlobalSettings = useCallback(async () => {
     try {

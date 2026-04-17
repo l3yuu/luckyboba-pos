@@ -737,7 +737,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       const branchName = order?.branch_name ?? '';
       await api.patch(`/online-orders/${id}/status`, { status: 'cancelled', branch_name: branchName });
       setOrders(prev => prev.filter(o => o.id !== id));
-    } catch (err: unknown) {
+    } catch (_err: unknown) {
       setError('Failed to cancel order.');
     } finally {
       setUpdatingId(null);

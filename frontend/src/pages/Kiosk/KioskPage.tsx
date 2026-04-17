@@ -152,7 +152,7 @@ const KioskPage = () => {
       
       // Auto-reset after 15s when showing order number
       setTimeout(handleReset, 15000);
-    } catch (err) {
+    } catch (_err) {
       alert('Failed to place order. Please call staff.');
     } finally {
       setLoading(false);
