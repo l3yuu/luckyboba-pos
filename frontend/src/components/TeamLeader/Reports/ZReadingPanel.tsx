@@ -5,7 +5,7 @@ import api from '../../../services/api';
 import {
   Calendar, Printer, RefreshCw, Menu, Search,
   FileText, Clock, BarChart3, AlertCircle, Banknote,
-  ShoppingBag, Activity, CreditCard, Hash, ToggleLeft,
+  ShoppingBag, Activity, CreditCard, Hash, ToggleLeft, Info,
 } from 'lucide-react';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -828,6 +828,14 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
       <style>{STYLES}</style>
       <div className="zr-root flex flex-col h-full bg-[#f5f4f8] overflow-hidden">
         <div className="flex-1 overflow-y-auto px-5 md:px-8 pb-8 pt-5 flex flex-col gap-5">
+
+          {/* Read-only notice */}
+          <div className="flex items-start gap-3 p-3 bg-violet-50 border border-violet-200 rounded-[0.625rem] mb-1 print:hidden">
+            <Info size={14} className="text-violet-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-violet-700 font-medium">
+              This is a <span className="font-bold">read-only</span> report for <span className="font-bold">{new Date(selectedDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}</span>. Team Leaders can view but cannot export or modify this data.
+            </p>
+          </div>
 
           {/* ── CONTROLS BAR ── */}
           <div className="bg-white border border-gray-100 rounded-2xl p-5 print:hidden">
