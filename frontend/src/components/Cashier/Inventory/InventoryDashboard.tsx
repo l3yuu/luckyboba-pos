@@ -20,7 +20,7 @@ interface RawMaterial { id: number; name: string; unit: string; category: string
 interface StockMovement { id: number; raw_material_id: number; type: 'add' | 'subtract' | 'set'; quantity: number; reason: string | null; created_at: string; }
 interface ReportRow { material: RawMaterial; beginning: number; delivered: number; cooked: number; out: number; spoilage: number; ending: number; usage: number; sold: number; variance: number; movements: StockMovement[]; }
 interface Toast { id: number; message: string; type: 'success' | 'error'; }
-interface MenuItem { id: number; name: string; category_id: number; price: number; size: string; type: string; }
+interface MenuItem { id: number; name: string; category_id: number; category?: string | null; price: number; size: string; type: string; }
 interface RecipeItem { id: number; recipe_id: number; raw_material_id: number; quantity: number; unit: string; notes: string | null; raw_material?: RawMaterial; }
 interface Recipe { id: number; menu_item_id: number; menu_item: MenuItem; size: string | null; is_active: boolean; notes: string | null; items: RecipeItem[]; }
 
@@ -347,8 +347,7 @@ function MovementDrawer({ row, onClose }: { row: ReportRow; onClose: () => void 
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-const InventoryDashboard = () => {
-  const [activeTab, setActiveTab] = useState<'sales' | 'usage' | 'materials' | 'recipes'>('sales');
+const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'materials' | 'usage' | 'recipes' }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounter = useRef(0);
 
@@ -389,6 +388,7 @@ const InventoryDashboard = () => {
   const [recipeLoading, setRecipeLoading] = useState(true);
   const [recipeSearch, setRecipeSearch] = useState('');
   const [recipeFilterStatus, setRecipeFilterStatus] = useState<'all' | 'with' | 'without'>('all');
+  const [recipeCategoryFilter, setRecipeCategoryFilter] = useState('All');
   const [recipeEntriesLimit, setRecipeEntriesLimit] = useState(25);
 
 
@@ -431,12 +431,12 @@ const InventoryDashboard = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      if (!reportLoading && activeTab === 'usage') {
+      if (!reportLoading && view === 'usage') {
         fetchMaterials(true);
       }
     }, 60000);
     return () => clearInterval(timer);
-  }, [fetchMaterials, reportLoading, activeTab]);
+  }, [fetchMaterials, reportLoading, view]);
 
   const fetchRecipes = useCallback(async () => {
     setRecipeLoading(true);
@@ -470,6 +470,7 @@ const InventoryDashboard = () => {
   }), [reportRows]);
 
   const usageCategories = useMemo(() => ['All', ...[...new Set(materials.map(m => m.category))].sort()], [materials]);
+  const recipeCategoryList = useMemo(() => ['All', ...[...new Set(recipes.map(r => r.menu_item.category || 'General'))].sort()], [recipes]);
   const lowStockCount = useMemo(() => materials.filter(m => parseNum(m.current_stock) < parseNum(m.reorder_level) && parseNum(m.reorder_level) > 0).length, [materials]);
 
   const displayUsageRows = useMemo(() => {
@@ -502,9 +503,10 @@ const InventoryDashboard = () => {
     let data = [...recipeRows];
     if (recipeFilterStatus === 'with') data = data.filter(r => r.hasRecipe);
     if (recipeFilterStatus === 'without') data = data.filter(r => !r.hasRecipe);
+    if (recipeCategoryFilter !== 'All') data = data.filter(r => (r.menuItem.category || 'General') === recipeCategoryFilter);
     if (recipeSearch) { const q = recipeSearch.toLowerCase(); data = data.filter(r => r.menuItem.name.toLowerCase().includes(q)); }
     return recipeEntriesLimit === -1 ? data : data.slice(0, recipeEntriesLimit);
-  }, [recipeRows, recipeFilterStatus, recipeSearch, recipeEntriesLimit]);
+  }, [recipeRows, recipeFilterStatus, recipeCategoryFilter, recipeSearch, recipeEntriesLimit]);
 
   const handleAddSuccess = (data: RawMaterial) => { setMaterials(prev => [...prev, data]); localStorage.removeItem(RAW_MATERIALS_CACHE_KEY); addToast(`"${data.name}" added successfully.`); };
   const handleAdjustSuccess = (updated: RawMaterial) => { 
@@ -537,10 +539,15 @@ const InventoryDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
-              <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Dashboard</h1>
+              <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">
+                {view === 'dashboard' && 'Dashboard'}
+                {view === 'materials' && 'Raw Materials'}
+                {view === 'usage' && 'Usage Report'}
+                {view === 'recipes' && 'Recipes'}
+              </h1>
             </div>
 
-            {activeTab === 'usage' && (
+            {view === 'usage' && (
               <div className="flex items-center gap-2">
                 <button onClick={() => fetchMaterials(true)} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">↻ Refresh</button>
                 <button onClick={() => setIsHistoryOpen(true)} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 hover:border-zinc-400 transition-all rounded-[0.625rem] shadow-sm">View History</button>
@@ -551,7 +558,7 @@ const InventoryDashboard = () => {
               </div>
             )}
 
-            {activeTab === 'materials' && (
+            {view === 'materials' && (
               <div className="flex items-center gap-2">
                 {lowStockCount > 0 && (
                   <button onClick={() => setLowStockOnly(v => !v)} className={`h-10 px-4 font-bold text-xs uppercase tracking-widest flex items-center gap-2 rounded-[0.625rem] border transition-all ${lowStockOnly ? 'bg-red-600 text-white border-red-600' : 'bg-white text-red-500 border-red-300 hover:bg-red-50'}`}>
@@ -559,39 +566,32 @@ const InventoryDashboard = () => {
                   </button>
                 )}
                 <button onClick={() => fetchMaterials(true)} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">↻ Refresh</button>
-                <button onClick={() => setShowAddModal(true)} className="h-10 px-5 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors shadow-sm rounded-[0.625rem]">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                  Add Item
-                </button>
               </div>
             )}
 
-            {activeTab === 'recipes' && (
+            {view === 'recipes' && (
               <button onClick={() => fetchRecipes()} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">↻ Refresh</button>
             )}
           </div>
 
-          {/* ── Tabs ── */}
-          <div className="flex items-center gap-0 border-b border-zinc-200">
-            {([
-              { key: 'sales', label: 'Weekly Sales', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" /></svg> },
-              { key: 'usage', label: 'Usage Report', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg> },
-              { key: 'materials', label: 'Raw Materials', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg> },
-              { key: 'recipes', label: 'Recipes', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg> },
-            ] as const).map(tab => (
-              <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`flex items-center gap-2 px-5 py-3 text-[11px] font-bold uppercase tracking-widest border-b-2 -mb-px transition-all ${activeTab === tab.key ? 'border-[#3b2063] text-[#3b2063]' : 'border-transparent text-zinc-400 hover:text-zinc-600 hover:border-zinc-300'}`}>
-                {tab.icon}
-                {tab.label}
-                {tab.key === 'usage' && reportStats.lowStock > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none">{reportStats.lowStock}</span>}
-                {tab.key === 'materials' && lowStockCount > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none">{lowStockCount}</span>}
-                {tab.key === 'recipes' && recipeStats.without > 0 && <span className="ml-1 bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none">{recipeStats.without}</span>}
-              </button>
-            ))}
-          </div>
-
-          {/* ══ TAB: WEEKLY SALES ══ */}
-          {activeTab === 'sales' && (
+          {/* ══ TAB: DASHBOARD ══ */}
+          {view === 'dashboard' && (
             <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'Total Items', value: reportStats.totalItems, sub: 'tracked materials', color: 'text-[#3b2063]', bg: 'bg-white' },
+                  { label: 'Low Stock', value: reportStats.lowStock, sub: 'below reorder level', color: reportStats.lowStock > 0 ? 'text-red-600' : 'text-zinc-400', bg: reportStats.lowStock > 0 ? 'bg-red-50' : 'bg-white' },
+                  { label: 'Negative Variance', value: reportStats.negativeVariance, sub: 'items with discrepancy', color: reportStats.negativeVariance > 0 ? 'text-amber-600' : 'text-zinc-400', bg: reportStats.negativeVariance > 0 ? 'bg-amber-50' : 'bg-white' },
+                  { label: 'Deliveries This Month', value: fmt(reportStats.totalDelivered, 0), sub: 'total units received', color: 'text-emerald-700', bg: 'bg-emerald-50' },
+                ].map(s => (
+                  <div key={s.label} className={`${s.bg} border border-zinc-200 px-5 py-4 shadow-sm rounded-[0.625rem]`}>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{s.label}</p>
+                    <p className={`text-2xl font-extrabold mt-1 ${s.color}`}>{s.value}</p>
+                    <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">{s.sub}</p>
+                  </div>
+                ))}
+              </div>
+
               <div className="bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
                 <div className="bg-white px-7 py-5 border-b border-zinc-100">
                   <h2 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.15em] text-center">TOP 5 PRODUCTS by Qty Sold FROM {start} TO {end}</h2>
@@ -679,22 +679,8 @@ const InventoryDashboard = () => {
           )}
 
           {/* ══ TAB: USAGE REPORT ══ */}
-          {activeTab === 'usage' && (
+          {view === 'usage' && (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { label: 'Total Items', value: reportStats.totalItems, sub: 'tracked materials', color: 'text-[#3b2063]', bg: 'bg-white' },
-                  { label: 'Low Stock', value: reportStats.lowStock, sub: 'below reorder level', color: reportStats.lowStock > 0 ? 'text-red-600' : 'text-zinc-400', bg: reportStats.lowStock > 0 ? 'bg-red-50' : 'bg-white' },
-                  { label: 'Negative Variance', value: reportStats.negativeVariance, sub: 'items with discrepancy', color: reportStats.negativeVariance > 0 ? 'text-amber-600' : 'text-zinc-400', bg: reportStats.negativeVariance > 0 ? 'bg-amber-50' : 'bg-white' },
-                  { label: 'Deliveries This Month', value: fmt(reportStats.totalDelivered, 0), sub: 'total units received', color: 'text-emerald-700', bg: 'bg-emerald-50' },
-                ].map(s => (
-                  <div key={s.label} className={`${s.bg} border border-zinc-200 px-5 py-4 shadow-sm`}>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{s.label}</p>
-                    <p className={`text-2xl font-extrabold mt-1 ${s.color}`}>{s.value}</p>
-                    <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">{s.sub}</p>
-                  </div>
-                ))}
-              </div>
 
               <div className="flex flex-wrap items-center justify-between gap-4 bg-white border border-zinc-200 px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                 <div className="flex items-center gap-4">
@@ -821,7 +807,7 @@ const InventoryDashboard = () => {
           )}
 
           {/* ══ TAB: RAW MATERIALS ══ */}
-          {activeTab === 'materials' && (
+          {view === 'materials' && (
             <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
               <div className="px-6 py-4 border-b border-[#e9d5ff] bg-[#f5f0ff] flex flex-col md:flex-row justify-between items-center gap-3">
                 <div className="flex items-center gap-3 flex-wrap">
@@ -856,8 +842,6 @@ const InventoryDashboard = () => {
                         <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Unit</th>
                         <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Current Stock</th>
                         <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Reorder Level</th>
-                        <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center w-24">Adjust</th>
-                        <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center w-24">Delete</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
@@ -877,20 +861,10 @@ const InventoryDashboard = () => {
                             <td className="px-5 py-3.5 text-center"><span className="text-[12px] font-bold text-zinc-700">{item.unit}</span></td>
                             <td className="px-5 py-3.5 text-center"><span className={`text-[13px] font-extrabold ${isLow ? 'text-red-600' : 'text-[#1c1c1e]'}`}>{parseNum(item.current_stock).toFixed(2)}</span></td>
                             <td className="px-5 py-3.5 text-center"><span className="text-[12px] font-semibold text-zinc-400">{parseNum(item.reorder_level).toFixed(2)}</span></td>
-                            <td className="px-5 py-3.5 text-center">
-                              <button onClick={() => setAdjustTarget(item)} className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#6a12b8] text-white transition-colors rounded-[0.625rem]" title="Adjust Stock">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
-                              </button>
-                            </td>
-                            <td className="px-7 py-3.5 text-center">
-                              <button onClick={() => setDeleteTarget(item)} className="h-9 w-9 inline-flex items-center justify-center bg-white border border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors rounded-[0.625rem]" title="Delete">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-                              </button>
-                            </td>
                           </tr>
                         );
                       }) : (
-                        <tr><td colSpan={7} className="px-8 py-20 text-center"><p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{matSearch ? `No results for "${matSearch}"` : 'No raw materials found'}</p></td></tr>
+                        <tr><td colSpan={5} className="px-8 py-20 text-center"><p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{matSearch ? `No results for "${matSearch}"` : 'No raw materials found'}</p></td></tr>
                       )}
                     </tbody>
                   </table>
@@ -904,7 +878,7 @@ const InventoryDashboard = () => {
           )}
 
           {/* ══ TAB: RECIPES ══ */}
-          {activeTab === 'recipes' && (
+          {view === 'recipes' && (
             <>
               <div className="grid grid-cols-3 gap-3">
                 {[
@@ -933,6 +907,12 @@ const InventoryDashboard = () => {
                       <span>Filter</span>
                       <select value={recipeFilterStatus} onChange={e => setRecipeFilterStatus(e.target.value as 'all' | 'with' | 'without')} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
                         <option value="all">All Items</option><option value="with">Has Recipe</option><option value="without">Missing Recipe</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                      <span>Category</span>
+                      <select value={recipeCategoryFilter} onChange={e => setRecipeCategoryFilter(e.target.value)} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
+                        {recipeCategoryList.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                   </div>
@@ -975,12 +955,11 @@ const InventoryDashboard = () => {
                             <td className="px-5 py-3.5">
                               {row.recipe ? (
                                 <div className="flex flex-wrap gap-1">
-                                  {row.recipe.items.slice(0, 4).map((ri: RecipeItem) => (
+                                  {row.recipe.items.map((ri: RecipeItem) => (
                                     <span key={ri.id} className="text-[10px] font-semibold bg-[#f5f0ff] text-[#3b2063] px-2 py-0.5 border border-[#e9d5ff]">
                                       {ri.raw_material?.name ?? `RM#${ri.raw_material_id}`} · {parseFloat(String(ri.quantity)).toFixed(2)}{ri.unit}
                                     </span>
                                   ))}
-                                  {row.recipe.items.length > 4 && <span className="text-[10px] font-semibold text-zinc-400 px-2 py-0.5">+{row.recipe.items.length - 4} more</span>}
                                 </div>
                               ) : (
                                 <span className="text-[11px] text-zinc-300 font-semibold">No ingredients set</span>
