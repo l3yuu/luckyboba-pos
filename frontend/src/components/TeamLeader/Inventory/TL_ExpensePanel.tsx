@@ -5,6 +5,7 @@ import api from '../../../services/api';
 import { useToast } from '../../../hooks/useToast';
 import { Loader2, Plus, Calendar, Search, Tag, ArrowUpRight, TrendingDown, Wallet } from 'lucide-react';
 import { getCache, setCache, clearCache } from '../../../utils/cache';
+import { SkeletonBar } from '../SharedSkeletons';
 
 const dashboardFont = { fontFamily: "'DM Sans', sans-serif" };
 
@@ -186,9 +187,11 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                     </div>
                     <div>
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Sales</p>
-                        <p className="text-xl font-black text-[#1a0f2e] tabular-nums">
-                            {isFetching ? '...' : `₱${summary.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-                        </p>
+                        {isFetching ? <SkeletonBar h="h-6" w="w-24" className="mt-1" /> : (
+                            <p className="text-xl font-black text-[#1a0f2e] tabular-nums">
+                                ₱{summary.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </p>
+                        )}
                     </div>
                 </div>
                 <div className="bg-white p-5 rounded-[0.625rem] shadow-sm border border-zinc-200 flex items-center gap-4">
@@ -197,9 +200,11 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                     </div>
                     <div>
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Expense</p>
-                        <p className="text-xl font-black text-red-600 tabular-nums">
-                            {isFetching ? '...' : `-₱${summary.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-                        </p>
+                        {isFetching ? <SkeletonBar h="h-6" w="w-24" className="mt-1" /> : (
+                            <p className="text-xl font-black text-red-600 tabular-nums">
+                                -₱{summary.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </p>
+                        )}
                     </div>
                 </div>
                 <div className="bg-white p-5 rounded-[0.625rem] shadow-sm border border-[#e9d5ff] flex items-center gap-4">
@@ -208,20 +213,17 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                     </div>
                     <div>
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Net Cash Flow</p>
-                        <p className={`text-xl font-black tabular-nums ${summary.netTotal >= 0 ? 'text-[#3b2063]' : 'text-red-600'}`}>
-                            {isFetching ? '...' : `₱${summary.netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-                        </p>
+                        {isFetching ? <SkeletonBar h="h-6" w="w-24" className="mt-1" /> : (
+                            <p className={`text-xl font-black tabular-nums ${summary.netTotal >= 0 ? 'text-[#3b2063]' : 'text-red-600'}`}>
+                                ₱{summary.netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* Table */}
             <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden flex flex-col shadow-sm relative flex-1 min-h-[400px]">
-                {isFetching && (
-                    <div className="absolute inset-0 bg-white/50 z-20 flex items-center justify-center backdrop-blur-[1px]">
-                        <Loader2 className="animate-spin text-[#3b2063]" size={32} />
-                    </div>
-                )}
                 <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50/30 flex items-center justify-between">
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Expense Transaction Records</p>
                     <div className="flex items-center gap-2">
@@ -241,7 +243,17 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-50">
-                            {expenses.length === 0 ? (
+                            {isFetching ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i} className="hover:bg-[#faf9ff] transition-all group">
+                                        {[...Array(5)].map((_, j) => (
+                                            <td key={j} className="px-6 py-4">
+                                                <SkeletonBar h="h-4" w={j === 4 ? "w-16 ml-auto" : "w-full"} />
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            ) : expenses.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-8 py-24 text-center">
                                         <p className="text-[11px] font-black text-zinc-200 uppercase tracking-widest italic">No financial records found for this period.</p>
