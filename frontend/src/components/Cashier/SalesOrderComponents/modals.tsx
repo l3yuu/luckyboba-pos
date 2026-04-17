@@ -1427,7 +1427,9 @@ export const SuccessModal = ({
     ...(hasStickers ? [{ label: 'Stickers', done: printedStickers, onPrint: onPrintStickers, icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg> }] : []),
   ];
   const pending    = printItems.filter(p => !p.done);
-  const allPrinted = true;
+  
+  // Requirement: User must print at least Receipt and Kitchen once before "New Order" unlocks
+  const allRequiredPrinted = printedReceipt && printedKitchen;
 
   return (
     <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -1436,40 +1438,49 @@ export const SuccessModal = ({
           <div className="absolute -top-6 -right-6 w-28 h-28 border-2 border-white/10 rounded-[0.625rem] rotate-12" />
           <div className="absolute -bottom-4 -left-4 w-16 h-16 border border-white/10 rounded-[0.625rem] -rotate-6" />
           <div className="relative flex items-center gap-5">
-            <div className="w-14 h-14 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center shrink-0">
+            <div className="w-14 h-14 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/50 leading-none mb-1.5">Transaction Complete</p>
               <h2 className="text-2xl font-black uppercase tracking-widest leading-none">Order Saved</h2>
-              <p className="text-white/60 text-xs font-bold mt-2 font-mono">{orNumber}</p>
+              <p className="text-white/60 text-xs font-bold mt-2 font-mono tracking-tighter">{orNumber}</p>
             </div>
           </div>
         </div>
         <div className="px-8 pt-6 pb-4 space-y-3 bg-white">
-          <p className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4">Required Prints</p>
+          <div className="flex justify-between items-center mb-1">
+             <p className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-400">Print Control</p>
+             <p className="text-[8px] font-bold uppercase text-zinc-300">Click to (re)print</p>
+          </div>
           {printItems.map(({ label, done, onPrint, icon }) => (
             <button key={label} onClick={onPrint}
-              className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem] ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-[#e9d5ff] text-black hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'}`}>
-              <div className="flex items-center gap-3">{icon}<span>{label}</span></div>
-              {done ? <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Printed ✓</span> : <ChevronRight />}
+              className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem] active:scale-[0.98] ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-[#e9d5ff] text-black hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`${done ? 'text-emerald-500' : 'text-[#3b2063]'}`}>{icon}</div>
+                <span>{label}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {done && <span className="text-[9px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded shadow-sm">Printed ✓</span>}
+                <ChevronRight size={14} className={done ? 'text-emerald-300' : 'text-zinc-300'} />
+              </div>
             </button>
           ))}
         </div>
         <div className="px-8 pb-8 bg-white">
-          <div className="mt-1 mb-4">
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{pending.length === 0 ? 'All done' : `${printItems.length - pending.length} / ${printItems.length} printed`}</span>
-              {pending.length > 0 && <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pending: {pending.map(p => p.label).join(', ')}</span>}
+          <div className="mt-1 mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{pending.length === 0 ? 'All prints done' : `${printItems.length - pending.length} / ${printItems.length} printed`}</span>
+              {pending.length > 0 && <span className="text-[9px] font-bold text-[#3b2063] uppercase tracking-widest animate-pulse">Required: {pending.filter(x => x.label !== 'Stickers').map(p => p.label).join(', ')}</span>}
             </div>
-            <div className="w-full h-1 bg-zinc-100 rounded-full overflow-hidden">
-              <div className={`h-full transition-all duration-500 rounded-full ${pending.length === 0 ? 'bg-emerald-400' : 'bg-[#3b2063]'}`}
+            <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div className={`h-full transition-all duration-700 rounded-full ${allRequiredPrinted ? 'bg-emerald-400' : 'bg-[#3b2063]'}`}
                 style={{ width: `${((printItems.length - pending.length) / printItems.length) * 100}%` }} />
             </div>
           </div>
-          <button onClick={onNewOrder} disabled={!allPrinted}
-            className={`w-full h-14 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-2 ${allPrinted ? 'bg-[#3b2063] hover:bg-[#6a12b8] text-white cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>
-            {allPrinted ? <><span>New Order</span><ArrowRightIcon /></> : `Print ${pending.length} remaining to continue`}
+          <button onClick={onNewOrder} disabled={!allRequiredPrinted}
+            className={`w-full h-16 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] ${allRequiredPrinted ? 'bg-[#3b2063] hover:bg-[#2d184d] text-white cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed shadow-none'}`}>
+            {allRequiredPrinted ? <><span>Start New Order</span><ArrowRightIcon size={20} /></> : `Printing Required...`}
           </button>
         </div>
       </div>
@@ -1490,6 +1501,65 @@ export const AddOnTriggerButton = ({ count, onClick }: { count: number; onClick:
     </svg>
   </button>
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PaymentSelectModal
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PaymentSelectModalProps {
+  onSelect: (method: string) => void;
+  onClose: () => void;
+  orderCharge: 'grab' | 'panda' | null;
+}
+
+export const PaymentSelectModal = ({ onSelect, onClose, orderCharge }: PaymentSelectModalProps) => {
+  const methods = PAYMENT_METHODS.filter(m => {
+    if (orderCharge === 'grab') return m.id === 'grab';
+    if (orderCharge === 'panda') return m.id === 'food_panda';
+    return m.id !== 'grab' && m.id !== 'food_panda';
+  });
+
+  return (
+    <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-sm rounded-[1.25rem] shadow-2xl overflow-hidden border border-zinc-200">
+        <div className="px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff] flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#3b2063] rounded-lg flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Select Payment</p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Choose how to pay</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#3b2063]/10 flex items-center justify-center transition-colors">
+            <CloseIcon size={4} />
+          </button>
+        </div>
+        <div className="p-5 grid grid-cols-2 gap-3">
+          {methods.map(method => (
+            <button
+              key={method.id}
+              onClick={() => onSelect(method.id)}
+              className="group flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#3b2063] hover:border-[#3b2063] transition-all duration-200 active:scale-95"
+            >
+              <div className="text-[#3b2063] group-hover:text-white mb-3 transition-colors">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                   {method.id === 'cash' ? <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /> : <path d="M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM12 12h.01" />}
+                </svg>
+              </div>
+              <span className="text-xs font-black uppercase tracking-widest text-[#1a0f2e] group-hover:text-white transition-colors">
+                {method.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OrderTypeModal

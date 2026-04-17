@@ -64,6 +64,9 @@ class StoreSaleRequest extends FormRequest
             'senior_id'                => 'nullable|string',
             'pwd_id'                   => 'nullable|string',
             'vat_exempt_sales'         => 'nullable|numeric|min:0',
+            'status'                   => 'nullable|string',
+            'source'                   => 'nullable|string',
+            'order_type'               => 'nullable|string',
         ];
     }
 }

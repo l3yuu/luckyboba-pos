@@ -28,6 +28,8 @@ export interface MenuItem {
     barcode: string;
     size: 'M' | 'L' | 'none';
     cup_id?: number | null;
+    image?: string | null;
+    sellingPrice?: number | string;
     sub_category_id?: number | null;
     created_at?: string;
     updated_at?: string;

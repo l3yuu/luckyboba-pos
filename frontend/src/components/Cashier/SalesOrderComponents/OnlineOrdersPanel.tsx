@@ -10,8 +10,10 @@ import api from '../../../services/api';
 import logo from '../../../assets/logo.png';
 import {
   RefreshCw, Clock, CheckCircle2, ChefHat, QrCode,
-  User, ShoppingBag, Package, AlertCircle, ArrowLeft, Utensils, Printer,
+  User, ShoppingBag, Package, AlertCircle, ArrowLeft, Utensils, Printer, Search,
 } from 'lucide-react';
+import { CustomerNameModal, SuccessModal } from './modals';
+import { OnlineOrderPaymentModal } from './OnlineOrderPaymentModals';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -551,12 +553,19 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [confirmOrder, setConfirmOrder] = useState<{ id: number; status: Status; invoice: string } | null>(null);
 
+  // New Workflow States
+  const [activePaymentOrder, setActivePaymentOrder] = useState<OnlineOrder | null>(null);
+  const [activeNameOrder, setActiveNameOrder] = useState<{order: OnlineOrder, paymentMethod: string, cashTendered: number | '', referenceNumber: string} | null>(null);
+  const [activeSuccessOrder, setActiveSuccessOrder] = useState<{order: OnlineOrder, seqNumber: string, 
+    printedReceipt: boolean, printedKitchen: boolean, printedStickers: boolean} | null>(null);
+
   // What to render in the hidden print area: 'receipt' | 'kitchen' | null
   const [printJob, setPrintJob] = useState<{
-    type: 'receipt' | 'kitchen';
+    type: 'receipt' | 'kitchen' | 'stickers';
     order: OnlineOrder;
     seqNumber: string;
   } | null>(null);
@@ -630,7 +639,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
   // ── Generic print trigger ─────────────────────────────────────────────────
   const triggerPrint = useCallback((
-    type: 'receipt' | 'kitchen',
+    type: 'receipt' | 'kitchen' | 'stickers',
     order: OnlineOrder,
     seqNumber: string,
   ) => {
@@ -661,6 +670,33 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       }, 1000);
     }, 150);
   }, []);
+
+  const completeWorkflow = async (nameObj: {order: OnlineOrder, paymentMethod: string, cashTendered: number | '', referenceNumber: string}, finalName: string) => {
+    const { order, paymentMethod } = nameObj;
+    setActiveNameOrder(null);
+    setUpdatingId(order.id);
+    setError(null);
+    try {
+      const branchName = order.branch_name ?? '';
+      await api.patch(`/online-orders/${order.id}/status`, { status: 'preparing', branch_name: branchName });
+      
+      const updatedOrder = { ...order, status: 'preparing' as Status, customer_name: finalName, payment_method: paymentMethod };
+      setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
+      const seqNumber = seqRef.current.map.get(order.id) ?? '001';
+      
+      setActiveSuccessOrder({
+        order: updatedOrder,
+        seqNumber,
+        printedReceipt: false,
+        printedKitchen: false,
+        printedStickers: false
+      });
+    } catch (err) {
+      setError('Failed to update order status.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   // ── Reprint receipt (completed card button) ───────────────────────────────
   const handleReprintReceipt = useCallback((order: OnlineOrder, seqNumber: string) => {
@@ -712,12 +748,18 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     }
   };
 
-  const grouped = COLUMNS.reduce((acc, s) => {
-    acc[s] = orders.filter(o => o.status === s);
-    return acc;
-  }, {} as Record<Status, OnlineOrder[]>);
+  // ── Rendering helper ─────────────────────────────────────────────────────
+  const getFilteredOrders = () => {
+    if (!searchTerm.trim()) return orders;
+    const term = searchTerm.toLowerCase();
+    return orders.filter(o => {
+      const inv = orderInvoice(o).toLowerCase();
+      const seq = orderSequenceMap.get(o.id)?.toLowerCase() ?? '';
+      return inv.includes(term) || seq.includes(term);
+    });
+  };
 
-  const totalPending = grouped.pending.length;
+  const filteredOrders = getFilteredOrders();
 
   if (loading) return (
     <div className="flex items-center justify-center h-full bg-[#f4f2fb]">
@@ -760,11 +802,18 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
               Last updated {lastRefresh.toLocaleTimeString()}
             </p>
           </div>
-          {totalPending > 0 && (
-            <span className="ml-2 bg-amber-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full animate-pulse">
-              {totalPending} new
-            </span>
-          )}
+          
+          {/* Search bar */}
+          <div className="relative ml-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-4 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs w-48 focus:outline-none focus:ring-2 focus:ring-[#7c14d4]/20 focus:border-[#7c14d4] transition-all"
+            />
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {error && (
@@ -791,7 +840,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
             <KanbanColumn
               key={status}
               status={status}
-              orders={grouped[status]}
+              orders={filteredOrders.filter(o => o.status === status)}
               onMove={handleConfirm}
               onPrint={handleReprintReceipt}
               updatingId={updatingId}
@@ -847,16 +896,69 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
                 Cancel
               </button>
               <button
-                onClick={() => handleMove(confirmOrder.id, confirmOrder.status)}
+                onClick={() => {
+                  if (confirmOrder.status === 'preparing') {
+                    const order = orders.find(o => o.id === confirmOrder.id);
+                    if (order) setActivePaymentOrder(order);
+                    setConfirmOrder(null);
+                  } else {
+                    handleMove(confirmOrder.id, confirmOrder.status);
+                  }
+                }}
                 className={`flex-1 py-3 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${confirmOrder.status === 'preparing' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
               >
                 {confirmOrder.status === 'preparing'
-                  ? <><Printer size={13} /> Confirm & Print Ticket</>
+                  ? <><Printer size={13} /> TAKE PAYMENT</>
                   : <><Printer size={13} /> Confirm & Print Receipt</>}
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Payment workflow modals */}
+      <OnlineOrderPaymentModal
+        order={activePaymentOrder}
+        onClose={() => setActivePaymentOrder(null)}
+        onConfirm={(paymentMethod: string, cashTendered: number | '', referenceNumber: string) => {
+          if (activePaymentOrder) {
+            setActiveNameOrder({ order: activePaymentOrder, paymentMethod, cashTendered, referenceNumber });
+            setActivePaymentOrder(null);
+          }
+        }}
+      />
+
+      {activeNameOrder && (
+        <CustomerNameModal
+          customerName={activeNameOrder.order.customer_name ?? ''}
+          onChange={(name) => setActiveNameOrder(prev => prev ? { ...prev, order: { ...prev.order, customer_name: name } } : null)}
+          onSkip={() => completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
+          onConfirm={() => completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
+          submitting={updatingId === activeNameOrder.order.id}
+        />
+      )}
+
+      {activeSuccessOrder && (
+        <SuccessModal
+          orNumber={activeSuccessOrder.seqNumber}
+          hasStickers={true}
+          printedReceipt={activeSuccessOrder.printedReceipt}
+          printedKitchen={activeSuccessOrder.printedKitchen}
+          printedStickers={activeSuccessOrder.printedStickers}
+          onPrintReceipt={() => {
+            triggerPrint('receipt', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
+            setActiveSuccessOrder(prev => prev ? { ...prev, printedReceipt: true } : null);
+          }}
+          onPrintKitchen={() => {
+            triggerPrint('kitchen', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
+            setActiveSuccessOrder(prev => prev ? { ...prev, printedKitchen: true } : null);
+          }}
+          onPrintStickers={() => {
+            triggerPrint('stickers', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
+            setActiveSuccessOrder(prev => prev ? { ...prev, printedStickers: true } : null);
+          }}
+          onNewOrder={() => setActiveSuccessOrder(null)}
+        />
       )}
 
     </div>

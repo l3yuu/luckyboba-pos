@@ -36,6 +36,7 @@ import {
   SuccessModal,
   AddOnModalShell,
   MixAndMatchDrinkModal,
+  PaymentSelectModal,
   type ItemPaxAssignments,
 } from '../components/Cashier/SalesOrderComponents/modals'
 
@@ -231,6 +232,7 @@ const SalesOrder = () => {
 
   // Confirm / payment
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+  const [isPaymentSelectModalOpen, setIsPaymentSelectModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState<'payment' | 'discount' | 'pax'>('payment')
   const [cashTendered, setCashTendered] = useState<number | ''>('')
@@ -1424,20 +1426,38 @@ const SalesOrder = () => {
   // ── Print handlers ─────────────────────────────────────────────────────────
 
   const handlePrintReceipt = () => {
-    setPrintTarget('receipt')
-    setPrintedReceipt(true)
-    setTimeout(() => window.print(), 100)
+    setPrintTarget(null);
+    setTimeout(() => {
+      setPrintTarget('receipt');
+      setPrintedReceipt(true);
+    }, 50);
   }
   const handlePrintKitchen = () => {
-    setPrintTarget('kitchen')
-    setPrintedKitchen(true)
-    setTimeout(() => window.print(), 100)
+    setPrintTarget(null);
+    setTimeout(() => {
+      setPrintTarget('kitchen');
+      setPrintedKitchen(true);
+    }, 50);
   }
   const handlePrintStickers = () => {
-    setPrintTarget('stickers')
-    setPrintedStickers(true)
-    setTimeout(() => window.print(), 100)
+    setPrintTarget(null);
+    setTimeout(() => {
+      setPrintTarget('stickers');
+      setPrintedStickers(true);
+    }, 50);
   }
+
+  // Handle Systemic Printing Trigger
+  useEffect(() => {
+    if (printTarget) {
+      const timer = setTimeout(() => {
+        window.print();
+        // We DO NOT reset printTarget here because the user might want to reprint
+        // or print stickers after the receipt.
+      }, 500); 
+      return () => clearTimeout(timer);
+    }
+  }, [printTarget, orNumber]); // orNumber check for new orders
 
   // ── New order ──────────────────────────────────────────────────────────────
 
@@ -1550,78 +1570,6 @@ const SalesOrder = () => {
 
   return (
     <>
-      <style>{`
-        @media print {
-          @page { ${printTarget === 'stickers' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'} margin: 0 !important; }
-          html, body { margin: 0 !important; padding: 0 !important; }
-          body * { visibility: hidden; }
-          nav, header, aside, button, .print\\:hidden { display: none !important; }
-          img { display: block !important; }
-          .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
-          .printable-receipt-container {
-            position: static !important;
-            width: 100% !important;
-            max-width: ${printTarget === 'stickers' ? '38.5mm' : '76mm'} !important;
-            margin: 0 !important; padding: 0 !important;
-            height: auto !important;
-          }
-          .receipt-area {
-            width: 66mm !important;
-            margin: 0 auto !important;
-            padding: 1mm 0 !important;
-            box-sizing: border-box !important;
-            color: #000 !important;
-            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
-            font-size: 11px !important;
-            line-height: 1.1 !important;
-            font-weight: 500 !important;
-            text-rendering: geometricPrecision !important;
-            -webkit-font-smoothing: none !important;
-            font-smooth: never !important;
-            letter-spacing: 0 !important;
-            font-kerning: none !important;
-            font-variant-ligatures: none !important;
-            text-shadow: none !important;
-            transform: none !important;
-            zoom: 1 !important;
-          }
-          .receipt-area * {
-            font-family: inherit !important;
-            font-weight: inherit !important;
-            line-height: inherit !important;
-            text-rendering: inherit !important;
-            -webkit-font-smoothing: inherit !important;
-            font-smooth: inherit !important;
-            letter-spacing: inherit !important;
-            font-kerning: inherit !important;
-            font-variant-ligatures: inherit !important;
-            text-shadow: none !important;
-            transform: none !important;
-          }
-          .receipt-area strong,
-          .receipt-area b,
-          .receipt-area .font-semibold {
-            font-weight: 600 !important;
-          }
-          .receipt-area .font-bold {
-            font-weight: 700 !important;
-          }
-          /* Keep output compact without browser downscaling (prevents fuzzy text). */
-          .receipt-area .mb-4 { margin-bottom: 0.5rem !important; }
-          .receipt-area .mb-3 { margin-bottom: 0.35rem !important; }
-          .receipt-area .mt-6 { margin-top: 0.6rem !important; }
-          .receipt-area .mt-5 { margin-top: 0.5rem !important; }
-          .receipt-area .mt-3 { margin-top: 0.35rem !important; }
-          .receipt-area .mt-2 { margin-top: 0.25rem !important; }
-          .receipt-area .py-4 { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; }
-          .receipt-area .pb-3 { padding-bottom: 0.35rem !important; }
-          .receipt-area .pt-3 { padding-top: 0.35rem !important; }
-          .receipt-area .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.35rem !important; }
-          .receipt-area .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.2rem !important; }
-          .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
-          .queue-stub { page-break-before: always !important; break-before: page !important; }
-        }
-      `}</style>
 
       <div className="flex flex-col h-screen w-screen bg-[#f4f2fb] relative overflow-hidden font-sans print:hidden">
         {editingCartItem && editingCartIndex !== null && (
@@ -1772,6 +1720,18 @@ const SalesOrder = () => {
               setPendingMixMatchCart(null)
               if (searchQuery.trim()) setSelectedCategory(null)
             }}
+          />
+        )}
+
+        {isPaymentSelectModalOpen && (
+          <PaymentSelectModal 
+            orderCharge={orderCharge}
+            onSelect={(method) => {
+              setPaymentMethod(method);
+              setIsPaymentSelectModalOpen(false);
+              setIsConfirmModalOpen(true);
+            }}
+            onClose={() => setIsPaymentSelectModalOpen(false)}
           />
         )}
 
@@ -1960,9 +1920,6 @@ const SalesOrder = () => {
             subtotal={subtotal}
             onEditItem={openCartItemEdit}
             onConfirmOrder={() => {
-              if (orderCharge === 'grab') setPaymentMethod('grab')
-              else if (orderCharge === 'panda') setPaymentMethod('food_panda')
-              else setPaymentMethod('cash')
               setIsConfirmModalOpen(true)
             }}
           />

@@ -546,6 +546,116 @@ export const ReceiptPrint = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// KioskTicketPrint
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface KioskTicketPrintProps {
+  cart: any[];
+  branchName: string;
+  orNumber: string;
+  queueNumber: string;
+  formattedDate: string;
+  formattedTime: string;
+  totalAmount: number;
+}
+
+export const KioskTicketPrint = ({
+  cart, branchName, orNumber, queueNumber, formattedDate, formattedTime, totalAmount
+}: KioskTicketPrintProps) => {
+  return (
+    <div className="printable-receipt-container hidden print:block" style={{ width: '80mm', maxWidth: '80mm' }}>
+      <div className="receipt-area bg-white text-black">
+        {/* Store header */}
+        <div className="text-center mb-6 pt-2 pb-4 border-b-2 border-dashed border-black">
+          <img src={logo} alt="Lucky Boba Logo" className="w-32 h-auto mx-auto mb-2" style={{ filter: 'grayscale(100%)', maxWidth: '60mm' }} />
+          <h1 className="uppercase font-black text-xl tracking-tighter">LUCKY BOBA</h1>
+          <p className="text-[10px] uppercase font-bold tracking-widest">{branchName}</p>
+        </div>
+
+        {/* Payment Instruction */}
+        <div className="bg-black text-white p-3 mb-6 text-center" style={{ width: '100%', boxSizing: 'border-box' }}>
+          <p className="text-[9px] font-bold uppercase tracking-widest mb-1">Status: PENDING</p>
+          <h2 className="text-lg font-black uppercase italic leading-none">PAY AT CASHIER</h2>
+        </div>
+
+        {/* Queue Number */}
+        <div className="text-center mb-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Your Number Is:</p>
+          <h2 className="font-black tracking-tighter italic font-mono leading-none border-y-4 border-black py-4 my-2"
+            style={{ fontSize: '52pt', lineHeight: 1, maxWidth: '100%' }}>
+            #{queueNumber}
+          </h2>
+        </div>
+
+        {/* Items Table Header */}
+        <div className="flex justify-between text-[10px] font-black uppercase border-b border-black pb-1 mb-2">
+          <span>Item / Qty</span>
+          <span>Price</span>
+        </div>
+
+        {/* Items List */}
+        <div className="space-y-4 mb-6">
+          {cart.map((item, i) => (
+            <div key={i} className="flex flex-col border-b border-gray-100 pb-2">
+              <div className="flex justify-between items-start">
+                <div style={{ flex: 1, paddingRight: '4mm', minWidth: 0 }}>
+                  <div className="flex items-start gap-2">
+                    <span className="font-black text-sm shrink-0">{item.qty}x</span>
+                    <span className="uppercase font-bold text-sm leading-tight" style={{ wordBreak: 'break-word' }}>{item.name}</span>
+                  </div>
+                  {item.cupSizeLabel && <div className="pl-6 text-[10px] font-bold uppercase text-gray-600 italic leading-none mt-1">{item.cupSizeLabel} SIZE</div>}
+                </div>
+                <div className="font-black text-sm" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  ₱{(Number(item.sellingPrice || item.price || item.finalPrice) * item.qty).toFixed(2)}
+                </div>
+              </div>
+
+              {/* Add-ons/Options */}
+              <div className="pl-6 space-y-0.5 mt-1">
+                {item.sugarLevel && <div className="text-[10px] font-medium text-gray-500">• Sugar {item.sugarLevel}</div>}
+                {item.options?.map((o: string) => (
+                  <div key={o} className="text-[10px] font-medium text-gray-500">• {o}</div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Totals Section */}
+        <div className="border-t-4 border-double border-black pt-4 mb-8">
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">TOTAL AMOUNT DUE</span>
+            <div className="flex items-baseline gap-1 font-black" style={{ maxWidth: '100%' }}>
+              <span className="text-xl pt-1">₱</span>
+              <span className="tracking-tighter leading-none" style={{ fontSize: '36pt' }}>{totalAmount.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center pt-4 border-t border-dashed border-gray-300">
+          <p className="text-[9px] font-black uppercase tracking-widest mb-2 leading-tight">
+            NOT AN OFFICIAL RECEIPT<br/>
+            PLEASE PRESENT TO THE COUNTER
+          </p>
+          <div className="bg-gray-100 p-2 text-[8px] font-mono uppercase tracking-tighter opacity-80" style={{ wordBreak: 'break-all' }}>
+            {orNumber}<br/>
+            {formattedDate} — {formattedTime}
+          </div>
+
+          <div className="mt-6 opacity-20 flex flex-col items-center">
+            <div className="w-20 h-20 border-2 border-black rounded-lg flex items-center justify-center">
+              <span className="text-[9px] font-black rotate-[-45deg] whitespace-nowrap">SCAN HERE</span>
+            </div>
+            <p className="text-[8px] mt-2 font-black uppercase tracking-widest">Lucky Boba Kiosk</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // KitchenPrint
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -920,7 +1030,7 @@ export const StickerPrint = ({
   });
 
   return (
-    <div className="printable-receipt-container hidden print:block">
+    <div className="printable-receipt-container sticker-mode hidden print:block">
       {stickers}
     </div>
   );
