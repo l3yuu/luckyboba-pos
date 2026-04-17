@@ -378,8 +378,9 @@ const KioskPage = () => {
       
       // Auto-reset timer
       setTimeout(handleReset, 30000);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to place order. Please call staff.';
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      const msg = error.response?.data?.message || 'Failed to place order. Please call staff.';
       setErrorMessage(msg);
       setShowErrorModal(true);
     } finally {
