@@ -209,11 +209,20 @@ class RecipeSeeder extends Seeder
         // ----------------------------------------------------------------
         // 6. HOT COFFEE SERIES CATEGORY
         // ----------------------------------------------------------------
+        $hotDrinksRecipes = [
+            ['HOT RED VELVET',   'M', [$frac($straw, 1), $frac($pCup8, 1), $frac($ndc, 0.005)]],
+            ['HOT RED VELVET',   'L', [$frac($straw, 1), $frac($pCup12, 1), $frac($ndc, 0.01)]],
+            ['HOT CHOCOLATE',    'M', [$frac($straw, 1), $frac($pCup8, 1), $frac($ndc, 0.005)]],
+            ['HOT CHOCOLATE',    'L', [$frac($straw, 1), $frac($pCup12, 1), $frac($ndc, 0.01)]],
+            ['CHOCOLATE SMORES', 'M', [$frac($straw, 1), $frac($pCup8, 1), $frac($ndc, 0.005)]],
+            ['CHOCOLATE SMORES', 'L', [$frac($straw, 1), $frac($pCup12, 1), $frac($ndc, 0.01)]],
+        ];
+
         $hotCoffeeRecipes = [
             ['DARK ROAST COFFEE',     'M', [$frac($straw, 1), $frac($pCup8, 1), $frac($groundCoffee, 0.01)]],
             ['DARK ROAST COFFEE',     'L', [$frac($straw, 1), $frac($pCup12, 1), $frac($groundCoffee, 0.01)]],
-            ['HOT MOCHA COFFEE',      'M', [$frac($straw, 1), $frac($pCup8, 1), $frac($groundCoffee, 0.01)]],
-            ['HOT MOCHA COFFEE',      'L', [$frac($straw, 1), $frac($pCup12, 1), $frac($groundCoffee, 0.01)]],
+            ['HOT MOCHA COFFEE',      'M', [$frac($straw, 1), $frac($pCup8, 1), $frac($groundCoffee, 0.01), $frac($ndc, 0.005)]],
+            ['HOT MOCHA COFFEE',      'L', [$frac($straw, 1), $frac($pCup12, 1), $frac($groundCoffee, 0.01), $frac($ndc, 0.01)]],
             ['HOT CARAMEL MACCHIATO', 'M', [$frac($straw, 1), $frac($pCup8, 1), $frac($groundCoffee, 0.01)]],
             ['HOT CARAMEL MACCHIATO', 'L', [$frac($straw, 1), $frac($pCup12, 1), $frac($groundCoffee, 0.01)]],
         ];
@@ -304,6 +313,7 @@ class RecipeSeeder extends Seeder
             $cheesecakeRecipes,
             $rocksaltRecipes,
             $flavoredRecipes,
+            $hotDrinksRecipes,
             $hotCoffeeRecipes,
             $icedCoffeeRecipes,
             $coffeeFrappeRecipes,

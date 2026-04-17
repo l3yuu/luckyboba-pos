@@ -344,7 +344,8 @@ class MenuSeeder extends Seeder
                 ['name' => "HOT MATCHA",       'price' => 75.00, 'barcode' => "HDL3", 'size' => 'L',    'grab_price' => 30.00, 'panda_price' => 30.00],
                 ['name' => "HOT CHOCOLATE",    'price' => 55.00, 'barcode' => "HDM1", 'size' => 'M',    'grab_price' => 20.00, 'panda_price' => 20.00],
                 ['name' => "HOT CHOCOLATE",    'price' => 75.00, 'barcode' => "HDL1", 'size' => 'L',    'grab_price' => 30.00, 'panda_price' => 30.00],
-                ['name' => "CHOCOLATE SMORES", 'price' => 85.00, 'barcode' => "HDM4", 'size' => 'none', 'grab_price' => 0.00,  'panda_price' => 0.00],
+                ['name' => "CHOCOLATE SMORES", 'price' => 85.00, 'barcode' => "HDM4", 'size' => 'M',    'grab_price' => 0.00,  'panda_price' => 0.00],
+                ['name' => "CHOCOLATE SMORES", 'price' => 105.00, 'barcode' => "HDL4", 'size' => 'L',   'grab_price' => 0.00,  'panda_price' => 0.00],
             ],
             'ICED COFFEE' => [
                 ['name' => "ICED COFFEE CLASSIC",    'price' => 85.00,  'barcode' => "ICM1", 'size' => 'M', 'grab_price' => 25.00, 'panda_price' => 25.00],
