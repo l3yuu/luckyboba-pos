@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import logo from '../../assets/logo.png';
 import api from '../../services/api';
 import KioskLayout from '../../components/Kiosk/KioskLayout';
-import { 
-  ShoppingBag, 
-  ChevronRight, 
-  CheckCircle2, 
-  Trash2, 
-  Plus, 
+import {
+  ShoppingBag,
+  ChevronRight,
+  CheckCircle2,
+  Trash2,
+  Plus,
   Minus,
   Search,
   X,
@@ -103,7 +103,7 @@ const KioskPage = () => {
   const [branchSearch, setBranchSearch] = useState('');
   const [branchName, setBranchName] = useState<string>('Lucky Boba');
   const [selectedBranchToConfirm, setSelectedBranchToConfirm] = useState<Branch | null>(null);
-  
+
   // Customization State
   const [allAddOns, setAllAddOns] = useState<AddOnOption[]>([]);
   const [sugarLevels, setSugarLevels] = useState<SugarLevelOption[]>([]);
@@ -111,11 +111,11 @@ const KioskPage = () => {
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnOption[]>([]);
   const [selectedSugarLevel, setSelectedSugarLevel] = useState<string>('100%');
-  
+
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
-  
+
   // Order Status State
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -136,7 +136,7 @@ const KioskPage = () => {
     const initKiosk = async () => {
       const params = new URLSearchParams(window.location.search);
       let bIdAttr = params.get('branch_id');
-      
+
       // If not in URL, check localStorage
       if (!bIdAttr) {
         bIdAttr = localStorage.getItem('kiosk_branch_id');
@@ -146,7 +146,7 @@ const KioskPage = () => {
         const parsedId = parseInt(bIdAttr);
         setBranchId(parsedId);
         localStorage.setItem('kiosk_branch_id', bIdAttr);
-        
+
         try {
           setLoading(true);
           const [res, aoRes, slRes] = await Promise.all([
@@ -154,10 +154,10 @@ const KioskPage = () => {
             api.get('/add-ons'),
             api.get('/sugar-levels')
           ]);
-          
+
           const rawItems: MenuItem[] = res.data;
           setItems(rawItems);
-          
+
           const cats = Array.from(new Set(rawItems.map(i => i.category))).filter(Boolean);
           setCategories(cats);
           if (cats.length > 0) setActiveCategory(cats[0]);
@@ -208,7 +208,7 @@ const KioskPage = () => {
   const confirmBranchSelection = () => {
     if (!selectedBranchToConfirm) return;
     const branch = selectedBranchToConfirm;
-    
+
     setBranchId(branch.id);
     setBranchName(branch.name);
     localStorage.setItem('kiosk_branch_id', branch.id.toString());
@@ -223,7 +223,7 @@ const KioskPage = () => {
           api.get('/add-ons'),
           api.get('/sugar-levels')
         ]);
-        
+
         const rawItems: MenuItem[] = res.data;
         setItems(rawItems);
         const cats = Array.from(new Set(rawItems.map(i => i.category))).filter(Boolean);
@@ -266,7 +266,7 @@ const KioskPage = () => {
       // We calculate a unique key for grouping same items with same customizations
       const addonIds = addons.map(a => a.id).sort().join(',');
       // groupKey REMOVED to fix lint warning (manually comparing below)
-      
+
       const existing = prev.find((i: CartItem) => {
         const iAddonIds = (i.selectedAddOns || []).map(a => a.id).sort().join(',');
         return i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds;
@@ -286,9 +286,9 @@ const KioskPage = () => {
         });
       }
 
-      return [...prev, { 
-        ...item, 
-        qty: 1, 
+      return [...prev, {
+        ...item,
+        qty: 1,
         uniqueId: Math.random().toString(36).substr(2, 9),
         selectedAddOns: addons,
         selectedSugarLevel: sugar,
@@ -299,12 +299,12 @@ const KioskPage = () => {
 
   const handleItemClick = (item: MenuItem) => {
     const cat = item.category?.toLowerCase() || '';
-    const needsCustomization = cat.includes('milk tea') || cat.includes('milktea') || 
-                               cat.includes('coffee') || cat.includes('yakult') || 
-                               cat.includes('fruit') || cat.includes('yogurt') || 
-                               cat.includes('waffle') || cat.includes('frappe') || 
-                               cat.includes('series') || cat.includes('drink');
-    
+    const needsCustomization = cat.includes('milk tea') || cat.includes('milktea') ||
+      cat.includes('coffee') || cat.includes('yakult') ||
+      cat.includes('fruit') || cat.includes('yogurt') ||
+      cat.includes('waffle') || cat.includes('frappe') ||
+      cat.includes('series') || cat.includes('drink');
+
     if (needsCustomization) {
       setCustomizingItem(item);
       setSelectedAddOns([]);
@@ -339,7 +339,7 @@ const KioskPage = () => {
       setLoading(true);
       const timestamp = Math.floor(Date.now() / 1000).toString();
       const siNumber = `KSK-${timestamp}`;
-      
+
       const total = calculateTotal();
       const vatableSales = total / 1.12;
       const vatAmount = total - vatableSales;
@@ -347,7 +347,7 @@ const KioskPage = () => {
       const payload = {
         si_number: siNumber,
         branch_id: branchId,
-        payment_method: 'cash', 
+        payment_method: 'cash',
         status: 'pending',
         source: 'kiosk',
         order_type: orderType,
@@ -375,7 +375,7 @@ const KioskPage = () => {
       setPrintData({ invoice: siNumber, cart: [...cart] });
       setStep('confirm');
       setConfirmCountdown(30);
-      
+
       // Auto-reset timer
       setTimeout(handleReset, 30000);
     } catch (err: unknown) {
@@ -414,7 +414,7 @@ const KioskPage = () => {
   // --- Views ---
 
   const SplashView = () => (
-    <div 
+    <div
       className="flex-1 flex flex-col items-center justify-between p-10 lg:p-16 cursor-pointer relative overflow-hidden animate-in fade-in duration-700 bg-gradient-to-br from-violet-50 via-white to-violet-100"
       onClick={() => setStep('order_type')}
     >
@@ -432,7 +432,7 @@ const KioskPage = () => {
       {/* Center Section - Hero & Branding */}
       <div className="flex flex-col items-center justify-center flex-1 relative z-10 w-full px-4 gap-12 lg:gap-20">
         <img src={logo} alt="Lucky Boba" className="w-[300px] lg:w-[500px] h-auto object-contain drop-shadow-2xl" />
-        
+
         <div className="flex flex-col items-center gap-6 lg:gap-10">
           <h1 className="text-5xl lg:text-8xl font-black text-[#3b2063] text-center italic tracking-tight drop-shadow-sm pointer-events-none">
             Life's Better with Boba.
@@ -442,7 +442,7 @@ const KioskPage = () => {
           </p>
         </div>
       </div>
-      
+
       {/* Bottom Section - CTA */}
       <div className="w-full flex justify-center pb-16 lg:pb-32 relative z-10 shrink-0">
         <button className="bg-[#3b2063] text-white px-20 py-10 rounded-full font-black text-3xl lg:text-5xl uppercase tracking-widest shadow-[0_30px_60px_-15px_rgba(59,32,99,0.7)] animate-pulse hover:scale-105 transition-transform flex items-center gap-4">
@@ -467,82 +467,73 @@ const KioskPage = () => {
       <div className="flex-1 flex flex-col items-center justify-center gap-20 w-full max-w-6xl mx-auto">
         <div className="flex gap-20 w-full justify-center">
           {/* Dine In - SLIGHT ACCENT */}
-          <button 
+          <button
             onClick={() => setOrderType('dine_in')}
-            className={`group relative flex-1 max-w-md aspect-[4/5] bg-white rounded-[3rem] shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-14 overflow-hidden ${
-              orderType === 'dine_in' 
-                ? 'border-4 border-violet-600 shadow-violet-200/50 scale-105 bg-violet-50/30' 
+            className={`group relative flex-1 max-w-md aspect-[4/5] bg-white rounded-[3rem] shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-14 overflow-hidden ${orderType === 'dine_in'
+                ? 'border-4 border-violet-600 shadow-violet-200/50 scale-105 bg-violet-50/30'
                 : 'border-2 border-transparent hover:border-violet-300 hover:-translate-y-2'
-            }`}
+              }`}
           >
             {orderType === 'dine_in' && (
               <div className="absolute top-10 right-10 text-violet-600 animate-in zoom-in duration-300">
                 <CheckCircle2 size={48} className="fill-violet-100" />
               </div>
             )}
-            <div className={`w-52 h-52 rounded-full flex items-center justify-center mb-10 transition-all duration-500 ${
-              orderType === 'dine_in' ? 'bg-violet-600 rotate-12 scale-110 shadow-xl shadow-violet-300' : 'bg-violet-50 group-hover:bg-violet-100 group-hover:scale-105 group-hover:rotate-6'
-            }`}>
-              <svg xmlns="http://www.w3.org/2000/svg" className={`w-24 h-24 transition-colors ${
-                orderType === 'dine_in' ? 'text-white' : 'text-violet-600 group-hover:text-violet-700'
-              }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className={`w-52 h-52 rounded-full flex items-center justify-center mb-10 transition-all duration-500 ${orderType === 'dine_in' ? 'bg-violet-600 rotate-12 scale-110 shadow-xl shadow-violet-300' : 'bg-violet-50 group-hover:bg-violet-100 group-hover:scale-105 group-hover:rotate-6'
+              }`}>
+              <svg xmlns="http://www.w3.org/2000/svg" className={`w-24 h-24 transition-colors ${orderType === 'dine_in' ? 'text-white' : 'text-violet-600 group-hover:text-violet-700'
+                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
             </div>
-            <h3 className={`text-5xl font-black uppercase italic transition-colors ${
-              orderType === 'dine_in' ? 'text-violet-900' : 'text-zinc-900 group-hover:text-violet-800'
-            }`}>Dine In</h3>
+            <h3 className={`text-5xl font-black uppercase italic transition-colors ${orderType === 'dine_in' ? 'text-violet-900' : 'text-zinc-900 group-hover:text-violet-800'
+              }`}>Dine In</h3>
             <p className="mt-6 text-zinc-400 font-bold uppercase tracking-[0.2em] text-sm">Eat here at our branch</p>
           </button>
 
           {/* Take Out */}
-          <button 
+          <button
             onClick={() => setOrderType('take_out')}
-            className={`group relative flex-1 max-w-md aspect-[4/5] bg-white rounded-[3rem] shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-14 overflow-hidden ${
-              orderType === 'take_out' 
-                ? 'border-4 border-violet-600 shadow-violet-200/50 scale-105 bg-violet-50/30' 
+            className={`group relative flex-1 max-w-md aspect-[4/5] bg-white rounded-[3rem] shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-14 overflow-hidden ${orderType === 'take_out'
+                ? 'border-4 border-violet-600 shadow-violet-200/50 scale-105 bg-violet-50/30'
                 : 'border-2 border-transparent hover:border-violet-300 hover:-translate-y-2'
-            }`}
+              }`}
           >
             {orderType === 'take_out' && (
               <div className="absolute top-10 right-10 text-violet-600 animate-in zoom-in duration-300">
                 <CheckCircle2 size={48} className="fill-violet-100" />
               </div>
             )}
-            <div className={`w-52 h-52 rounded-full flex items-center justify-center mb-10 transition-all duration-500 ${
-              orderType === 'take_out' ? 'bg-violet-600 rotate-12 scale-110 shadow-xl shadow-violet-300' : 'bg-violet-50 group-hover:bg-violet-100 group-hover:scale-105 group-hover:rotate-6'
-            }`}>
-              <svg xmlns="http://www.w3.org/2000/svg" className={`w-24 h-24 transition-colors ${
-                orderType === 'take_out' ? 'text-white' : 'text-violet-600 group-hover:text-violet-700'
-              }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className={`w-52 h-52 rounded-full flex items-center justify-center mb-10 transition-all duration-500 ${orderType === 'take_out' ? 'bg-violet-600 rotate-12 scale-110 shadow-xl shadow-violet-300' : 'bg-violet-50 group-hover:bg-violet-100 group-hover:scale-105 group-hover:rotate-6'
+              }`}>
+              <svg xmlns="http://www.w3.org/2000/svg" className={`w-24 h-24 transition-colors ${orderType === 'take_out' ? 'text-white' : 'text-violet-600 group-hover:text-violet-700'
+                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
             </div>
-            <h3 className={`text-5xl font-black uppercase italic transition-colors ${
-              orderType === 'take_out' ? 'text-violet-900' : 'text-zinc-900 group-hover:text-violet-800'
-            }`}>Take Out</h3>
+            <h3 className={`text-5xl font-black uppercase italic transition-colors ${orderType === 'take_out' ? 'text-violet-900' : 'text-zinc-900 group-hover:text-violet-800'
+              }`}>Take Out</h3>
             <p className="mt-6 text-zinc-400 font-bold uppercase tracking-[0.2em] text-sm">Enjoy your boba at home</p>
           </button>
         </div>
 
         {/* Action Buttons */}
         <div className="w-full flex justify-between items-center mt-6 px-10">
-          <button 
+          <button
             onClick={() => setStep('splash')}
             className="text-zinc-400 font-bold uppercase tracking-widest text-xs hover:text-red-500 transition-colors flex items-center gap-2 px-6 py-4"
           >
             <X size={16} />
             Cancel Order
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setStep('menu')}
             disabled={!orderType}
-            className={`px-12 py-6 rounded-full font-black text-xl uppercase tracking-widest transition-all shadow-lg flex items-center gap-4 ${
-              orderType 
-                ? 'bg-violet-600 text-white shadow-violet-300 hover:bg-violet-700 hover:scale-105 active:scale-95 cursor-pointer animate-pulse' 
+            className={`px-12 py-6 rounded-full font-black text-xl uppercase tracking-widest transition-all shadow-lg flex items-center gap-4 ${orderType
+                ? 'bg-violet-600 text-white shadow-violet-300 hover:bg-violet-700 hover:scale-105 active:scale-95 cursor-pointer animate-pulse'
                 : 'bg-zinc-200 text-zinc-400 shadow-transparent cursor-not-allowed opacity-50'
-            }`}
+              }`}
           >
             <span>Continue</span>
             <ChevronRight size={24} />
@@ -558,10 +549,10 @@ const KioskPage = () => {
         {/* Categories Sidebar */}
         <div className="w-80 bg-white flex flex-col overflow-y-auto scrollbar-hide border-r border-zinc-100">
           <div className="p-10 pb-6 text-center">
-            <img 
-              src={logo} 
-              alt="Lucky Boba" 
-              className="w-48 h-auto cursor-pointer active:scale-95 transition-transform mx-auto" 
+            <img
+              src={logo}
+              alt="Lucky Boba"
+              className="w-48 h-auto cursor-pointer active:scale-95 transition-transform mx-auto"
               onClick={handleLogoClick}
             />
             <span className="text-sm font-black text-violet-900/40 uppercase tracking-[0.2em] mb-4 block mt-10">Categories</span>
@@ -573,11 +564,10 @@ const KioskPage = () => {
             }}
             className="px-6 py-4 group transition-all w-full"
           >
-            <div className={`px-6 py-5 rounded-2xl text-left transition-all flex items-center justify-between ${
-              activeCategory === '' && searchQuery === '' 
-                ? 'bg-violet-600 text-white shadow-xl shadow-violet-200 font-black' 
+            <div className={`px-6 py-5 rounded-2xl text-left transition-all flex items-center justify-between ${activeCategory === '' && searchQuery === ''
+                ? 'bg-violet-600 text-white shadow-xl shadow-violet-200 font-black'
                 : 'text-zinc-500 hover:bg-zinc-50 font-bold'
-            }`}>
+              }`}>
               <span className="text-lg uppercase tracking-wider leading-tight truncate">All Items</span>
             </div>
           </button>
@@ -590,11 +580,10 @@ const KioskPage = () => {
               }}
               className="px-6 py-4 group transition-all w-full"
             >
-              <div className={`px-6 py-5 rounded-2xl text-left transition-all flex items-center justify-between gap-3 overflow-hidden ${
-                activeCategory === cat 
-                  ? 'bg-violet-600 text-white shadow-xl shadow-violet-200 font-black' 
+              <div className={`px-6 py-5 rounded-2xl text-left transition-all flex items-center justify-between gap-3 overflow-hidden ${activeCategory === cat
+                  ? 'bg-violet-600 text-white shadow-xl shadow-violet-200 font-black'
                   : 'text-zinc-500 hover:bg-zinc-50 font-bold'
-              }`}>
+                }`}>
                 <span className="text-lg uppercase tracking-wider leading-tight truncate">
                   {cat}
                 </span>
@@ -612,8 +601,8 @@ const KioskPage = () => {
           <div className="bg-white px-10 py-6 border-b border-zinc-100 flex items-center gap-6">
             <div className="relative flex-1 max-w-xl">
               <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Search your favorite boba..."
                 value={searchQuery}
                 onChange={(e) => {
@@ -644,10 +633,10 @@ const KioskPage = () => {
                       <div className="h-px flex-1 bg-zinc-100"></div>
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{categoryItems.length} Items</span>
                     </div>
-                    
+
                     <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                       {categoryItems.map((item: MenuItem) => (
-                        <div 
+                        <div
                           key={item.id}
                           onClick={() => handleItemClick(item)}
                           className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex flex-col items-center text-center active:scale-[0.98] transition-all cursor-pointer group hover:shadow-xl hover:shadow-violet-200/40 hover:border-violet-300 relative h-full"
@@ -665,12 +654,12 @@ const KioskPage = () => {
                           <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1">
                             {item.name.toLowerCase()}
                           </h3>
-                          
+
                           <div className="w-full flex items-center justify-between mt-auto pt-2 px-1 text-xs">
                             <div className="text-[#3b2063] font-black text-2xl">
                               ₱{Number(item.sellingPrice).toFixed(2)}
                             </div>
-                            
+
                             <button className="bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm">
                               <Plus size={20} strokeWidth={3} />
                             </button>
@@ -691,7 +680,7 @@ const KioskPage = () => {
                 </div>
                 <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                   {items.filter(i => !i.category).map((item) => (
-                    <div 
+                    <div
                       key={item.id}
                       onClick={() => handleItemClick(item)}
                       className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex flex-col items-center text-center active:scale-[0.98] transition-all cursor-pointer group hover:shadow-xl hover:shadow-violet-200/40 hover:border-violet-300 relative h-full"
@@ -753,16 +742,16 @@ const KioskPage = () => {
                   <div className="flex-1 min-w-0">
                     <h4 className="font-black text-zinc-800 uppercase text-xs mb-1 truncate">{item.name}</h4>
                     <div className="flex flex-wrap gap-1 mb-2">
-                       {item.selectedSugarLevel && (
-                         <span className="text-[8px] px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded-md font-bold uppercase tracking-tight">
-                           {item.selectedSugarLevel}
-                         </span>
-                       )}
-                       {item.selectedAddOns?.map(ao => (
-                         <span key={ao.id} className="text-[8px] px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-md font-bold uppercase tracking-tight">
-                           + {ao.name}
-                         </span>
-                       ))}
+                      {item.selectedSugarLevel && (
+                        <span className="text-[8px] px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded-md font-bold uppercase tracking-tight">
+                          {item.selectedSugarLevel}
+                        </span>
+                      )}
+                      {item.selectedAddOns?.map(ao => (
+                        <span key={ao.id} className="text-[8px] px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-md font-bold uppercase tracking-tight">
+                          + {ao.name}
+                        </span>
+                      ))}
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center bg-zinc-100 rounded-lg">
@@ -797,15 +786,15 @@ const KioskPage = () => {
                 <span className="text-zinc-400 text-[8px] uppercase font-bold">Cash/Card accepted</span>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
-              <button 
+              <button
                 onClick={handleReset}
                 className="py-5 rounded-2xl bg-white border border-zinc-200 text-zinc-400 font-bold uppercase tracking-widest text-[10px] hover:text-red-500 transition-all active:scale-95"
               >
                 Clear
               </button>
-              <button 
+              <button
                 onClick={handleSubmit}
                 disabled={cart.length === 0 || loading}
                 className="py-5 rounded-2xl bg-violet-600 text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-violet-100 active:scale-95 transition-all disabled:opacity-30 disabled:active:scale-100"
@@ -836,7 +825,7 @@ const KioskPage = () => {
                     <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{customizingItem.category}</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setShowCustomizer(false)}
                   className="w-12 h-12 bg-zinc-100 text-zinc-400 rounded-full flex items-center justify-center hover:bg-zinc-200 transition-colors"
                 >
@@ -847,30 +836,29 @@ const KioskPage = () => {
               {/* Modal Body */}
               <div className="flex-1 overflow-y-auto p-10 space-y-12 scrollbar-hide">
                 {/* Sugar Level Selection */}
-                {(customizingItem.category?.toLowerCase().includes('milk tea') || 
+                {(customizingItem.category?.toLowerCase().includes('milk tea') ||
                   customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-6 h-6 bg-violet-600 text-white rounded-lg flex items-center justify-center text-[10px] font-black">1</div>
-                      <h4 className="font-black text-zinc-900 uppercase tracking-widest text-xs italic">Select Sugar Level</h4>
+                    <div>
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-6 h-6 bg-violet-600 text-white rounded-lg flex items-center justify-center text-[10px] font-black">1</div>
+                        <h4 className="font-black text-zinc-900 uppercase tracking-widest text-xs italic">Select Sugar Level</h4>
+                      </div>
+                      <div className="grid grid-cols-5 gap-3">
+                        {sugarLevels.map((sl) => (
+                          <button
+                            key={sl.id}
+                            onClick={() => setSelectedSugarLevel(sl.value)}
+                            className={`py-6 rounded-2xl font-black text-sm transition-all border-2 ${selectedSugarLevel === sl.value
+                                ? 'bg-violet-600 border-violet-600 text-white shadow-xl shadow-violet-200 active:scale-95'
+                                : 'bg-white border-zinc-100 text-zinc-400 hover:border-violet-200'
+                              }`}
+                          >
+                            {sl.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-5 gap-3">
-                      {sugarLevels.map((sl) => (
-                        <button
-                          key={sl.id}
-                          onClick={() => setSelectedSugarLevel(sl.value)}
-                          className={`py-6 rounded-2xl font-black text-sm transition-all border-2 ${
-                            selectedSugarLevel === sl.value
-                              ? 'bg-violet-600 border-violet-600 text-white shadow-xl shadow-violet-200 active:scale-95'
-                              : 'bg-white border-zinc-100 text-zinc-400 hover:border-violet-200'
-                          }`}
-                        >
-                          {sl.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Addons Selection */}
                 <div>
@@ -885,7 +873,7 @@ const KioskPage = () => {
                       .filter(ao => {
                         const itemCat = customizingItem.category?.toLowerCase() || '';
                         if (itemCat.includes('waffle')) return ao.category === 'waffle';
-                        return ao.category === 'drink' || ao.category === 'Toppings'; 
+                        return ao.category === 'drink' || ao.category === 'Toppings';
                       })
                       .map((ao) => {
                         const isSelected = selectedAddOns.some(a => a.id === ao.id);
@@ -893,22 +881,20 @@ const KioskPage = () => {
                           <button
                             key={ao.id}
                             onClick={() => {
-                              setSelectedAddOns(prev => 
-                                isSelected 
-                                  ? prev.filter(p => p.id !== ao.id) 
+                              setSelectedAddOns(prev =>
+                                isSelected
+                                  ? prev.filter(p => p.id !== ao.id)
                                   : [...prev, ao]
                               );
                             }}
-                            className={`p-6 rounded-3xl border-2 flex items-center justify-between transition-all group ${
-                              isSelected
+                            className={`p-6 rounded-3xl border-2 flex items-center justify-between transition-all group ${isSelected
                                 ? 'border-violet-600 bg-violet-50/50 shadow-lg shadow-violet-100 active:scale-95'
                                 : 'border-zinc-100 bg-white hover:border-violet-200 active:scale-95'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center gap-4">
-                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                                isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-300'
-                              }`}>
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-300'
+                                }`}>
                                 {isSelected ? <Plus size={18} strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-current" />}
                               </div>
                               <span className={`font-black uppercase text-[11px] ${isSelected ? 'text-violet-900' : 'text-zinc-500'}`}>
@@ -931,12 +917,12 @@ const KioskPage = () => {
                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Total Item Price</p>
                   <div className="text-4xl font-black text-zinc-900 italic tracking-tighter">
                     ₱{(
-                      Number(customizingItem.sellingPrice) + 
+                      Number(customizingItem.sellingPrice) +
                       selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
                     ).toFixed(2)}
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={confirmCustomization}
                   className="bg-violet-600 text-white px-12 py-6 rounded-full font-black uppercase tracking-[0.2em] shadow-2xl shadow-violet-200 flex items-center gap-4 hover:bg-violet-700 transition-all transform hover:scale-105 active:scale-95"
                 >
@@ -957,72 +943,72 @@ const KioskPage = () => {
         <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 shrink-0 shadow-lg shadow-emerald-200/50">
           <CheckCircle2 size={32} />
         </div>
-      
-      <h1 className="text-3xl font-black mb-1 uppercase tracking-tight italic text-[#3b2063]">Order Placed!</h1>
-      <p className="text-[#3b2063]/60 font-bold mb-10 uppercase tracking-widest text-xs">Please proceed to the cashier for payment</p>
-      
-      <div className="w-full max-w-sm relative">
-        <div className="absolute -top-3 left-0 right-0 h-4 bg-white" style={{ 
-          clipPath: 'polygon(0% 100%, 5% 0%, 10% 100%, 15% 0%, 20% 100%, 25% 0%, 30% 100%, 35% 0%, 40% 100%, 45% 0%, 50% 100%, 55% 0%, 60% 100%, 65% 0%, 70% 100%, 75% 0%, 80% 100%, 85% 0%, 90% 100%, 95% 0%, 100% 100%)' 
-        }}></div>
 
-        <div className="bg-white p-8 pt-12 pb-12 shadow-[0_20px_50px_rgba(59,32,99,0.12)] text-center border-x border-gray-100">
-          <img src={logo} alt="Logo" className="w-24 h-auto mx-auto mb-6 grayscale opacity-90" />
-          
-          <div className="border-y-2 border-dashed border-gray-200 py-8 mb-6">
-            <p className="text-gray-400 font-black uppercase tracking-[0.2em] mb-2 text-[10px]">Your Ticket Number</p>
-            <h2 className="text-7xl font-black text-[#3b2063] tracking-tighter italic font-mono">
-              #{orderNumber}
-            </h2>
-          </div>
+        <h1 className="text-3xl font-black mb-1 uppercase tracking-tight italic text-[#3b2063]">Order Placed!</h1>
+        <p className="text-[#3b2063]/60 font-bold mb-10 uppercase tracking-widest text-xs">Please proceed to the cashier for payment</p>
 
-          <button 
-            onClick={() => window.print()}
-            className="w-full mb-8 py-4 bg-zinc-50 hover:bg-zinc-100 text-zinc-400 font-bold uppercase tracking-widest text-[10px] rounded-2xl border border-zinc-100 transition-all flex items-center justify-center gap-2"
-          >
-            <Plus size={14} />
-            Reprint Ticket
-          </button>
+        <div className="w-full max-w-sm relative">
+          <div className="absolute -top-3 left-0 right-0 h-4 bg-white" style={{
+            clipPath: 'polygon(0% 100%, 5% 0%, 10% 100%, 15% 0%, 20% 100%, 25% 0%, 30% 100%, 35% 0%, 40% 100%, 45% 0%, 50% 100%, 55% 0%, 60% 100%, 65% 0%, 70% 100%, 75% 0%, 80% 100%, 85% 0%, 90% 100%, 95% 0%, 100% 100%)'
+          }}></div>
 
-          <div className="space-y-4 mb-8 text-center text-[11px] font-bold text-gray-500 uppercase tracking-tight px-2">
-            <div className="flex justify-between border-t border-gray-50 pt-6">
-              <span className="text-gray-400">Total Due:</span>
-              <span className="text-2xl text-[#3b2063] font-black">₱{calculateTotal().toFixed(2)}</span>
+          <div className="bg-white p-8 pt-12 pb-12 shadow-[0_20px_50px_rgba(59,32,99,0.12)] text-center border-x border-gray-100">
+            <img src={logo} alt="Logo" className="w-24 h-auto mx-auto mb-6 grayscale opacity-90" />
+
+            <div className="border-y-2 border-dashed border-gray-200 py-8 mb-6">
+              <p className="text-gray-400 font-black uppercase tracking-[0.2em] mb-2 text-[10px]">Your Ticket Number</p>
+              <h2 className="text-7xl font-black text-[#3b2063] tracking-tighter italic font-mono">
+                #{orderNumber}
+              </h2>
+            </div>
+
+            <button
+              onClick={() => window.print()}
+              className="w-full mb-8 py-4 bg-zinc-50 hover:bg-zinc-100 text-zinc-400 font-bold uppercase tracking-widest text-[10px] rounded-2xl border border-zinc-100 transition-all flex items-center justify-center gap-2"
+            >
+              <Plus size={14} />
+              Reprint Ticket
+            </button>
+
+            <div className="space-y-4 mb-8 text-center text-[11px] font-bold text-gray-500 uppercase tracking-tight px-2">
+              <div className="flex justify-between border-t border-gray-50 pt-6">
+                <span className="text-gray-400">Total Due:</span>
+                <span className="text-2xl text-[#3b2063] font-black">₱{calculateTotal().toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="text-[9px] text-gray-300 font-bold uppercase tracking-[0.2em]">
+              {new Date().toLocaleDateString()} — {new Date().toLocaleTimeString()}
             </div>
           </div>
 
-          <div className="text-[9px] text-gray-300 font-bold uppercase tracking-[0.2em]">
-            {new Date().toLocaleDateString()} — {new Date().toLocaleTimeString()}
-          </div>
+          <div className="absolute -bottom-3 left-0 right-0 h-4 bg-white" style={{
+            clipPath: 'polygon(0% 0%, 5% 100%, 10% 0%, 15% 100%, 20% 0%, 25% 100%, 30% 0%, 35% 100%, 40% 0%, 45% 100%, 50% 0%, 55% 100%, 60% 0%, 65% 100%, 70% 0%, 75% 100%, 80% 0%, 85% 100%, 90% 0%, 95% 100%, 100% 0%)'
+          }}></div>
         </div>
 
-        <div className="absolute -bottom-3 left-0 right-0 h-4 bg-white" style={{ 
-          clipPath: 'polygon(0% 0%, 5% 100%, 10% 0%, 15% 100%, 20% 0%, 25% 100%, 30% 0%, 35% 100%, 40% 0%, 45% 100%, 50% 0%, 55% 100%, 60% 0%, 65% 100%, 70% 0%, 75% 100%, 80% 0%, 85% 100%, 90% 0%, 95% 100%, 100% 0%)' 
-        }}></div>
-      </div>
+        <div className="flex flex-col items-center gap-4 mt-12 mb-10 w-full max-w-sm shrink-0">
+          <button
+            onClick={handleReset}
+            className="bg-[#3b2063] text-white w-full py-8 rounded-full font-black uppercase tracking-[0.2em] flex items-center justify-center gap-4 hover:bg-[#2d184d] transition-all transform hover:scale-105 shadow-2xl shadow-[#3b2063]/30 active:scale-95"
+          >
+            <span className="text-xl">Finish Order ({confirmCountdown}s)</span>
+            <ChevronRight size={24} />
+          </button>
 
-      <div className="flex flex-col items-center gap-4 mt-12 mb-10 w-full max-w-sm shrink-0">
-        <button
-          onClick={handleReset}
-          className="bg-[#3b2063] text-white w-full py-8 rounded-full font-black uppercase tracking-[0.2em] flex items-center justify-center gap-4 hover:bg-[#2d184d] transition-all transform hover:scale-105 shadow-2xl shadow-[#3b2063]/30 active:scale-95"
-        >
-          <span className="text-xl">Finish Order ({confirmCountdown}s)</span>
-          <ChevronRight size={24} />
-        </button>
-
-        <button
-          onClick={() => window.print()}
-          className="text-[#3b2063]/40 font-black uppercase tracking-widest text-[10px] hover:text-[#3b2063] transition-colors py-2"
-        >
-          Reprint Receipt
-        </button>
+          <button
+            onClick={() => window.print()}
+            className="text-[#3b2063]/40 font-black uppercase tracking-widest text-[10px] hover:text-[#3b2063] transition-colors py-2"
+          >
+            Reprint Receipt
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 
   const BranchSelectorView = () => {
-    const filtered = allBranches.filter(b => 
+    const filtered = allBranches.filter(b =>
       b.name.toLowerCase().includes(branchSearch.toLowerCase()) ||
       b.address?.toLowerCase().includes(branchSearch.toLowerCase())
     );
@@ -1074,7 +1060,7 @@ const KioskPage = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col gap-2 w-full mt-2">
                   <div className="flex items-start gap-2 text-zinc-500">
                     <MapPin size={14} className="shrink-0 mt-0.5 text-zinc-400" />
@@ -1128,7 +1114,7 @@ const KioskPage = () => {
         />
       )}
 
-      
+
       {loading && step !== 'menu' && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center print:hidden">
           <div className="flex flex-col items-center gap-4">
@@ -1149,13 +1135,13 @@ const KioskPage = () => {
               Set this kiosk to <strong className="text-zinc-800">{selectedBranchToConfirm.name}</strong>? This will bind the device to this location.
             </p>
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => setSelectedBranchToConfirm(null)}
                 className="flex-1 py-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-2xl font-bold uppercase tracking-widest text-[10px] transition-colors"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={confirmBranchSelection}
                 className="flex-1 py-4 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-violet-200 transition-colors"
               >
@@ -1173,7 +1159,7 @@ const KioskPage = () => {
             <div className="w-20 h-20 bg-violet-100 text-violet-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
               <Lock size={40} />
             </div>
-            
+
             <h2 className="text-2xl font-black text-[#3b2063] uppercase italic text-center mb-2">Access Control</h2>
             <p className="text-zinc-500 text-sm text-center mb-8 font-medium">
               Enter Admin Security PIN to reset Kiosk settings.
@@ -1182,13 +1168,12 @@ const KioskPage = () => {
             {/* PIN Dots */}
             <div className="flex justify-center gap-4 mb-10">
               {[0, 1, 2, 3].map((i) => (
-                <div 
+                <div
                   key={i}
-                  className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
-                    pinInput.length > i 
-                      ? 'bg-violet-600 border-violet-600 scale-125' 
+                  className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${pinInput.length > i
+                      ? 'bg-violet-600 border-violet-600 scale-125'
                       : 'border-zinc-200'
-                  }`}
+                    }`}
                 />
               ))}
             </div>
@@ -1221,7 +1206,7 @@ const KioskPage = () => {
                   {num}
                 </button>
               ))}
-              <button 
+              <button
                 onClick={() => setPinInput('')}
                 className="h-16 rounded-2xl bg-zinc-50 text-xs font-black text-zinc-400 uppercase tracking-widest hover:bg-red-50 hover:text-red-500 active:scale-95 transition-all outline-none"
               >
@@ -1250,7 +1235,7 @@ const KioskPage = () => {
               >
                 0
               </button>
-              <button 
+              <button
                 onClick={() => setIsPinModalOpen(false)}
                 className="h-16 rounded-2xl bg-zinc-50 text-xs font-black text-zinc-400 uppercase tracking-widest hover:bg-zinc-200 hover:text-zinc-800 active:scale-95 transition-all outline-none"
               >
@@ -1278,7 +1263,7 @@ const KioskPage = () => {
             <p className="text-zinc-500 text-sm text-center mb-8 font-medium leading-relaxed">
               {errorMessage || 'Failed to place order. Please call staff for assistance.'}
             </p>
-            <button 
+            <button
               onClick={() => setShowErrorModal(false)}
               className="w-full py-6 bg-[#3b2063] hover:bg-[#2a1747] text-white rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-xl shadow-violet-100"
             >

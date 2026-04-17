@@ -4,6 +4,7 @@ import {
   AlertCircle, X, Layers, Check,
   ChevronDown, Search,
 } from "lucide-react";
+import { SkeletonBar, SkeletonBox } from "../SharedSkeletons";
 
 
 const getToken = () =>
@@ -24,9 +25,6 @@ interface SubCategory {
 }
 interface Category { id: number; name: string; color?: string; }
 
-const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
-  <div className={`w-full ${h} bg-zinc-100 rounded animate-pulse`} />
-);
 
 const TL_SubCategoriesTab: React.FC = () => {
   const [subs, setSubs] = useState<SubCategory[]>([]);
@@ -90,17 +88,21 @@ const TL_SubCategoriesTab: React.FC = () => {
     <div className="p-6 md:p-8 fade-in">
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: "Total Sub-Cats", value: subs.length, color: "bg-indigo-50 text-indigo-600 border-indigo-100" },
-          { label: "Active", value: subs.filter(s => s.is_active).length, color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
-          { label: "Inactive", value: subs.filter(s => !s.is_active).length, color: "bg-red-50 text-red-500 border-red-100" },
-          { label: "Total Items Linked", value: subs.reduce((sum, s) => sum + s.item_count, 0), color: "bg-amber-50 text-amber-600 border-amber-100" },
-        ].map((s, i) => (
-          <div key={i} className={`px-5 py-4 rounded-2xl border ${s.color}`}>
-            <p className="text-2xl font-black mb-0.5 tabular-nums">{loading ? "—" : s.value}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{s.label}</p>
-          </div>
-        ))}
+        {loading ? (
+          [...Array(4)].map((_, i) => <SkeletonBox key={i} className="h-[88px] bg-white/50" />)
+        ) : (
+          [
+            { label: "Total Sub-Cats", value: subs.length, color: "bg-indigo-50 text-indigo-600 border-indigo-100" },
+            { label: "Active", value: subs.filter(s => s.is_active).length, color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+            { label: "Inactive", value: subs.filter(s => !s.is_active).length, color: "bg-red-50 text-red-500 border-red-100" },
+            { label: "Total Items Linked", value: subs.reduce((sum, s) => sum + s.item_count, 0), color: "bg-amber-50 text-amber-600 border-amber-100" },
+          ].map((s, i) => (
+            <div key={i} className={`px-5 py-4 rounded-2xl border ${s.color}`}>
+              <p className="text-2xl font-black mb-0.5 tabular-nums">{s.value}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{s.label}</p>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Toolbar */}

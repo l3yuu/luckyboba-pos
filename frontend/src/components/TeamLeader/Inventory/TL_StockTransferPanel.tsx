@@ -10,6 +10,7 @@ import {
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
 import { AuthContext } from '../../../context/AuthContext';
+import { SkeletonBar } from '../SharedSkeletons';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -591,7 +592,15 @@ const TL_StockTransferPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
                         {loading ? [...Array(6)].map((_, i) => (
-                        <tr key={i}><td colSpan={7} className="px-7 py-6"><div className="h-4 bg-zinc-50 rounded animate-pulse w-full max-w-[220px]" /></td></tr>
+                          <tr key={i}>
+                             <td className="px-5 py-5 pl-7"><SkeletonBar h="h-4" w="w-24" /></td>
+                             <td className="px-5 py-5"><SkeletonBar h="h-4" w="w-32" /></td>
+                             <td className="px-5 py-5"><SkeletonBar h="h-4" w="w-32" /></td>
+                             <td className="px-5 py-5"><SkeletonBar h="h-4" w="w-20" /></td>
+                             <td className="px-5 py-5"><SkeletonBar h="h-4" w="w-16" /></td>
+                             <td className="px-5 py-5"><SkeletonBar h="h-5" w="w-20 rounded-full" /></td>
+                             <td className="px-7 py-5"><SkeletonBar h="h-8" w="w-16 ml-auto" /></td>
+                          </tr>
                         )) : filtered.length === 0 ? (
                         <tr><td colSpan={7} className="py-24 text-center">
                             <LayoutGrid size={40} className="mx-auto text-zinc-200 mb-4" />

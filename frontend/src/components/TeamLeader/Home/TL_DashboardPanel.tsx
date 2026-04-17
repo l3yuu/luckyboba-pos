@@ -9,6 +9,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer
 } from 'recharts';
+import { SkeletonBox } from '../SharedSkeletons';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface DashStats {
@@ -57,9 +58,7 @@ const STYLES = `
   .tl-label { font-size: 0.62rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.12em; }
   .tl-value { font-size: 1.65rem; font-weight: 800; color: #0f172a; letter-spacing: -0.04em; line-height: 1.2; }
 
-  @keyframes tl-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  .tl-pulse { animation: tl-pulse 1.5s ease-in-out infinite; }
-  .tl-skeleton { background: #f1f5f9; border-radius: 0.5rem; }
+
   
   @keyframes tl-spin { to { transform: rotate(360deg); } }
   .tl-spin { animation: tl-spin 1s linear infinite; }
@@ -186,25 +185,25 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
       {/* KPI Tiles Skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-[140px] tl-skeleton tl-pulse border border-slate-100 bg-white/50" />
+          <SkeletonBox key={i} className="h-[140px] bg-white/50" />
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Chart Skeleton */}
-        <div className="lg:col-span-2 h-[480px] tl-skeleton tl-pulse border border-slate-100 bg-white/50" />
+        <SkeletonBox className="lg:col-span-2 h-[480px] bg-white/50" />
         
         {/* Sidebar Skeletons */}
         <div className="space-y-8">
-          <div className="h-[225px] tl-skeleton tl-pulse border border-slate-100 bg-white/50" />
-          <div className="h-[225px] tl-skeleton tl-pulse border border-slate-100 bg-white/50" />
+          <SkeletonBox className="h-[225px] bg-white/50" />
+          <SkeletonBox className="h-[225px] bg-white/50" />
         </div>
       </div>
 
       {/* Quick Actions Skeleton */}
       <div className="mt-12 pt-8 border-t border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-16 tl-skeleton tl-pulse border border-slate-100 bg-white/50" />
+          <SkeletonBox key={i} className="h-16 bg-white/50" />
         ))}
       </div>
     </div>

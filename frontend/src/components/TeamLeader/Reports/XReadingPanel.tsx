@@ -4,6 +4,7 @@ import {
   XCircle, CreditCard, Calendar, Info, Eye,
 } from 'lucide-react';
 import api from '../../../services/api';
+import { SkeletonBar, SkeletonBox } from '../SharedSkeletons';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,8 +79,6 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">X-Reading</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Daily sales summary — read only</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-3 py-2">
@@ -114,7 +113,9 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
             <div className={`w-10 h-10 ${bg} border flex items-center justify-center rounded-[0.4rem] shrink-0`}>{icon}</div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-              <p className="text-lg font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : value}</p>
+              {loading ? <SkeletonBar h="h-6" w="w-24" className="mt-1" /> : (
+                <p className="text-lg font-bold text-[#1a0f2e] tabular-nums">{value}</p>
+              )}
             </div>
           </div>
         ))}
@@ -126,6 +127,14 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
           <AlertCircle size={20} className="text-red-400" />
           <p className="text-sm font-semibold text-red-500">{fetchError}</p>
           <button onClick={fetchData} className="px-3 py-2 text-xs font-bold bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50">Try again</button>
+        </div>
+      )}
+
+      {/* ── Loading Detail Placeholder ── */}
+      {loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <SkeletonBox h="h-48" />
+          <SkeletonBox h="h-48" />
         </div>
       )}
 

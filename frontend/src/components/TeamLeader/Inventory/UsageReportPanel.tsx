@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import api from '../../../services/api';
+import { SkeletonBox } from '../SharedSkeletons';
 import { 
-  Search, RefreshCw, Info,
+  Search, Info,
   AlertCircle, CheckCircle2
 } from 'lucide-react';
 
@@ -142,16 +143,16 @@ const UsageReportPanel = ({ branchId }: { branchId: number | null }) => {
   };
 
   if (loading) return (
-    <div className="p-8 flex items-center justify-center h-[400px]">
-      <div className="flex flex-col items-center gap-4">
-        <RefreshCw className="animate-spin text-[#3b2063]" size={32} />
-        <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Syncing Audit Sheet...</p>
-      </div>
+    <div className="p-8 space-y-4">
+      <div className="mb-8 relative"><SkeletonBox h="h-10" /></div>
+      <SkeletonBox h="h-20" />
+      <SkeletonBox h="h-20" />
+      <SkeletonBox h="h-20" />
     </div>
   );
 
   return (
-    <div className="p-8 tl-usage-panel animate-tl-ready">
+    <div className="p-8 tl-usage-panel">
       <style>{STYLES}</style>
 
       {/* Header */}

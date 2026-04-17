@@ -62,7 +62,7 @@ const SalesOrder = () => {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { user } = useAuth()
-  const { enqueue, queueCount, isSyncing, queue, syncNow, remove } = useOfflineQueue()
+  const { enqueue, queueCount, isSyncing, queue, syncNow, remove, resetAttempts } = useOfflineQueue()
   const [isOnline, setIsOnline] = useState(navigator.onLine)
 
   useEffect(() => {
@@ -392,6 +392,14 @@ const SalesOrder = () => {
     if (paxPwd > 0 && pwdDiscount) applied.push(pwdDiscount)
     setSelectedDiscounts(applied)
   }, [paxSenior, paxPwd, scDiscount, pwdDiscount])
+
+  // ── Auto-clear delivery charges if order type is changed to Take Out/Dine In ──
+  useEffect(() => {
+    if (orderType !== 'delivery' && orderCharge !== null) {
+      setOrderCharge(null)
+      setCart(prev => prev.map(item => ({ ...item, charges: { grab: false, panda: false } })))
+    }
+  }, [orderType, orderCharge])
 
   // ── Sticker logic ─────────────────────────────────────────────────────────
   const hasStickers = cart.some(
@@ -1311,7 +1319,7 @@ const SalesOrder = () => {
     const orderData = {
       si_number: orNumber,
       branch_id: branchId,
-      order_type: orderType ?? 'take-out',
+      order_type: (paymentMethod === 'grab' || paymentMethod === 'food_panda') ? 'delivery' : (orderType ?? 'take-out'),
       items: cart.map(item => ({
         menu_item_id: item.isBundle ? null : item.id,
         bundle_id: item.isBundle ? Number(item.bundleId) : null,
@@ -1355,6 +1363,9 @@ const SalesOrder = () => {
       // FIX #3 — join the arrays to strings to match the backend's expected scalar fields
       senior_id: seniorIds.length > 0 ? seniorIds.join(',') : null,
       pwd_id: pwdIds.length > 0 ? pwdIds.join(',') : null,
+      source: (paymentMethod === 'grab' || paymentMethod === 'food_panda') 
+                ? (paymentMethod === 'food_panda' ? 'panda' : 'grab') 
+                : (orderCharge || 'pos'),
     }
 
     if (navigator.onLine) {
@@ -1601,6 +1612,7 @@ const SalesOrder = () => {
             isFoodCategory={isFoodCategory}
             filteredAddOns={filteredAddOns}
             onOpenAddOns={() => setIsAddOnModalOpen(true)} onAddToOrder={addToOrder}
+            orderType={orderType ?? 'take-out'}
             onClose={() => {
               setSelectedItem(null)
               setIsAddOnModalOpen(false)
@@ -1657,6 +1669,7 @@ const SalesOrder = () => {
                 }}
                 orderCharge={orderCharge}
                 onToggleOrderCharge={toggleBundleOrderCharge}
+                orderType={orderType ?? 'take-out'}
                 bundleGrabPrice={bundleGrabPrice}
                 bundlePandaPrice={bundlePandaPrice}
               />
@@ -1714,6 +1727,7 @@ const SalesOrder = () => {
               setMixMatchDrinkAddOns(prev => (prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]))
             }
             onToggleOrderCharge={toggleOrderCharge}
+            orderType={orderType ?? 'take-out'}
             onConfirm={confirmMixAndMatch}
             onClose={() => {
               setIsMixMatchModalOpen(false)
@@ -1762,6 +1776,7 @@ const SalesOrder = () => {
             discounts={discounts}
             activeTab={activeTab as 'payment' | 'discount' | 'pax'}
             submitting={submitting}
+            orderType={orderType}
             onTabChange={t => setActiveTab(t as 'payment' | 'discount' | 'pax')}
             onPaymentMethodChange={setPaymentMethod}
             onCashTenderedChange={setCashTendered}
@@ -1819,6 +1834,7 @@ const SalesOrder = () => {
           isSyncing={isSyncing}
           syncNow={syncNow}
           remove={remove}
+          resetAttempts={resetAttempts}
         />
 
         {/* ── Category nav bar ───────────────────────────────────────────── */}
