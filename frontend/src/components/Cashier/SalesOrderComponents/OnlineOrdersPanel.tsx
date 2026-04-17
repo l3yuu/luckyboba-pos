@@ -346,9 +346,15 @@ const OrderCard = ({ order, seqNumber, onMove, onPrint, updating }: OrderCardPro
           <span className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest">{invoice}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${isDineIn ? 'bg-violet-50 text-violet-600 border-violet-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200'}`}>
-            {isDineIn ? <><Utensils size={9} /> Dine In</> : <><ShoppingBag size={9} /> Take Out</>}
-          </span>
+          {order.invoice_number?.startsWith('KSK-') ? (
+            <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border bg-amber-50 text-amber-600 border-amber-200">
+              Kiosk
+            </span>
+          ) : (
+            <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${isDineIn ? 'bg-violet-50 text-violet-600 border-violet-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200'}`}>
+              {isDineIn ? <><Utensils size={9} /> Dine In</> : <><ShoppingBag size={9} /> Take Out</>}
+            </span>
+          )}
           <span className="text-[10px] font-bold text-zinc-400">{elapsed(order.created_at)}</span>
         </div>
       </div>
@@ -588,7 +594,10 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     try {
       const res = await api.get('/online-orders');
       const raw: OnlineOrder[] = Array.isArray(res.data) ? res.data : res.data.data ?? [];
-      const appOrders = raw.filter(o => (o.invoice_number ?? o.si_number ?? '').startsWith('APP-'));
+      const appOrders = raw.filter(o => {
+        const inv = (o.invoice_number ?? o.si_number ?? '');
+        return inv.startsWith('APP-') || inv.startsWith('KSK-');
+      });
       const changed = assignSeqNumbers(appOrders);
       if (changed) setOrderSequenceMap(new Map(seqRef.current.map));
       setOrders(appOrders);

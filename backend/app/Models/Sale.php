@@ -65,6 +65,7 @@ class Sale extends Model
         'senior_id',
         'pwd_id',
         'pax_discount_ids',
+        'source',
     ];
 
     protected $casts = [

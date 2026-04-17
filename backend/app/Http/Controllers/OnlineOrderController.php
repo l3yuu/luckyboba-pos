@@ -16,7 +16,10 @@ class OnlineOrderController extends Controller
     {
         $user  = $request->user();
         $query = Sale::with(['items', 'user', 'branch'])
-            ->where('invoice_number', 'like', 'APP-%')
+            ->where(function ($q) {
+                $q->where('invoice_number', 'like', 'APP-%')
+                  ->orWhere('invoice_number', 'like', 'KSK-%');
+            })
             ->whereNotIn('status', ['cancelled']);
 
         if (!empty($user->branch_id)) {
@@ -44,7 +47,10 @@ class OnlineOrderController extends Controller
 
         $user  = $request->user();
         $query = Sale::where('id', $id)
-            ->where('invoice_number', 'like', 'APP-%');
+            ->where(function ($q) {
+                $q->where('invoice_number', 'like', 'APP-%')
+                  ->orWhere('invoice_number', 'like', 'KSK-%');
+            });
 
         if (!empty($user->branch_id)) {
             $query->where('branch_id', $user->branch_id);
@@ -281,7 +287,10 @@ class OnlineOrderController extends Controller
     {
         try {
             $user  = $request->user();
-            $query = Sale::where('invoice_number', 'like', 'APP-%');
+            $query = Sale::where(function ($q) {
+                $q->where('invoice_number', 'like', 'APP-%')
+                  ->orWhere('invoice_number', 'like', 'KSK-%');
+            });
 
             // Branch scoping
             if (!empty($user->branch_id)) {
@@ -331,7 +340,7 @@ class OnlineOrderController extends Controller
 
     private function formatOrder($sale): array
     {
-        $code = str_replace('APP-', '', $sale->invoice_number);
+        $code = str_replace(['APP-', 'KSK-'], '', $sale->invoice_number);
 
         return [
             'id'             => $sale->id,
