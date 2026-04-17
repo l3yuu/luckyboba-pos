@@ -159,6 +159,16 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
   };
 }
 
+function mapPaymentMethod(method?: string): string {
+  if (!method) return 'CASH';
+  const m = method.toLowerCase();
+  if (m === 'grab') return 'GRABFOOD';
+  if (m === 'food_panda' || m === 'panda') return 'FOODPANDA';
+  if (m === 'gcash') return 'GCASH';
+  if (m === 'paymaya' || m === 'maya') return 'MAYA';
+  return m.toUpperCase();
+}
+
 // ============================================================
 // SUB-COMPONENTS
 // ============================================================
@@ -572,6 +582,7 @@ return {
                   <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Date</th>
                   <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Customer</th>
                   <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Total</th>
+                  <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Payment</th>
                   <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Status</th>
                   <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Actions</th>
                 </tr>
@@ -622,6 +633,15 @@ return {
                       </td>
                       <td className="px-7 py-4">
                         <p className="text-sm font-bold text-black">₱{Number(item.total_amount || 0).toLocaleString()}</p>
+                      </td>
+                      <td className="px-7 py-4">
+                        <p className={`text-[10px] font-black px-2 py-1 rounded-md border inline-block uppercase tracking-widest ${
+                          ['grab', 'food_panda', 'panda'].includes((item as any).payment_method?.toLowerCase())
+                            ? 'bg-amber-50 text-amber-700 border-amber-100'
+                            : 'bg-zinc-50 text-zinc-500 border-zinc-100'
+                        }`}>
+                          {mapPaymentMethod((item as any).payment_method)}
+                        </p>
                       </td>
                       <td className="px-7 py-4">
                         <span className={`text-[9px] font-bold px-2 py-0.5 border uppercase tracking-widest ${

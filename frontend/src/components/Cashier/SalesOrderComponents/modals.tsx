@@ -251,12 +251,14 @@ interface ItemSelectionModalProps {
   onAddToOrder: () => void;
   onClose: () => void;
   sugarLevels?: { id: number; label: string; value: string }[];
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
 }
 
 export const ItemSelectionModal = ({
   selectedItem, qty, remarks, sugarLevel, selectedOptions, selectedAddOns,
   orderCharge, isDrink, isCombo, isWaffleCategory, onQtyChange, onRemarksChange, isFoodCategory, filteredAddOns,
   onSugarChange, onToggleOption, onToggleOrderCharge, onOpenAddOns, onAddToOrder, onClose, sugarLevels,
+  orderType = 'take-out',
 }: ItemSelectionModalProps) => {
   const itemOpts = (selectedItem as { options?: string[] })?.options ?? [];
   const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
@@ -360,7 +362,8 @@ export const ItemSelectionModal = ({
             <div className="grid grid-cols-2 gap-3">
               {(['grab', 'panda'] as const).map(type => {
                 const isActive   = orderCharge === type;
-                const isDisabled = orderCharge !== null && orderCharge !== type;
+                const isLockedByOrderType = orderType !== 'delivery';
+                const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
                 return (
                   <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
                     className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2
@@ -410,6 +413,7 @@ interface BundleModalProps {
   onClose: () => void;
   orderCharge?: 'grab' | 'panda' | null;
   onToggleOrderCharge?: (type: 'grab' | 'panda') => void;
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
   bundleGrabPrice: number;
   bundlePandaPrice: number;
 }
@@ -419,6 +423,7 @@ export const BundleModal = ({
   bundleComponentAddOns, bundleGrabPrice, bundlePandaPrice, filteredAddOns,
   bundleComponentAddOnModalOpen, sugarLevels, onSugarChange, onToggleOption,
   onOpenAddOns, onCloseAddOns, onToggleAddOn, onConfirm, onClose, orderCharge, onToggleOrderCharge,
+  orderType = 'take-out',
 }: BundleModalProps) => {
   const component   = activeBundleItem.items[bundleComponentIndex];
   const totalSteps  = activeBundleItem.items.length;
@@ -492,9 +497,11 @@ export const BundleModal = ({
                 <div className="grid grid-cols-2 gap-3">
                   {(['grab', 'panda'] as const).map(type => {
                     const isActive = orderCharge === type;
+                    const isLockedByOrderType = orderType !== 'delivery';
+                    const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
                     return (
-                      <button key={type} type="button" onClick={() => onToggleOrderCharge(type)}
-                        className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center ${isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
+                      <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
+                        className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40 cursor-not-allowed' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
                         <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
                       </button>
                     );
@@ -617,6 +624,7 @@ interface MixAndMatchDrinkModalProps {
   filteredAddOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
   drinkAddOnModalOpen: boolean;
   orderCharge: 'grab' | 'panda' | null;
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
   onSelectDrink: (item: MenuItem) => void;
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
@@ -633,7 +641,7 @@ export const MixAndMatchDrinkModal = ({
   pendingMixMatchCart, drinkItems, selectedDrink, drinkSugar, drinkOptions, drinkAddOns,
   filteredAddOns, drinkAddOnModalOpen, orderCharge, onSelectDrink, onSugarChange,
   onToggleOption, onOpenAddOns, onCloseAddOns, onToggleAddOn, onToggleOrderCharge,
-  onConfirm, onClose, drinkSugarLevels,
+  onConfirm, onClose, drinkSugarLevels, orderType = 'take-out',
 }: MixAndMatchDrinkModalProps) => {
   const drinkOpts           = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
   const hasPearlOption      = drinkOpts.includes('pearl');
@@ -721,7 +729,8 @@ export const MixAndMatchDrinkModal = ({
                   <div className="grid grid-cols-2 gap-3">
                     {(['grab', 'panda'] as const).map(type => {
                       const isActive   = orderCharge === type;
-                      const isDisabled = orderCharge !== null && orderCharge !== type;
+                      const isLockedByOrderType = orderType !== 'delivery';
+                      const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
                       return (
                         <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
                           className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2 ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40 cursor-not-allowed' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
@@ -793,6 +802,7 @@ interface ConfirmOrderModalProps {
   onClose: () => void;
   onResetOrder?: () => void;
   vatType?: 'vat' | 'non_vat';
+  orderType?: 'dine-in' | 'take-out' | 'delivery'; // ← ADD
   addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
 }
 
@@ -801,7 +811,8 @@ export const ConfirmOrderModal = ({
   vatableSales, vatAmount, vatExemptSales: _vatExemptSales = 0, lessVat = 0, change, totalDiscountDisplay,
   orderCharge, selectedDiscount, paymentMethod, cashTendered,
   referenceNumber, discountRemarks, itemPaxAssignments, seniorIds, pwdIds, discounts,
-  activeTab, submitting, vatType = 'vat', addOnsData = [],
+  activeTab, submitting, vatType = 'vat', orderType = 'take-out', 
+  addOnsData = [],
   onTabChange, onPaymentMethodChange, onCashTenderedChange, onReferenceNumberChange,
   onDiscountChange, onDiscountRemarksChange,
   onItemPaxAssignmentsChange, onSeniorIdsChange, onPwdIdsChange,
@@ -1026,10 +1037,19 @@ export const ConfirmOrderModal = ({
                       <div className="grid grid-cols-3 gap-2 mb-5">
                         {PAYMENT_METHODS.map(({ id, label }) => {
                           const isDeliveryMethod = id === 'grab' || id === 'food_panda';
-                          const isLocked = (orderCharge === 'grab' && id !== 'grab') || (orderCharge === 'panda' && id !== 'food_panda') || (!orderCharge && isDeliveryMethod);
+                          const isLocked = orderType === 'delivery' 
+                            ? !isDeliveryMethod // If delivery, non-delivery methods are locked
+                            : isDeliveryMethod;  // If not delivery, Grab/Panda are locked
+                          
+                          // Also maintain the orderCharge lock if one is active
+                          const isChargeLocked = (orderCharge === 'grab' && id !== 'grab') || 
+                                               (orderCharge === 'panda' && id !== 'food_panda');
+
+                          const finalLocked = isLocked || isChargeLocked;
+
                           return (
-                            <button key={id} onClick={() => { if (!isLocked) { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); }}} disabled={isLocked}
-                              className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${isLocked ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40' : paymentMethod === id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#3b2063]/40'}`}>
+                            <button key={id} onClick={() => { if (!finalLocked) { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); }}} disabled={finalLocked}
+                              className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${finalLocked ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40' : paymentMethod === id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#3b2063]/40'}`}>
                               {label}
                             </button>
                           );
@@ -1489,61 +1509,6 @@ export const AddOnTriggerButton = ({ count, onClick }: { count: number; onClick:
       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
     </svg>
   </button>
-);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// OrderTypeModal
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface OrderTypeModalProps {
-  onSelect: (type: 'dine-in' | 'take-out') => void;
-  onClose?: () => void;
-}
-
-export const OrderTypeModal = ({ onSelect, onClose }: OrderTypeModalProps) => (
-  <div className="fixed inset-0 z-200 flex items-center justify-center p-6" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-    <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl overflow-hidden">
-      <div className="relative px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff]">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#3b2063] rounded-lg flex items-center justify-center shrink-0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/>
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Order Type</p>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Select how the order will be served</p>
-          </div>
-        </div>
-        {onClose && (
-          <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#3b2063]/20 transition-colors text-[#1a0f2e] hover:text-[#3b2063]">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        )}
-      </div>
-      <div className="p-5 flex flex-col gap-3">
-        {[
-          { type: 'dine-in' as const, label: 'Dine In', sub: 'Customer eats here', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b2063" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><circle cx="12" cy="12" r="9"/><path d="M8 7v4a2 2 0 0 0 4 0V7"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="16" y1="7" x2="16" y2="17"/></svg> },
-          { type: 'take-out' as const, label: 'Take Out', sub: 'Order to go', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b2063" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> },
-        ].map(({ type, label, sub, icon }) => (
-          <button key={type} onClick={() => onSelect(type)}
-            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#3b2063] hover:border-[#3b2063] transition-all duration-200 active:scale-[0.98]">
-            <div className="w-12 h-12 rounded-xl bg-white border border-[#e9d5ff] group-hover:bg-white/20 group-hover:border-white/30 flex items-center justify-center shrink-0 transition-all">{icon}</div>
-            <div className="text-left">
-              <p className="text-sm font-black uppercase tracking-widest text-[#1a0f2e] group-hover:text-white transition-colors">{label}</p>
-              <p className="text-[10px] font-semibold text-zinc-400 group-hover:text-white/70 transition-colors mt-0.5">{sub}</p>
-            </div>
-            <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </div>
-          </button>
-        ))}
-      </div>
-      <div className="px-5 pb-5">
-        <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest text-center">This selection applies to the entire order</p>
-      </div>
-    </div>
-  </div>
 );
 
 export { AddOnModalShell };
