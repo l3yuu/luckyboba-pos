@@ -206,7 +206,12 @@ class PurchaseOrderController extends Controller
                     
                     // Update Costing (WAC) BEFORE incrementing stock
                     $mat->updateBaseCost($stockIncrement, (float)$poItem->unit_cost);
-                    $mat->increment('current_stock', $stockIncrement);
+                    
+                    $mat->recordMovement(
+                        $stockIncrement,
+                        'add',
+                        "PO Receipt " . ($receipt->reference_number ?? "") . " — {$purchaseOrder->po_number}"
+                    );
 
                     // Propagate latest purchase price to Global Parent for template consistency
                     if ($mat->parent_id) {
@@ -215,16 +220,6 @@ class PurchaseOrderController extends Controller
                             $parent->update(['last_purchase_price' => $poItem->unit_cost]);
                         }
                     }
-
-                    // 3. Log Stock Movement
-                    StockMovement::create([
-                        'raw_material_id' => $mat->id,
-                        'branch_id'       => $purchaseOrder->branch_id,
-                        'user_id'         => auth()->id(),
-                        'type'            => 'add',
-                        'quantity'        => $stockIncrement,
-                        'reason'          => "PO Receipt {$receipt->reference_number} — {$purchaseOrder->po_number}",
-                    ]);
                 }
 
                 // 4. Create Receipt Item

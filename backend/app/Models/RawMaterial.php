@@ -122,6 +122,9 @@ class RawMaterial extends Model
     /**
      * Update the base unit cost using Weighted Average Cost (WAC)
      */
+    /**
+     * Update the base unit cost using Weighted Average Cost (WAC)
+     */
     public function updateBaseCost(float $newBaseQty, float $newPurchasePrice)
     {
         // 1. Calculate incoming base cost
@@ -145,5 +148,33 @@ class RawMaterial extends Model
 
         $this->last_purchase_price = $newPurchasePrice;
         $this->save();
+    }
+
+    /**
+     * Centralized method to record stock movements with point-in-time snapshots.
+     */
+    public function recordMovement(float $qtyChange, string $type, string $reason, ?int $userId = null): void
+    {
+        $before = (float) $this->current_stock;
+
+        if ($type === 'add') {
+            $this->increment('current_stock', $qtyChange);
+        } else {
+            $this->decrement('current_stock', $qtyChange);
+        }
+
+        // Refresh the instance attribute for the after-snapshot
+        $after = (float) $this->current_stock;
+
+        StockMovement::create([
+            'raw_material_id' => $this->id,
+            'branch_id'       => $this->branch_id,
+            'user_id'         => $userId ?? auth()->id(),
+            'before_stock'    => $before,
+            'after_stock'     => $after,
+            'type'            => $type,
+            'quantity'        => $qtyChange,
+            'reason'          => $reason,
+        ]);
     }
 }
