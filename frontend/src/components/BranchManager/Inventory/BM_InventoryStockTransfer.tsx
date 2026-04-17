@@ -469,6 +469,13 @@ const BM_InventoryStockTransfer: React.FC<{ branchId?: number | null }> = ({ bra
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAll();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
+
   const filtered = transfers.filter(t => {
     const matchSearch = t.transfer_number.toLowerCase().includes(search.toLowerCase()) ||
       (t.from_branch?.name ?? t.from_branch_name ?? '').toLowerCase().includes(search.toLowerCase()) ||

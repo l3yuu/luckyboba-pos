@@ -531,6 +531,13 @@ const StockTransferTab: React.FC = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAll();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
+
   const handleBranchFromChange = (val: string) => {
     setBranchFromFilter(val);
     if (!val) {

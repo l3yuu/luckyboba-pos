@@ -236,28 +236,66 @@ class StockTransferController extends Controller
             'Only Approved or In Transit transfers can be received.'
         );
 
-        DB::transaction(function () use ($stockTransfer) {
+        $isDirectReceiveFromApproved = $stockTransfer->status === 'Approved';
+
+        DB::transaction(function () use ($stockTransfer, $isDirectReceiveFromApproved) {
             foreach ($stockTransfer->items as $item) {
+                $sourceMaterial = $item->rawMaterial;
+                $parentId = $sourceMaterial?->parent_id ?? $item->raw_material_id;
+
+                // If receiving directly from Approved (without dispatch), deduct source now.
+                if ($isDirectReceiveFromApproved) {
+                    RawMaterial::where('id', $item->raw_material_id)
+                        ->where('branch_id', $stockTransfer->from_branch_id)
+                        ->decrement('current_stock', $item->quantity);
+
+                    StockMovement::create([
+                        'raw_material_id' => $item->raw_material_id,
+                        'branch_id'       => $stockTransfer->from_branch_id,
+                        'user_id'         => auth()->id(),
+                        'type'            => 'subtract',
+                        'quantity'        => $item->quantity,
+                        'reason'          => 'Stock transfer out (Direct Receive) — ' . $stockTransfer->transfer_number,
+                    ]);
+                }
+
                 // Find matching material in destination branch using parent_id logic
                 $destMat = RawMaterial::where('branch_id', $stockTransfer->to_branch_id)
                     ->where(function ($q) use ($item) {
-                        $parentId = $item->rawMaterial->parent_id ?? $item->raw_material_id;
+                        $parentId = $item->rawMaterial?->parent_id ?? $item->raw_material_id;
                         $q->where('parent_id', $parentId)
                           ->orWhere('id', $parentId);
                     })
                     ->first();
-                
-                if ($destMat) {
-                    $destMat->increment('current_stock', $item->quantity);
-                    StockMovement::create([
-                        'raw_material_id' => $destMat->id,
+
+                // If destination material does not exist yet, create it from source metadata.
+                if (!$destMat && $sourceMaterial) {
+                    $destMat = RawMaterial::create([
+                        'name'            => $sourceMaterial->name,
+                        'unit'            => $sourceMaterial->unit,
+                        'category'        => $sourceMaterial->category,
+                        'current_stock'   => 0,
+                        'reorder_level'   => $sourceMaterial->reorder_level,
+                        'is_intermediate' => $sourceMaterial->is_intermediate,
+                        'notes'           => $sourceMaterial->notes,
                         'branch_id'       => $stockTransfer->to_branch_id,
-                        'user_id'         => auth()->id(),
-                        'type'            => 'add',
-                        'quantity'        => $item->quantity,
-                        'reason'          => 'Stock transfer received — ' . $stockTransfer->transfer_number,
+                        'parent_id'       => $parentId,
                     ]);
                 }
+
+                if (!$destMat) {
+                    continue;
+                }
+
+                $destMat->increment('current_stock', $item->quantity);
+                StockMovement::create([
+                    'raw_material_id' => $destMat->id,
+                    'branch_id'       => $stockTransfer->to_branch_id,
+                    'user_id'         => auth()->id(),
+                    'type'            => 'add',
+                    'quantity'        => $item->quantity,
+                    'reason'          => 'Stock transfer received — ' . $stockTransfer->transfer_number,
+                ]);
             }
 
             $stockTransfer->update([
