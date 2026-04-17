@@ -759,6 +759,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     });
   };
 
+  // ── Cancel order ──────────────────────────────────────────────────────────
   const filteredOrders = getFilteredOrders();
 
   if (loading) return (
