@@ -36,6 +36,7 @@ interface SaleItem {
   cashier_name?:      string;
   customer_name?:     string;
   display_order_number?: number;
+  payment_method?:    string;
 }
 
 interface Stats { gross: number; voided: number; net: number; }
@@ -636,11 +637,11 @@ return {
                       </td>
                       <td className="px-7 py-4">
                         <p className={`text-[10px] font-black px-2 py-1 rounded-md border inline-block uppercase tracking-widest ${
-                          ['grab', 'food_panda', 'panda'].includes((item as any).payment_method?.toLowerCase())
+                          ['grab', 'food_panda', 'panda'].includes(item.payment_method?.toLowerCase() ?? '')
                             ? 'bg-amber-50 text-amber-700 border-amber-100'
                             : 'bg-zinc-50 text-zinc-500 border-zinc-100'
                         }`}>
-                          {mapPaymentMethod((item as any).payment_method)}
+                          {mapPaymentMethod(item.payment_method)}
                         </p>
                       </td>
                       <td className="px-7 py-4">
