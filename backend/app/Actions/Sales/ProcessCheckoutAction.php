@@ -67,7 +67,7 @@ class ProcessCheckoutAction
                 'branch_id'                => $branchId,
                 'total_amount'             => 0, // Placeholder
                 'invoice_number'           => $officialOR,
-                'status'                   => 'completed',
+                'status'                   => $data['status'] ?? 'completed',
                 'payment_method'           => $data['payment_method'] ?? 'cash',
                 'reference_number'         => $data['reference_number'] ?? null,
                 'charge_type'              => $chargeType,
@@ -89,6 +89,7 @@ class ProcessCheckoutAction
                 'senior_id'                => $data['senior_id'] ?? null,
                 'pwd_id'                   => $data['pwd_id'] ?? null,
                 'pax_discount_ids'         => $data['pax_discount_ids'] ?? null,
+                'source'                   => $data['source'] ?? 'pos',
             ]);
 
             // 3. Create Sale Items
