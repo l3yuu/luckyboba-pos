@@ -308,7 +308,7 @@ const ExpenseFormModal: React.FC<ModalProps> = ({ editing, branches, onClose, on
               </select>
             </Field>
             <Field label="Payment Status">
-              <select value={form.payment_status} onChange={e => setForm(p => ({ ...p, payment_status: e.target.value as any }))} className={inputCls()}>
+              <select value={form.payment_status} onChange={e => setForm(p => ({ ...p, payment_status: e.target.value as 'Paid' | 'Pending' }))} className={inputCls()}>
                 <option value="Paid">Paid</option>
                 <option value="Pending">Pending / Unpaid</option>
               </select>
