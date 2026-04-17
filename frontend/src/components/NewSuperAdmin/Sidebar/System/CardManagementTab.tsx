@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { getToken } from "../../../../utils/authHelpers";
 import { Plus, Edit2, Trash2, CheckCircle, XCircle, Search, CreditCard, Image as ImageIcon, Upload } from "lucide-react";
 
 interface CardItem {
@@ -37,7 +38,27 @@ const CardManagementTab = () => {
   const [adminPhone, setAdminPhone] = useState("");
   const [adminGcashQrPreview, setAdminGcashQrPreview] = useState<string | null>(null);
   const [adminGcashQrFile, setAdminGcashQrFile] = useState<File | null>(null);
+  const [isSavingGlobal, setIsSavingGlobal] = useState(false);
 
+  const fetchCards = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/cards", {
+        headers: {
+          "Accept": "application/json",
+          "Authorization": `Bearer ${getToken()}`,
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCards(data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch cards", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const fetchGlobalSettings = useCallback(async () => {
     try {
