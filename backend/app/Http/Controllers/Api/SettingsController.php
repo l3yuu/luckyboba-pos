@@ -167,7 +167,6 @@ public function getAuditLogs(Request $request)
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-}
 
     /**
  * Export System Audit Logs to a .txt file

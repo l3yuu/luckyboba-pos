@@ -230,10 +230,7 @@ class _HomePageState extends State<HomePage> {
           perm == LocationPermission.always) {
         final pos = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-        ).timeout(const Duration(seconds: 7)).catchError((e) {
-          debugPrint('❌ GPS Error: $e');
-          return null;
-        });
+        ).timeout(const Duration(seconds: 7));
         userLat = pos.latitude;
         userLng = pos.longitude;
         if (mounted) {
