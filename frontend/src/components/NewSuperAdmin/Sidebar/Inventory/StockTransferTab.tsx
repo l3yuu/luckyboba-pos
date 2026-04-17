@@ -22,9 +22,11 @@ type SortKey = "transfer_number" | "transfer_date" | "status" | "from_branch_nam
 interface TransferItem {
   id?: number;
   raw_material_id: number;
-  raw_material?: { name: string; unit: string };
+  raw_material?: { name: string; unit: string; purchase_unit?: string; purchase_to_base_factor?: number };
   material_name?: string;
   unit?: string;
+  ordered_unit?: string;
+  conversion_factor?: number;
   quantity: number | '';
 }
 
@@ -53,7 +55,14 @@ interface StockTransfer {
 }
 
 interface Branch { id: number; name: string; }
-interface RawMaterial { id: number; name: string; unit: string; current_stock?: number; }
+interface RawMaterial { 
+  id: number; 
+  name: string; 
+  unit: string; 
+  purchase_unit?: string;
+  purchase_to_base_factor?: number;
+  current_stock?: number; 
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -135,6 +144,8 @@ const resolveItems = (t: StockTransfer): TransferItem[] =>
     ...i,
     material_name: i.raw_material?.name ?? i.material_name ?? '',
     unit: i.raw_material?.unit ?? i.unit ?? '',
+    ordered_unit: i.ordered_unit ?? i.raw_material?.purchase_unit ?? i.raw_material?.unit ?? i.unit ?? '',
+    conversion_factor: i.conversion_factor ?? i.raw_material?.purchase_to_base_factor ?? 1,
   }));
 
 const formatDateTime = (value?: string) => {
@@ -183,7 +194,14 @@ const CreateTransferModal: React.FC<{
       if (i !== idx) return row;
       if (field === 'raw_material_id') {
         const mat = rawMaterials.find(m => m.id === Number(value));
-        return { ...row, raw_material_id: Number(value), material_name: mat?.name ?? '', unit: mat?.unit ?? '' };
+        return { 
+          ...row, 
+          raw_material_id: Number(value), 
+          material_name: mat?.name ?? '', 
+          unit: mat?.unit ?? '',
+          ordered_unit: mat?.purchase_unit ?? mat?.unit ?? '',
+          conversion_factor: mat?.purchase_to_base_factor ?? 1
+        };
       }
       return { ...row, [field]: value };
     }));
@@ -321,10 +339,17 @@ const CreateTransferModal: React.FC<{
                         {errors[`mat_${idx}`] && <p className="text-[9px] text-red-500 font-bold mt-1 italic">{errors[`mat_${idx}`]}</p>}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <input type="number" min="0" value={item.quantity} onChange={e => updateRow(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))}
-                            className={`w-full text-xs font-black text-right bg-white border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-violet-400 tabular-nums ${errors[`qty_${idx}`] ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`} placeholder="0" />
-                          {item.unit && <span className="text-[9px] font-black text-violet-600 bg-violet-50 px-2 py-1.5 rounded-lg border border-violet-100 uppercase tracking-widest shrink-0">{item.unit}</span>}
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <input type="number" min="0" value={item.quantity} onChange={e => updateRow(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))}
+                              className={`w-full text-xs font-black text-right bg-white border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-violet-400 tabular-nums ${errors[`qty_${idx}`] ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`} placeholder="0" />
+                            {item.ordered_unit && <span className="text-[9px] font-black text-violet-600 bg-violet-50 px-2 py-1.5 rounded-lg border border-violet-100 uppercase tracking-widest shrink-0">{item.ordered_unit}</span>}
+                          </div>
+                          {(item.conversion_factor && item.conversion_factor > 1) && (
+                            <p className="text-[9px] text-zinc-400 font-bold italic text-right px-1">
+                              = {Number(item.quantity || 0) * (item.conversion_factor || 1)} {item.unit} (Base)
+                            </p>
+                          )}
                         </div>
                         {errors[`qty_${idx}`] && <p className="text-[9px] text-red-500 font-bold mt-1 italic text-right">{errors[`qty_${idx}`]}</p>}
                       </td>
@@ -465,10 +490,26 @@ const ViewTransferModal: React.FC<{
                 <tbody className="divide-y divide-zinc-50 whitespace-nowrap">
                   {items.map((item, i) => (
                     <tr key={i} className="hover:bg-zinc-50/50">
-                      <td className="px-4 py-3 font-bold text-zinc-700 text-xs">{item.material_name}</td>
-                      <td className="px-4 py-3 font-black text-[#3b2063] text-sm text-right tabular-nums">{item.quantity}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-bold text-zinc-700 text-xs">{item.material_name}</p>
+                        {item.conversion_factor && item.conversion_factor > 1 && (
+                          <p className="text-[9px] text-zinc-400 font-bold italic">Base: {item.unit}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                         <div className="flex flex-col items-end">
+                            <span className="font-black text-[#3b2063] text-sm tabular-nums">{item.quantity}</span>
+                            {item.conversion_factor && item.conversion_factor > 1 && (
+                              <span className="text-[9px] text-zinc-400 font-bold tabular-nums">
+                                Total: {Number(item.quantity) * item.conversion_factor}
+                              </span>
+                            )}
+                         </div>
+                      </td>
                       <td className="px-4 py-3 text-center">
-                        <span className="text-[9px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full uppercase tracking-tighter">{item.unit}</span>
+                        <span className="text-[9px] font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-full border border-violet-100 uppercase tracking-tighter">
+                          {item.ordered_unit}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -705,9 +746,21 @@ const StockTransferTab: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black text-violet-700 bg-violet-50 border border-violet-100">
-                          {items.length} units
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black text-violet-700 bg-violet-50 border border-violet-100">
+                            {items.length} materials
+                          </span>
+                          {branchFromFilter && branchFromFilter === String(t.to_branch_id) && (
+                            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest px-1 flex items-center gap-1">
+                               <Package size={10} /> Incoming
+                            </span>
+                          )}
+                          {branchFromFilter && branchFromFilter === String(t.from_branch_id) && (
+                            <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest px-1 flex items-center gap-1">
+                               <Truck size={10} /> Outgoing
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-4"><StatusBadge status={t.status} /></td>
                       <td className="px-6 py-4 text-right">

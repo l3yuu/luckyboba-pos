@@ -69,15 +69,29 @@ class RawMaterial extends Model
 
     public function getIncomingStockAttribute(): float
     {
-        // For branch-level materials, sum items from Approved/Partially Received POs
-        // that haven't been received yet.
-        return (float) $this->purchaseOrderItems()
+        // 1. Pending from Purchase Orders
+        $poIncoming = (float) $this->purchaseOrderItems()
             ->whereHas('purchaseOrder', function ($q) {
                 $q->whereIn('status', ['Approved', 'Partially Received'])
                    ->where('branch_id', $this->branch_id);
             })
             ->get()
             ->sum(fn($i) => ($i->quantity - $i->quantity_received) * $i->conversion_factor);
+
+        // 2. Pending from Stock Transfers
+        $parentId = $this->parent_id ?? $this->id;
+        $transferIncoming = (float) StockTransferItem::whereHas('stockTransfer', function ($q) {
+                $q->whereIn('status', ['Approved', 'In Transit'])
+                   ->where('to_branch_id', $this->branch_id);
+            })
+            ->whereHas('rawMaterial', function ($q) use ($parentId) {
+                $q->where('id', $parentId)
+                  ->orWhere('parent_id', $parentId);
+            })
+            ->get()
+            ->sum(fn($i) => (float) ($i->quantity * ($i->conversion_factor ?? 1)));
+
+        return $poIncoming + $transferIncoming;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -90,10 +90,14 @@ class StockTransferController extends Controller
             ]);
 
             foreach ($request->items as $item) {
+                $mat = RawMaterial::find($item['raw_material_id']);
+                
                 StockTransferItem::create([
                     'stock_transfer_id' => $transfer->id,
                     'raw_material_id'   => $item['raw_material_id'],
                     'quantity'          => $item['quantity'],
+                    'ordered_unit'      => $mat->purchase_unit ?? $mat->unit,
+                    'conversion_factor' => $mat->purchase_to_base_factor ?? 1,
                 ]);
             }
 
@@ -184,10 +188,12 @@ class StockTransferController extends Controller
 
         DB::transaction(function () use ($stockTransfer) {
             foreach ($stockTransfer->items as $item) {
+                $baseQty = (float) ($item->quantity * $item->conversion_factor);
+
                 // Deduct current_stock from source
                 RawMaterial::where('id', $item->raw_material_id)
                     ->where('branch_id', $stockTransfer->from_branch_id)
-                    ->decrement('current_stock', $item->quantity);
+                    ->decrement('current_stock', $baseQty);
 
                 // Log to stock_movements for history consistency
                 StockMovement::create([
@@ -195,7 +201,7 @@ class StockTransferController extends Controller
                     'branch_id'       => $stockTransfer->from_branch_id,
                     'user_id'         => auth()->id(),
                     'type'            => 'subtract',
-                    'quantity'        => $item->quantity,
+                    'quantity'        => $baseQty,
                     'reason'          => 'Stock transfer out (In Transit) — ' . $stockTransfer->transfer_number,
                 ]);
             }
@@ -244,45 +250,37 @@ class StockTransferController extends Controller
             foreach ($stockTransfer->items as $item) {
                 $sourceMaterial = $item->rawMaterial;
                 $parentId = $sourceMaterial?->parent_id ?? $item->raw_material_id;
+                $baseQty = (float) ($item->quantity * $item->conversion_factor);
 
                 // ── Deduct from source branch ────────────────────────────────
                 // Always deduct unless inTransit already handled it.
                 if (!$sourceAlreadyDeducted) {
-                    // Find the exact source material by ID + branch
                     $srcMat = RawMaterial::where('id', $item->raw_material_id)
                         ->where('branch_id', $stockTransfer->from_branch_id)
                         ->first();
 
                     if ($srcMat) {
-                        $srcMat->decrement('current_stock', $item->quantity);
+                        $srcMat->decrement('current_stock', $baseQty);
 
                         StockMovement::create([
                             'raw_material_id' => $srcMat->id,
                             'branch_id'       => $stockTransfer->from_branch_id,
                             'user_id'         => auth()->id(),
                             'type'            => 'subtract',
-                            'quantity'        => $item->quantity,
+                            'quantity'        => $baseQty,
                             'reason'          => 'Stock transfer out — ' . $stockTransfer->transfer_number,
-                        ]);
-                    } else {
-                        \Log::warning("StockTransfer receive: source material not found", [
-                            'transfer_id'     => $stockTransfer->id,
-                            'raw_material_id' => $item->raw_material_id,
-                            'from_branch_id'  => $stockTransfer->from_branch_id,
                         ]);
                     }
                 }
 
                 // ── Increment destination branch ─────────────────────────────
-                // Find matching material in destination branch using parent_id logic
                 $destMat = RawMaterial::where('branch_id', $stockTransfer->to_branch_id)
-                    ->where(function ($q) use ($parentId, $item) {
+                    ->where(function ($q) use ($parentId) {
                         $q->where('parent_id', $parentId)
                           ->orWhere('id', $parentId);
                     })
                     ->first();
 
-                // If destination material does not exist yet, create it from source metadata.
                 if (!$destMat && $sourceMaterial) {
                     $destMat = RawMaterial::create([
                         'name'            => $sourceMaterial->name,
@@ -297,19 +295,17 @@ class StockTransferController extends Controller
                     ]);
                 }
 
-                if (!$destMat) {
-                    continue;
+                if ($destMat) {
+                    $destMat->increment('current_stock', $baseQty);
+                    StockMovement::create([
+                        'raw_material_id' => $destMat->id,
+                        'branch_id'       => $stockTransfer->to_branch_id,
+                        'user_id'         => auth()->id(),
+                        'type'            => 'add',
+                        'quantity'        => $baseQty,
+                        'reason'          => 'Stock transfer received — ' . $stockTransfer->transfer_number,
+                    ]);
                 }
-
-                $destMat->increment('current_stock', $item->quantity);
-                StockMovement::create([
-                    'raw_material_id' => $destMat->id,
-                    'branch_id'       => $stockTransfer->to_branch_id,
-                    'user_id'         => auth()->id(),
-                    'type'            => 'add',
-                    'quantity'        => $item->quantity,
-                    'reason'          => 'Stock transfer received — ' . $stockTransfer->transfer_number,
-                ]);
             }
 
             $stockTransfer->update([
@@ -388,10 +384,12 @@ class StockTransferController extends Controller
             'received_by'      => $t->receivedBy ? ['name' => $t->receivedBy->name] : null,
             'received_at'      => $t->received_at,
             'items'            => $t->items->map(fn($i) => [
-                'id'              => $i->id,
-                'raw_material_id' => $i->raw_material_id,
-                'quantity'        => $i->quantity,
-                'raw_material'    => $i->rawMaterial ? [
+                'id'                => $i->id,
+                'raw_material_id'   => $i->raw_material_id,
+                'quantity'          => $i->quantity,
+                'ordered_unit'      => $i->ordered_unit,
+                'conversion_factor' => $i->conversion_factor,
+                'raw_material'      => $i->rawMaterial ? [
                     'name' => $i->rawMaterial->name,
                     'unit' => $i->rawMaterial->unit,
                 ] : null,
