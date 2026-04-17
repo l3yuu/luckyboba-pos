@@ -40,9 +40,16 @@ interface StockTransfer {
   transfer_date?: string;
   status: TransferStatus;
   notes?: string;
+  created_by?: { name: string };
+  approved_by?: { name: string };
+  dispatched_by?: { name: string };
+  received_by?: { name: string };
   items?: TransferItem[];
   stock_transfer_items?: TransferItem[];
   created_at?: string;
+  approved_at?: string;
+  dispatched_at?: string;
+  received_at?: string;
 }
 
 interface Branch { id: number; name: string; }
@@ -129,6 +136,17 @@ const resolveItems = (t: StockTransfer): TransferItem[] =>
     material_name: i.raw_material?.name ?? i.material_name ?? '',
     unit: i.raw_material?.unit ?? i.unit ?? '',
   }));
+
+const formatDateTime = (value?: string) => {
+  if (!value) return '—';
+  return new Date(value).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
 // ─── Create Transfer Modal ────────────────────────────────────────────────────
 
@@ -379,6 +397,23 @@ const ViewTransferModal: React.FC<{
             <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
               <Calendar size={13} className="shrink-0" />
               {transfer.transfer_date ? new Date(transfer.transfer_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+            </div>
+          </div>
+          <div className="bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Chain of Custody</p>
+            <div className="space-y-2">
+              {[
+                { label: 'Initiated', user: transfer.created_by?.name ?? 'Unknown', at: transfer.created_at },
+                { label: 'Approved', user: transfer.approved_by?.name ?? 'Pending', at: transfer.approved_at },
+                { label: 'Dispatched', user: transfer.dispatched_by?.name ?? 'Pending', at: transfer.dispatched_at },
+                { label: 'Received', user: transfer.received_by?.name ?? 'Pending', at: transfer.received_at },
+              ].map((step) => (
+                <div key={step.label} className="grid grid-cols-[90px_1fr_auto] gap-2 items-center text-[11px]">
+                  <span className="font-black text-zinc-500 uppercase tracking-wider">{step.label}</span>
+                  <span className="font-bold text-[#3b2063]">{step.user}</span>
+                  <span className="font-semibold text-zinc-400 tabular-nums">{formatDateTime(step.at)}</span>
+                </div>
+              ))}
             </div>
           </div>
 

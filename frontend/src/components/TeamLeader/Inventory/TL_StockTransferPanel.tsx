@@ -41,6 +41,7 @@ interface StockTransfer {
   transfer_date?:   string;
   status:           TransferStatus;
   notes?:           string;
+  created_by?:      { name: string };
   items?:           TransferItem[];
   stock_transfer_items?: TransferItem[];
   created_at?:      string;
@@ -406,6 +407,10 @@ const ViewTransferModal: React.FC<{
                <p className="text-xs font-bold text-zinc-500 italic leading-relaxed">"{transfer.notes}"</p>
             </div>
           )}
+          <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+            <span>Initiated By:</span>
+            <span className="text-[#3b2063]">{transfer.created_by?.name ?? 'Unknown'}</span>
+          </div>
 
           <div className="space-y-3">
              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-1">Items Included</p>
@@ -429,6 +434,11 @@ const ViewTransferModal: React.FC<{
 
         <div className="flex items-center gap-3 px-6 py-5 border-t border-zinc-100 bg-zinc-50/50 shrink-0">
           <Btn variant="secondary" onClick={onClose} className="flex-1 justify-center py-2.5">Close</Btn>
+          {(isSource && transfer.status === 'Pending') && (
+            <Btn onClick={() => doAction('approve')} disabled={loading} className="flex-1 justify-center py-2.5">
+               {loading ? 'Processing...' : 'Approve Transfer'}
+            </Btn>
+          )}
           {(isDestination && transfer.status === 'Approved') && (
             <Btn onClick={() => doAction('receive')} disabled={loading} className="flex-1 justify-center py-2.5 bg-emerald-600 hover:bg-emerald-700">
                {loading ? 'Processing...' : 'Receive Stocks'}

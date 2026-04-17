@@ -24,8 +24,11 @@ class StockTransfer extends Model
         'notes',
         'created_by_id',
         'approved_by_id',
+        'approved_at',
         'dispatched_by_id',
+        'dispatched_at',
         'received_by_id',
+        'received_at',
     ];
 
     public function fromBranch()

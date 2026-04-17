@@ -21,6 +21,7 @@ import SV_RecipesPanel     from '../components/Supervisor/Inventory/SV_RecipesPa
 import SV_MenuItemsList    from '../components/Supervisor/Menu/SV_MenuItemsList';
 import SV_CategoriesList   from '../components/Supervisor/Menu/SV_CategoriesList';
 import SV_SubCategoriesList from '../components/Supervisor/Menu/SV_SubCategoriesList';
+import TL_StockTransferPanel from '../components/TeamLeader/Inventory/TL_StockTransferPanel';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const DASHBOARD_STYLES = `
@@ -81,6 +82,7 @@ const SupervisorDashboard = () => {
       case 'item-checker':    return <SV_ItemChecker    branchId={bId} />;
       case 'raw-materials':   return <RawMaterialsPanel branchId={bId} />;
       case 'recipes':         return <SV_RecipesPanel   branchId={bId} />;
+      case 'stock-transfer':  return <TL_StockTransferPanel branchId={bId} />;
       case 'menu-list':       return <SV_MenuItemsList  />;
       case 'categories-list': return <SV_CategoriesList />;
       case 'sub-categories-list': return <SV_SubCategoriesList />;

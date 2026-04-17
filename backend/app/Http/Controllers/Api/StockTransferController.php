@@ -16,7 +16,15 @@ class StockTransferController extends Controller
     public function index(Request $request)
     {
         $user  = auth()->user();
-        $query = StockTransfer::with(['fromBranch', 'toBranch', 'items.rawMaterial']);
+        $query = StockTransfer::with([
+            'fromBranch',
+            'toBranch',
+            'items.rawMaterial',
+            'createdBy',
+            'approvedBy',
+            'dispatchedBy',
+            'receivedBy',
+        ]);
 
         // 1. If branch_id is explicitly provided (e.g. from a filter or scoped view)
         if ($request->filled('branch_id')) {
@@ -89,7 +97,15 @@ class StockTransferController extends Controller
                 ]);
             }
 
-            return $transfer->load(['fromBranch', 'toBranch', 'items.rawMaterial']);
+            return $transfer->load([
+                'fromBranch',
+                'toBranch',
+                'items.rawMaterial',
+                'createdBy',
+                'approvedBy',
+                'dispatchedBy',
+                'receivedBy',
+            ]);
         });
 
         return response()->json(['data' => $this->format($transfer)], 201);
@@ -122,12 +138,21 @@ class StockTransferController extends Controller
 
         $stockTransfer->update([
             'status' => 'Approved',
-            'approved_by_id' => auth()->id()
+            'approved_by_id' => auth()->id(),
+            'approved_at' => now(),
         ]);
 
         return response()->json([
             'data' => $this->format(
-                $stockTransfer->fresh(['fromBranch', 'toBranch', 'items.rawMaterial'])
+                $stockTransfer->fresh([
+                    'fromBranch',
+                    'toBranch',
+                    'items.rawMaterial',
+                    'createdBy',
+                    'approvedBy',
+                    'dispatchedBy',
+                    'receivedBy',
+                ])
             )
         ]);
     }
@@ -177,13 +202,22 @@ class StockTransferController extends Controller
 
             $stockTransfer->update([
                 'status' => 'In Transit',
-                'dispatched_by_id' => auth()->id()
+                'dispatched_by_id' => auth()->id(),
+                'dispatched_at' => now(),
             ]);
         });
 
         return response()->json([
             'data' => $this->format(
-                $stockTransfer->fresh(['fromBranch', 'toBranch', 'items.rawMaterial'])
+                $stockTransfer->fresh([
+                    'fromBranch',
+                    'toBranch',
+                    'items.rawMaterial',
+                    'createdBy',
+                    'approvedBy',
+                    'dispatchedBy',
+                    'receivedBy',
+                ])
             )
         ]);
     }
@@ -228,13 +262,22 @@ class StockTransferController extends Controller
 
             $stockTransfer->update([
                 'status' => 'Received',
-                'received_by_id' => auth()->id()
+                'received_by_id' => auth()->id(),
+                'received_at' => now(),
             ]);
         });
 
         return response()->json([
             'data' => $this->format(
-                $stockTransfer->fresh(['fromBranch', 'toBranch', 'items.rawMaterial'])
+                $stockTransfer->fresh([
+                    'fromBranch',
+                    'toBranch',
+                    'items.rawMaterial',
+                    'createdBy',
+                    'approvedBy',
+                    'dispatchedBy',
+                    'receivedBy',
+                ])
             )
         ]);
     }
@@ -257,7 +300,15 @@ class StockTransferController extends Controller
 
         return response()->json([
             'data' => $this->format(
-                $stockTransfer->fresh(['fromBranch', 'toBranch', 'items.rawMaterial'])
+                $stockTransfer->fresh([
+                    'fromBranch',
+                    'toBranch',
+                    'items.rawMaterial',
+                    'createdBy',
+                    'approvedBy',
+                    'dispatchedBy',
+                    'receivedBy',
+                ])
             )
         ]);
     }
@@ -276,11 +327,14 @@ class StockTransferController extends Controller
             'transfer_date'    => $t->transfer_date,
             'status'           => $t->status,
             'notes'            => $t->notes,
-            'created_at'       => $t->created_at,
             'created_by'       => $t->createdBy ? ['name' => $t->createdBy->name] : null,
+            'created_at'       => $t->created_at,
             'approved_by'      => $t->approvedBy ? ['name' => $t->approvedBy->name] : null,
+            'approved_at'      => $t->approved_at,
             'dispatched_by'    => $t->dispatchedBy ? ['name' => $t->dispatchedBy->name] : null,
+            'dispatched_at'    => $t->dispatched_at,
             'received_by'      => $t->receivedBy ? ['name' => $t->receivedBy->name] : null,
+            'received_at'      => $t->received_at,
             'items'            => $t->items->map(fn($i) => [
                 'id'              => $i->id,
                 'raw_material_id' => $i->raw_material_id,

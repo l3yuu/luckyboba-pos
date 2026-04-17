@@ -34,6 +34,7 @@ interface StockTransfer {
   transfer_date?: string;
   status: TransferStatus;
   notes?: string;
+  created_by?: { name: string };
   items?: TransferItem[];
   stock_transfer_items?: TransferItem[];
   created_at?: string;
@@ -363,6 +364,10 @@ const ViewTransferModal: React.FC<{
           )}
 
           {transfer.notes && <p className="text-xs text-zinc-500 bg-zinc-50 border border-zinc-100 rounded-xl p-3">{transfer.notes}</p>}
+          <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+            <span>Initiated By:</span>
+            <span className="text-[#3b2063]">{transfer.created_by?.name ?? 'Unknown'}</span>
+          </div>
 
           {/* Items */}
           <div className="border border-zinc-200 rounded-xl overflow-hidden">
