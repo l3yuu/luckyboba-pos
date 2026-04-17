@@ -92,6 +92,10 @@ interface XReadingReport {
   pre_discount_gross?: number;
   rounding_adjustment?: number;
   net_total?: number;
+  less_vat?: number;
+  z_counter?: number;
+  previous_accumulated?: number;
+  present_accumulated?: number;
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
@@ -648,6 +652,7 @@ const XReading = () => {
             { label: 'LESS SC DISCOUNT:',      value: scDiscount  > 0 ? `-${phCurrency.format(scDiscount)}`  : phCurrency.format(0) },
             { label: 'LESS DIPLOMAT:',         value: diplomat    > 0 ? `-${phCurrency.format(diplomat)}`    : phCurrency.format(0) },
             { label: 'LESS OTHER DISC:',       value: otherDisc   > 0 ? `-${phCurrency.format(otherDisc)}`  : phCurrency.format(0) },
+            { label: 'LESS VAT:',              value: reportData?.less_vat ? `-${phCurrency.format(reportData.less_vat)}` : phCurrency.format(0) },
             { label: 'LESS 12% VAT:',          value: (reportData?.is_vat ?? isVat) && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
           ];
           return (
@@ -683,6 +688,10 @@ const XReading = () => {
               <div className="flex text-[11px] leading-snug">
                 <span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span>
                 <span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span>
+              </div>
+              <div className="flex text-[11px] leading-snug">
+                <span className="flex-1 text-right uppercase pr-1">LESS VAT (SC/PWD):</span>
+                <span className="w-[35%] text-right">{phCurrency.format(reportData?.less_vat || 0)}</span>
               </div>
               <div className="flex text-[11px] leading-snug">
                 <span className="flex-1 text-right uppercase pr-1">TOTAL VOIDS:</span>
@@ -783,6 +792,11 @@ const XReading = () => {
         <Divider />
         <Row label="TOTAL QTY SOLD" value={reportData?.total_qty_sold ?? 0} />
         <Row label="TRANSACTION COUNT" value={txCount} />
+        <Divider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">ACCUMULATED TOTALS</p>
+        <Row label="PREVIOUS ACCUMULATED" value={phCurrency.format(reportData?.previous_accumulated || 0)} />
+        <Row label="PRESENT ACCUMULATED"  value={phCurrency.format(reportData?.present_accumulated  || 0)} />
+        <Row label="Z-COUNTER"            value={String(reportData?.z_counter || 1).padStart(4, '0')} />
       </div>
     );
   };

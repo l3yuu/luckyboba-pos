@@ -93,6 +93,10 @@ interface XReadingReport {
   cash_in_drawer?: number;
   cash_in?: number;
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
+  less_vat?: number;
+  z_counter?: number;
+  previous_accumulated?: number;
+  present_accumulated?: number;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -699,6 +703,10 @@ const XReadingTab: React.FC = () => {
             <span className="w-[35%] text-right">{r.value}</span>
           </div>
         ))}
+        <div className="flex text-[11px] leading-snug">
+          <span className="flex-1 text-right uppercase pr-1">LESS VAT (SC/PWD):</span>
+          <span className="w-[35%] text-right">{phCurrency.format(reportData?.less_vat || 0)}</span>
+        </div>
         <div className="flex text-[11px] border-t border-black mt-0.5 pt-0.5">
           <span className="flex-1 text-right uppercase pr-1 font-bold">Net Amount:</span>
           <span className="w-[35%] text-right font-bold">{phCurrency.format(netAmount)}</span>
@@ -717,6 +725,7 @@ const XReadingTab: React.FC = () => {
         ))}
         <ReceiptDivider />
         <ReceiptRow label="SC and PWD Amount:" value={phCurrency.format(scDiscount + pwdDiscount)} />
+        <ReceiptRow label="Less VAT (SC/PWD):" value={phCurrency.format(reportData?.less_vat || 0)} />
         <ReceiptRow label="Total Voids:" value={phCurrency.format(voids)} />
       </div>
     );
@@ -798,6 +807,11 @@ const XReadingTab: React.FC = () => {
         <ReceiptDivider />
         <ReceiptRow label="Total Qty Sold" value={reportData?.total_qty_sold ?? 0} />
         <ReceiptRow label="Transaction Count" value={txCount} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">Accumulated Totals</p>
+        <ReceiptRow label="Previous Accumulated" value={phCurrency.format(reportData?.previous_accumulated || 0)} />
+        <ReceiptRow label="Present Accumulated" value={phCurrency.format(reportData?.present_accumulated || 0)} />
+        <ReceiptRow label="Z-Counter" value={String(reportData?.z_counter || 1).padStart(4, "0")} />
       </div>
     );
   };

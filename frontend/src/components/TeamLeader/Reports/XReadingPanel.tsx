@@ -8,15 +8,19 @@ import api from '../../../services/api';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface XReadingData {
-  date:          string;
-  gross_sales:   number;
-  void_sales:    number;
-  net_sales:     number;
-  cash_sales:    number;
-  card_sales:    number;
-  gc_sales:      number;
-  total_orders:  number;
-  void_orders:   number;
+  date:                  string;
+  gross_sales:           number;
+  void_sales:            number;
+  net_sales:             number;
+  cash_sales:            number;
+  card_sales:            number;
+  gc_sales:              number;
+  total_orders:          number;
+  void_orders:           number;
+  less_vat:             number;
+  z_counter:            number;
+  previous_accumulated: number;
+  present_accumulated:  number;
 }
 
 // ─── Row helper ───────────────────────────────────────────────────────────────
@@ -41,17 +45,21 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
     try {
       const res = await api.get('/x-reading', { params: { branch_id: branchId, date: selectedDate } });
       const raw = res.data?.data ?? res.data;
-      setData({
-        date:         raw.date          ?? selectedDate,
-        gross_sales:  Number(raw.gross_sales  ?? 0),
-        void_sales:   Number(raw.void_sales   ?? 0),
-        net_sales:    Number(raw.net_sales    ?? 0),
-        cash_sales:   Number(raw.cash_sales   ?? 0),
-        card_sales:   Number(raw.card_sales   ?? 0),
-        gc_sales:     Number(raw.gc_sales     ?? 0),
-        total_orders: Number(raw.total_orders ?? 0),
-        void_orders:  Number(raw.void_orders  ?? 0),
-      });
+        setData({
+          date:                  raw.date                  ?? selectedDate,
+          gross_sales:           Number(raw.gross_sales    ?? 0),
+          void_sales:            Number(raw.void_sales     ?? 0),
+          net_sales:             Number(raw.net_sales      ?? 0),
+          cash_sales:            Number(raw.cash_sales     ?? 0),
+          card_sales:            Number(raw.card_sales     ?? 0),
+          gc_sales:              Number(raw.gc_sales       ?? 0),
+          total_orders:          Number(raw.total_orders   ?? 0),
+          void_orders:           Number(raw.void_orders    ?? 0),
+          less_vat:             Number(raw.less_vat       ?? 0),
+          z_counter:            Number(raw.z_counter      ?? 1),
+          previous_accumulated: Number(raw.previous_accumulated ?? 0),
+          present_accumulated:  Number(raw.present_accumulated  ?? 0),
+        });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setFetchError(msg ?? 'Failed to load X-reading.');
@@ -143,6 +151,7 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
               <Row label="Cash Sales"             value={`₱${data.cash_sales.toFixed(2)}`} accent="text-emerald-600" />
               <Row label="Card Sales"             value={`₱${data.card_sales.toFixed(2)}`} accent="text-blue-600" />
               <Row label="Gift Certificate Sales" value={`₱${data.gc_sales.toFixed(2)}`}   accent="text-violet-600" />
+              <Row label="Less VAT (SC/PWD)"      value={`₱${data.less_vat.toFixed(2)}`}   accent="text-red-500" />
               <div className="flex items-center justify-between py-2.5 mt-1 border-t border-zinc-200">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total</span>
                 <span className="text-sm font-bold text-[#1a0f2e]">₱{data.net_sales.toFixed(2)}</span>
@@ -195,9 +204,33 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
               <Row label="Void Orders"  value={data.void_orders}  accent="text-red-500" />
               <Row label="Void Rate"    value={`${voidRate.toFixed(1)}%`} />
               <div className="flex items-center justify-between py-2.5 mt-1 border-t border-zinc-300">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Net Orders</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Net Orders</span>
                 <span className="text-sm font-bold text-emerald-600">{netOrders}</span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Accumulated Totals ── */}
+      {!loading && !fetchError && data && (
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden mt-6">
+          <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
+            <TrendingUp size={13} className="text-zinc-400" />
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Accumulated Totals</p>
+          </div>
+          <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Previous Accumulated</p>
+              <p className="text-base font-bold text-[#1a0f2e]">₱{data.previous_accumulated.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Present Accumulated</p>
+              <p className="text-base font-bold text-emerald-600">₱{data.present_accumulated.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Z-Counter</p>
+              <p className="text-base font-bold text-violet-600">{String(data.z_counter).padStart(4, "0")}</p>
             </div>
           </div>
         </div>
