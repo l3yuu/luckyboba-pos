@@ -704,7 +704,7 @@ const XReadingTab: React.FC = () => {
           </div>
         ))}
         <div className="flex text-[11px] leading-snug">
-          <span className="flex-1 text-right uppercase pr-1">LESS VAT (SC/PWD):</span>
+          <span className="flex-1 text-right uppercase pr-1">SC/PWD VAT:</span>
           <span className="w-[35%] text-right">{phCurrency.format(reportData?.less_vat || 0)}</span>
         </div>
         <div className="flex text-[11px] border-t border-black mt-0.5 pt-0.5">
@@ -725,8 +725,8 @@ const XReadingTab: React.FC = () => {
         ))}
         <ReceiptDivider />
         <ReceiptRow label="SC and PWD Amount:" value={phCurrency.format(scDiscount + pwdDiscount)} />
-        <ReceiptRow label="Less VAT (SC/PWD):" value={phCurrency.format(reportData?.less_vat || 0)} />
-        <ReceiptRow label="Total Voids:" value={phCurrency.format(voids)} />
+        <ReceiptRow label="SC/PWD VAT:"       value={phCurrency.format(reportData?.less_vat || 0)} />
+        <ReceiptRow label="Total Voids:"       value={phCurrency.format(voids)} />
       </div>
     );
   };
@@ -776,6 +776,7 @@ const XReadingTab: React.FC = () => {
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
         <ReceiptRow label="Net Sales" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="SC/PWD VAT"       value={phCurrency.format(reportData?.less_vat || 0)} />
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="Gross Amount" value={phCurrency.format(gross)} />
         <ReceiptDivider />

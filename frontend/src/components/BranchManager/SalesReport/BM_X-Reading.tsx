@@ -618,7 +618,7 @@ const fetchReading = useCallback(async () => {
           </div>
         ))}
         <div className="flex text-[11px] leading-snug">
-          <span className="flex-1 text-right uppercase pr-1">LESS VAT (SC/PWD):</span>
+          <span className="flex-1 text-right uppercase pr-1">SC/PWD VAT:</span>
           <span className="w-[35%] text-right">{phCurrency.format(reportData?.less_vat || 0)}</span>
         </div>
         <div className="flex text-[11px] border-t border-black mt-0.5 pt-0.5">
@@ -639,7 +639,7 @@ const fetchReading = useCallback(async () => {
         ))}
         <ReceiptDivider />
         <ReceiptRow label="SC and PWD Amount:" value={phCurrency.format(scDiscount + pwdDiscount)} />
-        <ReceiptRow label="Less VAT (SC/PWD):" value={phCurrency.format(reportData?.less_vat || 0)} />
+        <ReceiptRow label="SC/PWD VAT:"       value={phCurrency.format(reportData?.less_vat || 0)} />
         <ReceiptRow label="Total Voids:"       value={phCurrency.format(voids)} />
       </div>
     );
@@ -690,13 +690,14 @@ const fetchReading = useCallback(async () => {
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
         <ReceiptRow label="Net Sales"        value={phCurrency.format(netSales)} />
+        <ReceiptRow label="SC/PWD VAT"       value={phCurrency.format(reportData?.less_vat || 0)} />
         <ReceiptRow label="Total Discounts"  value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="Gross Amount"     value={phCurrency.format(gross)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Discount Summary</p>
         <ReceiptRow label="S.C Disc."      value={phCurrency.format(scDiscount)} />
         <ReceiptRow label="PWD Disc."      value={phCurrency.format(pwdDiscount)} />
-        <ReceiptRow label="Less VAT (SC):" value={phCurrency.format(reportData?.less_vat || 0)} />
+        <ReceiptRow label="SC/PWD VAT:"    value={phCurrency.format(reportData?.less_vat || 0)} />
         <ReceiptRow label="Other Disc."    value={phCurrency.format(otherDisc)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Sales Adjustment</p>

@@ -652,7 +652,7 @@ const XReading = () => {
             { label: 'LESS SC DISCOUNT:',      value: scDiscount  > 0 ? `-${phCurrency.format(scDiscount)}`  : phCurrency.format(0) },
             { label: 'LESS DIPLOMAT:',         value: diplomat    > 0 ? `-${phCurrency.format(diplomat)}`    : phCurrency.format(0) },
             { label: 'LESS OTHER DISC:',       value: otherDisc   > 0 ? `-${phCurrency.format(otherDisc)}`  : phCurrency.format(0) },
-            { label: 'LESS VAT:',              value: reportData?.less_vat ? `-${phCurrency.format(reportData.less_vat)}` : phCurrency.format(0) },
+            { label: 'SC/PWD VAT:',            value: reportData?.less_vat ? `-${phCurrency.format(reportData.less_vat)}` : phCurrency.format(0) },
             { label: 'LESS 12% VAT:',          value: (reportData?.is_vat ?? isVat) && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
           ];
           return (
@@ -690,7 +690,7 @@ const XReading = () => {
                 <span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span>
               </div>
               <div className="flex text-[11px] leading-snug">
-                <span className="flex-1 text-right uppercase pr-1">LESS VAT (SC/PWD):</span>
+                <span className="flex-1 text-right uppercase pr-1">SC/PWD VAT:</span>
                 <span className="w-[35%] text-right">{phCurrency.format(reportData?.less_vat || 0)}</span>
               </div>
               <div className="flex text-[11px] leading-snug">
@@ -713,7 +713,6 @@ const XReading = () => {
 
   const renderXReading = () => {
     const gross = reportData?.gross_sales || 0;
-    const netSales = reportData?.net_total ?? reportData?.net_sales ?? 0; // Exclusive
     const netInclusive = reportData?.net_sales || 0; // Inclusive
     const cashTotal = reportData?.cash_total || 0;
     const nonCash = reportData?.non_cash_total || 0;
@@ -754,10 +753,11 @@ const XReading = () => {
         <Row label="VAT EXEMPT SALES" value={phCurrency.format(vatExempt)} />
         <Row label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <Divider />
-        <Row label="SERVICE CHARGE" value={phCurrency.format(0)} />
-        <Row label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
-        <Row label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
-        <Row label="GROSS AMOUNT" value={phCurrency.format(gross)} />
+        <Row label="SERVICE CHARGE"   value={phCurrency.format(0)} />
+        <Row label="NET SALES"        value={phCurrency.format(netInclusive)} />
+        <Row label="SC/PWD VAT"       value={phCurrency.format(reportData?.less_vat || 0)} />
+        <Row label="TOTAL DISCOUNTS"  value={phCurrency.format(totalDisc)} />
+        <Row label="GROSS AMOUNT"     value={phCurrency.format(gross)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
         <Row label="S.C DISC." value={phCurrency.format(scDiscount)} />

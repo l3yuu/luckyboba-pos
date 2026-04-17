@@ -151,7 +151,7 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
               <Row label="Cash Sales"             value={`₱${data.cash_sales.toFixed(2)}`} accent="text-emerald-600" />
               <Row label="Card Sales"             value={`₱${data.card_sales.toFixed(2)}`} accent="text-blue-600" />
               <Row label="Gift Certificate Sales" value={`₱${data.gc_sales.toFixed(2)}`}   accent="text-violet-600" />
-              <Row label="Less VAT (SC/PWD)"      value={`₱${data.less_vat.toFixed(2)}`}   accent="text-red-500" />
+              <Row label="SC/PWD VAT"             value={`₱${data.less_vat.toFixed(2)}`}   accent="text-red-500" />
               <div className="flex items-center justify-between py-2.5 mt-1 border-t border-zinc-200">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total</span>
                 <span className="text-sm font-bold text-[#1a0f2e]">₱{data.net_sales.toFixed(2)}</span>
