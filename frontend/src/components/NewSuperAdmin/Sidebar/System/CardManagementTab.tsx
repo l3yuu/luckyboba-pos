@@ -33,12 +33,17 @@ const CardManagementTab = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getToken = () => localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
+  // Global Settings State
+  const [adminPhone, setAdminPhone] = useState("");
+  const [adminGcashQrPreview, setAdminGcashQrPreview] = useState<string | null>(null);
+  const [adminGcashQrFile, setAdminGcashQrFile] = useState<File | null>(null);
+  const [isSavingGlobal, setIsSavingGlobal] = useState(false);
 
-  const fetchCards = React.useCallback(async () => {
-    setLoading(true);
+  }, []);
+
+  const fetchGlobalSettings = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/cards", {
+      const res = await fetch("/api/admin/card-payment-settings", {
         headers: {
           "Accept": "application/json",
           "Authorization": `Bearer ${getToken()}`,
@@ -46,18 +51,18 @@ const CardManagementTab = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setCards(data.data);
+        setAdminPhone(data.data.admin_card_phone || "");
+        setAdminGcashQrPreview(data.data.admin_card_gcash_qr || null);
       }
-    } catch (_err) {
-      console.error("Failed to fetch cards", _err);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error("Failed to fetch global card settings", err);
     }
   }, []);
 
   useEffect(() => {
     fetchCards();
-  }, [fetchCards]);
+    fetchGlobalSettings();
+  }, [fetchCards, fetchGlobalSettings]);
 
   const handleOpenModal = (card?: CardItem) => {
     setError(null);
@@ -191,16 +196,131 @@ const CardManagementTab = () => {
 
   const filteredCards = cards.filter(c => c.title.toLowerCase().includes(search.toLowerCase()));
 
+  const handleSaveGlobal = async () => {
+    setIsSavingGlobal(true);
+    const formData = new FormData();
+    formData.append("admin_card_phone", adminPhone);
+    if (adminGcashQrFile) {
+      formData.append("admin_card_gcash_qr", adminGcashQrFile);
+    }
+
+    try {
+      const res = await fetch("/api/admin/card-payment-settings", {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Authorization": `Bearer ${getToken()}`,
+        },
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Success: maybe show a small toast or just update state
+        fetchGlobalSettings();
+        setAdminGcashQrFile(null);
+        alert("Global payment settings updated!");
+      } else {
+        alert(data.message || "Failed to update global settings.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error.");
+    } finally {
+      setIsSavingGlobal(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 w-full max-w-7xl mx-auto flex flex-col h-full fade-in font-['DM_Sans']">
-      <div className="flex items-center justify-end mb-8 flex-wrap gap-3">
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1a0f2e]">Card Management</h1>
+          <p className="text-zinc-500 text-sm">Manage membership card templates and global payment settings.</p>
+        </div>
         <button
           onClick={() => handleOpenModal()}
-          className="mt-4 md:mt-0 flex items-center justify-center gap-2 bg-[#3b2063] hover:bg-[#2d184b] text-white px-5 py-2.5 rounded-xl font-semibold shadow-md shadow-purple-900/20 transition-all hover:-translate-y-0.5"
+          className="flex items-center justify-center gap-2 bg-[#3b2063] hover:bg-[#2d184b] text-white px-5 py-2.5 rounded-xl font-semibold shadow-md shadow-purple-900/20 transition-all hover:-translate-y-0.5"
         >
           <Plus size={18} />
           <span>New Card Type</span>
         </button>
+      </div>
+
+      {/* Global Card Payment Settings Section */}
+      <div className="mb-10 bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-sm">
+        <div className="px-6 py-4 border-b border-zinc-100 bg-[#3b2063] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+              <Upload size={18} className="text-white" />
+            </div>
+            <h3 className="font-bold text-white">Global Card Payment Settings</h3>
+          </div>
+        </div>
+        
+        <div className="p-6 grid md:grid-cols-2 gap-8 items-start">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[0.8rem] font-bold text-zinc-600 uppercase tracking-wider mb-2">Admin GCash Number</label>
+              <input
+                type="text"
+                className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 rounded-xl px-4 py-2.5 focus:bg-white focus:ring-2 focus:ring-[#3b2063]/20 focus:border-[#3b2063] transition-all outline-none font-medium"
+                placeholder="e.g. 0917 XXX XXXX"
+                value={adminPhone}
+                onChange={e => setAdminPhone(e.target.value)}
+              />
+              <p className="text-xs text-zinc-400 mt-2">The contact number displayed to customers during card purchase.</p>
+            </div>
+            
+            <button
+              onClick={handleSaveGlobal}
+              disabled={isSavingGlobal}
+              className="flex items-center justify-center gap-2 bg-[#3b2063] hover:bg-[#2d184b] text-white px-5 py-2 rounded-xl font-bold transition-all disabled:opacity-50"
+            >
+              {isSavingGlobal ? "Saving..." : "Update Global Settings"}
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[0.8rem] font-bold text-zinc-600 uppercase tracking-wider block">Global GCash QR Code</label>
+            <div className="flex items-center gap-6">
+              <div 
+                onClick={() => document.getElementById('global-qr-upload')?.click()}
+                className="w-32 h-32 bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center overflow-hidden cursor-pointer hover:border-[#3b2063]/50 transition-all group"
+              >
+                {adminGcashQrPreview ? (
+                  <img src={adminGcashQrPreview} className="w-full h-full object-cover" alt="Global QR" />
+                ) : (
+                  <Upload size={24} className="text-zinc-300" />
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <span className="text-[10px] font-bold text-white uppercase tracking-tighter">Change QR</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Upload the primary GCash QR code for card membership payments.
+                  Final customers will scan this to send the payment.
+                </p>
+                <input 
+                  id="global-qr-upload"
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      setAdminGcashQrFile(e.target.files[0]);
+                      setAdminGcashQrPreview(URL.createObjectURL(e.target.files[0]));
+                    }
+                  }} 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-bold text-[#1a0f2e]">Card Templates</h3>
       </div>
 
       {/* Search Bar */}

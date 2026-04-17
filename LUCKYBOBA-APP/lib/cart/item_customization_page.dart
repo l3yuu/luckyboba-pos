@@ -36,8 +36,6 @@ class _ItemCustomizationPageState extends State<ItemCustomizationPage> {
     'COMBO MEALS',
     'AFFORDA-BOWLS',
     'WAFFLE',
-    'LUCKY CLASSIC JR',
-    'CARD',
   };
 
   // ── Wing sauce options (Kept static since they are free flavors) ────────
@@ -127,7 +125,7 @@ class _ItemCustomizationPageState extends State<ItemCustomizationPage> {
 
   String get _category => (widget.item['category'] ?? '').toString().toUpperCase().trim();
 
-  bool get _isFood  => _foodCategories.contains(_category);
+  bool get _isFood  => _foodCategories.any((cat) => cat.toUpperCase() == _category);
   bool get _isWings => _category == 'CHICKEN WINGS';
 
   // Determine which dynamic map to pull from based on the item category

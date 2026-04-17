@@ -110,11 +110,16 @@ class _CardPurchasePageState extends State<CardPurchasePage>
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          _gcashQrUrl   = data['gcash_qr_url']   as String?;
+          // Prioritize global admin settings specifically for card purchases
+          _gcashQrUrl   = (data['admin_card_gcash_qr_url'] ?? data['gcash_qr_url']) as String?;
           _mayaQrUrl    = data['maya_qr_url']     as String?;
-          _gcashNumber  = data['gcash_number']    as String? ?? '';
+          _gcashNumber  = (data['admin_card_phone']?.toString().isNotEmpty == true 
+                            ? data['admin_card_phone'] 
+                            : data['gcash_number']) as String? ?? '';
           _mayaNumber   = data['maya_number']     as String? ?? '';
-          _accountName  = data['account_name']    as String? ?? 'Lucky Boba Store';
+          _accountName  = (data['admin_card_phone']?.toString().isNotEmpty == true 
+                            ? 'Admin Account' 
+                            : data['account_name']) as String? ?? 'Lucky Boba Store';
         });
       }
     } catch (e) {

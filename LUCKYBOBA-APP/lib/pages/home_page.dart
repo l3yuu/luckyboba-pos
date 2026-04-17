@@ -98,7 +98,8 @@ class _HomePageState extends State<HomePage> {
           .get(Uri.parse('${AppConfig.apiUrl}/branches/available'))
           .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+        final Map<String, dynamic> decoded = jsonDecode(response.body);
+        final List<dynamic> data = decoded['data'] ?? [];
         if (mounted) {
           setState(() {
             _kStoreLocations = data.map((b) {
@@ -116,8 +117,8 @@ class _HomePageState extends State<HomePage> {
               return {
                 'name': b['name'],
                 'branch_id': b['id'],
-                'address': b['address'] ?? '',
-                'image': b['image'] ?? 'assets/images/vipra_branch.png',
+                'address': b['location'] ?? b['store_address'] ?? '',
+                'image': b['image'],
                 'lat': lat,
                 'lng': lng,
                 'distance': distance,
@@ -132,8 +133,13 @@ class _HomePageState extends State<HomePage> {
           });
         }
       }
-    } catch (_) {
-      // Fallback to minimal if needed
+    } catch (e) {
+      debugPrint('❌ Error fetching branches: $e');
+      if (mounted) {
+        setState(() {
+          _kStoreLocations = []; // Reset on error
+        });
+      }
     }
   }
 
@@ -224,10 +230,17 @@ class _HomePageState extends State<HomePage> {
           perm == LocationPermission.always) {
         final pos = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-        ).timeout(const Duration(seconds: 5));
+        ).timeout(const Duration(seconds: 7)).catchError((e) {
+          debugPrint('❌ GPS Error: $e');
+          return null;
+        });
         userLat = pos.latitude;
         userLng = pos.longitude;
-        if (mounted) setState(() => _currentPosition = pos);
+        if (mounted) {
+          setState(() => _currentPosition = pos);
+          // Re-fetch branches with fresh position to get accurate distances
+          await _fetchBranches();
+        }
       }
     } catch (_) {}
 
@@ -422,13 +435,30 @@ class _HomePageState extends State<HomePage> {
                                 shadowBlur: 20,
                               ),
                               child: Center(
-                                child: Text(
-                                  'No nearby store available yet.',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.textMid,
-                                  ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'No nearby store available yet.',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.textMid,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextButton.icon(
+                                      onPressed: _fetchBranches,
+                                      icon: const Icon(Icons.refresh, size: 18),
+                                      label: const Text('Retry'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.white,
+                                        backgroundColor: _kPurple,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             )
@@ -488,19 +518,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ],
                   ),
-                  // Search button
-                  GestureDetector(
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.search_rounded,
-                          color: _kWhite, size: 22),
-                    ),
-                  ),
+                  const SizedBox(width: 40),
                 ],
               ),
 

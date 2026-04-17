@@ -97,6 +97,39 @@ class OnlineOrderController extends Controller
             app(\App\Services\DashboardService::class)->clearTodayCache($sale->branch_id);
         }
 
+        // Award Loyalty Points only when officially COMPLETED
+        if ($request->status === 'completed' && $oldStatus !== 'completed' && $sale->user_id) {
+            $pointsRatio = (float) (\App\Models\Setting::where('key', 'points_per_currency')->value('value') ?? 1.0);
+            $cardMult   = (float) (\App\Models\Setting::where('key', 'card_point_multiplier')->value('value') ?? 2.0);
+
+            $pointsEarned = (int) floor($sale->total_amount * $pointsRatio);
+            
+            // Check if user has an active loyalty card for multiplier
+            $hasCard = \DB::table('user_cards')
+                ->where('user_id', $sale->user_id)
+                ->where('status', 'active')
+                ->exists();
+
+            if ($hasCard) {
+                $pointsEarned = (int) ($pointsEarned * $cardMult);
+            }
+
+            \DB::table('user_points')->updateOrInsert(
+                ['user_id' => $sale->user_id],
+                ['points'  => \DB::raw("points + $pointsEarned"), 'updated_at' => now()]
+            );
+
+            \DB::table('point_transactions')->insert([
+                'user_id'      => $sale->user_id,
+                'type'         => 'earn',
+                'points'       => $pointsEarned,
+                'source'       => 'order',
+                'reference_id' => $sale->id,
+                'note'         => "Earned from completed order {$sale->invoice_number}",
+                'created_at'   => now(),
+            ]);
+        }
+
         $sale->status = $request->status;
         $sale->save();
 
@@ -262,35 +295,10 @@ class OnlineOrderController extends Controller
 
             $sale->load(['items', 'user', 'branch']);
 
-            // ── Calculate Earned Points (Dynamic) ──────────────────────────────────
-            $pointsRatio = (float) (\App\Models\Setting::where('key', 'points_per_currency')->value('value') ?? 1.0);
-            $cardMult   = (float) (\App\Models\Setting::where('key', 'card_point_multiplier')->value('value') ?? 2.0);
-
-            $pointsEarned = (int) floor($request->total * $pointsRatio);
-            if ($request->input('card_id')) {
-                $pointsEarned = (int) ($pointsEarned * $cardMult);
-            }
-
-            \DB::table('user_points')->updateOrInsert(
-                ['user_id' => $request->user()->id],
-                ['points'  => \DB::raw("points + $pointsEarned"), 'updated_at' => now()]
-            );
-
-            \DB::table('point_transactions')->insert([
-                'user_id'      => $request->user()->id,
-                'type'         => 'earn',
-                'points'       => $pointsEarned,
-                'source'       => 'order',
-                'reference_id' => $sale->id,
-                'note'         => "Earned from order {$sale->invoice_number}",
-                'created_at'   => now(),
-            ]);
-
             return response()->json([
                 'success'   => true,
                 'si_number' => $sale->invoice_number,
                 'qr_code'   => str_replace('APP-', '', $sale->invoice_number),
-                'points_earned' => $pointsEarned, 
                 'order'     => $this->formatOrder($sale),
             ], 201);
 

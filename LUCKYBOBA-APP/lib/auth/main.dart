@@ -246,8 +246,17 @@ class _LoginPageState extends State<LoginPage>
     } catch (e) {
       if (mounted) setState(() => _googleLoading = false);
       debugPrint('❌ Google Sign-In Error: $e');
+      String errorMsg = e.toString();
+      if (errorMsg.contains('PlatformException')) {
+        errorMsg = 'Check your Google Services configuration and Internet connection.';
+      } else if (errorMsg.contains(':')) {
+        errorMsg = errorMsg.split(':').last.trim();
+      }
+      if (errorMsg.toLowerCase() == 'null' || errorMsg.isEmpty) {
+        errorMsg = 'Authentication was unsuccessful. Please try again or use email.';
+      }
       _snack(
-        'Google Auth Error: ${e.toString().split(':').last.trim()}',
+        'Google Auth Error: $errorMsg',
         Colors.redAccent,
       );
     }

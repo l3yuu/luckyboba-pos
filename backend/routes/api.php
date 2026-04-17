@@ -519,6 +519,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post('/upload',            [UploadController::class,   'upload']);
             Route::get ('/import-history',    [UploadController::class,   'importHistory']);
             Route::post('/upload-discounts',  [UploadController::class,   'uploadDiscounts']);
+            Route::get ('/card-payment-settings', [SettingsController::class, 'getCardPaymentSettings']);
+            Route::post('/card-payment-settings', [SettingsController::class, 'updateCardPaymentSettings']);
         });
 
         Route::prefix('branches')->group(function () {

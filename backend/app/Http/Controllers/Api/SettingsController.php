@@ -57,6 +57,11 @@ class SettingsController extends Controller
             }
         }
 
+        // Add global admin card payment settings
+        $adminGcashQr = Setting::where('key', 'admin_card_gcash_qr')->value('value');
+        $settings['admin_card_gcash_qr_url'] = $adminGcashQr ? url('storage/' . $adminGcashQr) : null;
+        $settings['admin_card_phone'] = Setting::where('key', 'admin_card_phone')->value('value') ?? '';
+
         return response()->json($settings);
     }
 
@@ -114,6 +119,53 @@ public function getAuditLogs(Request $request)
     } catch (\Exception $e) {
         Log::error("Audit Fetch Error: " . $e->getMessage());
         return response()->json(['error' => 'Internal Server Error'], 500);
+    }
+}
+
+    /**
+     * Get global card payment settings (Superadmin)
+     */
+    public function getCardPaymentSettings()
+    {
+        $qrPath = Setting::where('key', 'admin_card_gcash_qr')->value('value');
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'admin_card_gcash_qr' => $qrPath ? url('storage/' . $qrPath) : null,
+                'admin_card_phone'    => Setting::where('key', 'admin_card_phone')->value('value') ?? '',
+            ]
+        ]);
+    }
+
+    /**
+     * Update global card payment settings (Superadmin)
+     */
+    public function updateCardPaymentSettings(Request $request)
+    {
+        try {
+            if ($request->has('admin_card_phone')) {
+                Setting::updateOrCreate(
+                    ['key' => 'admin_card_phone'],
+                    ['value' => $request->admin_card_phone]
+                );
+            }
+
+            if ($request->hasFile('admin_card_gcash_qr')) {
+                $path = $request->file('admin_card_gcash_qr')->store('admin/payments', 'public');
+                Setting::updateOrCreate(
+                    ['key' => 'admin_card_gcash_qr'],
+                    ['value' => $path]
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Card payment settings updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }
 
