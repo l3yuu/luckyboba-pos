@@ -419,6 +419,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('purchase-orders')->group(function () {
             Route::post ('/',             [PurchaseOrderController::class, 'store']);
             Route::patch('/{id}/status',  [PurchaseOrderController::class, 'updateStatus']);
+            Route::post ('/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve']);
+            Route::post ('/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive']);
+            Route::post ('/{purchaseOrder}/cancel',  [PurchaseOrderController::class, 'cancel']);
         });
 
         Route::prefix('item-serials')->group(function () {
