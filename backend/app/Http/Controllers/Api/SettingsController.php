@@ -276,7 +276,7 @@ public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedRes
         }
 
         return response()->json([
-            'version' => config('app.version'),
+            'version' => 'v2.6.0',
             'db_status' => $dbStatus,
             'uptime' => 'Online', // Calculating OS server uptime in PHP isn't universally portable
             'last_backup' => $lastBackupStr
