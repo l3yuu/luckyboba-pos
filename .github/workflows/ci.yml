@@ -161,7 +161,6 @@ jobs:
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
-            sed -i '/<meta http-equiv="Content-Security-Policy"/,/blob:;">/d' index.html
 
             # ✅ Fix sw.js internal workbox reference path
             sed -i 's|importScripts("/workbox-|importScripts("/backend/public/workbox-|g' backend/public/sw.js
@@ -277,7 +276,6 @@ jobs:
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
-            sed -i '/<meta http-equiv="Content-Security-Policy"/,/blob:;">/d' index.html
 
             # ✅ Fix sw.js internal workbox reference path
             sed -i 's|importScripts("/workbox-|importScripts("/backend/public/workbox-|g' backend/public/sw.js
