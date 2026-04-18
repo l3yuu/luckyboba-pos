@@ -234,32 +234,32 @@ const SettingsTab: React.FC = () => {
 
   // FIX #10 — use PATCH (partial update)
   const saveSection = async (
-  payload: Record<string, string>,
-  setSaving: (v: boolean) => void
-) => {
-  setSaving(true);
-  try {
-    const res = await fetch(`${API_BASE}/settings`, {
-      method: 'PATCH',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    payload: Record<string, string>,
+    setSaving: (v: boolean) => void
+  ) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
 
-    // Cache contact info for the POS receipt
-    if (payload.contact_email || payload.contact_phone) {
-      localStorage.setItem('pos_contact_email', payload.contact_email ?? '')
-      localStorage.setItem('pos_contact_phone', payload.contact_phone ?? '')
+      // Cache contact info for the POS receipt
+      if (payload.contact_email || payload.contact_phone) {
+        localStorage.setItem('pos_contact_email', payload.contact_email ?? '')
+        localStorage.setItem('pos_contact_phone', payload.contact_phone ?? '')
+      }
+
+      showToast('Settings saved successfully!', 'success');
+    } catch (e) {
+      console.error('Save failed:', e);
+      showToast('Save failed — please try again.', 'error');
+    } finally {
+      setSaving(false);
     }
-
-    showToast('Settings saved successfully!', 'success');
-  } catch (e) {
-    console.error('Save failed:', e);
-    showToast('Save failed — please try again.', 'error');
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
   const handleRunBackup = async () => {
     setIsBackingUp(true);

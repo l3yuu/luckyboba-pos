@@ -11,13 +11,13 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self';
-                  script-src 'self' 'unsafe-inline' 'unsafe-eval';
-                  connect-src 'self' https://luckybobastores.com https://staging.luckybobastores.com http://localhost:8000;
-                  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-                  style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
-                  font-src 'self' https://fonts.gstatic.com;
-                  img-src 'self' data: blob: http://localhost:8000 https://luckybobastores.com https://staging.luckybobastores.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' *;
+                  script-src 'self' 'unsafe-inline' 'unsafe-eval' *;
+                  connect-src 'self' https://luckybobastores.com https://staging.luckybobastores.com http://localhost:8000 *;
+                  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com *;
+                  style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com *;
+                  font-src 'self' https://fonts.gstatic.com *;
+                  img-src 'self' data: blob: http://localhost:8000 https://luckybobastores.com https://staging.luckybobastores.com *;">
 
   <title>Lucky Boba POS</title>
 </head>
