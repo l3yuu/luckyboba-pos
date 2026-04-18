@@ -26,6 +26,13 @@ interface BackupFile {
   timestamp: number;
 }
 
+interface SystemInfoResponse {
+  version?: string;
+  db_status?: string;
+  uptime?: string;
+  last_backup?: string;
+}
+
 
 const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
@@ -132,7 +139,8 @@ const SettingsTab: React.FC = () => {
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [backups, setBackups] = useState<BackupFile[]>([]);
-  const [lastBackup, setLastBackup] = useState("Never");
+  const [systemInfo, setSystemInfo] = useState<SystemInfoResponse | null>(null);
+  const [systemInfoLoading, setSystemInfoLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [clearingLogs, setClearingLogs] = useState(false);
   const [resettingSystem, setResettingSystem] = useState(false);
@@ -177,7 +185,6 @@ const SettingsTab: React.FC = () => {
       .then(data => {
         if (Array.isArray(data)) {
           setBackups(data);
-          if (data.length > 0) setLastBackup(data[0].date);
         } else {
           setBackups([]);
           console.error("Backups response not an array:", data);
@@ -187,6 +194,23 @@ const SettingsTab: React.FC = () => {
         console.error("History fetch failed:", err);
         setBackups([]);
       });
+  };
+
+  const fetchSystemInfo = () => {
+    setSystemInfoLoading(true);
+    fetch(`${API_BASE}/system/info`, { headers: getHeaders() })
+      .then(r => {
+        if (!r.ok) throw new Error(`Server returned ${r.status}`);
+        return r.json();
+      })
+      .then((data: SystemInfoResponse) => {
+        setSystemInfo(data);
+      })
+      .catch(err => {
+        console.error("System info fetch failed:", err);
+        setSystemInfo(null);
+      })
+      .finally(() => setSystemInfoLoading(false));
   };
 
   useEffect(() => {
@@ -229,6 +253,7 @@ const SettingsTab: React.FC = () => {
       });
 
     fetchBackups();
+    fetchSystemInfo();
   }, [showToast]);
 
   // FIX #10 — use PATCH (partial update)
@@ -268,6 +293,7 @@ const SettingsTab: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Backup failed');
       showToast('Database backup completed!', 'success');
       fetchBackups();
+      fetchSystemInfo();
     } catch (e: unknown) {
       const error = e as { message?: string };
       showToast(error.message || 'Backup failed', 'error');
@@ -672,17 +698,40 @@ const SettingsTab: React.FC = () => {
               <div className="space-y-1.5 mb-6">
                 <div className="flex justify-between">
                   <span className="text-[10px] text-zinc-500">Version</span>
-                  <span className="text-[10px] font-bold text-zinc-300">v2.4.1</span>
+                  <span className="text-[10px] font-bold text-zinc-300">
+                    {systemInfoLoading ? '…' : (systemInfo?.version ?? '—')}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[10px] text-zinc-500">DB Status</span>
-                  <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
-                    <ShieldCheck size={10} /> Connected
+                  <span
+                    className={`text-[10px] font-bold flex items-center gap-1 ${
+                      systemInfoLoading
+                        ? 'text-zinc-300'
+                        : systemInfo?.db_status === 'Connected'
+                          ? 'text-emerald-400'
+                          : systemInfo?.db_status === 'Disconnected'
+                            ? 'text-red-400'
+                            : 'text-amber-400'
+                    }`}
+                  >
+                    {!systemInfoLoading && systemInfo?.db_status === 'Connected' && (
+                      <ShieldCheck size={10} />
+                    )}
+                    {systemInfoLoading ? '…' : (systemInfo?.db_status ?? '—')}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[10px] text-zinc-500">Uptime</span>
+                  <span className="text-[10px] font-bold text-zinc-300">
+                    {systemInfoLoading ? '…' : (systemInfo?.uptime ?? '—')}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[10px] text-zinc-500">Last Backup</span>
-                  <span className="text-[10px] font-bold text-zinc-300">{lastBackup}</span>
+                  <span className="text-[10px] font-bold text-zinc-300">
+                    {systemInfoLoading ? '…' : (systemInfo?.last_backup ?? 'Never')}
+                  </span>
                 </div>
               </div>
 
