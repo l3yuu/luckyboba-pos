@@ -6,7 +6,7 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastProvider';
-import { DeviceGate } from './components/DeviceGate.tsx';       // ← NEW
+import { DeviceGate } from './components/DeviceGate';       // ← Removed .tsx extension
 import { prefetchAll } from './utils/prefetch';
 import { useAuth } from './hooks/useAuth';
 import { useServiceWorker } from './hooks/useServiceWorker';
