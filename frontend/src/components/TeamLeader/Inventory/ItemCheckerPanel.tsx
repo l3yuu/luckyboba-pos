@@ -1,17 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../../../services/api';
 import { SkeletonBox } from '../SharedSkeletons';
-import { 
-  Search, 
-  Filter, 
-  Info, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Search,
+  Filter,
+  Info,
+  CheckCircle,
+  XCircle,
   AlertTriangle,
   ChevronRight,
   FlaskConical,
   X,
-  RefreshCw,
   ShoppingBag
 } from 'lucide-react';
 
@@ -56,11 +55,11 @@ const STYLES = `
 const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeFilter, setActiveFilter] = useState<'all' | 'available' | 'unavailable'>('all');
-  
+
   // Recipe Modal State
   const [selectedItemForRecipe, setSelectedItemForRecipe] = useState<MenuItem | null>(null);
   const [recipeData, setRecipeData] = useState<Recipe[]>([]);
@@ -92,9 +91,9 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
     return items.filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-      const matchesStatus = 
-        activeFilter === 'all' || 
-        (activeFilter === 'available' && item.is_available) || 
+      const matchesStatus =
+        activeFilter === 'all' ||
+        (activeFilter === 'available' && item.is_available) ||
         (activeFilter === 'unavailable' && !item.is_available);
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -134,25 +133,6 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
     <div className="p-6 space-y-8 tl-item-checker">
       <style>{STYLES}</style>
 
-      {/* ── HEADER & STATS ── */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Item Checker</h2>
-          <p className="text-[13px] font-bold text-slate-400 mt-1 uppercase tracking-widest flex items-center gap-2">
-            <ShoppingBag size={14} className="text-[#3b2063]" />
-            Real-time Menu Availability List
-          </p>
-        </div>
-        <button 
-          onClick={() => fetchItems(true)} 
-          disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-black uppercase tracking-widest text-[#3b2063] hover:border-[#3b2063] transition-all"
-        >
-          <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-          {refreshing ? 'Refreshing...' : 'Refresh List'}
-        </button>
-      </div>
-
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total Items', value: stats.total, color: 'slate', sub: 'In catalog' },
@@ -174,15 +154,15 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 tl-search-container">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Search item name or barcode..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="tl-search-input"
           />
         </div>
-        
+
         <div className="flex items-center gap-2 p-1 bg-slate-100/80 border border-slate-200 rounded-2xl">
           {(['all', 'available', 'unavailable'] as const).map(f => (
             <button
@@ -197,7 +177,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
 
         <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-2xl">
           <Filter size={14} className="text-slate-400" />
-          <select 
+          <select
             value={selectedCategory}
             onChange={e => setSelectedCategory(e.target.value)}
             className="text-[11px] font-black uppercase tracking-widest text-slate-600 outline-none pr-2 bg-transparent"
@@ -256,7 +236,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
                     </span>
                   </td>
                   <td className="px-6 py-5 text-right">
-                    <button 
+                    <button
                       onClick={() => handleViewRecipe(item)}
                       className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#3b2063] hover:border-[#3b2063] transition-all group-hover:bg-white"
                     >
@@ -296,7 +276,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
       {selectedItemForRecipe && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-md bg-slate-900/40 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl border border-white overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-300">
-            
+
             {/* Modal Header */}
             <div className="p-8 pb-6 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -308,7 +288,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Ingredient Breakdown</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedItemForRecipe(null)}
                 className="w-10 h-10 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 flex items-center justify-center text-slate-400 transition-all"
               >
@@ -379,7 +359,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
 
             {/* Modal Footer */}
             <div className="p-8 pt-0 flex justify-end">
-              <button 
+              <button
                 onClick={() => setSelectedItemForRecipe(null)}
                 className="px-8 py-3 bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20"
               >
