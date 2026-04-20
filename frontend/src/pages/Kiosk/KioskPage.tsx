@@ -6,7 +6,6 @@ import {
   ShoppingBag,
   ChevronRight,
   CheckCircle2,
-  Trash2,
   Plus,
   Minus,
   Search,
@@ -288,6 +287,36 @@ const KioskPage = () => {
     setTimeout(() => setLogoClickCount(0), 2000);
   };
 
+  const triggerPinError = () => {
+    setPinError(true);
+    setTimeout(() => {
+      setPinError(false);
+      setPinInput('');
+    }, 600);
+  };
+
+  const handleVerifyPin = async (pinToVerify: string) => {
+    try {
+      setLoading(true);
+      const response = await api.post('/kiosk/verify-pin', {
+        pin: pinToVerify,
+        branch_id: branchId
+      });
+
+      if (response.data.success) {
+        setPinInput('');
+        setIsPinModalOpen(false);
+        setIsAdminModalOpen(true);
+      } else {
+        triggerPinError();
+      }
+    } catch (_err) {
+      triggerPinError();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addToCart = (item: MenuItem, addons: AddOnOption[] = [], sugar: string = '100%') => {
     setCart((prev: CartItem[]) => {
       // We calculate a unique key for grouping same items with same customizations
@@ -350,12 +379,12 @@ const KioskPage = () => {
     }
   };
 
-  const updateQty = (id: number, delta: number) => {
-    setCart((prev: CartItem[]) => prev.map((i: CartItem) => i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i));
+  const updateQty = (uniqueId: string, delta: number) => {
+    setCart((prev: CartItem[]) => prev.map((i: CartItem) => i.uniqueId === uniqueId ? { ...i, qty: Math.max(1, i.qty + delta) } : i));
   };
 
-  const removeFromCart = (id: number) => {
-    setCart((prev: CartItem[]) => prev.filter((i: CartItem) => i.id !== id));
+  const removeFromCart = (uniqueId: string) => {
+    setCart((prev: CartItem[]) => prev.filter((i: CartItem) => i.uniqueId !== uniqueId));
   };
 
   const calculateTotal = () => cart.reduce((sum: number, item: CartItem) => sum + (item.itemTotal * item.qty), 0);
@@ -465,458 +494,423 @@ const KioskPage = () => {
     };
   }, [step, confirmCountdown]);
 
-  // --- Views ---
+   // --- Views ---
 
-  const SplashView = () => (
+   const SplashView = () => (
     <div
-      className="flex-1 flex flex-col items-center justify-between p-10 lg:p-16 cursor-pointer relative overflow-hidden animate-in fade-in duration-700 bg-gradient-to-br from-violet-50 via-white to-violet-100"
+      className="flex-1 flex flex-col items-center justify-between p-12 cursor-pointer relative overflow-hidden bg-white kiosk-splash-shell kiosk-splash-gradient"
       onClick={() => setStep('order_type')}
     >
-      {/* Background Decorative Elements */}
-      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-violet-200/40 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
-      <div className="absolute bottom-0 right-0 w-[800px] h-[800px] bg-emerald-100/30 rounded-full blur-[120px] translate-x-1/4 translate-y-1/4 pointer-events-none"></div>
-
-      {/* Top Section */}
-      <div className="w-full flex justify-center pt-12 lg:pt-20 relative z-10 pointer-events-none shrink-0">
-        <div className="bg-white/80 backdrop-blur-md px-12 py-5 rounded-full shadow-sm border border-white/50">
-          <p className="text-xl lg:text-3xl text-[#3b2063] font-black uppercase tracking-[0.2em]">{branchName}</p>
+      {/* Background Orbs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[100px] animate-float-slow opacity-60"></div>
+      <div className="absolute bottom-[-5%] left-[-5%] w-[450px] h-[450px] bg-amber-400/10 rounded-full blur-[80px] animate-float opacity-50"></div>
+      
+      {/* Floating Boba Icons (Decorative) */}
+      <div className="absolute top-[20%] left-[15%] opacity-20 animate-float pointer-events-none">
+        <div className="w-16 h-16 bg-violet-200 rounded-full flex items-center justify-center">
+          <ShoppingBag size={32} className="text-violet-600" />
+        </div>
+      </div>
+      <div className="absolute bottom-[30%] right-[12%] opacity-20 animate-float-slow pointer-events-none" style={{ animationDelay: '1s' }}>
+        <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
+          <CheckCircle2 size={40} className="text-amber-500" />
         </div>
       </div>
 
-      {/* Center Section - Hero & Branding */}
-      <div className="flex flex-col items-center justify-center flex-1 relative z-10 w-full px-4 gap-12 lg:gap-20">
-        <img src={logo} alt="Lucky Boba" className="w-[300px] lg:w-[500px] h-auto object-contain drop-shadow-2xl" />
-
-        <div className="flex flex-col items-center gap-6 lg:gap-10">
-          <h1 className="text-5xl lg:text-8xl font-black text-[#3b2063] text-center italic tracking-tight drop-shadow-sm pointer-events-none">
-            Life's Better with Boba.
-          </h1>
-          <p className="text-xl lg:text-4xl text-zinc-500 font-bold text-center max-w-2xl lg:max-w-4xl pointer-events-none leading-relaxed">
-            Freshly brewed tea, creamy milk, and chewy pearls crafted just for you.
+      <div className="w-full flex justify-center pt-4 relative z-10 pointer-events-none shrink-0">
+        <div className="glass px-6 py-2 rounded-full border border-zinc-200/50 shadow-sm">
+          <p className="text-xs text-zinc-500 font-semibold tracking-[0.16em] uppercase flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            {branchName}
           </p>
         </div>
       </div>
 
-      {/* Bottom Section - CTA */}
-      <div className="w-full flex justify-center pb-16 lg:pb-32 relative z-10 shrink-0">
-        <button className="bg-[#3b2063] text-white px-20 py-10 rounded-full font-black text-3xl lg:text-5xl uppercase tracking-widest shadow-[0_30px_60px_-15px_rgba(59,32,99,0.7)] animate-pulse hover:scale-105 transition-transform flex items-center gap-4">
-          Tap Here to Order
+      <div className="flex flex-col items-center justify-center flex-1 relative z-10 w-full gap-8 animate-scale-in">
+        <div className="relative group">
+          <div className="absolute -inset-4 bg-violet-600/5 rounded-full blur-2xl group-hover:bg-violet-600/10 transition-all duration-500"></div>
+          <img src={logo} alt="Lucky Boba" className="w-[280px] h-auto object-contain drop-shadow-2xl relative animate-float-slow" />
+        </div>
+
+        <div className="flex flex-col items-center gap-4 text-center">
+          <h1 className="text-5xl font-extrabold text-zinc-900 tracking-[-0.02em] uppercase leading-[0.95]">
+            Freshly Brewed<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500">Happiness.</span>
+          </h1>
+          <p className="text-lg text-zinc-400 font-medium uppercase tracking-[0.12em] max-w-lg">
+            Experience the ultimate boba journey
+          </p>
+        </div>
+      </div>
+
+      <div className="w-full flex flex-col items-center gap-6 pb-12 relative z-10 shrink-0">
+        <button className="group relative overflow-hidden animate-pulse-glow bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white px-12 py-5 rounded-full font-extrabold text-2xl tracking-[0.08em] uppercase shadow-[0_12px_35px_rgba(124,58,237,0.35)] flex items-center gap-4 transition-all hover:from-violet-500 hover:to-fuchsia-500 hover:-translate-y-[1px] active:scale-95">
+          <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500" />
+          <span className="relative z-10">Tap to Start</span>
+          <ChevronRight size={28} strokeWidth={4} className="relative z-10 transition-transform group-hover:translate-x-1" />
         </button>
+        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-[0.22em]">
+          © 2026 LUCKY BOBA • PREMIUM SERIES
+        </p>
       </div>
     </div>
   );
 
-  const OrderTypeView = () => (
-    <div className="flex-1 flex flex-col p-16 animate-in fade-in slide-in-from-bottom-8 duration-700 bg-[#fafafa]">
-      <div className="flex items-center gap-4 mb-16">
-        <div className="w-12 h-12 bg-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-200">
-          <ShoppingBag size={24} className="text-white" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-black text-zinc-900 uppercase tracking-tight">How would you like to eat?</h2>
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Select your dining preference</p>
-        </div>
+    const OrderTypeView = () => (
+    <div
+      className="flex-1 flex flex-col p-8 animate-scale-in relative overflow-hidden kiosk-menu-shell"
+      style={{
+        background: 'linear-gradient(145deg, #faf7ff 0%, #f2ecff 40%, #fff4fb 72%, #fff8ec 100%)'
+      }}
+    >
+      {/* Decorative BG */}
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-600/10 rounded-full blur-[110px] translate-x-1/4 -translate-y-1/4 pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] left-[-8%] w-[420px] h-[420px] bg-fuchsia-400/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute top-[30%] left-[46%] w-[280px] h-[280px] bg-amber-300/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      <div className="w-full flex shrink-0 relative z-10">
+         <button className="glass px-4 py-2 rounded-full flex items-center gap-2 text-zinc-500 font-black uppercase text-xs hover:bg-white transition-all shadow-sm active:scale-95" onClick={() => setStep('splash')}>
+           <ChevronRight className="rotate-180" size={16} strokeWidth={3} />
+           <span>Restart</span>
+         </button>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-20 w-full max-w-6xl mx-auto">
-        <div className="flex gap-20 w-full justify-center">
-          {/* Dine In - SLIGHT ACCENT */}
-          <button
-            onClick={() => setOrderType('dine_in')}
-            className={`group relative flex-1 max-w-md aspect-[4/5] bg-white rounded-[3rem] shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-14 overflow-hidden ${orderType === 'dine_in'
-                ? 'border-4 border-violet-600 shadow-violet-200/50 scale-105 bg-violet-50/30'
-                : 'border-2 border-transparent hover:border-violet-300 hover:-translate-y-2'
-              }`}
-          >
-            {orderType === 'dine_in' && (
-              <div className="absolute top-10 right-10 text-violet-600 animate-in zoom-in duration-300">
-                <CheckCircle2 size={48} className="fill-violet-100" />
-              </div>
-            )}
-            <div className={`w-52 h-52 rounded-full flex items-center justify-center mb-10 transition-all duration-500 ${orderType === 'dine_in' ? 'bg-violet-600 rotate-12 scale-110 shadow-xl shadow-violet-300' : 'bg-violet-50 group-hover:bg-violet-100 group-hover:scale-105 group-hover:rotate-6'
-              }`}>
-              <svg xmlns="http://www.w3.org/2000/svg" className={`w-24 h-24 transition-colors ${orderType === 'dine_in' ? 'text-white' : 'text-violet-600 group-hover:text-violet-700'
-                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-            </div>
-            <h3 className={`text-5xl font-black uppercase italic transition-colors ${orderType === 'dine_in' ? 'text-violet-900' : 'text-zinc-900 group-hover:text-violet-800'
-              }`}>Dine In</h3>
-            <p className="mt-6 text-zinc-400 font-bold uppercase tracking-[0.2em] text-sm">Eat here at our branch</p>
-          </button>
-
-          {/* Take Out */}
-          <button
-            onClick={() => setOrderType('take_out')}
-            className={`group relative flex-1 max-w-md aspect-[4/5] bg-white rounded-[3rem] shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-14 overflow-hidden ${orderType === 'take_out'
-                ? 'border-4 border-violet-600 shadow-violet-200/50 scale-105 bg-violet-50/30'
-                : 'border-2 border-transparent hover:border-violet-300 hover:-translate-y-2'
-              }`}
-          >
-            {orderType === 'take_out' && (
-              <div className="absolute top-10 right-10 text-violet-600 animate-in zoom-in duration-300">
-                <CheckCircle2 size={48} className="fill-violet-100" />
-              </div>
-            )}
-            <div className={`w-52 h-52 rounded-full flex items-center justify-center mb-10 transition-all duration-500 ${orderType === 'take_out' ? 'bg-violet-600 rotate-12 scale-110 shadow-xl shadow-violet-300' : 'bg-violet-50 group-hover:bg-violet-100 group-hover:scale-105 group-hover:rotate-6'
-              }`}>
-              <svg xmlns="http://www.w3.org/2000/svg" className={`w-24 h-24 transition-colors ${orderType === 'take_out' ? 'text-white' : 'text-violet-600 group-hover:text-violet-700'
-                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
-            <h3 className={`text-5xl font-black uppercase italic transition-colors ${orderType === 'take_out' ? 'text-violet-900' : 'text-zinc-900 group-hover:text-violet-800'
-              }`}>Take Out</h3>
-            <p className="mt-6 text-zinc-400 font-bold uppercase tracking-[0.2em] text-sm">Enjoy your boba at home</p>
-          </button>
+      <div className="flex-1 flex flex-col items-center justify-center gap-10 w-full max-w-4xl mx-auto relative z-10">
+        <div className="text-center space-y-2">
+           <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase">How will you enjoy your Boba?</h2>
+           <p className="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em]">Select your dining preference</p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="w-full flex justify-between items-center mt-6 px-10">
-          <button
-            onClick={() => setStep('splash')}
-            className="text-zinc-400 font-bold uppercase tracking-widest text-xs hover:text-red-500 transition-colors flex items-center gap-2 px-6 py-4"
-          >
-            <X size={16} />
-            Cancel Order
-          </button>
-
-          <button
-            onClick={() => setStep('menu')}
-            disabled={!orderType}
-            className={`px-12 py-6 rounded-full font-black text-xl uppercase tracking-widest transition-all shadow-lg flex items-center gap-4 ${orderType
-                ? 'bg-violet-600 text-white shadow-violet-300 hover:bg-violet-700 hover:scale-105 active:scale-95 cursor-pointer animate-pulse'
-                : 'bg-zinc-200 text-zinc-400 shadow-transparent cursor-not-allowed opacity-50'
-              }`}
-          >
-            <span>Continue</span>
-            <ChevronRight size={24} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const MenuView = () => {
-    return (
-      <div className="flex-1 flex overflow-hidden bg-[#fafafa]">
-        {/* Categories Sidebar */}
-        <div className="w-80 bg-white flex flex-col overflow-y-auto scrollbar-hide border-r border-zinc-100">
-          <div className="p-10 pb-6 text-center">
-            <img
-              src={logo}
-              alt="Lucky Boba"
-              className="w-48 h-auto cursor-pointer active:scale-95 transition-transform mx-auto"
-              onClick={handleLogoClick}
-            />
-            <span className="text-sm font-black text-violet-900/40 uppercase tracking-[0.2em] mb-4 block mt-10">Categories</span>
-          </div>
-          <button
-            onClick={() => {
-              setActiveCategory('');
-              setSearchQuery('');
-            }}
-            className="px-6 py-4 group transition-all w-full"
-          >
-            <div className={`px-6 py-5 rounded-2xl text-left transition-all flex items-center justify-between ${activeCategory === '' && searchQuery === ''
-                ? 'bg-violet-600 text-white shadow-xl shadow-violet-200 font-black'
-                : 'text-zinc-500 hover:bg-zinc-50 font-bold'
-              }`}>
-              <span className="text-lg uppercase tracking-wider leading-tight truncate">All Items</span>
-            </div>
-          </button>
-          {categories.map((cat: string) => (
+        <div className="flex gap-8 w-full justify-center">
+          {[
+            { id: 'dine_in', label: 'Eat Here', icon: (
+              <svg viewBox="0 0 24 24" className="w-14 h-14" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+              </svg>
+            )},
+            { id: 'take_out', label: 'Take Out', icon: (
+              <svg viewBox="0 0 24 24" className="w-14 h-14" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+            )}
+          ].map((type) => (
             <button
-              key={cat}
-              onClick={() => {
-                setActiveCategory(cat);
-                setSearchQuery(''); // Clear search when picking category
-              }}
-              className="px-6 py-4 group transition-all w-full"
+              key={type.id}
+              onClick={() => setOrderType(type.id as 'dine_in' | 'take_out')}
+              className={`group w-[280px] aspect-[4/5] rounded-[2.5rem] shadow-xl border-2 flex flex-col items-center justify-center gap-6 transition-all duration-500 active:scale-95 relative overflow-hidden ${
+                orderType === type.id
+                  ? 'bg-white border-violet-500 -translate-y-2 shadow-2xl ring-4 ring-violet-100'
+                  : 'bg-white/90 border-zinc-100 hover:border-violet-400 hover:-translate-y-2 hover:shadow-2xl'
+              }`}
             >
-              <div className={`px-6 py-5 rounded-2xl text-left transition-all flex items-center justify-between gap-3 overflow-hidden ${activeCategory === cat
-                  ? 'bg-violet-600 text-white shadow-xl shadow-violet-200 font-black'
-                  : 'text-zinc-500 hover:bg-zinc-50 font-bold'
-                }`}>
-                <span className="text-lg uppercase tracking-wider leading-tight truncate">
-                  {cat}
+              <div className={`absolute inset-0 bg-gradient-to-br transition-opacity ${
+                orderType === type.id
+                  ? 'from-violet-600/10 via-fuchsia-400/5 to-amber-300/10 opacity-100'
+                  : 'from-violet-600/5 via-transparent to-transparent opacity-0 group-hover:opacity-100'
+              }`} />
+              <div className={`w-24 h-24 rounded-3xl flex items-center justify-center transition-all duration-500 shadow-inner ${
+                orderType === type.id
+                  ? 'bg-gradient-to-br from-violet-600 to-fuchsia-500 text-white rotate-3'
+                  : 'bg-zinc-50 text-zinc-500 group-hover:bg-gradient-to-br group-hover:from-violet-600 group-hover:to-fuchsia-500 group-hover:text-white group-hover:rotate-3'
+              }`}>
+                {type.icon}
+              </div>
+              <span className="text-2xl font-black text-zinc-900 uppercase tracking-tight">{type.label}</span>
+              <div className={`flex gap-1.5 transition-all transform ${
+                orderType === type.id
+                  ? 'text-violet-700 opacity-100 translate-y-0'
+                  : 'text-violet-600 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'
+              }`}>
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {orderType === type.id ? 'Selected' : 'Tap to Select'}
                 </span>
-                {activeCategory === cat && (
-                  <div className="w-3 h-3 bg-white rounded-full shrink-0" />
-                )}
+                <ChevronRight size={14} strokeWidth={3} />
               </div>
             </button>
           ))}
         </div>
 
-        {/* Main Menu Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Search Header */}
-          <div className="bg-white px-10 py-6 border-b border-zinc-100 flex items-center gap-6">
-            <div className="relative flex-1 max-w-xl">
-              <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+        {orderType ? (
+          <div className="flex flex-col items-center gap-3 animate-fade-up">
+            <button
+              onClick={() => setStep('menu')}
+              className="group px-14 py-4 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white font-black text-lg uppercase tracking-[0.08em] shadow-[0_12px_35px_rgba(124,58,237,0.35)] flex items-center gap-2.5 hover:from-violet-500 hover:to-fuchsia-500 hover:-translate-y-[1px] transition-all active:scale-95"
+            >
+              Continue
+              <ChevronRight size={20} strokeWidth={3} className="transition-transform group-hover:translate-x-1" />
+            </button>
+            <p className="text-xs uppercase tracking-[0.16em] text-zinc-500 font-bold">
+              Selected: {orderType === 'dine_in' ? 'Eat Here' : 'Take Out'}
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs uppercase tracking-[0.16em] text-zinc-400 font-bold">
+            Tap a card to continue
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
+
+        const MenuView = () => {
+    return (
+      <div
+        className="flex-1 flex overflow-hidden relative"
+        style={{
+          background: 'linear-gradient(145deg, #faf7ff 0%, #f2ecff 40%, #fff4fb 72%, #fff8ec 100%)'
+        }}
+      >
+        <div className="absolute top-[-8%] right-[-6%] w-[360px] h-[360px] bg-violet-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] left-[28%] w-[300px] h-[300px] bg-fuchsia-400/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-[32%] left-[48%] w-[220px] h-[220px] bg-amber-300/10 rounded-full blur-[90px] pointer-events-none" />
+        {/* Sidebar — fixed at 220px for 1024-wide screens */}
+        <div className="w-[220px] bg-zinc-50 border-r border-zinc-200 flex flex-col overflow-y-auto scrollbar-hide z-20 shrink-0">
+          <div className="p-4 pb-4 flex flex-col items-center bg-zinc-50/50 border-b border-zinc-200/60">
+            <img
+              src={logo}
+              alt="Lucky Boba"
+              className="w-20 h-auto cursor-pointer hover:opacity-80 transition-opacity drop-shadow-md"
+              onClick={handleLogoClick}
+            />
+          </div>
+          
+          <div className="flex-1 p-2 space-y-1">
+            <button
+              onClick={() => {
+                setActiveCategory('');
+                setSearchQuery('');
+              }}
+              className="w-full transition-all group"
+            >
+              <div className={`w-full px-4 py-3 rounded-xl text-left transition-all flex items-center justify-between ${activeCategory === '' && searchQuery === ''
+                  ? 'bg-white font-bold shadow-sm border border-zinc-200'
+                  : 'text-zinc-500 font-semibold hover:bg-zinc-100/50 hover:text-zinc-900 border border-transparent'
+                }`}>
+                <span className={`text-sm tracking-tight ${activeCategory === '' && searchQuery === ''
+                  ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500'
+                  : 'text-zinc-500'
+                }`}>
+                  All Menu
+                </span>
+              </div>
+            </button>
+            
+            {categories.map((cat: string) => (
+              <button
+                key={cat}
+                onClick={() => {
+                  setActiveCategory(cat);
+                  setSearchQuery('');
+                }}
+                className="w-full transition-all group"
+              >
+                <div className={`w-full px-4 py-3 rounded-xl text-left transition-all flex items-center justify-between ${activeCategory === cat
+                    ? 'bg-white font-bold shadow-sm border border-zinc-200'
+                    : 'text-zinc-500 font-semibold hover:bg-zinc-100/50 hover:text-zinc-900 border border-transparent'
+                  }`}>
+                  <span className={`text-sm tracking-tight capitalize truncate pr-2 ${activeCategory === cat
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500'
+                    : 'text-zinc-500'
+                  }`}>
+                    {cat}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+          
+          <button onClick={() => setStep('splash')} className="m-3 mt-auto py-3 bg-zinc-200/50 border border-zinc-200/50 rounded-xl text-zinc-500 font-bold text-sm hover:bg-zinc-200 hover:text-zinc-800 transition-all flex items-center justify-center gap-1.5">
+            <ChevronRight className="rotate-180" size={18} />
+            Cancel Order
+          </button>
+        </div>
+
+        {/* Main Products Area */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-transparent">
+          {/* Header Banners */}
+          <div className="h-16 px-4 border-b border-zinc-200 flex items-center justify-between bg-white shrink-0 shadow-sm z-10 gap-3">
+            <h2 className="text-xl font-black text-zinc-900 tracking-tight capitalize shrink-0">
+              {searchQuery ? 'Search Results' : (activeCategory || 'All Menu')}
+            </h2>
+            <div className="relative flex-1 max-w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
               <input
                 type="text"
-                placeholder="Search your favorite boba..."
+                placeholder="Find a drink..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   if (activeCategory) setActiveCategory('');
                 }}
-                className="w-full bg-zinc-50 border-none rounded-2xl py-4 pl-12 pr-6 text-base font-bold placeholder:text-zinc-300 focus:ring-2 focus:ring-violet-500 transition-all outline-none"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-full py-2.5 pl-9 pr-4 text-sm font-bold placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-violet-100 focus:border-violet-300 transition-all outline-none text-zinc-900"
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-10 scroll-smooth space-y-12">
-            {categories
-              .filter(cat => activeCategory === '' || cat === activeCategory)
-              .map(cat => {
-                const categoryItems = items.filter((item: MenuItem) => {
+          <div className="flex-1 overflow-y-auto p-3 scroll-smooth">
+            <div className="grid grid-cols-3 gap-3">
+              {items
+                .filter((item: MenuItem) => {
                   if (isExpoMode && !expoItemIds.includes(item.id)) return false;
                   const matchesSearch = searchQuery === '' || item.name.toLowerCase().includes(searchQuery.toLowerCase());
-                  const matchesCategory = item.category === cat;
+                  const matchesCategory = activeCategory === '' || item.category === activeCategory || (!item.category && activeCategory === 'Others');
                   return matchesSearch && matchesCategory;
-                });
-
-                if (categoryItems.length === 0) return null;
-
-                return (
-                  <div key={cat} className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <h2 className="text-2xl font-black text-[#3b2063] uppercase italic tracking-tight">{cat}</h2>
-                      <div className="h-px flex-1 bg-zinc-100"></div>
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{categoryItems.length} Items</span>
+                })
+                .map((item: MenuItem) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleItemClick(item)}
+                    className="bg-white rounded-2xl shadow-sm border border-zinc-200/60 overflow-hidden flex flex-col active:scale-95 transition-all cursor-pointer group hover:shadow-md relative"
+                  >
+                    <div className="w-full aspect-[4/3] bg-zinc-50 relative flex items-center justify-center">
+                      {item.image ? (
+                        <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      ) : (
+                        <ShoppingBag size={32} className="text-zinc-200" />
+                      )}
                     </div>
-
-                    <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                      {categoryItems.map((item: MenuItem) => (
-                        <div
-                          key={item.id}
-                          onClick={() => handleItemClick(item)}
-                          className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex flex-col items-center text-center active:scale-[0.98] transition-all cursor-pointer group hover:shadow-xl hover:shadow-violet-200/40 hover:border-violet-300 relative h-full"
-                        >
-                          <div className="w-full aspect-square rounded-xl bg-zinc-50 mb-5 flex items-center justify-center overflow-hidden relative border border-zinc-50/50 shadow-inner">
-                            {item.image ? (
-                              <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                            ) : (
-                              <div className="flex flex-col items-center gap-2 opacity-20">
-                                <ShoppingBag size={32} />
-                                <span className="text-[8px] font-bold uppercase tracking-widest">Lucky Boba</span>
-                              </div>
-                            )}
-                          </div>
-                          <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1 flex flex-col justify-center">
-                            <span>
-                              {item.name.toLowerCase()}
-                              {item.size && <span className="font-bold text-violet-400 capitalize ml-1">({item.size.toLowerCase()})</span>}
-                            </span>
-                          </h3>
-
-                          <div className="w-full flex items-center justify-between mt-auto pt-2 px-1 text-xs">
-                            <div className="text-[#3b2063] font-black text-2xl">
-                              ₱{Number(item.sellingPrice).toFixed(2)}
-                            </div>
-
-                            <button className="bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm">
-                              <Plus size={20} strokeWidth={3} />
-                            </button>
-                          </div>
+                    <div className="p-3 flex flex-col flex-1">
+                      <h3 className="font-bold text-xs text-zinc-900 leading-tight mb-1 h-8 overflow-hidden line-clamp-2 uppercase">
+                        {item.name}
+                        {item.size && <span className="text-violet-400 ml-1">({item.size})</span>}
+                      </h3>
+                      
+                      <div className="flex items-center justify-between mt-auto pt-1">
+                        <div className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 font-black text-base tracking-tight">
+                          ₱{Number(item.sellingPrice).toFixed(0)}
                         </div>
-                      ))}
+                        <div className="w-7 h-7 bg-zinc-100 text-zinc-600 group-hover:bg-violet-600 group-hover:text-white rounded-full flex items-center justify-center transition-colors">
+                          <Plus size={14} strokeWidth={3} />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-
-            {/* Flat list for uncategorized items if using All Items search */}
-            {activeCategory === '' && items.filter(i => (!i.category) && (!isExpoMode || expoItemIds.includes(i.id))).length > 0 && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-2xl font-black text-[#3b2063] uppercase italic tracking-tight">Others</h2>
-                  <div className="h-px flex-1 bg-zinc-100"></div>
-                </div>
-                <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                  {items.filter(i => (!i.category) && (!isExpoMode || expoItemIds.includes(i.id))).map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => handleItemClick(item)}
-                      className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100 flex flex-col items-center text-center active:scale-[0.98] transition-all cursor-pointer group hover:shadow-xl hover:shadow-violet-200/40 hover:border-violet-300 relative h-full"
-                    >
-                      {/* Same Item Card UI as above */}
-                      <div className="w-full aspect-square rounded-xl bg-zinc-50 mb-5 flex items-center justify-center overflow-hidden relative border border-zinc-50/50 shadow-inner">
-                        {item.image ? (
-                          <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                        ) : (
-                          <div className="flex flex-col items-center gap-2 opacity-20">
-                            <ShoppingBag size={32} />
-                          </div>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1 flex flex-col justify-center">
-                        <span>
-                          {item.name.toLowerCase()}
-                          {item.size && <span className="font-bold text-violet-400 capitalize ml-1">({item.size.toLowerCase()})</span>}
-                        </span>
-                      </h3>
-                      <div className="w-full flex items-center justify-between mt-auto pt-2 px-1">
-                        <div className="text-[#3b2063] font-black text-2xl">₱{Number(item.sellingPrice).toFixed(2)}</div>
-                        <button className="bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm"><Plus size={20} strokeWidth={3} /></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                ))}
+            </div>
 
             {items.length === 0 && !loading && (
-              <div className="h-full flex flex-col items-center justify-center py-20 opacity-30">
-                <ShoppingBag size={48} className="mb-4" />
-                <p className="font-black uppercase tracking-widest text-base text-center">No items available at this branch</p>
+              <div className="h-full flex flex-col items-center justify-center py-20 opacity-40">
+                <Search size={64} className="mb-6 text-zinc-300" />
+                <p className="font-bold tracking-wide text-2xl text-center text-zinc-500">No items found</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Cart Sidebar */}
-        <div className="w-[480px] bg-white flex flex-col shadow-2xl z-10 border-l border-zinc-100">
-          <div className="p-10 border-b border-zinc-50 flex items-center justify-between bg-white relative z-20">
-            <div>
-              <h2 className="text-2xl font-black text-zinc-900 uppercase tracking-tight">Cart</h2>
-              <p className="text-xs font-bold text-zinc-400 uppercase tracking-[0.2em]">Order Summary</p>
-            </div>
-            <div className="bg-violet-600 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-violet-100">
-              <span className="font-black text-xl">{cart.reduce((s: number, i: CartItem) => s + i.qty, 0)}</span>
+        {/* Cart — fixed 260px wide to stay compact */}
+        <div className="w-[260px] bg-white flex flex-col shadow-xl z-20 border-l border-zinc-200 shrink-0">
+          <div className="h-16 px-4 border-b border-zinc-100 flex items-center justify-between bg-white relative z-20 shrink-0 shadow-sm">
+            <h2 className="text-base font-black text-zinc-900 tracking-tight uppercase">Your Tray</h2>
+            <div className="bg-violet-50 border border-violet-100 text-violet-700 px-3 py-1.5 rounded-lg font-black text-sm flex items-center gap-1.5 shadow-sm">
+              <ShoppingBag size={14} strokeWidth={2.5}/>
+              <span>{cart.reduce((s: number, i: CartItem) => s + i.qty, 0)}</span>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-hide">
             {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center opacity-30">
-                <ShoppingBag size={64} className="mb-6" />
-                <p className="font-black uppercase tracking-widest text-xs">Your cart is empty</p>
+              <div className="h-full flex flex-col items-center justify-center opacity-40">
+                <ShoppingBag size={40} className="mb-3 text-zinc-300" />
+                <p className="font-bold uppercase tracking-widest text-xs text-zinc-500">Tray is empty</p>
               </div>
             ) : (
               cart.map((item: CartItem) => (
-                <div key={item.uniqueId} className="flex items-center gap-6 group">
-                  <div className="w-16 h-16 bg-zinc-100 rounded-xl shrink-0 overflow-hidden">
-                    {item.image && <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-black text-zinc-800 uppercase text-xs mb-1 truncate">
-                      {item.name}
-                      {item.size && <span className="text-[8px] font-bold text-violet-400 ml-1">({item.size})</span>}
-                    </h4>
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {item.selectedSugarLevel && (
-                        <span className="text-[8px] px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded-md font-bold uppercase tracking-tight">
-                          {item.selectedSugarLevel}
-                        </span>
-                      )}
-                      {item.selectedAddOns?.map(ao => (
-                        <span key={ao.id} className="text-[8px] px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-md font-bold uppercase tracking-tight">
-                          + {ao.name}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center bg-zinc-100 rounded-lg">
-                        <button onClick={() => updateQty(item.id, -1)} className="p-2 hover:text-violet-600"><Minus size={14} /></button>
-                        <span className="w-8 text-center font-black text-sm">{item.qty}</span>
-                        <button onClick={() => addToCart(item, item.selectedAddOns, item.selectedSugarLevel)} className="p-2 hover:text-violet-600"><Plus size={14} /></button>
-                      </div>
-                      <span className="font-black text-violet-600 text-sm">₱{(item.itemTotal * item.qty).toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <button onClick={() => removeFromCart(item.id)} className="p-2 text-zinc-300 hover:text-red-500 transition-colors">
-                    <Trash2 size={18} />
+                <div key={item.uniqueId} className="flex gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-xl relative shadow-sm">
+                  <button onClick={() => removeFromCart(item.uniqueId)} className="absolute -top-2 -right-2 w-6 h-6 bg-white border border-zinc-200 text-zinc-500 rounded-full flex items-center justify-center shadow-sm hover:bg-zinc-100 hover:text-red-500 transition-colors">
+                     <X size={12} strokeWidth={3} />
                   </button>
+                  <div className="w-14 h-14 bg-white rounded-lg overflow-hidden shrink-0 border border-zinc-100 shadow-sm flex items-center justify-center">
+                    {item.image ? <img src={getImageUrl(item.image)} className="w-full h-full object-cover" /> : <ShoppingBag size={16} className="text-zinc-200" />}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <h4 className="font-bold text-zinc-900 text-[11px] leading-tight uppercase line-clamp-2">
+                      {item.name}
+                      {item.size && <span className="text-violet-400 ml-1">({item.size})</span>}
+                    </h4>
+                    <div className="flex flex-col gap-0.5 mt-0.5 mb-1">
+                       {item.selectedSugarLevel && <p className="text-[9px] font-bold text-violet-600 uppercase">Sugar: {item.selectedSugarLevel}</p>}
+                       {item.selectedAddOns && item.selectedAddOns.length > 0 && <p className="text-[9px] font-bold text-zinc-500 uppercase truncate">+{item.selectedAddOns.map(a=>a.name).join(', ')}</p>}
+                    </div>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 text-sm tracking-tight">₱{(item.itemTotal * item.qty).toFixed(0)}</span>
+                      <div className="flex items-center bg-white rounded-full border border-zinc-200 shadow-sm">
+                        <button onClick={() => updateQty(item.uniqueId, -1)} className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 rounded-l-full"><Minus size={10} strokeWidth={3}/></button>
+                        <span className="w-5 text-center font-black text-xs text-zinc-900">{item.qty}</span>
+                        <button onClick={() => updateQty(item.uniqueId, 1)} className="w-6 h-6 flex items-center justify-center text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-500 rounded-full transition-all"><Plus size={10} strokeWidth={3}/></button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))
             )}
           </div>
 
-          <div className="p-8 border-t border-zinc-100 bg-zinc-50 space-y-6 relative z-20">
+          <div className="p-4 border-t border-zinc-200 bg-white space-y-3 relative z-20 shrink-0 shadow-[0_-4px_20px_rgb(0,0,0,0.02)]">
             <div className="flex items-center justify-between">
-              <div>
-                <span className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px]">Total Amount</span>
-                <div className="text-3xl font-black text-zinc-900 mt-1">₱{calculateTotal().toFixed(2)}</div>
-                {cart.length > 0 && (
-                  <div className="text-[11px] text-zinc-500 font-bold mt-2 bg-zinc-100 inline-block px-3 py-1 rounded-full border border-zinc-200">
-                    {cart.reduce((s: number, i: CartItem) => s + i.qty, 0)} Items Selected
-                  </div>
-                )}
-              </div>
-              <div className="text-right">
-                <span className="text-emerald-600 font-bold uppercase tracking-widest text-[9px] block mb-1">Pay at Counter</span>
-                <span className="text-zinc-400 text-[8px] uppercase font-bold">Cash/Card accepted</span>
-              </div>
+              <span className="text-zinc-500 font-bold uppercase tracking-wider text-xs">Amount Due</span>
+              <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-700 to-fuchsia-500 tracking-tighter">₱{calculateTotal().toFixed(0)}</div>
             </div>
+            
+            <button
+               onClick={handleSubmit}
+               disabled={cart.length === 0 || loading}
+               className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white font-black uppercase text-base tracking-wide shadow-[0_10px_30px_rgba(124,58,237,0.35)] active:scale-95 hover:from-violet-500 hover:to-fuchsia-500 hover:-translate-y-[1px] transition-all disabled:opacity-50 disabled:bg-zinc-300 disabled:bg-none disabled:shadow-none disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+               {loading ? 'Processing...' : 'Checkout'}
+               {!loading && <ChevronRight size={20} strokeWidth={4}/>}
+            </button>
 
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={handleReset}
-                className="py-5 rounded-2xl bg-white border border-zinc-200 text-zinc-400 font-bold uppercase tracking-widest text-[10px] hover:text-red-500 transition-all active:scale-95"
-              >
-                Clear
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={cart.length === 0 || loading}
-                className="py-5 rounded-2xl bg-violet-600 text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-violet-100 active:scale-95 transition-all disabled:opacity-30 disabled:active:scale-100"
-              >
-                {loading ? '...' : 'Checkout'}
-              </button>
-            </div>
+            <button onClick={handleReset} disabled={cart.length === 0} className="w-full py-2 text-center font-bold text-zinc-400 uppercase tracking-widest text-[10px] hover:text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors disabled:opacity-0 active:scale-95">
+              Clear Order
+            </button>
           </div>
         </div>
 
         {/* Customization Modal */}
         {showCustomizer && customizingItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-10 print:hidden overflow-hidden">
-            <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm" onClick={() => setShowCustomizer(false)} />
-            <div className="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-              {/* Modal Header */}
-              <div className="p-8 border-b border-zinc-100 flex items-center justify-between shrink-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-zinc-900/60">
+            <div className="absolute inset-0" onClick={() => setShowCustomizer(false)} />
+            <div className="relative bg-zinc-50 w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+              
+              <div className="p-8 border-b border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 bg-zinc-50 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center p-2">
+                  <div className="w-24 h-24 bg-zinc-50 rounded-2xl overflow-hidden border border-zinc-100 flex items-center justify-center shadow-inner">
                     {customizingItem.image ? (
-                      <img src={getImageUrl(customizingItem.image)} className="w-full h-full object-cover rounded-xl" />
+                      <img src={getImageUrl(customizingItem.image)} className="w-full h-full object-cover" />
                     ) : (
-                      <ShoppingBag size={32} className="text-zinc-200" />
+                      <ShoppingBag size={32} className="text-zinc-300" />
                     )}
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-zinc-900 uppercase italic tracking-tight">{customizingItem.name}</h3>
-                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{customizingItem.category}</p>
+                    <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase line-clamp-1">{customizingItem.name}</h3>
+                    <div className="inline-block px-3 py-1 bg-violet-50 border border-violet-100 text-violet-700 rounded-lg text-sm font-bold uppercase tracking-widest mt-2">{customizingItem.category}</div>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCustomizer(false)}
-                  className="w-12 h-12 bg-zinc-100 text-zinc-400 rounded-full flex items-center justify-center hover:bg-zinc-200 transition-colors"
+                  className="w-14 h-14 bg-white border border-zinc-200 text-zinc-500 rounded-full flex items-center justify-center hover:bg-zinc-50 hover:text-zinc-900 transition-colors shrink-0 shadow-sm"
                 >
-                  <X size={24} />
+                  <X size={28} strokeWidth={3}/>
                 </button>
               </div>
 
-              {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto p-10 space-y-12 scrollbar-hide">
-                {/* Sugar Level Selection */}
+              <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
                 {(customizingItem.category?.toLowerCase().includes('milk tea') ||
                   customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-6 h-6 bg-violet-600 text-white rounded-lg flex items-center justify-center text-[10px] font-black">1</div>
-                        <h4 className="font-black text-zinc-900 uppercase tracking-widest text-xs italic">Select Sugar Level</h4>
+                    <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="w-10 h-10 bg-violet-100 text-violet-700 rounded-full flex items-center justify-center font-black text-lg shrink-0">1</div>
+                        <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase">Select Sugar</h4>
                       </div>
-                      <div className="grid grid-cols-5 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         {sugarLevels.map((sl) => (
                           <button
                             key={sl.id}
                             onClick={() => setSelectedSugarLevel(sl.value)}
-                            className={`py-6 rounded-2xl font-black text-sm transition-all border-2 ${selectedSugarLevel === sl.value
-                                ? 'bg-violet-600 border-violet-600 text-white shadow-xl shadow-violet-200 active:scale-95'
-                                : 'bg-white border-zinc-100 text-zinc-400 hover:border-violet-200'
+                            className={`py-5 rounded-2xl font-bold text-lg transition-all border-4 ${selectedSugarLevel === sl.value
+                                ? 'bg-violet-50 border-violet-600 text-violet-800 scale-105 shadow-md'
+                                : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300'
                               }`}
                           >
                             {sl.label}
@@ -926,15 +920,14 @@ const KioskPage = () => {
                     </div>
                   )}
 
-                {/* Addons Selection */}
-                <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-6 h-6 bg-violet-600 text-white rounded-lg flex items-center justify-center text-[10px] font-black">
-                      {(customizingItem.category?.toLowerCase().includes('milk tea') || customizingItem.category?.toLowerCase().includes('milktea')) ? '2' : '1'}
+                <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-10 h-10 bg-zinc-100 text-zinc-700 rounded-full flex items-center justify-center font-black text-lg shrink-0 border border-zinc-200">
+                      {((customizingItem.category?.toLowerCase().includes('milk') || customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0) ? '2' : '1'}
                     </div>
-                    <h4 className="font-black text-zinc-900 uppercase tracking-widest text-xs italic">Add Toppings</h4>
+                    <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase">Add Toppings</h4>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                     {allAddOns
                       .filter(ao => {
                         const itemCat = customizingItem.category?.toLowerCase() || '';
@@ -953,22 +946,21 @@ const KioskPage = () => {
                                   : [...prev, ao]
                               );
                             }}
-                            className={`p-6 rounded-3xl border-2 flex items-center justify-between transition-all group ${isSelected
-                                ? 'border-violet-600 bg-violet-50/50 shadow-lg shadow-violet-100 active:scale-95'
-                                : 'border-zinc-100 bg-white hover:border-violet-200 active:scale-95'
+                            className={`p-5 rounded-2xl border-4 flex flex-col transition-all text-left ${isSelected
+                                ? 'border-violet-600 bg-violet-50 scale-[1.02] shadow-md'
+                                : 'border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300'
                               }`}
                           >
-                            <div className="flex items-center gap-4">
-                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-300'
-                                }`}>
-                                {isSelected ? <Plus size={18} strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-current" />}
-                              </div>
-                              <span className={`font-black uppercase text-[11px] ${isSelected ? 'text-violet-900' : 'text-zinc-500'}`}>
-                                {ao.name}
-                              </span>
+                            <div className="flex justify-between items-start mb-2 w-full">
+                               <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-violet-600 bg-violet-600 text-white' : 'border-zinc-300 bg-zinc-50'}`}>
+                                  {isSelected && <CheckCircle2 size={20} strokeWidth={3}/>}
+                               </div>
+                               <span className={`font-black text-xl ${isSelected ? 'text-violet-700' : 'text-zinc-500'}`}>
+                                  +₱{Number(ao.price).toFixed(0)}
+                               </span>
                             </div>
-                            <span className={`font-black text-sm ${isSelected ? 'text-violet-600' : 'text-zinc-400'}`}>
-                              +₱{Number(ao.price).toFixed(0)}
+                            <span className={`font-bold text-lg leading-tight uppercase ${isSelected ? 'text-violet-900' : 'text-zinc-700'}`}>
+                              {ao.name}
                             </span>
                           </button>
                         );
@@ -977,23 +969,22 @@ const KioskPage = () => {
                 </div>
               </div>
 
-              {/* Modal Footer */}
-              <div className="p-10 border-t border-zinc-100 bg-zinc-50 flex items-center justify-between shrink-0">
+              <div className="p-8 border-t border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgb(0,0,0,0.03)] z-10">
                 <div>
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Total Item Price</p>
-                  <div className="text-4xl font-black text-zinc-900 italic tracking-tighter">
+                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-1">Total</p>
+                  <div className="text-4xl font-black text-zinc-900 tracking-tighter">
                     ₱{(
                       Number(customizingItem.sellingPrice) +
                       selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
-                    ).toFixed(2)}
+                    ).toFixed(0)}
                   </div>
                 </div>
                 <button
                   onClick={confirmCustomization}
-                  className="bg-violet-600 text-white px-12 py-6 rounded-full font-black uppercase tracking-[0.2em] shadow-2xl shadow-violet-200 flex items-center gap-4 hover:bg-violet-700 transition-all transform hover:scale-105 active:scale-95"
+                  className="bg-violet-600 text-white px-12 py-6 rounded-2xl font-black uppercase tracking-wider text-xl flex items-center gap-3 hover:bg-violet-700 transition-all shadow-[0_8px_20px_rgb(124,58,237,0.3)] hover:shadow-[0_12px_25px_rgb(124,58,237,0.4)] hover:-translate-y-[1px] active:scale-95"
                 >
                   <span>Add to Tray</span>
-                  <ChevronRight size={20} />
+                  <Plus size={24} strokeWidth={3}/>
                 </button>
               </div>
             </div>
@@ -1003,75 +994,55 @@ const KioskPage = () => {
     );
   };
 
-  const ConfirmView = () => (
-    <div className="flex-1 flex flex-col bg-[#f3e8ff]/30 animate-in fade-in duration-700 h-full">
-      <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center p-10 pb-20">
-        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 shrink-0 shadow-lg shadow-emerald-200/50">
-          <CheckCircle2 size={32} />
+
+      const ConfirmView = () => (
+    <div className="flex-1 flex flex-col p-12 animate-in fade-in zoom-in-95 duration-500 bg-zinc-50 overflow-y-auto relative">
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-violet-600/5 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-12 max-w-2xl mx-auto w-full relative z-10">
+        
+        <div className="w-24 h-24 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_0_60px_rgba(16,185,129,0.4)] animate-bounce relative">
+          <div className="absolute inset-0 border-4 border-emerald-400 rounded-full animate-ping opacity-50"></div>
+          <CheckCircle2 size={56} strokeWidth={3} className="relative z-10" />
         </div>
 
-        <h1 className="text-3xl font-black mb-1 uppercase tracking-tight italic text-[#3b2063]">Order Placed!</h1>
-        <p className="text-[#3b2063]/60 font-bold mb-10 uppercase tracking-widest text-xs">Please proceed to the cashier for payment</p>
-
-        <div className="w-full max-w-sm relative">
-          <div className="absolute -top-3 left-0 right-0 h-4 bg-white" style={{
-            clipPath: 'polygon(0% 100%, 5% 0%, 10% 100%, 15% 0%, 20% 100%, 25% 0%, 30% 100%, 35% 0%, 40% 100%, 45% 0%, 50% 100%, 55% 0%, 60% 100%, 65% 0%, 70% 100%, 75% 0%, 80% 100%, 85% 0%, 90% 100%, 95% 0%, 100% 100%)'
-          }}></div>
-
-          <div className="bg-white p-8 pt-12 pb-12 shadow-[0_20px_50px_rgba(59,32,99,0.12)] text-center border-x border-gray-100">
-            <img src={logo} alt="Logo" className="w-24 h-auto mx-auto mb-6 grayscale opacity-90" />
-
-            <div className="border-y-2 border-dashed border-gray-200 py-8 mb-6">
-              <p className="text-gray-400 font-black uppercase tracking-[0.2em] mb-2 text-[10px]">Your Ticket Number</p>
-              <h2 className="text-7xl font-black text-[#3b2063] tracking-tighter italic font-mono">
-                #{orderNumber}
-              </h2>
-            </div>
-
-            <button
-              onClick={() => window.print()}
-              className="w-full mb-8 py-4 bg-zinc-50 hover:bg-zinc-100 text-zinc-400 font-bold uppercase tracking-widest text-[10px] rounded-2xl border border-zinc-100 transition-all flex items-center justify-center gap-2"
-            >
-              <Plus size={14} />
-              Reprint Ticket
-            </button>
-
-            <div className="space-y-4 mb-8 text-center text-[11px] font-bold text-gray-500 uppercase tracking-tight px-2">
-              <div className="flex justify-between border-t border-gray-50 pt-6">
-                <span className="text-gray-400">Total Due:</span>
-                <span className="text-2xl text-[#3b2063] font-black">₱{calculateTotal().toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="text-[9px] text-gray-300 font-bold uppercase tracking-[0.2em]">
-              {new Date().toLocaleDateString()} — {new Date().toLocaleTimeString()}
-            </div>
-          </div>
-
-          <div className="absolute -bottom-3 left-0 right-0 h-4 bg-white" style={{
-            clipPath: 'polygon(0% 0%, 5% 100%, 10% 0%, 15% 100%, 20% 0%, 25% 100%, 30% 0%, 35% 100%, 40% 0%, 45% 100%, 50% 0%, 55% 100%, 60% 0%, 65% 100%, 70% 0%, 75% 100%, 80% 0%, 85% 100%, 90% 0%, 95% 100%, 100% 0%)'
-          }}></div>
+        <div className="text-center space-y-4">
+          <h2 className="text-5xl font-black text-zinc-900 tracking-tight uppercase">Order Received</h2>
+          <p className="text-xl text-emerald-600 font-bold uppercase tracking-widest text-center">Please proceed to counter to pay</p>
         </div>
 
-        <div className="flex flex-col items-center gap-4 mt-12 mb-10 w-full max-w-sm shrink-0">
-          <button
-            onClick={handleReset}
-            className="bg-[#3b2063] text-white w-full py-8 rounded-full font-black uppercase tracking-[0.2em] flex items-center justify-center gap-4 hover:bg-[#2d184d] transition-all transform hover:scale-105 shadow-2xl shadow-[#3b2063]/30 active:scale-95"
-          >
-            <span className="text-xl">Finish Order ({confirmCountdown}s)</span>
-            <ChevronRight size={24} />
-          </button>
-
-          <button
-            onClick={() => window.print()}
-            className="text-[#3b2063]/40 font-black uppercase tracking-widest text-[10px] hover:text-[#3b2063] transition-colors py-2"
-          >
-            Reprint Receipt
-          </button>
+        <div className="bg-white p-8 rounded-[2rem] w-full shadow-2xl relative overflow-hidden flex flex-col items-center border border-zinc-200">
+           {/* Receipt Zigzag */}
+           <div className="absolute -bottom-4 left-0 right-0 max-w-full overflow-hidden flex transform scale-y-50">
+             {[...Array(20)].map((_, i) => (
+                <div key={i} className="w-8 h-8 bg-zinc-50 rotate-45 shrink-0 -ml-4" />
+             ))}
+           </div>
+           
+           <p className="text-zinc-500 font-bold uppercase tracking-widest text-sm mb-2">Your Ticket Number</p>
+           <div className="bg-zinc-50 px-10 py-6 rounded-2xl mb-8 border border-zinc-200 shadow-inner">
+             <h3 className="text-7xl font-black text-violet-600 tracking-tighter" style={{ fontFamily: 'monospace' }}>
+               #{orderNumber}
+             </h3>
+           </div>
+           
+           <div className="w-full flex items-center justify-between pt-6 border-t border-dashed border-zinc-300">
+             <span className="text-zinc-500 font-bold uppercase">Total Due</span>
+             <span className="text-3xl font-black text-zinc-900 tracking-tight">₱{calculateTotal().toFixed(0)}</span>
+           </div>
         </div>
+
+        <button
+          onClick={handleReset}
+          className="bg-zinc-900 hover:bg-violet-600 text-white px-16 py-6 rounded-full font-black uppercase text-2xl tracking-wider transition-all shadow-[0_12px_40px_rgba(24,24,27,0.2)] hover:shadow-[0_16px_50px_rgba(124,58,237,0.3)] hover:-translate-y-1 active:scale-95"
+        >
+          New Order
+        </button>
       </div>
     </div>
   );
+
+
 
   const BranchSelectorView = () => {
     const filtered = allBranches.filter(b =>
@@ -1080,24 +1051,23 @@ const KioskPage = () => {
     );
 
     return (
-      <div className="flex-1 flex flex-col bg-[#f5f4f8] p-10 overflow-hidden">
-        <div className="max-w-4xl mx-auto w-full flex flex-col h-full">
+      <div className="flex-1 flex flex-col bg-zinc-50 p-10 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-100 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/3 pointer-events-none opacity-40"></div>
+
+        <div className="max-w-4xl mx-auto w-full flex flex-col h-full relative z-10">
           <div className="flex flex-col items-center mb-10 shrink-0">
-            <img src={logo} alt="Lucky Boba" className="w-40 h-auto mb-6" />
-            <h1 className="text-3xl font-black text-[#3b2063] uppercase italic">Kiosk Setup</h1>
-            <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mt-2">Select the branch for this device</p>
+            <img src={logo} alt="Lucky Boba" className="w-32 h-auto mb-6" />
+            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Kiosk Setup</h1>
+            <p className="text-zinc-500 font-medium text-sm mt-2">Select the branch for this device</p>
           </div>
 
-          <div className="mb-6 shrink-0 w-full max-w-xl mx-auto">
-            <label className="block text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-2 px-1 text-center">
-              Find your branch
-            </label>
-            <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-2xl px-5 py-4 shadow-sm group focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100 transition-all">
+          <div className="mb-8 shrink-0 w-full max-w-xl mx-auto">
+            <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-xl px-5 py-4 shadow-sm group focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-50 transition-all">
               <Search size={20} className="text-zinc-400 group-focus-within:text-violet-500 transition-colors" />
               <input
                 value={branchSearch}
                 onChange={e => setBranchSearch(e.target.value)}
-                className="flex-1 bg-transparent text-lg font-bold text-[#3b2063] outline-none placeholder:text-zinc-400"
+                className="flex-1 bg-transparent text-base font-medium text-zinc-900 outline-none placeholder:text-zinc-400"
                 placeholder="Search by name or address..."
               />
               {branchSearch && (
@@ -1113,21 +1083,21 @@ const KioskPage = () => {
               <button
                 key={branch.id}
                 onClick={() => handleSelectBranch(branch)}
-                className="bg-white p-6 rounded-3xl shadow-sm border border-zinc-100 flex flex-col items-start text-left hover:border-violet-300 hover:shadow-md transition-all group active:scale-[0.98]"
+                className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200/80 flex flex-col items-start text-left hover:border-violet-300 hover:shadow-md transition-all group active:scale-[0.98]"
               >
                 <div className="flex items-center gap-4 w-full mb-4">
-                  <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-violet-600 group-hover:text-white transition-colors">
-                    <ShoppingBag size={24} />
+                  <div className="w-12 h-12 bg-zinc-50 border border-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-violet-600 group-hover:border-violet-600 group-hover:text-white transition-colors">
+                    <ShoppingBag size={22} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-[#3b2063] uppercase italic line-clamp-1">{branch.name}</h3>
+                    <h3 className="text-lg font-bold text-zinc-900 line-clamp-1 capitalize">{branch.name.toLowerCase()}</h3>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-wider">Active</span>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase tracking-wider">Active</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 w-full mt-2">
+                <div className="flex flex-col gap-2 w-full mt-1">
                   <div className="flex items-start gap-2 text-zinc-500">
                     <MapPin size={14} className="shrink-0 mt-0.5 text-zinc-400" />
                     <p className="text-sm font-medium line-clamp-2">{branch.address || 'No address provided'}</p>
@@ -1139,17 +1109,17 @@ const KioskPage = () => {
                 </div>
 
                 <div className="mt-6 flex items-center justify-between w-full">
-                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-violet-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 text-xs font-semibold text-violet-600 opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
                     <span>Select Branch</span>
-                    <ChevronRight size={14} />
+                    <ChevronRight size={16} />
                   </div>
                 </div>
               </button>
             ))}
             {filtered.length === 0 && (
               <div className="col-span-full py-20 flex flex-col items-center justify-center text-zinc-400">
-                <Trash2 size={40} className="mb-4 opacity-20" />
-                <p className="font-bold uppercase tracking-widest text-sm italic">No branches found</p>
+                <Search size={40} className="mb-4 opacity-30 text-zinc-300" />
+                <p className="font-semibold tracking-wide text-sm">No branches found matching your search</p>
               </div>
             )}
           </div>
@@ -1191,25 +1161,25 @@ const KioskPage = () => {
       )}
 
       {selectedBranchToConfirm && step === 'select_branch' && (
-        <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm z-50 flex items-center justify-center print:hidden animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 bg-violet-100 text-violet-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <ShoppingBag size={32} />
+        <div className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center print:hidden animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-xl animate-in zoom-in-95 duration-200 border border-zinc-100">
+            <div className="w-14 h-14 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <MapPin size={28} />
             </div>
-            <h2 className="text-2xl font-black text-[#3b2063] uppercase italic text-center mb-2">Confirm Branch</h2>
+            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Confirm Branch</h2>
             <p className="text-zinc-500 text-sm text-center mb-6 font-medium">
               Set this kiosk to <strong className="text-zinc-800">{selectedBranchToConfirm.name}</strong>? This will bind the device to this location.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setSelectedBranchToConfirm(null)}
-                className="flex-1 py-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-2xl font-bold uppercase tracking-widest text-[10px] transition-colors"
+                className="flex-1 py-3.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl font-semibold tracking-wide text-sm transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmBranchSelection}
-                className="flex-1 py-4 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-violet-200 transition-colors"
+                className="flex-1 py-3.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold tracking-wide text-sm shadow-[0_4px_14px_0_rgb(124,58,237,0.39)] hover:shadow-[0_6px_20px_rgba(124,58,237,0.23)] active:scale-[0.98] transition-all"
               >
                 Confirm
               </button>
@@ -1219,65 +1189,33 @@ const KioskPage = () => {
       )}
 
       {/* Admin Security PIN Modal */}
-      {isPinModalOpen && (() => {
-        
-        const handleVerifyPin = async (pinToVerify: string) => {
-          try {
-            setLoading(true);
-            const response = await api.post('/kiosk/verify-pin', {
-              pin: pinToVerify,
-              branch_id: branchId
-            });
-            
-            if (response.data.success) {
-              setPinInput('');
-              setIsPinModalOpen(false);
-              setIsAdminModalOpen(true);
-            } else {
-              triggerError();
-            }
-          } catch (_err) {
-            triggerError();
-          } finally {
-            setLoading(false);
-          }
-        };
-
-        const triggerError = () => {
-          setPinError(true);
-          setTimeout(() => {
-            setPinError(false);
-            setPinInput('');
-          }, 600);
-        };
-
-        return (
-        <div className="absolute inset-0 bg-zinc-900/60 backdrop-blur-md z-[100] flex items-center justify-center print:hidden p-6">
-          <div className={`bg-white rounded-3xl p-10 max-w-sm w-full shadow-2xl transition-all duration-300 ${pinError ? 'animate-shake' : ''}`}>
-            <div className="w-20 h-20 bg-violet-100 text-violet-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
-              <Lock size={40} />
+      {isPinModalOpen && (
+        <div className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm z-[100] flex items-center justify-center print:hidden p-6 animate-in fade-in duration-200">
+          <div className={`bg-white rounded-3xl p-8 max-w-sm w-full shadow-xl transition-all duration-300 border border-zinc-100 ${pinError ? 'animate-shake' : ''}`}>
+            <div className="w-16 h-16 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Lock size={32} />
             </div>
 
-            <h2 className="text-2xl font-black text-[#3b2063] uppercase italic text-center mb-2">Access Control</h2>
+            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Access Control</h2>
             <p className="text-zinc-500 text-sm text-center mb-8 font-medium">
               Enter Admin Security PIN to reset Kiosk settings.
             </p>
 
             {/* PIN Dots */}
-            <div className="flex justify-center gap-4 mb-10">
+            <div className="flex justify-center gap-4 mb-8">
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${pinInput.length > i
-                      ? 'bg-violet-600 border-violet-600 scale-125'
-                      : 'border-zinc-200'
+                  className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${pinInput.length > i
+                      ? 'bg-violet-600 scale-110'
+                      : 'bg-zinc-200'
                     }`}
                 />
               ))}
             </div>
 
             {/* Numeric Keypad */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-3 gap-3 mb-6">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                 <button
                   key={num}
@@ -1290,14 +1228,14 @@ const KioskPage = () => {
                       }
                     }
                   }}
-                  className="h-16 rounded-2xl bg-zinc-50 text-xl font-black text-zinc-700 hover:bg-violet-50 hover:text-violet-600 active:scale-95 transition-all outline-none"
+                  className="h-14 rounded-xl bg-zinc-50 text-lg font-bold text-zinc-800 hover:bg-violet-50 hover:text-violet-600 active:scale-95 transition-all outline-none border border-zinc-100"
                 >
                   {num}
                 </button>
               ))}
               <button
                 onClick={() => setPinInput('')}
-                className="h-16 rounded-2xl bg-zinc-50 text-xs font-black text-zinc-400 uppercase tracking-widest hover:bg-red-50 hover:text-red-500 active:scale-95 transition-all outline-none"
+                className="h-14 rounded-xl bg-zinc-50 text-sm font-semibold text-zinc-500 hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all outline-none border border-zinc-100"
               >
                 Clear
               </button>
@@ -1311,27 +1249,30 @@ const KioskPage = () => {
                     }
                   }
                 }}
-                className="h-16 rounded-2xl bg-zinc-50 text-xl font-black text-zinc-700 hover:bg-violet-50 hover:text-violet-600 active:scale-95 transition-all outline-none"
+                className="h-14 rounded-xl bg-zinc-50 text-lg font-bold text-zinc-800 hover:bg-violet-50 hover:text-violet-600 active:scale-95 transition-all outline-none border border-zinc-100"
               >
                 0
               </button>
               <button
                 onClick={() => setIsPinModalOpen(false)}
-                className="h-16 rounded-2xl bg-zinc-50 text-xs font-black text-zinc-400 uppercase tracking-widest hover:bg-zinc-200 hover:text-zinc-800 active:scale-95 transition-all outline-none"
+                className="h-14 rounded-xl bg-zinc-50 text-sm font-semibold text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 active:scale-95 transition-all outline-none border border-zinc-100"
               >
                 Exit
               </button>
             </div>
 
-            {pinError && (
-              <p className="text-red-500 text-xs font-bold text-center uppercase tracking-widest animate-pulse">
+            {pinError ? (
+              <p className="text-red-500 text-sm font-semibold text-center tracking-wide animate-pulse h-5">
                 Incorrect PIN
               </p>
+            ) : (
+              <div className="h-5" />
             )}
           </div>
         </div>
-        );
-      })()}
+      )}
+
+
 
       {/* Admin Settings Modal */}
       {isAdminModalOpen && (
@@ -1477,18 +1418,18 @@ const KioskPage = () => {
 
       {/* Error Modal */}
       {showErrorModal && (
-        <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm z-[110] flex items-center justify-center print:hidden animate-in fade-in duration-200 px-6">
-          <div className="bg-white rounded-3xl p-10 max-w-sm w-full mx-auto shadow-2xl animate-in zoom-in-95 duration-200 border border-red-50">
-            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
-              <X size={40} />
+        <div className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm z-[110] flex items-center justify-center print:hidden animate-in fade-in duration-200 px-6">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-auto shadow-xl animate-in zoom-in-95 duration-200 border border-zinc-100">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <X size={32} strokeWidth={3} />
             </div>
-            <h2 className="text-2xl font-black text-[#3b2063] uppercase italic text-center mb-2">Order Failed</h2>
+            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Order Failed</h2>
             <p className="text-zinc-500 text-sm text-center mb-8 font-medium leading-relaxed">
               {errorMessage || 'Failed to place order. Please call staff for assistance.'}
             </p>
             <button
               onClick={() => setShowErrorModal(false)}
-              className="w-full py-6 bg-[#3b2063] hover:bg-[#2a1747] text-white rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-xl shadow-violet-100"
+              className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-semibold tracking-wide text-sm transition-all shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] active:scale-[0.98]"
             >
               Try Again
             </button>
