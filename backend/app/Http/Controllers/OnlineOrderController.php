@@ -18,7 +18,8 @@ class OnlineOrderController extends Controller
         $query = Sale::with(['items', 'user', 'branch'])
             ->where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
-                  ->orWhere('invoice_number', 'like', 'KSK-%');
+                  ->orWhere('invoice_number', 'like', 'KSK-%')
+                  ->orWhere('source', 'kiosk');
             })
             ->whereNotIn('status', ['cancelled']);
 
@@ -41,15 +42,19 @@ class OnlineOrderController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'status'      => ['required', 'in:pending,preparing,completed'],
-            'branch_name' => 'required|string|exists:branches,name',
+            'status'         => ['required', 'in:pending,preparing,completed'],
+            'branch_name'    => 'required|string|exists:branches,name',
+            'invoice_number' => 'nullable|string',
+            'payment_method' => 'nullable|string',
+            'cash_tendered'  => 'nullable|numeric',
         ]);
 
         $user  = $request->user();
         $query = Sale::where('id', $id)
             ->where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
-                  ->orWhere('invoice_number', 'like', 'KSK-%');
+                  ->orWhere('invoice_number', 'like', 'KSK-%')
+                  ->orWhere('source', 'kiosk');
             });
 
         if (!empty($user->branch_id)) {
@@ -67,6 +72,17 @@ class OnlineOrderController extends Controller
 
         $sale         = $query->firstOrFail();
         $sale->status = $request->status;
+
+        if ($request->filled('invoice_number')) {
+            $sale->invoice_number = $request->input('invoice_number');
+        }
+        if ($request->filled('payment_method')) {
+            $sale->payment_method = $request->input('payment_method');
+        }
+        if ($request->filled('cash_tendered')) {
+            $sale->cash_tendered = $request->input('cash_tendered');
+        }
+
         $sale->save();
 
         return response()->json($this->formatOrder($sale->load(['items', 'user'])));
@@ -289,7 +305,8 @@ class OnlineOrderController extends Controller
             $user  = $request->user();
             $query = Sale::where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
-                  ->orWhere('invoice_number', 'like', 'KSK-%');
+                  ->orWhere('invoice_number', 'like', 'KSK-%')
+                  ->orWhere('source', 'kiosk');
             });
 
             // Branch scoping
@@ -340,7 +357,7 @@ class OnlineOrderController extends Controller
 
     private function formatOrder($sale): array
     {
-        $code = str_replace(['APP-', 'KSK-'], '', $sale->invoice_number);
+        $code = str_replace(['APP-', 'KSK-', 'SI-'], '', $sale->invoice_number);
 
         return [
             'id'             => $sale->id,
@@ -352,6 +369,7 @@ class OnlineOrderController extends Controller
             'total_amount'   => (float) $sale->total_amount,
             'status'         => $sale->status ?? 'pending',
             'created_at'     => $sale->created_at,
+            'source'         => $sale->source ?? 'app',
             'items'          => $sale->items->map(function ($item) {
                 $rawAddons = $item->add_ons;
                 if (is_string($rawAddons)) {

@@ -1293,6 +1293,24 @@ const SalesOrder = () => {
   const handleSubmitOrder = async (nameOverride?: string) => {
     setSubmitting(true)
 
+    let finalOrNumber = orNumber;
+    let finalQueueNumber = queueNumber;
+
+    if (navigator.onLine) {
+      try {
+        const { data } = await api.get('/receipts/next-sequence');
+        const serverSeq = parseInt(data.next_sequence, 10);
+        if (!isNaN(serverSeq)) finalOrNumber = generateORNumber(serverSeq);
+        const serverQueue = parseInt(data.next_queue, 10);
+        if (!isNaN(serverQueue)) finalQueueNumber = generateQueueNumber(serverQueue);
+        
+        setOrNumber(finalOrNumber);
+        setQueueNumber(finalQueueNumber);
+      } catch {
+        // Fallback to cached state
+      }
+    }
+
     let scDiscountAmount = 0
     let pwdDiscountAmount = 0
     const diplomatDiscountAmount = 0
@@ -1317,7 +1335,7 @@ const SalesOrder = () => {
       : 0
 
     const orderData = {
-      si_number: orNumber,
+      si_number: finalOrNumber,
       branch_id: branchId,
       order_type: (paymentMethod === 'grab' || paymentMethod === 'food_panda') ? 'delivery' : (orderType ?? 'take-out'),
       items: cart.map(item => ({
@@ -1372,12 +1390,12 @@ const SalesOrder = () => {
       try {
         await api.post('/sales', orderData);
         localStorage.removeItem('pos_cart_cache');
-        const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10)
+        const currentSeq = parseInt(finalOrNumber.split('-').pop() ?? '0', 10)
         if (!isNaN(currentSeq)) {
           localStorage.setItem(seqKey, String(currentSeq))
         }
 
-        const currentQueue = parseInt(queueNumber, 10)
+        const currentQueue = parseInt(finalQueueNumber, 10)
         if (!isNaN(currentQueue)) {
           localStorage.setItem(queueKey, String(currentQueue + 1))
         }
@@ -1417,11 +1435,11 @@ const SalesOrder = () => {
       }
     } else {
       enqueue(orderData)
-      const currentSeq = parseInt(orNumber.replace('SI-', ''), 10)
+      const currentSeq = parseInt(finalOrNumber.replace('SI-', ''), 10)
       if (!isNaN(currentSeq)) {
         localStorage.setItem(seqKey, String(currentSeq))
       }
-      const currentQueue = parseInt(queueNumber, 10)
+      const currentQueue = parseInt(finalQueueNumber, 10)
       if (!isNaN(currentQueue)) {
         localStorage.setItem(queueKey, String(currentQueue + 1))
       }

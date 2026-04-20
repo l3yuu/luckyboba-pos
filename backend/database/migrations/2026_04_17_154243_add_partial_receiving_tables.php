@@ -39,8 +39,8 @@ return new class extends Migration
         // Create PO Receipt Items table
         Schema::create('purchase_order_receipt_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('purchase_order_receipt_id', 'po_receipt_id_foreign')->constrained('purchase_order_receipts')->cascadeOnDelete();
-            $table->foreignId('purchase_order_item_id', 'po_item_id_foreign')->constrained('purchase_order_items')->cascadeOnDelete();
+            $table->foreignId('purchase_order_receipt_id')->constrained('purchase_order_receipts')->cascadeOnDelete();
+            $table->foreignId('purchase_order_item_id')->constrained('purchase_order_items')->cascadeOnDelete();
             $table->foreignId('raw_material_id')->constrained('raw_materials')->cascadeOnDelete();
             $table->decimal('quantity_received', 12, 2);
             $table->decimal('unit_cost', 12, 2);
