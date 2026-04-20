@@ -396,23 +396,46 @@ const KioskPage = () => {
       
       let seq = 1;
       let nextQueue = 1;
+      const todayKey = new Date().toISOString().split('T')[0];
+      
       try {
-        const { data } = await api.get('/receipts/next-sequence');
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}`);
         const serverSeq = parseInt(data.next_sequence, 10);
         const serverQueue = parseInt(data.next_queue, 10);
         
         if (!isNaN(serverSeq)) {
           seq = serverSeq;
           nextQueue = !isNaN(serverQueue) ? serverQueue : 1;
+          
+          // Sync local storage as well
           const seqKey = `last_or_sequence_${branchId}`;
+          const queueKey = `last_queue_number_${branchId}`;
+          const dateKey = `last_queue_date_${branchId}`;
+          
           localStorage.setItem(seqKey, String(seq));
+          localStorage.setItem(queueKey, String(nextQueue));
+          localStorage.setItem(dateKey, todayKey);
         } else {
           throw new Error('Invalid sequence');
         }
       } catch {
         const seqKey = `last_or_sequence_${branchId}`;
+        const queueKey = `last_queue_number_${branchId}`;
+        const dateKey = `last_queue_date_${branchId}`;
+        
+        // Handle SI Sequence fallback
         seq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1;
         localStorage.setItem(seqKey, String(seq));
+
+        // Handle Queue Number fallback with Daily Reset
+        const lastDate = localStorage.getItem(dateKey);
+        if (lastDate !== todayKey) {
+          nextQueue = 1; // Reset for a new day
+        } else {
+          nextQueue = parseInt(localStorage.getItem(queueKey) || '0', 10) + 1;
+        }
+        localStorage.setItem(queueKey, String(nextQueue));
+        localStorage.setItem(dateKey, todayKey);
       }
       
       const siNumber = generateORNumber(seq);
