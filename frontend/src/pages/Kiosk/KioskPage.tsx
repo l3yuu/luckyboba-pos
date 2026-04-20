@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { KioskTicketPrint } from '../../components/Cashier/SalesOrderComponents/print';
 import { getImageUrl } from '../../utils/imageUtils';
+import { generateORNumber } from '../../components/Cashier/SalesOrderComponents/shared';
 
 // --- Types ---
 
@@ -337,8 +338,26 @@ const KioskPage = () => {
     if (cart.length === 0 || !branchId) return;
     try {
       setLoading(true);
+      
+      let seq = 1;
+      try {
+        const { data } = await api.get('/receipts/next-sequence');
+        const serverSeq = parseInt(data.next_sequence, 10);
+        if (!isNaN(serverSeq)) {
+          seq = serverSeq;
+          const seqKey = `last_or_sequence_${branchId}`;
+          localStorage.setItem(seqKey, String(seq));
+        } else {
+          throw new Error('Invalid sequence');
+        }
+      } catch {
+        const seqKey = `last_or_sequence_${branchId}`;
+        seq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1;
+        localStorage.setItem(seqKey, String(seq));
+      }
+      
+      const siNumber = generateORNumber(seq);
       const timestamp = Math.floor(Date.now() / 1000).toString();
-      const siNumber = `KSK-${timestamp}`;
 
       const total = calculateTotal();
       const vatableSales = total / 1.12;
