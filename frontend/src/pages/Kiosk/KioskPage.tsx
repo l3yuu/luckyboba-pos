@@ -124,6 +124,7 @@ const KioskPage = () => {
     const stored = localStorage.getItem('kiosk_expo_items');
     return stored ? JSON.parse(stored) : [];
   });
+  const [expoCategoryFilter, setExpoCategoryFilter] = useState('');
 
   // Order Status State
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -1345,11 +1346,32 @@ const KioskPage = () => {
                   <h3 className="font-bold text-violet-900 uppercase">Select Expo Items</h3>
                   <p className="text-xs text-zinc-500 font-medium mb-4">Click to toggle items for the Expo.</p>
                   
+                  {/* Category Filter */}
+                  {items.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-4 mb-2">
+                      <button
+                        onClick={() => setExpoCategoryFilter('')}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
+                      >
+                        All
+                      </button>
+                      {Array.from(new Set(items.map(i => i.category))).filter(Boolean).map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setExpoCategoryFilter(cat)}
+                          className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === cat ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   {items.length === 0 ? (
                      <p className="text-xs text-zinc-400 italic">No items loaded for this branch.</p>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3 max-h-72 overflow-y-auto p-1">
-                      {items.map(item => {
+                    <div className="grid grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto p-1 pr-2">
+                      {items.filter(item => !expoCategoryFilter || item.category === expoCategoryFilter).map(item => {
                          const isSelected = expoItemIds.includes(item.id);
                          return (
                            <button
