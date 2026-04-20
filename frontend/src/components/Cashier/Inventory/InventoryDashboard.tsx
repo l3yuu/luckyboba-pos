@@ -16,24 +16,24 @@ const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 
 interface TopProduct { name: string; barcode: string; qty: number; unit_cost: number; total_cost: number; sold_total: number; profit: number; }
 interface DashboardData { products: TopProduct[]; weekly_sold_total: number; weekly_profit_total: number; }
-interface RawMaterial { 
-  id: number; 
-  name: string; 
-  unit: string; 
+interface RawMaterial {
+  id: number;
+  name: string;
+  unit: string;
   purchase_unit: string | null;
   purchase_to_base_factor: number;
   last_purchase_price: number;
-  category: string; 
-  current_stock: number; 
+  category: string;
+  current_stock: number;
   incoming_stock: number;
-  reorder_level: number; 
-  is_intermediate: boolean; 
-  notes: string | null; 
+  reorder_level: number;
+  is_intermediate: boolean;
+  notes: string | null;
 }
 interface StockMovement { id: number; raw_material_id: number; type: 'add' | 'subtract' | 'set'; quantity: number; reason: string | null; created_at: string; }
 interface ReportRow { material: RawMaterial; beginning: number; delivered: number; cooked: number; out: number; spoilage: number; ending: number; incoming: number; usage: number; sold: number; variance: number; movements: StockMovement[]; }
 interface Toast { id: number; message: string; type: 'success' | 'error'; }
-interface MenuItem { id: number; name: string; category_id: number; category?: string | null; price: number; size: string; type: string; }
+interface MenuItem { id: number; name: string; category_id: number; category?: string | { id: number; name: string } | null; price: number; size: string; type: string; }
 interface RecipeItem { id: number; recipe_id: number; raw_material_id: number; quantity: number; unit: string; notes: string | null; raw_material?: RawMaterial; }
 interface Recipe { id: number; menu_item_id: number; menu_item: MenuItem; size: string | null; is_active: boolean; notes: string | null; items: RecipeItem[]; }
 
@@ -185,9 +185,9 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
 
     setSubmitting(true);
     try {
-      const response = await api.post(`/raw-materials/${item.id}/adjust`, { 
-        type: type === 'waste' ? 'subtract' : type, 
-        quantity: qty, 
+      const response = await api.post(`/raw-materials/${item.id}/adjust`, {
+        type: type === 'waste' ? 'subtract' : type,
+        quantity: qty,
         reason: finalReason,
         is_waste: type === 'waste'
       });
@@ -237,9 +237,9 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
           )}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Reason</label>
-            <select 
-              value={reasonSelect} 
-              onChange={(e) => setReasonSelect(e.target.value)} 
+            <select
+              value={reasonSelect}
+              onChange={(e) => setReasonSelect(e.target.value)}
               className={selectCls}
             >
               <option value="">Select a reason...</option>
@@ -251,11 +251,11 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
           {reasonSelect === 'Other' && (
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Custom Reason</label>
-              <textarea 
-                value={customReason} 
-                onChange={(e) => setCustomReason(e.target.value)} 
-                className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-20 resize-none" 
-                placeholder="Enter custom reason..." 
+              <textarea
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-20 resize-none"
+                placeholder="Enter custom reason..."
               />
             </div>
           )}
@@ -374,6 +374,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
 
   const cachedDashboard = getCache<DashboardData>('inventory-top-products');
   const [salesData, setSalesData] = useState<TopProduct[]>(cachedDashboard?.products ?? []);
+  const [dashboardSearch, setDashboardSearch] = useState('');
   const [totals, setTotals] = useState({ sold: cachedDashboard?.weekly_sold_total ?? 0, profit: cachedDashboard?.weekly_profit_total ?? 0 });
   const [salesLoading, setSalesLoading] = useState(cachedDashboard === null);
 
@@ -423,8 +424,8 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
     (async () => {
       setSalesLoading(true);
       try {
-        const res = await api.get('/inventory/top-products'); const d: DashboardData = res.data; const top5 = d.products.slice(0, 5);
-        setCache('inventory-top-products', { ...d, products: top5 }); setSalesData(top5); setTotals({ sold: d.weekly_sold_total, profit: d.weekly_profit_total });
+        const res = await api.get('/inventory/top-products'); const d: DashboardData = res.data; const top20 = d.products.slice(0, 20);
+        setCache('inventory-top-products', { ...d, products: top20 }); setSalesData(top20); setTotals({ sold: d.weekly_sold_total, profit: d.weekly_profit_total });
       } catch { console.error('Failed to fetch sales analytics'); }
       finally { setSalesLoading(false); }
     })();
@@ -441,6 +442,19 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
   }, [addToast]);
 
   useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
+
+  useEffect(() => {
+    localStorage.setItem('inventory_dashboard_view', view);
+  }, [view]);
+
+  const displaySalesData = useMemo(() => {
+    if (!dashboardSearch) return salesData;
+    const s = dashboardSearch.toLowerCase();
+    return salesData.filter(p => 
+      p.name.toLowerCase().includes(s) || 
+      p.barcode.toLowerCase().includes(s)
+    );
+  }, [salesData, dashboardSearch]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -484,7 +498,14 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
   }), [reportRows]);
 
   const usageCategories = useMemo(() => ['All', ...[...new Set(materials.map(m => m.category))].sort()], [materials]);
-  const recipeCategoryList = useMemo(() => ['All', ...[...new Set(recipes.map(r => r.menu_item.category || 'General'))].sort()], [recipes]);
+  const recipeCategoryList = useMemo(() => {
+    const cats = recipes.map(r => {
+      const cat = r.menu_item.category;
+      if (typeof cat === 'object' && cat !== null) return (cat as { name: string }).name;
+      return (cat as string) || 'General';
+    });
+    return ['All', ...[...new Set(cats)].sort() as string[]];
+  }, [recipes]);
   const lowStockCount = useMemo(() => materials.filter(m => parseNum(m.current_stock) < parseNum(m.reorder_level) && parseNum(m.reorder_level) > 0).length, [materials]);
 
   const displayUsageRows = useMemo(() => {
@@ -517,16 +538,22 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
     let data = [...recipeRows];
     if (recipeFilterStatus === 'with') data = data.filter(r => r.hasRecipe);
     if (recipeFilterStatus === 'without') data = data.filter(r => !r.hasRecipe);
-    if (recipeCategoryFilter !== 'All') data = data.filter(r => (r.menuItem.category || 'General') === recipeCategoryFilter);
+    if (recipeCategoryFilter !== 'All') {
+      data = data.filter(r => {
+        const cat = r.menuItem.category;
+        const catName = (typeof cat === 'object' && cat !== null) ? (cat as { name: string }).name : (cat || 'General');
+        return catName === recipeCategoryFilter;
+      });
+    }
     if (recipeSearch) { const q = recipeSearch.toLowerCase(); data = data.filter(r => r.menuItem.name.toLowerCase().includes(q)); }
     return recipeEntriesLimit === -1 ? data : data.slice(0, recipeEntriesLimit);
   }, [recipeRows, recipeFilterStatus, recipeCategoryFilter, recipeSearch, recipeEntriesLimit]);
 
   const handleAddSuccess = (data: RawMaterial) => { setMaterials(prev => [...prev, data]); localStorage.removeItem(RAW_MATERIALS_CACHE_KEY); addToast(`"${data.name}" added successfully.`); };
-  const handleAdjustSuccess = (updated: RawMaterial) => { 
+  const handleAdjustSuccess = (updated: RawMaterial) => {
     // Re-fetch everything to ensure movements are also updated for the report calculation
     fetchMaterials(true);
-    addToast(`Stock updated for "${updated.name}".`); 
+    addToast(`Stock updated for "${updated.name}".`);
   };
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return; const target = deleteTarget; setDeleteTarget(null);
@@ -545,9 +572,11 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
       {isHistoryOpen && <InventoryHistoryModal onClose={() => setIsHistoryOpen(false)} />}
 
 
-      <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col overflow-hidden font-sans" style={dashboardFont}>
-        <TopNavbar />
-        <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-4">
+      <div className="flex-1 bg-[#f4f2fb] min-h-full flex flex-col font-sans" style={dashboardFont}>
+        <div className="sticky top-0 z-30">
+          <TopNavbar />
+        </div>
+        <div className="flex-1 p-5 md:p-7 flex flex-col gap-4">
 
           {/* ── Page Header ── */}
           <div className="flex items-center justify-between">
@@ -606,52 +635,6 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                 ))}
               </div>
 
-              <div className="bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
-                <div className="bg-white px-7 py-5 border-b border-zinc-100">
-                  <h2 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.15em] text-center">TOP 5 PRODUCTS by Qty Sold FROM {start} TO {end}</h2>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-white z-10 border-b-2 border-[#e9d5ff]">
-                      <tr className="bg-[#f5f0ff]">
-                        {['Rank', 'QTY', 'Unit Cost', 'Total Cost', 'Sold Total', 'Total Profit', 'Product Name', 'Barcode'].map(h => (
-                          <th key={h} className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center last:text-right">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100">
-                      {salesLoading ? (
-                        <tr><td colSpan={8} className="py-10 text-center"><div className="flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3b2063]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span></div></td></tr>
-                      ) : salesData.length > 0 ? salesData.map((item, index) => (
-                        <tr key={index} className="hover:bg-[#f5f0ff] transition-colors">
-                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#1c1c1e]">{index + 1}</span></td>
-                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#3b2063]">{item.qty}</span></td>
-                          <td className="px-7 py-3.5 text-center"><span className="text-[12px] font-semibold text-zinc-500">{formatPHP(item.unit_cost)}</span></td>
-                          <td className="px-7 py-3.5 text-center"><span className="text-[12px] font-semibold text-zinc-500">{formatPHP(item.total_cost)}</span></td>
-                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#3b2063]">{formatPHP(item.sold_total)}</span></td>
-                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-emerald-500">{formatPHP(item.profit)}</span></td>
-                          <td className="px-7 py-3.5"><span className="text-[13px] font-extrabold text-[#3b2063] uppercase tracking-tight">{item.name}</span></td>
-                          <td className="px-7 py-3.5 text-right"><span className="text-[12px] font-semibold text-zinc-500">{item.barcode}</span></td>
-                        </tr>
-                      )) : (
-                        <tr><td colSpan={8} className="px-8 py-20 text-center"><p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">No sales data recorded for this week</p></td></tr>
-                      )}
-                    </tbody>
-                    <tfoot className="bg-white border-t-2 border-zinc-100">
-                      <tr className="font-black">
-                        <td colSpan={4} className="px-7 py-4 text-right text-[11px] font-bold text-zinc-500 uppercase tracking-widest">WEEKLY TOTAL</td>
-                        <td className="px-7 py-4 text-center"><span className="text-[13px] font-extrabold text-[#3b2063]">{formatPHP(totals.sold)}</span></td>
-                        <td className="px-7 py-4 text-center"><span className="text-[13px] font-extrabold text-emerald-500">{formatPHP(totals.profit)}</span></td>
-                        <td colSpan={2} />
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-                <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
-                  <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /><span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span></div>
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Showing {salesData.length} products</p>
-                </div>
-              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
                 <div className="bg-white border border-zinc-200 p-6 flex flex-col shadow-sm rounded-[0.625rem]">
@@ -687,6 +670,65 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                       </ResponsiveContainer>
                     ) : <div className="flex items-center justify-center h-full text-zinc-300 text-xs italic">No data available</div>}
                   </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-zinc-200 overflow-hidden shadow-sm rounded-[0.625rem] mb-6">
+                <div className="bg-white px-7 py-5 border-b border-zinc-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <h2 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.15em]">TOP PRODUCTS ({start} - {end})</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Search:</span>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={dashboardSearch} 
+                        onChange={e => setDashboardSearch(e.target.value)} 
+                        placeholder="Search product..." 
+                        className="border border-[#e9d5ff] bg-white px-4 py-2 text-xs outline-none focus:border-[#3b2063] w-48 md:w-64 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-300 shadow-sm transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="overflow-x-auto min-h-[350px]">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="sticky top-0 bg-white z-10 border-b-2 border-[#e9d5ff]">
+                      <tr className="bg-[#f5f0ff]">
+                        {['Rank', 'QTY', 'Unit Cost', 'Total Cost', 'Sold Total', 'Total Profit', 'Product Name', 'Barcode'].map(h => (
+                          <th key={h} className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center last:text-right">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {salesLoading ? (
+                        <tr><td colSpan={8} className="py-20 text-center"><div className="flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3b2063]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span></div></td></tr>
+                      ) : displaySalesData.length > 0 ? displaySalesData.map((item, index) => (
+                        <tr key={index} className="hover:bg-[#f5f0ff] transition-colors">
+                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#1c1c1e]">{index + 1}</span></td>
+                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#3b2063]">{item.qty}</span></td>
+                          <td className="px-7 py-3.5 text-center"><span className="text-[12px] font-semibold text-zinc-500">{formatPHP(item.unit_cost)}</span></td>
+                          <td className="px-7 py-3.5 text-center"><span className="text-[12px] font-semibold text-zinc-500">{formatPHP(item.total_cost)}</span></td>
+                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#3b2063]">{formatPHP(item.sold_total)}</span></td>
+                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-emerald-500">{formatPHP(item.profit)}</span></td>
+                          <td className="px-7 py-3.5"><span className="text-[13px] font-extrabold text-[#3b2063] uppercase tracking-tight">{item.name}</span></td>
+                          <td className="px-7 py-3.5 text-right"><span className="text-[12px] font-semibold text-zinc-500">{item.barcode}</span></td>
+                        </tr>
+                      )) : (
+                        <tr><td colSpan={8} className="px-8 py-20 text-center"><p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{dashboardSearch ? `No results for "${dashboardSearch}"` : 'No sales data recorded'}</p></td></tr>
+                      )}
+                    </tbody>
+                    <tfoot className="bg-white border-t-2 border-zinc-100">
+                      <tr className="font-black">
+                        <td colSpan={4} className="px-7 py-4 text-right text-[11px] font-bold text-zinc-500 uppercase tracking-widest">WEEKLY TOTAL</td>
+                        <td className="px-7 py-4 text-center"><span className="text-[13px] font-extrabold text-[#3b2063]">{formatPHP(totals.sold)}</span></td>
+                        <td className="px-7 py-4 text-center"><span className="text-[13px] font-extrabold text-emerald-500">{formatPHP(totals.profit)}</span></td>
+                        <td colSpan={2} />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
+                  <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /><span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span></div>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Showing {displaySalesData.length} products</p>
                 </div>
               </div>
             </>
@@ -805,17 +847,17 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                           <tr className="border-t-2 border-zinc-200 bg-[#1a0f2e]">
                             <td colSpan={3} className="px-5 py-3.5"><span className="text-[10px] font-bold text-purple-300 uppercase tracking-widest">Totals · {displayUsageRows.length} items</span></td>
                             {[
-                              displayUsageRows.reduce((s,r)=>s+r.beginning,0), 
-                              displayUsageRows.reduce((s,r)=>s+r.delivered,0), 
-                              displayUsageRows.reduce((s,r)=>s+r.cooked,0), 
-                              displayUsageRows.reduce((s,r)=>s+r.out,0), 
-                              displayUsageRows.reduce((s,r)=>s+r.spoilage,0), 
-                              displayUsageRows.reduce((s,r)=>s+r.ending,0), 
-                              displayUsageRows.reduce((s,r)=>s+r.incoming,0),
-                              displayUsageRows.reduce((s,r)=>s+r.usage,0), 
-                              displayUsageRows.reduce((s,r)=>s+r.variance,0)
+                              displayUsageRows.reduce((s, r) => s + r.beginning, 0),
+                              displayUsageRows.reduce((s, r) => s + r.delivered, 0),
+                              displayUsageRows.reduce((s, r) => s + r.cooked, 0),
+                              displayUsageRows.reduce((s, r) => s + r.out, 0),
+                              displayUsageRows.reduce((s, r) => s + r.spoilage, 0),
+                              displayUsageRows.reduce((s, r) => s + r.ending, 0),
+                              displayUsageRows.reduce((s, r) => s + r.incoming, 0),
+                              displayUsageRows.reduce((s, r) => s + r.usage, 0),
+                              displayUsageRows.reduce((s, r) => s + r.variance, 0)
                             ].map((total, i) => (
-                              <td key={i} className="px-4 py-3.5 text-right"><span className={`text-[12px] font-extrabold ${i===5?'text-purple-200' : i===6?'text-blue-300' : i===8?(total<-0.01?'text-red-400':total>0.01?'text-amber-400':'text-emerald-400'):'text-white'}`}>{i===1&&total>0?'+':''}{fmt(total)}</span></td>
+                              <td key={i} className="px-4 py-3.5 text-right"><span className={`text-[12px] font-extrabold ${i === 5 ? 'text-purple-200' : i === 6 ? 'text-blue-300' : i === 8 ? (total < -0.01 ? 'text-red-400' : total > 0.01 ? 'text-amber-400' : 'text-emerald-400') : 'text-white'}`}>{i === 1 && total > 0 ? '+' : ''}{fmt(total)}</span></td>
                             ))}
                             <td className="px-5 py-3.5" />
                           </tr>

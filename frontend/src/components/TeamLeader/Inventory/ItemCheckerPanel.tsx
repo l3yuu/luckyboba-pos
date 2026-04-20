@@ -1,237 +1,374 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import api from '../../../services/api';
 import { SkeletonBox } from '../SharedSkeletons';
+import {
+  Search,
+  Filter,
+  Info,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  ChevronRight,
+  FlaskConical,
+  X,
+  ShoppingBag
+} from 'lucide-react';
 
-interface Item {
+interface MenuItem {
   id: number;
   name: string;
   category: string;
-  price: number;
-  available: boolean;
-  last_sold?: string;
-  stock_status: 'in_stock' | 'low_stock' | 'out_of_stock';
+  sellingPrice: number;
+  is_available: boolean;
+  image?: string;
+  quantity?: number;
 }
 
+interface RecipeItem {
+  id: number;
+  raw_material?: { name: string; unit: string };
+  material_name?: string;
+  unit?: string;
+  quantity: number;
+}
+
+interface Recipe {
+  id: number;
+  menu_item?: { name: string };
+  size?: string;
+  is_active: boolean;
+  notes?: string;
+  items?: RecipeItem[];
+}
+
+const STYLES = `
+  .tl-item-checker { font-family: 'DM Sans', sans-serif; }
+  .tl-stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem; transition: all 0.2s; }
+  .tl-stat-card:hover { border-color: #3b2063; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
+  .tl-search-container { position: relative; }
+  .tl-search-input { background: #f8fafc; border: 2px solid transparent; border-radius: 1rem; width: 100%; padding: 0.875rem 1rem 0.875rem 3rem; font-weight: 700; font-size: 0.875rem; transition: all 0.2s; }
+  .tl-search-input:focus { background: #fff; border-color: #3b2063; outline: none; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
+  .tl-caps { font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
+  .tl-badge { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; padding: 0.25rem 0.625rem; border-radius: 0.5rem; letter-spacing: 0.025em; }
+`;
+
 const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
-  const [items, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'available' | 'unavailable'>('all');
+  const [, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'available' | 'unavailable'>('all');
 
-  useEffect(() => {
-    const loadItems = async () => {
-      try {
-        // Mock data for now - replace with actual API call
-        const mockItems: Item[] = [
-          { id: 1, name: 'Classic Milk Tea', category: 'Milk Tea', price: 30.00, available: true, last_sold: '5 mins ago', stock_status: 'in_stock' },
-          { id: 2, name: 'Taro Milk Tea', category: 'Milk Tea', price: 35.00, available: true, last_sold: '12 mins ago', stock_status: 'in_stock' },
-          { id: 3, name: 'Wintermelon Tea', category: 'Fruit Tea', price: 30.00, available: false, stock_status: 'out_of_stock' },
+  // Recipe Modal State
+  const [selectedItemForRecipe, setSelectedItemForRecipe] = useState<MenuItem | null>(null);
+  const [recipeData, setRecipeData] = useState<Recipe[]>([]);
+  const [recipeLoading, setRecipeLoading] = useState(false);
 
-          { id: 5, name: 'Chocolate Milk Tea', category: 'Milk Tea', price: 35.00, available: true, last_sold: '20 mins ago', stock_status: 'in_stock' },
-          { id: 6, name: 'Red Velvet', category: 'Milk Tea', price: 40.00, available: true, last_sold: '15 mins ago', stock_status: 'in_stock' },
-          { id: 7, name: 'Matcha Latte', category: 'Milk Tea', price: 45.00, available: true, last_sold: '1 hour ago', stock_status: 'in_stock' },
-          { id: 8, name: 'Coffee Milk Tea', category: 'Milk Tea', price: 38.00, available: true, last_sold: '30 mins ago', stock_status: 'low_stock' },
-        ];
-        setItems(mockItems);
-      } catch (error) {
-        console.error('Failed to load items:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadItems();
-  }, [branchId]);
-
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6">
-        <SkeletonBox h="h-14" w="w-64" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <SkeletonBox h="h-24" />
-          <SkeletonBox h="h-24" />
-          <SkeletonBox h="h-24" />
-          <SkeletonBox h="h-24" />
-        </div>
-        <SkeletonBox h="h-96" />
-      </div>
-    );
-  }
-
-  const categories = ['all', ...Array.from(new Set(items.map(item => item.category)))];
-  
-  const filteredItems = items.filter(item => {
-    const matchesFilter = filter === 'all' || 
-                          (filter === 'available' && item.available) || 
-                          (filter === 'unavailable' && !item.available);
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    return matchesFilter && matchesSearch && matchesCategory;
-  });
-
-  const availableCount = items.filter(i => i.available).length;
-  const unavailableCount = items.filter(i => !i.available).length;
-  const lowStockCount = items.filter(i => i.stock_status === 'low_stock').length;
-
-  const getStockStatusColor = (status: string) => {
-    switch (status) {
-      case 'in_stock': return 'bg-green-100 text-green-800';
-      case 'low_stock': return 'bg-yellow-100 text-yellow-800';
-      case 'out_of_stock': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const fetchItems = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true); else setLoading(true);
+    try {
+      const res = await api.get('/branch/menu-items');
+      setItems(res.data);
+    } catch (err) {
+      console.error('Failed to load menu items', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const getAvailabilityColor = (available: boolean) => {
-    return available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+  useEffect(() => {
+    fetchItems();
+  }, [branchId]);
+
+  const categories = useMemo(() => {
+    const cats = new Set(items.map(i => i.category));
+    return ['all', ...Array.from(cats)].sort();
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      const matchesStatus =
+        activeFilter === 'all' ||
+        (activeFilter === 'available' && item.is_available) ||
+        (activeFilter === 'unavailable' && !item.is_available);
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [items, searchTerm, selectedCategory, activeFilter]);
+
+  const stats = useMemo(() => ({
+    total: items.length,
+    available: items.filter(i => i.is_available).length,
+    unavailable: items.filter(i => !i.is_available).length,
+    lowStock: items.filter(i => (i.quantity ?? 0) <= 5).length
+  }), [items]);
+
+  const handleViewRecipe = async (item: MenuItem) => {
+    setSelectedItemForRecipe(item);
+    setRecipeLoading(true);
+    try {
+      const res = await api.get(`/recipes`, { params: { menu_item_id: item.id } });
+      setRecipeData(res.data);
+    } catch (err) {
+      console.error('Failed to load recipe', err);
+    } finally {
+      setRecipeLoading(false);
+    }
   };
 
+  if (loading) return (
+    <div className="p-6 space-y-6 tl-item-checker">
+      <SkeletonBox h="h-16" w="w-1/3" className="rounded-2xl" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => <SkeletonBox key={i} h="h-28" className="rounded-2xl" />)}
+      </div>
+      <SkeletonBox h="h-[500px]" className="rounded-2xl" />
+    </div>
+  );
+
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Item Checker</h2>
-        <p className="text-gray-600">Read-only view of menu items and availability status</p>
+    <div className="p-6 space-y-8 tl-item-checker">
+      <style>{STYLES}</style>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Items', value: stats.total, color: 'slate', sub: 'In catalog' },
+          { label: 'Available', value: stats.available, color: 'emerald', sub: 'On sale' },
+          { label: 'Out of Stock', value: stats.unavailable, color: 'rose', sub: 'Disabled' },
+          { label: 'Critical Stock', value: stats.lowStock, color: 'amber', sub: '< 5 units' },
+        ].map(s => (
+          <div key={s.label} className="tl-stat-card p-6">
+            <p className="tl-caps text-[9px] mb-1">{s.label}</p>
+            <div className="flex items-end gap-2">
+              <span className={`text-2xl font-black text-${s.color}-600 leading-none`}>{s.value}</span>
+              <span className="text-[10px] font-bold text-slate-400 mb-0.5">{s.sub}</span>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center">
-          <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-          </svg>
-          <p className="text-sm text-blue-800">
-            This is a read-only item checker. Team Leaders can view item availability but cannot modify menu items or prices.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Items</p>
-              <p className="text-2xl font-bold text-gray-900">{items.length}</p>
-            </div>
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-              <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Available</p>
-              <p className="text-2xl font-bold text-green-600">{availableCount}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Unavailable</p>
-              <p className="text-2xl font-bold text-red-600">{unavailableCount}</p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Low Stock</p>
-              <p className="text-2xl font-bold text-yellow-600">{lowStockCount}</p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-4 mb-6">
-        <div className="flex-1">
+      {/* ── FILTERS & SEARCH ── */}
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex-1 tl-search-container">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             type="text"
-            placeholder="Search items..."
+            placeholder="Search item name or barcode..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b2063]"
+            onChange={e => setSearchTerm(e.target.value)}
+            className="tl-search-input"
           />
         </div>
-        <div className="flex space-x-2">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b2063]"
-          >
-            {categories.map(cat => (
-              <option key={cat} value={cat}>
-                {cat === 'all' ? 'All Categories' : cat}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex space-x-2">
-          {(['all', 'available', 'unavailable'] as const).map((status) => (
+
+        <div className="flex items-center gap-2 p-1 bg-slate-100/80 border border-slate-200 rounded-2xl">
+          {(['all', 'available', 'unavailable'] as const).map(f => (
             <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === status
-                  ? 'bg-[#3b2063] text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeFilter === f ? 'bg-[#3b2063] text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
             >
-              {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+              {f === 'all' ? 'All' : f}
             </button>
           ))}
         </div>
+
+        <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-2xl">
+          <Filter size={14} className="text-slate-400" />
+          <select
+            value={selectedCategory}
+            onChange={e => setSelectedCategory(e.target.value)}
+            className="text-[11px] font-black uppercase tracking-widest text-slate-600 outline-none pr-2 bg-transparent"
+          >
+            <option value="all">All Categories</option>
+            {categories.filter(c => c !== 'all').map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Menu Items</h3>
-        </div>
+      {/* ── ITEMS LIST ── */}
+      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Sold</th>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50/50">
+                <th className="px-6 py-4 tl-caps">Item Detail</th>
+                <th className="px-6 py-4 tl-caps">Category</th>
+                <th className="px-6 py-4 tl-caps">Price</th>
+                <th className="px-6 py-4 tl-caps">Availability</th>
+                <th className="px-6 py-4 tl-caps text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.category}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₱{item.price.toFixed(2)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getAvailabilityColor(item.available)}`}>
-                      {item.available ? 'Available' : 'Unavailable'}
+            <tbody className="divide-y divide-slate-50">
+              {filteredItems.map(item => (
+                <tr key={item.id} className="hover:bg-slate-100/30 transition-colors group">
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-4">
+                      {item.image ? (
+                        <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm shrink-0">
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                          <ShoppingBag size={18} />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[13px] font-black text-slate-900 tracking-tight">{item.name}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-tighter">ID: #{item.id}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">{item.category}</span>
+                  </td>
+                  <td className="px-6 py-5 text-[14px] font-black text-slate-900 tabular-nums">
+                    ₱{item.sellingPrice.toFixed(2)}
+                  </td>
+                  <td className="px-6 py-5">
+                    <span className={`tl-badge flex items-center gap-1.5 w-fit ${item.is_available ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                      {item.is_available ? <CheckCircle size={10} /> : <XCircle size={10} />}
+                      {item.is_available ? 'Available' : 'Out of Stock'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStockStatusColor(item.stock_status)}`}>
-                      {item.stock_status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.last_sold || 'Never'}
+                  <td className="px-6 py-5 text-right">
+                    <button
+                      onClick={() => handleViewRecipe(item)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#3b2063] hover:border-[#3b2063] transition-all group-hover:bg-white"
+                    >
+                      <FlaskConical size={12} />
+                      View Recipe
+                      <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
                   </td>
                 </tr>
               ))}
+
+              {filteredItems.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-24 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
+                        <AlertTriangle size={32} />
+                      </div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">No items found matching your criteria</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* ── FOOTER HINT ── */}
+      <div className="flex items-center justify-center gap-4 opacity-30 mt-8 select-none">
+        <span className="h-px bg-slate-300 flex-1" />
+        <p className="text-[9px] font-black uppercase tracking-[0.4em]">Team Leader Operations Protocol</p>
+        <span className="h-px bg-slate-300 flex-1" />
+      </div>
+
+      {/* ── RECIPE MODAL ── */}
+      {selectedItemForRecipe && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-md bg-slate-900/40 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl border border-white overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-300">
+
+            {/* Modal Header */}
+            <div className="p-8 pb-6 border-b border-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-[#f5f0ff] rounded-2xl flex items-center justify-center text-[#3b2063] shadow-sm shrink-0">
+                  <FlaskConical size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">{selectedItemForRecipe.name}</h3>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Ingredient Breakdown</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedItemForRecipe(null)}
+                className="w-10 h-10 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 flex items-center justify-center text-slate-400 transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-8 pt-4">
+              {recipeLoading ? (
+                <div className="space-y-3">
+                  <SkeletonBox h="h-10" />
+                  <SkeletonBox h="h-8" />
+                  <SkeletonBox h="h-8" />
+                  <SkeletonBox h="h-8" />
+                </div>
+              ) : recipeData.length > 0 ? (
+                <div className="space-y-8">
+                  {recipeData.map(recipe => (
+                    <div key={recipe.id} className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-[#3b206310] text-[#3b2063] rounded-lg">
+                          Size: {recipe.size || 'Standard'}
+                        </span>
+                        {recipe.notes && (
+                          <span className="text-[10px] font-bold text-slate-400 italic">Note: {recipe.notes}</span>
+                        )}
+                      </div>
+
+                      <div className="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="border-b border-slate-200/50">
+                              <th className="px-5 py-3 tl-caps !text-[8.5px]">Material Name</th>
+                              <th className="px-5 py-3 tl-caps !text-[8.5px] text-right">Standard Qty</th>
+                              <th className="px-5 py-3 tl-caps !text-[8.5px] text-right">Unit</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200/40">
+                            {recipe.items?.map((it, idx) => (
+                              <tr key={idx} className="hover:bg-white transition-colors">
+                                <td className="px-5 py-3.5 font-bold text-slate-700">
+                                  {it.raw_material?.name || it.material_name}
+                                </td>
+                                <td className="px-5 py-3.5 font-black text-slate-900 text-right tabular-nums">
+                                  {it.quantity}
+                                </td>
+                                <td className="px-5 py-3.5 font-bold text-slate-400 uppercase text-right tracking-tighter">
+                                  {it.raw_material?.unit || it.unit}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                  <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-300 mx-auto mb-4">
+                    <Info size={24} />
+                  </div>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">No recipe defined for this item yet</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-8 pt-0 flex justify-end">
+              <button
+                onClick={() => setSelectedItemForRecipe(null)}
+                className="px-8 py-3 bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20"
+              >
+                Close View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

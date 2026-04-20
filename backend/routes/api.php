@@ -47,6 +47,7 @@ Route::get('/cards/image/{path}', [CardController::class, 'image'])
     ->middleware('throttle:120,1');
 Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/addons',           [AddOnController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');
 Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:60,1');
 
@@ -78,7 +79,8 @@ if ($branchId) {
             'menu_items.status',
             'categories.name as category',
             'menu_items.price as sellingPrice',
-            'menu_items.image'
+            'menu_items.image',
+            'menu_items.size'
         )
         ->where('menu_items.status', 'active') // globally inactive = always hidden
         ->get()
@@ -104,6 +106,33 @@ if ($branchId) {
     return response()->json($items);
 })->middleware('throttle:30,1');
 // ─────────────────────────────────────────────────────────────────────────────
+
+Route::post('/kiosk/verify-pin', function (Illuminate\Http\Request $request) {
+    $request->validate([
+        'pin' => 'required|string'
+    ]);
+    $pin = $request->input('pin');
+    $branchId = $request->input('branch_id'); // Optional if kiosk is unbound
+
+    // Check Global SuperAdmin PIN
+    $globalPin = \App\Models\Setting::where('key', 'global_kiosk_pin')->value('value') ?? '1234';
+    if ($pin === $globalPin) {
+        return response()->json(['success' => true]);
+    }
+
+    // Check Branch PIN if a branch is specified
+    if ($branchId) {
+        $branch = \App\Models\Branch::find($branchId);
+        if ($branch) {
+            $branchPin = $branch->kiosk_pin ?? '1234';
+            if ($pin === $branchPin) {
+                return response()->json(['success' => true]);
+            }
+        }
+    }
+
+    return response()->json(['success' => false, 'message' => 'Invalid PIN'], 403);
+})->middleware('throttle:30,1');
 
 Route::get('/branches/available', [BranchController::class, 'availableBranches']);
 Route::post('/google-login', [AuthController::class, 'googleLogin'])->middleware('throttle:10,1');
@@ -255,6 +284,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/branches/today-sales',       [BranchController::class, 'todaySales']);
         
         Route::get('/branches/{id}',           [BranchController::class, 'show']);
+        Route::get('/branches/{id}/details',   [BranchController::class, 'show']);
+        Route::get('/branches/{id}/payment-settings', [BranchSettingsController::class, 'getPaymentSettings']);
         
         Route::get('/menu',                    [MenuController::class, 'index']);
         Route::get('/bundles',                 [BundleController::class, 'index']);

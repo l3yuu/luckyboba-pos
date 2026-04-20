@@ -2,8 +2,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search, Download, Clock, XCircle, Users, Activity,
-  ChevronLeft, ChevronRight, AlertCircle,
+  ChevronLeft, ChevronRight, AlertCircle, Eye,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 
 type ColorKey = "violet" | "emerald" | "red" | "amber";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
@@ -28,7 +29,7 @@ const StatCard: React.FC<StatCardProps> = ({ icon, label, value, color = "violet
   };
   const c = colors[color];
   return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3 card">
       <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
         <span className={c.icon}>{icon}</span>
       </div>
@@ -119,6 +120,93 @@ const formatDate = (iso: string) => {
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
 
+// ── Log Detail Modal ──────────────────────────────────────────────────────────
+const LogDetailModal: React.FC<{ log: AuditLog; onClose: () => void }> = ({ log, onClose }) => {
+    const isJSON = (str: string | null) => {
+      if (!str) return false;
+      try {
+        const p = JSON.parse(str);
+        return typeof p === 'object' && p !== null;
+      } catch { return false; }
+    };
+  
+    const getDetails = (str: string | null) => {
+      if (!str) return (
+        <div className="p-8 border border-dashed border-zinc-100 rounded-lg flex flex-col items-center gap-2">
+          <Activity size={24} className="text-zinc-100" />
+          <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">No extra payload</p>
+        </div>
+      );
+      if (isJSON(str)) {
+        return (
+          <div className="relative group">
+            <pre className="relative p-5 bg-[#fafaff] border border-violet-100/50 rounded-xl text-[11px] font-mono text-violet-600/70 overflow-x-auto leading-relaxed">
+              {JSON.stringify(JSON.parse(str), null, 2)}
+            </pre>
+          </div>
+        );
+      }
+      return (
+        <div className="p-5 bg-zinc-50 border border-zinc-100 rounded-xl">
+          <p className="text-xs text-zinc-600 leading-relaxed font-medium">{str}</p>
+        </div>
+      );
+    };
+  
+    return createPortal(
+      <div className="fixed inset-0 z-9999 flex items-center justify-center p-6 transition-all duration-300">
+        <div className="absolute inset-0 bg-zinc-950/20 backdrop-blur-md" onClick={onClose} />
+        <div className="relative bg-white w-full max-w-lg rounded-xl shadow-[0_32px_64px_-16px_rgba(59,32,99,0.12)] flex flex-col max-h-[85vh] overflow-hidden border border-zinc-200">
+          
+          <div className="flex items-center justify-between px-8 pt-8 pb-4 shrink-0">
+            <div>
+              <h3 className="text-base font-bold text-[#1a0f2e] tracking-tight">Activity Detail</h3>
+              <p className="text-[10px] font-mono text-zinc-400 mt-0.5 uppercase tracking-tighter font-bold">Ref: #{String(log.id).padStart(5, "0")}</p>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-zinc-100 rounded-full text-zinc-400 transition-all">
+              <XCircle size={20} strokeWidth={1.5} />
+            </button>
+          </div>
+  
+          <div className="flex-1 overflow-y-auto px-8 pb-8 space-y-6 custom-scrollbar">
+            <div className="relative overflow-hidden group">
+              <div className="relative p-5 rounded-xl border border-zinc-100 bg-zinc-50/30">
+                <p className="text-sm font-bold text-[#1a0f2e] leading-snug">{log.action}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className={`inline-flex px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${moduleStyle(log.module)}`}>
+                    {log.module}
+                  </span>
+                </div>
+              </div>
+            </div>
+  
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">User</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center text-[9px] font-black text-violet-600">
+                    {initials(log.user?.name)}
+                  </div>
+                  <p className="text-xs font-bold text-zinc-700">{log.user?.name ?? "System"}</p>
+                </div>
+              </div>
+              <div className="space-y-1 text-right">
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">IP Address</p>
+                <p className="text-xs font-mono font-bold text-zinc-500">{log.ip_address ?? "—"}</p>
+              </div>
+            </div>
+  
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Payload Details</p>
+              {getDetails(log.details)}
+            </div>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 const BranchManagerAuditLogsTab: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -129,35 +217,42 @@ const BranchManagerAuditLogsTab: React.FC = () => {
   const [search, setSearch] = useState("");
   const [module, setModule] = useState("all");
   const [page, setPage] = useState(1);
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Branch manager sees only their branch's logs via the scoped endpoint
-  const fetchLogs = useCallback(async (p = 1, s = "", m = "all") => {
-    setLoading(true);
+  const fetchLogs = useCallback(async (p = 1, s = "", m = "all", silent = false) => {
+    if (!silent) setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams({ per_page: "20", page: String(p) });
       if (s) params.set("search", s);
       if (m !== "all") params.set("module", m);
 
-      // Uses /api/branch/audit-logs — scoped to branch on the server side
       const res = await fetch(`/api/branch/audit-logs?${params}`, { headers: authHeaders() });
       const data = await res.json();
-
       if (!data.success) throw new Error("Failed");
-
       setLogs(data.data);
       setStats(data.stats);
       setMeta(data.meta);
     } catch {
       setError("Failed to load audit logs.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchLogs(1); }, [fetchLogs]);
+
+  // Auto-refresh every 15 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (page === 1 && !search && module === "all" && !selectedLog) {
+        fetchLogs(1, "", "all", true);
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [page, search, module, selectedLog, fetchLogs]);
 
   const handleSearch = (val: string) => {
     setSearch(val);
@@ -182,7 +277,7 @@ const BranchManagerAuditLogsTab: React.FC = () => {
   const moduleOptions = stats?.modules ?? [];
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="p-6 md:p-8 fade-in">
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <div className="relative group flex-1 w-full md:w-auto">
@@ -235,16 +330,12 @@ const BranchManagerAuditLogsTab: React.FC = () => {
       </div>
 
       {/* Table card */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-
-
-
-        {/* Table */}
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["#", "User", "Action", "Details", "Module", "IP", "Date", "Time"].map(h => (
+                {["#", "User", "Action", "Module", "IP Address", "Date", "Time", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -272,7 +363,7 @@ const BranchManagerAuditLogsTab: React.FC = () => {
 
               {!loading && logs.map(log => (
                 <tr key={log.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  <td className="px-5 py-3.5 text-zinc-300 text-xs font-bold">
+                  <td className="px-5 py-3.5 text-zinc-300 text-xs font-bold font-mono">
                     #{String(log.id).padStart(4, "0")}
                   </td>
                   <td className="px-5 py-3.5">
@@ -280,21 +371,25 @@ const BranchManagerAuditLogsTab: React.FC = () => {
                       <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#3b2063] shrink-0">
                         {initials(log.user?.name)}
                       </div>
-                      <span className="font-medium text-[#1a0f2e] text-xs whitespace-nowrap">
+                      <span className="font-semibold text-[#1a0f2e] text-xs whitespace-nowrap">
                         {log.user?.name ?? `User #${log.user_id}`}
                       </span>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-zinc-700 text-xs max-w-48 truncate">{log.action}</td>
-                  <td className="px-5 py-3.5 text-zinc-500 text-xs max-w-48 truncate">{log.details ?? "—"}</td>
+                  <td className="px-5 py-3.5 text-zinc-700 text-xs max-w-64 truncate font-medium">{log.action}</td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${moduleStyle(log.module)}`}>
                       {log.module.replace(/_/g, ' ')}
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{log.ip_address ?? "—"}</td>
-                  <td className="px-5 py-3.5 text-zinc-400 text-xs whitespace-nowrap">{formatDate(log.created_at)}</td>
+                  <td className="px-5 py-3.5 text-zinc-500 text-xs whitespace-nowrap font-medium">{formatDate(log.created_at)}</td>
                   <td className="px-5 py-3.5 text-zinc-400 text-xs tabular-nums whitespace-nowrap">{formatTime(log.created_at)}</td>
+                  <td className="px-5 py-3.5 text-center">
+                    <button onClick={() => setSelectedLog(log)} className="p-1.5 hover:bg-[#ede8ff] text-[#3b2063] rounded-lg transition-all" title="View Detail">
+                      <Eye size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -304,7 +399,7 @@ const BranchManagerAuditLogsTab: React.FC = () => {
         {/* Pagination */}
         {meta && meta.last_page > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-100">
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-zinc-400 font-medium">
               Showing {((meta.current_page - 1) * meta.per_page) + 1}–{Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total.toLocaleString()} entries
             </p>
             <div className="flex items-center gap-1">
@@ -331,15 +426,9 @@ const BranchManagerAuditLogsTab: React.FC = () => {
             </div>
           </div>
         )}
-
-        {meta && (
-          <div className="px-5 py-2 border-t border-zinc-50">
-            <p className="text-[10px] text-zinc-300 font-medium">
-              {meta.total.toLocaleString()} total entries · Page {meta.current_page} of {meta.last_page}
-            </p>
-          </div>
-        )}
       </div>
+
+      {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
     </div>
   );
 };

@@ -43,7 +43,6 @@ import CardManagementTab from "../components/NewSuperAdmin/Sidebar/System/CardMa
 import LoyaltyManagementTab from "../components/NewSuperAdmin/Sidebar/LoyaltyManagementTab";
 import FeaturedDrinksTab from "../components/NewSuperAdmin/Sidebar/System/FeaturedDrinksTab";
 import CustomerManagementTab from "../components/NewSuperAdmin/Sidebar/System/CustomerManagementTab";
-import NotificationCenterTab from "../components/NewSuperAdmin/Sidebar/System/NotificationCenterTab";
 import OnlineOrdersTab from "../components/NewSuperAdmin/Sidebar/Navigation/OnlineOrdersTab";
 import BranchPaymentSettingsTab from "../components/NewSuperAdmin/Sidebar/System/BranchPaymentSettingsTab";
 
@@ -128,7 +127,6 @@ const SuperAdminDashboard: React.FC = () => {
       case "audit": return <AuditLogsTab />;
       case "settings": return <SettingsTab />;
       case "featured_drinks": return <FeaturedDrinksTab />;
-      case "notifications": return <NotificationCenterTab />;
 
       // ── App ───────────────────────────────────────────────────────────────────
       case "card_management": return <CardManagementTab />;

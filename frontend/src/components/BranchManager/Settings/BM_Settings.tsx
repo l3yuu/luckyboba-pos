@@ -112,11 +112,15 @@ const BM_Settings = () => {
   const [confirmConfig, setConfirmConfig] = useState<{ title: string; desc: string; isDanger?: boolean; onConfirm: () => void } | null>(null);
 
   const [branchInfo, setBranchInfo] = useState({
+    id: null as number | null,
     name: "Loading...",
     location: "Loading...",
     email: "N/A",
-    phone: "N/A"
+    phone: "N/A",
+    kiosk_pin: "1234"
   });
+  const [kioskPinInput, setKioskPinInput] = useState("1234");
+  const [isUpdatingPin, setIsUpdatingPin] = useState(false);
 
   const [notifications, setNotifications] = useState(true);
   const [autoReports, setAutoReports] = useState(true);
@@ -138,12 +142,16 @@ const BM_Settings = () => {
       ]);
 
       if (userRes.data) {
+        const branchData = userRes.data.branch;
         setBranchInfo({
-          name: userRes.data.branch?.name || "Lucky Boba Branch",
-          location: userRes.data.branch?.location || "Unknown Location",
+          id: branchData?.id || null,
+          name: branchData?.name || "Lucky Boba Branch",
+          location: branchData?.location || "Unknown Location",
           email: userRes.data.email,
-          phone: userRes.data.branch?.contact ?? "N/A"
+          phone: branchData?.contact ?? "N/A",
+          kiosk_pin: branchData?.kiosk_pin || "1234"
         });
+        setKioskPinInput(branchData?.kiosk_pin || "1234");
       }
 
       if (auditRes.data.success) {
@@ -173,6 +181,20 @@ const BM_Settings = () => {
   };
 
   const closeSubView = () => setActiveSubView(null);
+
+  const saveKioskPin = async () => {
+    if (!branchInfo.id) return showSaved('Error: Branch ID missing');
+    setIsUpdatingPin(true);
+    try {
+      await api.put(`/branches/${branchInfo.id}`, { kiosk_pin: kioskPinInput });
+      showSaved('Kiosk PIN updated!');
+      setBranchInfo(prev => ({ ...prev, kiosk_pin: kioskPinInput }));
+    } catch (_err) {
+      showSaved('Failed to update Kiosk PIN.');
+    } finally {
+      setIsUpdatingPin(false);
+    }
+  };
 
   // ── Render Logic ─────────────────────────────────────────────────────────
 
@@ -231,6 +253,30 @@ const BM_Settings = () => {
             <div className="mt-4 p-3 bg-violet-50/50 border border-violet-100 rounded-lg">
               <p className="text-[10px] text-violet-600 font-bold uppercase tracking-wider">Note to Manager</p>
               <p className="text-[10px] text-violet-400 mt-1">To update branch profile details, please contact the SuperAdmin.</p>
+            </div>
+
+            {/* Kiosk PIN Update */}
+            <div className="mt-6 pt-6 border-t border-zinc-100">
+              <p className="text-sm font-bold text-[#1a0f2e] mb-1">Local Kiosk Security</p>
+              <p className="text-xs text-zinc-400 mb-4">Set the 4 to 10-digit PIN required to access Kiosk settings.</p>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Kiosk Admin PIN</p>
+                  <input
+                    type="password"
+                    value={kioskPinInput}
+                    onChange={e => setKioskPinInput(e.target.value)}
+                    placeholder="Enter new PIN"
+                    className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-[0.4rem] px-3 py-1.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+                  />
+                </div>
+                <Btn 
+                  onClick={saveKioskPin}
+                  disabled={isUpdatingPin || kioskPinInput === branchInfo.kiosk_pin || kioskPinInput.length < 4}
+                >
+                  {isUpdatingPin ? 'Saving...' : 'Update PIN'}
+                </Btn>
+              </div>
             </div>
           </div>
 

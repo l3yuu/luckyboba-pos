@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sale;
+use App\Models\ZReading;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -18,7 +19,8 @@ class OnlineOrderController extends Controller
         $query = Sale::with(['items', 'user', 'branch'])
             ->where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
-                  ->orWhere('invoice_number', 'like', 'KSK-%');
+                  ->orWhere('invoice_number', 'like', 'KSK-%')
+                  ->orWhere('source', 'kiosk');
             })
             ->whereNotIn('status', ['cancelled']);
 
@@ -41,15 +43,19 @@ class OnlineOrderController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'status'      => ['required', 'in:pending,preparing,completed'],
-            'branch_name' => 'required|string|exists:branches,name',
+            'status'         => ['required', 'in:pending,preparing,completed'],
+            'branch_name'    => 'required|string|exists:branches,name',
+            'invoice_number' => 'nullable|string',
+            'payment_method' => 'nullable|string',
+            'cash_tendered'  => 'nullable|numeric',
         ]);
 
         $user  = $request->user();
         $query = Sale::where('id', $id)
             ->where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
-                  ->orWhere('invoice_number', 'like', 'KSK-%');
+                  ->orWhere('invoice_number', 'like', 'KSK-%')
+                  ->orWhere('source', 'kiosk');
             });
 
         if (!empty($user->branch_id)) {
@@ -67,6 +73,17 @@ class OnlineOrderController extends Controller
 
         $sale         = $query->firstOrFail();
         $sale->status = $request->status;
+
+        if ($request->filled('invoice_number')) {
+            $sale->invoice_number = $request->input('invoice_number');
+        }
+        if ($request->filled('payment_method')) {
+            $sale->payment_method = $request->input('payment_method');
+        }
+        if ($request->filled('cash_tendered')) {
+            $sale->cash_tendered = $request->input('cash_tendered');
+        }
+
         $sale->save();
 
         return response()->json($this->formatOrder($sale->load(['items', 'user'])));
@@ -289,7 +306,8 @@ class OnlineOrderController extends Controller
             $user  = $request->user();
             $query = Sale::where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
-                  ->orWhere('invoice_number', 'like', 'KSK-%');
+                  ->orWhere('invoice_number', 'like', 'KSK-%')
+                  ->orWhere('source', 'kiosk');
             });
 
             // Branch scoping
@@ -340,18 +358,36 @@ class OnlineOrderController extends Controller
 
     private function formatOrder($sale): array
     {
-        $code = str_replace(['APP-', 'KSK-'], '', $sale->invoice_number);
+        // Calculate daily queue number (synchronized with Cashier logic)
+        $lastZReading = ZReading::where('branch_id', $sale->branch_id)
+            ->where('is_closed', true)
+            ->where('closed_at', '<', $sale->created_at)
+            ->latest('closed_at')
+            ->first();
+
+        $queueQuery = Sale::where('branch_id', $sale->branch_id)
+            ->where('id', '<=', $sale->id);
+
+        if ($lastZReading) {
+            $queueQuery->where('created_at', '>', $lastZReading->closed_at);
+        } else {
+            $queueQuery->whereDate('created_at', $sale->created_at->toDateString());
+        }
+
+        $dailyNo = $queueQuery->count();
+        $code = str_pad($dailyNo, 3, '0', STR_PAD_LEFT);
 
         return [
             'id'             => $sale->id,
             'invoice_number' => $sale->invoice_number,
-            'customer_name'  => $sale->user ? $sale->user->name : 'App Customer',
+            'customer_name'  => $sale->user ? $sale->user->name : ($sale->customer_name ?: 'System Order'),
             'customer_code'  => $code,
             'qr_code'        => $code,
             'branch_name'    => $sale->branch?->name ?? null,
             'total_amount'   => (float) $sale->total_amount,
             'status'         => $sale->status ?? 'pending',
             'created_at'     => $sale->created_at,
+            'source'         => $sale->source ?? 'app',
             'items'          => $sale->items->map(function ($item) {
                 $rawAddons = $item->add_ons;
                 if (is_string($rawAddons)) {

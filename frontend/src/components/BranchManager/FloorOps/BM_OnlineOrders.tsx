@@ -1,8 +1,10 @@
+// components/BranchManager/FloorOps/BM_OnlineOrders.tsx
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  ShoppingBag, Clock, ChefHat, CheckCircle2,
+  ShoppingBag, Clock, ChefHat, CheckCircle2, RefreshCw,
   Search, TrendingUp, AlertCircle, Eye, X, Filter,
 } from "lucide-react";
+import api from "../../../services/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface OrderItem {
@@ -23,6 +25,7 @@ interface Order {
   branch_name: string | null;
   total_amount: number;
   status: string;
+  source?: string;
   created_at: string;
   items: OrderItem[];
 }
@@ -37,20 +40,9 @@ interface Stats {
 
 type StatusFilter = "all" | "pending" | "preparing" | "completed";
 
-// ── API helpers ───────────────────────────────────────────────────────────────
-const getToken = () =>
-  localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
-const authHeaders = () => ({
-  "Content-Type": "application/json",
-  Accept: "application/json",
-  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-});
-
 // ── UI helpers ────────────────────────────────────────────────────────────────
 const fmt = (v: number) =>
   `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-
-
 
 const waitMinutes = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
 
@@ -98,8 +90,9 @@ const Skeleton = ({ className = "" }: { className?: string }) => (
 );
 
 // ── Order Detail Modal ────────────────────────────────────────────────────────
-const OrderDetailModal = ({ order, onClose, onUpdateStatus }: {
+const OrderDetailModal = ({ order, onClose, onUpdateStatus, updating }: {
   order: Order; onClose: () => void; onUpdateStatus: (id: number, status: string) => void;
+  updating: boolean;
 }) => {
   const cfg = getStatusCfg(order.status);
   const wait = waitMinutes(order.created_at);
@@ -116,7 +109,12 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus }: {
               {cfg.icon}
             </div>
             <div>
-              <h3 className="text-sm font-black text-[#1a0f2e]">{order.invoice_number}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-black text-[#1a0f2e]">{order.invoice_number}</h3>
+                <span className="px-2 py-0.5 rounded bg-[#1a0f2e] text-white text-[10px] font-black tracking-widest">
+                  #{order.customer_code}
+                </span>
+              </div>
               <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{order.customer_name}</p>
             </div>
           </div>
@@ -170,7 +168,7 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus }: {
                     <span className="text-[10px] text-zinc-400 font-medium">
                       x{item.qty}
                       {item.cup_size && ` · ${item.cup_size}`}
-                      {item.add_ons.length > 0 && ` · ${item.add_ons.join(", ")}`}
+                      {item.add_ons && item.add_ons.length > 0 && ` · ${item.add_ons.join(", ")}`}
                     </span>
                   </div>
                   <span className="text-xs font-bold text-[#1a0f2e] shrink-0 tabular-nums">{fmt(item.price)}</span>
@@ -184,14 +182,18 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus }: {
         <div className="shrink-0 px-6 py-4 border-t border-zinc-100 flex items-center gap-2">
           {order.status === "pending" && (
             <button onClick={() => onUpdateStatus(order.id, "preparing")}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-[0.98] cursor-pointer">
-              <ChefHat size={14} /> Start Preparing
+              disabled={updating}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50">
+              {updating ? <RefreshCw size={14} className="animate-spin" /> : <ChefHat size={14} />}
+              Start Preparing
             </button>
           )}
           {order.status === "preparing" && (
             <button onClick={() => onUpdateStatus(order.id, "completed")}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all active:scale-[0.98] cursor-pointer">
-              <CheckCircle2 size={14} /> Mark Completed
+              disabled={updating}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50">
+              {updating ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+              Mark Completed
             </button>
           )}
           <button onClick={onClose}
@@ -205,7 +207,7 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus }: {
 };
 
 // ── Main Component ────────────────────────────────────────────────────────────
-const OnlineOrdersTab: React.FC = () => {
+const BM_OnlineOrders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -213,124 +215,56 @@ const OnlineOrdersTab: React.FC = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [newOrderIds, setNewOrderIds] = useState<Set<number>>(new Set());
   const [updating, setUpdating] = useState<number | null>(null);
-  const lastOrderIds = useRef<Set<number>>(new Set());
+  const [prevPendingCount, setPrevPendingCount] = useState(0);
+
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const playPing = useCallback(() => {
-    try {
-      const win = window as unknown as Window & { _audioCtx?: AudioContext; webkitAudioContext?: typeof AudioContext };
-      const g = win._audioCtx || new (window.AudioContext || win.webkitAudioContext)();
-      win._audioCtx = g;
-      const o = g.createOscillator();
-      const n = g.createGain();
-      o.connect(n);
-      n.connect(g.destination);
-      o.type = "sine";
-      o.frequency.setValueAtTime(880, g.currentTime);
-      n.gain.setValueAtTime(0.1, g.currentTime);
-      n.gain.exponentialRampToValueAtTime(0.0001, g.currentTime + 0.5);
-      o.start();
-      o.stop(g.currentTime + 0.5);
-    } catch { 
-      // fallback to silent audio if context fails
-      new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA").play().catch(() => {});
-    }
-  }, []);
-
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await fetch("/api/online-orders", { headers: authHeaders() });
-      const data = await res.json();
-      const list: Order[] = Array.isArray(data) ? data : [];
-      
-      const brandNew = list.filter(o => o.status === "pending" && !lastOrderIds.current.has(o.id));
-
-      if (brandNew.length > 0 && lastOrderIds.current.size > 0) {
-        playPing();
-        setNewOrderIds(prev => {
-          const next = new Set(prev);
-          brandNew.forEach(o => next.add(o.id));
-          return next;
-        });
-        setTimeout(() => {
-          setNewOrderIds(prev => {
-            const next = new Set(prev);
-            brandNew.forEach(o => next.delete(o.id));
-            return next;
-          });
-        }, 10000);
-      }
-
-      lastOrderIds.current = new Set(list.map(o => o.id));
+      const res = await api.get("/online-orders");
+      const list: Order[] = Array.isArray(res.data) ? res.data : res.data.data ?? [];
       setOrders(list);
+
+      // Audio alert for new pending orders
+      const newPending = list.filter(o => o.status === "pending").length;
+      if (prevPendingCount > 0 && newPending > prevPendingCount) {
+        try { new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA").play(); } catch { /* ignore */ }
+      }
+      setPrevPendingCount(newPending);
+
       setError("");
     } catch { setError("Failed to load orders."); }
     finally { setLoading(false); }
-  }, [playPing]);
+  }, [prevPendingCount]);
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch("/api/online-orders/stats", { headers: authHeaders() });
-      const data = await res.json();
-      if (data.success) setStats(data.data);
+      const res = await api.get("/online-orders/stats");
+      if (res.data.success) setStats(res.data.data);
     } catch { /* silently fail */ }
   }, []);
 
   useEffect(() => {
-    // Initial fetch
     fetchOrders();
     fetchStats();
-
-    const startPolling = () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-      pollRef.current = setInterval(() => {
-        fetchOrders();
-        fetchStats();
-      }, 3000); // High-frequency 3s polling
-    };
-
-    const stopPolling = () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-      pollRef.current = null;
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        stopPolling();
-      } else {
-        fetchOrders();
-        fetchStats();
-        startPolling();
-      }
-    };
-
-    startPolling();
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      stopPolling();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
+    pollRef.current = setInterval(() => { fetchOrders(); fetchStats(); }, 15000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [fetchOrders, fetchStats]);
 
   const updateStatus = async (id: number, newStatus: string) => {
     setUpdating(id);
     try {
-      // We need the branch_name for the API
+      // Find order to get branch name if needed (backend might use user's branch normally)
       const order = orders.find(o => o.id === id);
-      const res = await fetch(`/api/online-orders/${id}/status`, {
-        method: "PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          status: newStatus,
-          branch_name: order?.branch_name ?? "",
-        }),
+      const res = await api.patch(`/online-orders/${id}/status`, {
+        status: newStatus,
+        branch_name: order?.branch_name ?? "",
       });
-      const data = await res.json();
-      if (data.id) {
+
+      const success = res.status === 200 || res.status === 201;
+      if (success) {
         setOrders(prev =>
           prev.map(o => o.id === id ? { ...o, status: newStatus } : o)
         );
@@ -367,6 +301,7 @@ const OnlineOrdersTab: React.FC = () => {
       {selectedOrder && (
         <OrderDetailModal
           order={selectedOrder}
+          updating={updating === selectedOrder.id}
           onClose={() => setSelectedOrder(null)}
           onUpdateStatus={(id, status) => { updateStatus(id, status); }}
         />
@@ -492,19 +427,22 @@ const OnlineOrdersTab: React.FC = () => {
                   const cfg = getStatusCfg(o.status);
                   const wait = waitMinutes(o.created_at);
                   const isUpdating = updating === o.id;
-                  const isNew = newOrderIds.has(o.id);
 
                   return (
                     <tr key={o.id}
-                      className={`border-b border-zinc-50 hover:bg-zinc-50 transition-all cursor-pointer relative ${isNew ? "bg-emerald-50/40" : ""}`}
+                      className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors cursor-pointer"
                       onClick={() => setSelectedOrder(o)}>
-                      {isNew && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-emerald-500 rounded-r-full animate-pulse" />
-                      )}
                       <td className="px-5 py-3.5">
                         <div className="min-w-0">
-                          <span className="font-bold text-[#1a0f2e] text-xs block">{o.invoice_number}</span>
-                          <span className="text-[10px] text-zinc-400 font-medium font-mono">{o.qr_code}</span>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="font-bold text-[#1a0f2e] text-xs">{o.invoice_number}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-900 text-[9px] font-black tracking-widest border border-zinc-200">
+                              #{o.customer_code}
+                            </span>
+                          </div>
+                          <span className="text-[9px] text-zinc-400 font-medium uppercase tracking-wider">
+                            Source: {o.source || "App"}
+                          </span>
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
@@ -560,14 +498,10 @@ const OnlineOrdersTab: React.FC = () => {
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-2.5 border-t border-zinc-50 flex items-center justify-between">
+          <div className="px-5 py-2.5 border-t border-zinc-50">
             <p className="text-[10px] text-zinc-300 font-medium">
-              {filtered.length} orders shown · Live Updates active (3s)
+              {filtered.length} orders shown · Auto-refreshes every 15s
             </p>
-            <div className="flex items-center gap-2">
-               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-               <span className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest">Live</span>
-            </div>
           </div>
         </div>
       </div>
@@ -575,4 +509,4 @@ const OnlineOrdersTab: React.FC = () => {
   );
 };
 
-export default OnlineOrdersTab;
+export default BM_OnlineOrders;

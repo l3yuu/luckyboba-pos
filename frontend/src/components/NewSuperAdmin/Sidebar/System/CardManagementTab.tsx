@@ -1,6 +1,12 @@
-import { Plus, Edit2, Trash2, CheckCircle, XCircle, Search, CreditCard, Image as ImageIcon, Upload } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { 
+  Plus, Edit2, Trash2, CheckCircle, XCircle, Search, 
+  CreditCard, Image as ImageIcon, Upload,
+  AlertCircle, DollarSign, Activity
+} from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface CardItem {
   id: number;
   title: string;
@@ -12,6 +18,100 @@ interface CardItem {
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// ── Shared UI Components ──────────────────────────────────────────────────────
+const Badge: React.FC<{ status: boolean }> = ({ status }) => (
+  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+    ${status ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-zinc-100 text-zinc-500 border border-zinc-200"}`}>
+    {status ? "Active" : "Inactive"}
+  </span>
+);
+
+const StatCard: React.FC<{
+  icon: React.ReactNode; label: string; value: string | number;
+  sub?: string; color?: "violet" | "emerald" | "amber" | "blue";
+}> = ({ icon, label, value, sub, color = "violet" }) => {
+  const colors = {
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
+    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
+    blue: { bg: "bg-blue-50", border: "border-blue-200", icon: "text-blue-600" },
+  };
+  const c = colors[color];
+  return (
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-4 shadow-sm">
+      <div className={`w-11 h-11 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.5rem] shrink-0`}>
+        <span className={c.icon}>{icon}</span>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">{label}</p>
+        <p className="text-xl font-bold text-[#1a0f2e] tabular-nums truncate">{value}</p>
+        {sub && <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  );
+};
+
+const Btn: React.FC<{
+  children: React.ReactNode; variant?: "primary" | "secondary" | "danger" | "ghost";
+  size?: "sm" | "md"; onClick?: () => void; className?: string; disabled?: boolean;
+  type?: "button" | "submit";
+}> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
+  const sizes = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
+  const variants = {
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white shadow-sm",
+    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
+    danger: "bg-red-50 text-red-600 border border-red-100 hover:bg-red-500 hover:text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+};
+
+const ModalShell: React.FC<{
+  onClose: () => void; icon: React.ReactNode; title: string; sub: string;
+  children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
+}> = ({ onClose, icon, title, sub, children, footer, maxWidth = "max-w-md" }) =>
+  createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-sm">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl overflow-hidden flex flex-col`}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-violet-50 border border-violet-200 rounded-xl flex items-center justify-center shrink-0">{icon}</div>
+            <div>
+              <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
+              <p className="text-[10px] text-zinc-400 font-medium">{sub}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400">
+            <XCircle size={18} />
+          </button>
+        </div>
+        <div className="px-6 py-6 flex flex-col gap-5 max-h-[80vh] overflow-y-auto sa-scroll">{children}</div>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-100 bg-zinc-50/50">{footer}</div>
+      </div>
+    </div>,
+    document.body
+  );
+
+const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
+  <div>
+    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+      {label} {required && <span className="text-red-400">*</span>}
+    </label>
+    {children}
+    {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
+  </div>
+);
+
+const inputCls = (err?: string) =>
+  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? "border-red-300 bg-red-50" : "border-zinc-200"}`;
+
 
 const CardManagementTab = () => {
   const [cards, setCards] = useState<CardItem[]>([]);
@@ -189,247 +289,245 @@ const CardManagementTab = () => {
     }
   };
 
+  const stats = useMemo(() => {
+    return {
+      total: cards.length,
+      active: cards.filter(c => c.is_active).length,
+      inactive: cards.filter(c => !c.is_active).length,
+      avgPrice: cards.length ? cards.reduce((s, c) => s + Number(c.price), 0) / cards.length : 0
+    };
+  }, [cards]);
+
   const filteredCards = cards.filter(c => c.title.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="p-4 md:p-8 w-full max-w-7xl mx-auto flex flex-col h-full fade-in font-['DM_Sans']">
-      <div className="flex items-center justify-end mb-8 flex-wrap gap-3">
-        <button
-          onClick={() => handleOpenModal()}
-          className="mt-4 md:mt-0 flex items-center justify-center gap-2 bg-[#3b2063] hover:bg-[#2d184b] text-white px-5 py-2.5 rounded-xl font-semibold shadow-md shadow-purple-900/20 transition-all hover:-translate-y-0.5"
-        >
-          <Plus size={18} />
-          <span>New Card Type</span>
-        </button>
+    <div className="p-6 md:p-8 w-full max-w-7xl mx-auto flex flex-col h-full fade-in">
+      
+      {/* Header Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard icon={<CreditCard size={20} />} label="Total Templates" value={stats.total} color="blue" />
+        <StatCard icon={<CheckCircle size={20} />} label="Active Cards" value={stats.active} color="emerald" sub="Live on app" />
+        <StatCard icon={<Activity size={20} />} label="Inactive Cards" value={stats.inactive} color="amber" sub="Hidden templates" />
+        <StatCard icon={<DollarSign size={20} />} label="Avg. Card Price" value={`₱${stats.avgPrice.toFixed(0)}`} color="violet" />
       </div>
 
-      {/* Search Bar */}
-      <div className="mb-6 flex relative w-full md:max-w-md">
-        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-          <Search size={18} className="text-zinc-400" />
-        </div>
-        <input
-          type="text"
-          placeholder="Search cards..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl focus:ring-2 focus:ring-[#3b2063]/20 focus:border-[#3b2063] transition-all outline-none font-medium text-zinc-700"
-        />
-      </div>
-
-      {/* Grid */}
-      {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <div className="sa-spin rounded-full h-8 w-8 border-b-2 border-[#3b2063]"></div>
-        </div>
-      ) : filteredCards.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 bg-white rounded-2xl border border-zinc-100 border-dashed">
-          <CreditCard size={48} className="text-zinc-300 mb-4" />
-          <h3 className="text-lg font-bold text-zinc-800">No cards found</h3>
-          <p className="text-zinc-500 text-sm mt-1">Get started by creating your first promotional card.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pb-10 sa-scroll">
-          {filteredCards.map((card) => (
-            <div key={card.id} className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm hover:shadow-xl hover:shadow-purple-900/5 transition-all duration-200 group flex flex-col">
-              <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden bg-zinc-100 mb-4 flex items-center justify-center">
-                {card.image_url ? (
-                  <img src={card.image_url} alt={card.title} className="object-cover w-full h-full" />
-                ) : (
-                  <ImageIcon className="text-zinc-300" size={32} />
-                )}
-                
-                <div className="absolute top-3 right-3">
-                  <button 
-                    onClick={() => handleToggleActive(card.id)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-md shadow-sm border backdrop-blur-md transition-colors ${
-                      card.is_active ? 'bg-emerald-500/90 text-white border-emerald-500' : 'bg-zinc-500/90 text-white border-zinc-500'
-                    }`}
-                  >
-                    {card.is_active ? 'ACTIVE' : 'INACTIVE'}
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-zinc-900 leading-tight mb-1">{card.title}</h3>
-                  <p className="text-xl font-extrabold text-[#3b2063]">₱{Number(card.price).toFixed(2)}</p>
-                </div>
-                
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-100">
-                  <button
-                    onClick={() => handleOpenModal(card)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-zinc-50 hover:bg-purple-50 text-zinc-700 hover:text-[#3b2063] py-2 rounded-lg font-bold text-sm transition-colors border border-zinc-200 hover:border-purple-200"
-                  >
-                    <Edit2 size={15} /> Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(card.id)}
-                    className="p-2 border border-red-100 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-lg transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-[1.5rem] w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl fade-in border border-white/20">
-            
-            <div className="flex justify-between items-center px-6 py-4 border-b border-zinc-100 bg-zinc-50/50">
-              <h3 className="text-xl font-bold text-[#1a0f2e] flex items-center gap-2">
-                <CreditCard size={20} className="text-[#3b2063]" />
-                {editingCard ? "Edit Card Template" : "New Card Template"}
-              </h3>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-700 bg-zinc-100 hover:bg-zinc-200 p-1.5 rounded-full transition-colors"
-              >
-                <XCircle size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto sa-scroll flex-1">
-              {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-semibold flex items-center gap-2 fade-in">
-                  <XCircle size={16} /> {error}
-                </div>
-              )}
-
-              <div className="grid md:grid-cols-2 gap-6">
-                
-                {/* Details Column */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[0.8rem] font-bold text-zinc-600 uppercase tracking-wider mb-2">Card Title</label>
-                    <input
-                      type="text"
-                      className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 rounded-xl px-4 py-2.5 focus:bg-white focus:ring-2 focus:ring-[#3b2063]/20 focus:border-[#3b2063] transition-all outline-none font-medium"
-                      placeholder="e.g. Valentines Card"
-                      value={title}
-                      onChange={e => setTitle(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[0.8rem] font-bold text-zinc-600 uppercase tracking-wider mb-2">Price (₱)</label>
-                      <input
-                        type="number"
-                        min="0" step="0.01"
-                        className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 rounded-xl px-4 py-2.5 focus:bg-white focus:ring-2 focus:ring-[#3b2063]/20 focus:border-[#3b2063] transition-all outline-none font-bold text-lg"
-                        placeholder="300"
-                        value={price}
-                        onChange={e => setPrice(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[0.8rem] font-bold text-zinc-600 uppercase tracking-wider mb-2">Sort Order</label>
-                      <input
-                        type="number"
-                        className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 rounded-xl px-4 py-2.5 focus:bg-white focus:ring-2 focus:ring-[#3b2063]/20 focus:border-[#3b2063] transition-all outline-none font-medium"
-                        placeholder="1"
-                        value={sortOrder}
-                        onChange={e => setSortOrder(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    <label className="flex items-center gap-3 cursor-pointer select-none group">
-                      <div className={`relative w-12 h-6 flex items-center rounded-full transition-colors ${isActive ? "bg-[#3b2063]" : "bg-zinc-300"}`}>
-                        <div className={`absolute w-4 h-4 bg-white rounded-full transition-transform transform ${isActive ? "translate-x-7" : "translate-x-1"} shadow-sm`} />
-                      </div>
-                      <span className="font-bold text-zinc-700 group-hover:text-zinc-900">Active Status</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Image & Months Column */}
-                <div className="space-y-5">
-                  
-                  <div>
-                    <label className="block text-[0.8rem] font-bold text-zinc-600 uppercase tracking-wider mb-2">App Cover Image</label>
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-xl cursor-pointer hover:bg-zinc-100 hover:border-[#3b2063]/50 transition-all overflow-hidden relative">
-                      {imagePreview ? (
-                        <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
-                      ) : (
-                        <div className="flex flex-col items-center gap-2">
-                          <Upload className="text-zinc-400" size={24} />
-                          <span className="text-xs font-bold text-zinc-500">Click to upload</span>
-                        </div>
-                      )}
-                      <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                    </label>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-[0.8rem] font-bold text-zinc-600 uppercase tracking-wider">Available Months</label>
-                      <button 
-                        onClick={() => setAvailableMonths(availableMonths.length === 12 ? [] : [...MONTHS])}
-                        className="text-xs font-bold text-[#3b2063] hover:underline"
-                      >
-                        {availableMonths.length === 12 ? "Deselect All" : "Select All"}
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {MONTHS.map(month => (
-                        <button
-                          key={month}
-                          onClick={() => handleMonthToggle(month)}
-                          className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all ${
-                            availableMonths.includes(month) 
-                            ? 'bg-[#3b2063] text-white border-[#3b2063]' 
-                            : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400'
-                          }`}
-                        >
-                          {month}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-zinc-100 bg-zinc-50 flex justify-end gap-3 shrink-0">
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="px-5 py-2.5 text-sm font-bold text-zinc-600 bg-white border border-zinc-300 rounded-xl hover:bg-zinc-100 transition-colors"
-                disabled={isSaving}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex items-center justify-center gap-2 bg-[#3b2063] hover:bg-[#2d184b] text-white px-7 py-2.5 rounded-xl font-bold shadow-md transition-all disabled:opacity-70"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="sa-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle size={16} />
-                    Save Template
-                  </>
-                )}
-              </button>
-            </div>
+      {/* Main Container */}
+      <div className="bg-white border border-zinc-200 rounded-[0.75rem] shadow-sm overflow-hidden flex flex-col flex-1">
+        
+        {/* Sub-header / Filters */}
+        <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex-1 min-w-[240px] relative">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Search by card title..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#3b2063]/10 focus:border-[#3b2063] transition-all"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Btn onClick={() => handleOpenModal()} size="md">
+              <Plus size={16} />
+              <span>New Card Type</span>
+            </Btn>
           </div>
         </div>
+
+        {/* Table View */}
+        <div className="overflow-x-auto flex-1">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-100 bg-zinc-50/30">
+                <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Card Template</th>
+                <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Price</th>
+                <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Sort Order</th>
+                <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Status</th>
+                <th className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-400">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="border-b border-zinc-50 animate-pulse">
+                    <td className="px-6 py-4"><div className="h-10 w-40 bg-zinc-100 rounded-lg" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-16 bg-zinc-100 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-12 bg-zinc-100 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-5 w-20 bg-zinc-100 rounded-full" /></td>
+                    <td className="px-6 py-4"><div className="h-8 w-24 ml-auto bg-zinc-100 rounded-lg" /></td>
+                  </tr>
+                ))
+              ) : filteredCards.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-20 text-center">
+                    <div className="w-16 h-16 bg-zinc-50 border border-zinc-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <CreditCard size={28} className="text-zinc-300" />
+                    </div>
+                    <h3 className="text-sm font-bold text-[#1a0f2e]">No card templates found</h3>
+                    <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto">Create a new template to start offering personalized loyalty cards to your customers.</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredCards.map((card) => (
+                  <tr key={card.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-10 rounded-lg overflow-hidden bg-zinc-100 border border-zinc-200 shrink-0">
+                          {card.image_url ? (
+                            <img src={card.image_url} alt={card.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><ImageIcon size={16} className="text-zinc-300" /></div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-[#1a0f2e] text-sm truncate">{card.title}</p>
+                          <p className="text-[10px] text-zinc-400 font-medium">#{card.id}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-[#3b2063] tabular-nums text-sm">₱{Number(card.price).toLocaleString()}</span>
+                    </td>
+                    <td className="px-6 py-4 text-zinc-500 font-medium">
+                      {card.sort_order}
+                    </td>
+                    <td className="px-6 py-4">
+                      <button onClick={() => handleToggleActive(card.id)} className="cursor-pointer hover:opacity-80 transition-opacity">
+                        <Badge status={card.is_active} />
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Btn onClick={() => handleOpenModal(card)} variant="secondary" className="h-8 w-8 !p-0 justify-center">
+                          <Edit2 size={13} />
+                        </Btn>
+                        <Btn onClick={() => handleDelete(card.id)} variant="danger" className="h-8 w-8 !p-0 justify-center">
+                          <Trash2 size={13} />
+                        </Btn>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal Integration */}
+      {isModalOpen && (
+        <ModalShell
+          onClose={() => setIsModalOpen(false)}
+          icon={<CreditCard size={18} className="text-violet-600" />}
+          title={editingCard ? "Edit Card Template" : "New Card Template"}
+          sub={editingCard ? "Modify the existing loyalty card details" : "Create a new loyalty card template for the app"}
+          maxWidth="max-w-2xl"
+          footer={
+            <>
+              <Btn variant="secondary" onClick={() => setIsModalOpen(false)} disabled={isSaving}>Cancel</Btn>
+              <Btn onClick={handleSave} disabled={isSaving} className="min-w-32 justify-center">
+                {isSaving ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Saving...</span>
+                  </div>
+                ) : (
+                  <>
+                    <CheckCircle size={15} />
+                    <span>Save Template</span>
+                  </>
+                )}
+              </Btn>
+            </>
+          }
+        >
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+              <AlertCircle size={15} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-600 font-medium">{error}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <Field label="Card Title" required>
+                <input
+                  type="text"
+                  placeholder="e.g. Classic Milktea Card"
+                  className={inputCls()}
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Price (₱)" required>
+                  <input
+                    type="number"
+                    className={inputCls()}
+                    value={price}
+                    onChange={e => setPrice(e.target.value)}
+                  />
+                </Field>
+                <Field label="Sort Order">
+                  <input
+                    type="number"
+                    className={inputCls()}
+                    value={sortOrder}
+                    onChange={e => setSortOrder(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <div className="pt-2">
+                <label className="flex items-center gap-3 cursor-pointer group select-none">
+                  <div className={`relative w-10 h-5 flex items-center rounded-full transition-colors ${isActive ? "bg-[#3b2063]" : "bg-zinc-200"}`}>
+                    <div className={`absolute w-3.5 h-3.5 bg-white rounded-full transition-transform transform ${isActive ? "translate-x-5.5" : "translate-x-1"} shadow-sm`} />
+                  </div>
+                  <span className="text-xs font-bold text-zinc-600 group-hover:text-zinc-900 transition-colors">Enabled & Active</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <Field label="Card Cover Image">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-zinc-200 bg-zinc-50 rounded-2xl cursor-pointer hover:bg-zinc-100 hover:border-violet-300 transition-all overflow-hidden relative group">
+                  {imagePreview ? (
+                    <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="text-zinc-400 group-hover:text-violet-500 transition-colors" size={24} />
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Upload Image</span>
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                </label>
+              </Field>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Available Months</label>
+                  <button onClick={() => setAvailableMonths(availableMonths.length === 12 ? [] : [...MONTHS])} className="text-[10px] font-bold text-[#3b2063] hover:underline">
+                    {availableMonths.length === 12 ? "Reset" : "Select All"}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {MONTHS.map(m => (
+                    <button
+                      key={m}
+                      onClick={() => handleMonthToggle(m)}
+                      className={`px-2 py-1 text-[10px] font-bold rounded-lg border transition-all ${
+                        availableMonths.includes(m)
+                          ? "bg-violet-50 text-violet-700 border-violet-200 shadow-sm"
+                          : "bg-white text-zinc-400 border-zinc-200 hover:border-zinc-300"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </ModalShell>
       )}
     </div>
   );

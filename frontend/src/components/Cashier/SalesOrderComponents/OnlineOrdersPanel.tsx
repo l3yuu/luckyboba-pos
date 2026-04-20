@@ -7,13 +7,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
-import logo from '../../../assets/logo.png';
 import {
   RefreshCw, Clock, CheckCircle2, ChefHat, QrCode,
   User, ShoppingBag, Package, AlertCircle, ArrowLeft, Utensils, Printer, Search,
 } from 'lucide-react';
+import { useAuth } from '../../../hooks/useAuth';
 import { CustomerNameModal, SuccessModal } from './modals';
 import { OnlineOrderPaymentModal } from './OnlineOrderPaymentModals';
+import { ReceiptPrint, KitchenPrint, StickerPrint } from './print';
+import type { CartItem } from '../../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,6 +44,7 @@ interface OnlineOrder {
   total?: number;
   order_type?: string;
   status: 'pending' | 'preparing' | 'completed' | 'cancelled';
+  source?: string;
   created_at: string;
   items: SaleItem[];
 }
@@ -52,9 +55,8 @@ type Status = 'pending' | 'preparing' | 'completed';
 
 const itemQty = (item: SaleItem) => item.qty ?? item.quantity ?? 1;
 const itemPrice = (item: SaleItem) => item.unit_price ?? item.price ?? 0;
-const orderInvoice = (o: OnlineOrder) => o.invoice_number ?? o.si_number ?? '—';
+const orderInvoice = (o: OnlineOrder) => o.invoice_number ?? o.si_number ?? '';
 const orderTotal = (o: OnlineOrder) => o.total_amount ?? o.total ?? 0;
-const todayKey = () => new Date().toDateString();
 
 const STATUS_META: Record<Status, {
   label: string; color: string; bg: string; border: string;
@@ -95,239 +97,34 @@ const elapsed = (dateStr: string) => {
   return `${Math.floor(diff / 3600)}h ago`;
 };
 
-// ─── Kitchen Ticket ───────────────────────────────────────────────────────────
+// ─── Print Mappers ────────────────────────────────────────────────────────────
 
-const KitchenTicket = ({ order, seqNumber }: { order: OnlineOrder; seqNumber: string }) => {
-  const invoice = orderInvoice(order);
-  const now = new Date(order.created_at);
-  const date = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
-  const time = now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
-  const orderMode = order.order_type === 'dine_in' ? 'DINE IN' : 'TAKE OUT';
-
-  return (
-    <div className="printable-receipt-container hidden print:block">
-      <div className="receipt-area bg-white text-black">
-
-        {/* Header */}
-        <div className="text-center mb-4 border-b-4 border-black pb-3">
-          <h1 className="uppercase font-black text-3xl mb-1">ORDER TICKET</h1>
-          <h2 className="font-bold text-lg uppercase tracking-widest">
-            {order.branch_name ?? '—'}
-          </h2>
-          <div className="mt-2 text-sm uppercase space-y-0.5">
-            <div>Customer: <strong>{order.customer_name ?? 'App Customer'}</strong></div>
-            <div>Mode: <strong>{orderMode}</strong></div>
-            <div>Invoice: <strong>{invoice}</strong></div>
-          </div>
-
-          {/* Big order number */}
-          <div className="py-4 my-3 border-t border-b border-dashed border-black">
-            <p className="text-sm tracking-widest uppercase mb-1">Order Number</p>
-            <h2 className="font-black text-6xl font-mono">#{seqNumber}</h2>
-          </div>
-
-          <p className="text-sm mt-1">{date} {time}</p>
-        </div>
-
-        {/* Items */}
-        <div className="mt-2 space-y-4">
-          {order.items.map((item, i) => {
-            const qty = itemQty(item);
-            const safeAddOns = Array.isArray(item.add_ons) ? item.add_ons : [];
-            return (
-              <div key={i} className="border-b-2 border-dashed border-gray-400 pb-3">
-                <div className="flex items-start gap-3">
-                  <span className="font-black text-2xl shrink-0">{qty}×</span>
-                  <div className="flex-1">
-                    <div className="uppercase font-black text-base leading-tight">
-                      {item.name}
-                      {item.cup_size ? ` (${item.cup_size})` : ''}
-                    </div>
-                    {safeAddOns.length > 0 && (
-                      <div className="mt-1 space-y-0.5">
-                        {safeAddOns.map((a, j) => {
-                          let name = '';
-                          if (typeof a === 'string') name = a;
-                          else if (typeof a === 'object' && a !== null) name = a.name || a.addon_name || '';
-                          if (!name) return null;
-                          return (
-                            <div key={j} className="text-sm font-bold pl-1">+ {name}</div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="text-center text-sm mt-6 uppercase tracking-widest font-bold">
-          — END OF TICKET —
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ─── Customer Receipt ─────────────────────────────────────────────────────────
-
-const OnlineOrderReceipt = ({ order, seqNumber }: { order: OnlineOrder; seqNumber: string }) => {
-  const invoice = orderInvoice(order);
-  const total = orderTotal(order);
-  const vatAmt = total - total / 1.12;
-  const vatSales = total / 1.12;
-  const now = new Date(order.created_at);
-  const date = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
-  const time = now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
-  const orderMode = order.order_type === 'dine_in' ? 'DINE IN' : 'TAKE OUT';
-  const payment = (order.payment_method ?? 'online').toUpperCase();
-
-  return (
-    <div className="printable-receipt-container hidden print:block">
-      <div className="receipt-area bg-white text-black">
-
-        {/* Store header */}
-        <div className="text-center mb-4 border-b border-black pb-3">
-          <img
-            src={logo}
-            alt="Lucky Boba Logo"
-            className="w-48 h-auto mx-auto mb-2 grayscale"
-            style={{ filter: 'grayscale(100%) contrast(1.2)' }}
-          />
-          <h1 className="uppercase leading-tight font-bold text-xl">LUCKY BOBA MILKTEA</h1>
-          <p className="text-base mt-1">{order.branch_name ?? '—'}</p>
-          <h2 className="text-sm mt-2 font-bold">{invoice}</h2>
-          <p className="text-sm mt-1">{date} {time}</p>
-        </div>
-
-        {/* Order info */}
-        <div className="text-xs space-y-1 mb-3">
-          <div className="flex justify-between">
-            <span>Customer</span>
-            <span className="font-bold">{order.customer_name ?? 'App Customer'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Order No.</span>
-            <span className="font-bold font-mono">#{seqNumber}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Order Mode</span>
-            <span className="font-bold">{orderMode}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Payment</span>
-            <span className="font-bold">{payment}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Served by</span>
-            <span className="font-bold">Customer App</span>
-          </div>
-        </div>
-
-        {/* Items */}
-        <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3 space-y-2">
-          {order.items.map((item, i) => {
-            const qty = itemQty(item);
-            const price = itemPrice(item);
-            const safeAddOns = Array.isArray(item.add_ons) ? item.add_ons : [];
-            return (
-              <div key={i} className="mb-2">
-                <div className="uppercase font-medium">
-                  {item.name}{item.cup_size ? ` (${item.cup_size})` : ''}
-                </div>
-                <div className="flex justify-between w-full mt-0.5">
-                  <span>{qty} X {price.toFixed(2)}</span>
-                  <span>{(price * qty).toFixed(2)}</span>
-                </div>
-                {safeAddOns.map((a, j) => {
-                  let addOnName = '';
-                  if (typeof a === 'string') addOnName = a;
-                  else if (typeof a === 'object' && a !== null) addOnName = a.name || a.addon_name || '';
-                  if (!addOnName) return null;
-                  return (
-                    <div key={j} className="pl-2 text-[10px] text-gray-600">+ {addOnName}</div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Totals */}
-        <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
-          <div className="flex justify-between">
-            <span>Sub Total</span>
-            <span>{total.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-base font-bold mt-1">
-            <span>TOTAL DUE</span>
-            <span>{total.toFixed(2)}</span>
-          </div>
-        </div>
-
-        {/* Payment */}
-        <div className="text-xs mt-2 space-y-1 border-b border-dashed border-black pb-3">
-          <div className="flex justify-between">
-            <span>Payment Method</span>
-            <span className="uppercase font-bold">{payment}</span>
-          </div>
-        </div>
-
-        {/* VAT breakdown */}
-        <div className="text-[11px] mt-3 space-y-1">
-          <div className="flex justify-between"><span>VATable Sales(V)</span><span>{vatSales.toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>VAT Amount (12%)</span><span>{vatAmt.toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
-          <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
-        </div>
-
-        {/* Signature fields */}
-        <div className="text-xs mt-5 space-y-2">
-          {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature:'].map(label => (
-            <div key={label} className="flex justify-between items-end w-full">
-              <span>{label}</span>
-              <span className="border-b border-black w-[70%] relative">
-                {label === 'Name:' && order.customer_name && (
-                  <span className="absolute left-1 bottom-0 text-[10px]">{order.customer_name}</span>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Franchise footer */}
-        <div className="mt-6 mb-4 text-center text-xs">
-          FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />09171699894
-        </div>
-
-        {/* Order number stub */}
-        <div className="mt-6 py-4 text-center border-t border-dashed border-black">
-          <p className="text-sm tracking-widest uppercase mb-1">Order Number</p>
-          <h2 className="font-black text-6xl font-mono">#{seqNumber}</h2>
-          <p className="text-[10px] mt-2 uppercase text-gray-500">Online Order — {orderMode}</p>
-        </div>
-
-      </div>
-    </div>
-  );
+const mapOrderToCart = (order: OnlineOrder): CartItem[] => {
+  return order.items.map(item => ({
+    name: item.name,
+    qty: itemQty(item),
+    price: itemPrice(item),
+    cupSizeLabel: item.cup_size && item.cup_size !== 'none' ? item.cup_size.toUpperCase() : '',
+    size: item.cup_size || 'none',
+    addOns: Array.isArray(item.add_ons) ? item.add_ons.map((a: string | Record<string, string>) => typeof a === 'string' ? a : (a.name || a.addon_name || '')) : [],
+    options: []
+  })) as unknown as CartItem[];
 };
 
 // ─── Order Card ───────────────────────────────────────────────────────────────
 
 interface OrderCardProps {
   order: OnlineOrder;
-  seqNumber: string;
   onMove: (id: number, status: Status) => void;
-  onPrint: (order: OnlineOrder, seqNumber: string) => void;
+  onPrint: (order: OnlineOrder) => void;
   updating: boolean;
 }
 
-const OrderCard = ({ order, seqNumber, onMove, onPrint, updating }: OrderCardProps) => {
+const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
   const [showQr, setShowQr] = useState(false);
   const meta = STATUS_META[order.status as Status];
   const invoice = orderInvoice(order);
+  const seqNumber = order.customer_code || '???';
 
   const nextStatus: Record<Status, Status | null> = {
     pending: 'preparing',
@@ -386,7 +183,7 @@ const OrderCard = ({ order, seqNumber, onMove, onPrint, updating }: OrderCardPro
             {/* Reprint receipt — completed only */}
             {order.status === 'completed' && (
               <button
-                onClick={() => onPrint(order, seqNumber)}
+                onClick={() => onPrint(order)}
                 className="flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors"
                 title="Reprint Receipt"
               >
@@ -488,12 +285,11 @@ interface ColumnProps {
   status: Status;
   orders: OnlineOrder[];
   onMove: (id: number, status: Status) => void;
-  onPrint: (order: OnlineOrder, seqNumber: string) => void;
+  onPrint: (order: OnlineOrder) => void;
   updatingId: number | null;
-  orderSequenceMap: Map<number, string>;
 }
 
-const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId, orderSequenceMap }: ColumnProps) => {
+const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId }: ColumnProps) => {
   const meta = STATUS_META[status];
   const COLUMN_LABELS: Record<Status, string> = {
     pending: 'New Orders',
@@ -525,7 +321,6 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId, orderSequen
             <OrderCard
               key={order.id}
               order={order}
-              seqNumber={orderSequenceMap.get(order.id) ?? '???'}
               onMove={onMove}
               onPrint={onPrint}
               updating={updatingId === order.id}
@@ -546,6 +341,7 @@ interface OnlineOrdersPanelProps {
 
 export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [orders, setOrders] = useState<OnlineOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -555,7 +351,45 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [confirmOrder, setConfirmOrder] = useState<{ id: number; status: Status; invoice: string } | null>(null);
+  const [branchDetails, setBranchDetails] = useState<{
+    brand?: string; companyName?: string; storeAddress?: string;
+    vatRegTin?: string; minNumber?: string; serialNumber?: string; owner_name?: string;
+  }>({});
+  const [vatType, setVatType] = useState<'vat' | 'non_vat'>('vat');
+  const [generalSettings, setGeneralSettings] = useState<{
+    business_name: string; contact_email: string; contact_phone: string; address: string;
+  }>({ business_name: '', contact_email: '', contact_phone: '', address: '' });
+  const [posFooter, setPosFooter] = useState<Record<string, unknown>>({});
+  interface AddOnType { id: number; name: string; price: number; grab_price?: number; panda_price?: number; }
+  const [addOnsData, setAddOnsData] = useState<AddOnType[]>([]);
+  
+  useEffect(() => {
+    if (!user?.branch_id) return;
+    
+    api.get(`/addons`).then(res => setAddOnsData(res.data)).catch(console.error);
+
+    api.get(`/branches/${user.branch_id}/details`).then(res => {
+      const b = res.data.data ?? res.data;
+      setVatType((b.vat_type ?? 'vat') as 'vat' | 'non_vat');
+      setBranchDetails({
+        brand: b.brand, companyName: b.company_name, storeAddress: b.store_address,
+        vatRegTin: b.vat_reg_tin, minNumber: b.min_number, serialNumber: b.serial_number, owner_name: b.owner_name,
+      });
+    }).catch(console.error);
+
+    api.get(`/branches/${user.branch_id}/payment-settings`).then(res => {
+      const data = res.data.data ?? res.data;
+      setPosFooter(data);
+      setGeneralSettings({
+        business_name: data.business_name ?? '',
+        contact_email: data.contact_email ?? '',
+        contact_phone: data.contact_phone ?? '',
+        address: data.address ?? '',
+      });
+    }).catch(console.error);
+  }, [user?.branch_id]);
+
+  const [confirmOrder, setConfirmOrder] = useState<{ id: number; status: Status; invoice: string; customer_code?: string } | null>(null);
 
   // New Workflow States
   const [activePaymentOrder, setActivePaymentOrder] = useState<OnlineOrder | null>(null);
@@ -572,30 +406,6 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Stable sequence registry ──────────────────────────────────────────────
-  const seqRef = useRef<{ date: string; map: Map<number, string>; counter: number }>({
-    date: todayKey(), map: new Map(), counter: 0,
-  });
-  const [orderSequenceMap, setOrderSequenceMap] = useState<Map<number, string>>(new Map());
-
-  const assignSeqNumbers = useCallback((incomingOrders: OnlineOrder[]): boolean => {
-    const today = todayKey();
-    if (seqRef.current.date !== today) {
-      seqRef.current = { date: today, map: new Map(), counter: 0 };
-    }
-    const sorted = [...incomingOrders].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
-    let changed = false;
-    for (const order of sorted) {
-      if (new Date(order.created_at).toDateString() !== today) continue;
-      if (seqRef.current.map.has(order.id)) continue;
-      seqRef.current.counter += 1;
-      seqRef.current.map.set(order.id, String(seqRef.current.counter).padStart(3, '0'));
-      changed = true;
-    }
-    return changed;
-  }, []);
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   const fetchOrders = useCallback(async (showRefresh = false) => {
@@ -605,10 +415,8 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       const raw: OnlineOrder[] = Array.isArray(res.data) ? res.data : res.data.data ?? [];
       const appOrders = raw.filter(o => {
         const inv = (o.invoice_number ?? o.si_number ?? '');
-        return inv.startsWith('APP-') || inv.startsWith('KSK-');
+        return inv.startsWith('APP-') || inv.startsWith('KSK-') || o.source === 'kiosk';
       });
-      const changed = assignSeqNumbers(appOrders);
-      if (changed) setOrderSequenceMap(new Map(seqRef.current.map));
       setOrders(appOrders);
       setError(null);
       setLastRefresh(new Date());
@@ -618,7 +426,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [assignSeqNumbers]);
+  }, []);
 
   useEffect(() => {
     void fetchOrders();
@@ -626,16 +434,6 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [fetchOrders]);
 
-  // Midnight watcher
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (seqRef.current.date !== todayKey()) {
-        seqRef.current = { date: todayKey(), map: new Map(), counter: 0 };
-        void fetchOrders();
-      }
-    }, 60_000);
-    return () => clearInterval(timer);
-  }, [fetchOrders]);
 
   // ── Generic print trigger ─────────────────────────────────────────────────
   const triggerPrint = useCallback((
@@ -672,17 +470,43 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   }, []);
 
   const completeWorkflow = async (nameObj: {order: OnlineOrder, paymentMethod: string, cashTendered: number | '', referenceNumber: string}, finalName: string) => {
-    const { order, paymentMethod } = nameObj;
+    const { order, paymentMethod, cashTendered } = nameObj;
     setActiveNameOrder(null);
     setUpdatingId(order.id);
     setError(null);
     try {
       const branchName = order.branch_name ?? '';
-      await api.patch(`/online-orders/${order.id}/status`, { status: 'preparing', branch_name: branchName });
+      let invoice_number = orderInvoice(order);
+
+      // If it's a kiosk or app order awaiting an official receipt number
+      if (invoice_number.startsWith('KSK-') || invoice_number.startsWith('APP-')) {
+        try {
+          const res = await api.get(`/receipts/next-sequence?branch_id=${user?.branch_id || ''}`);
+          if (res.data?.sequence) {
+            invoice_number = res.data.sequence;
+          }
+        } catch (e) {
+          console.error("Failed to fetch next sequence for online order", e);
+        }
+      }
+
+      await api.patch(`/online-orders/${order.id}/status`, { 
+        status: 'preparing', 
+        branch_name: branchName,
+        invoice_number: invoice_number !== orderInvoice(order) ? invoice_number : undefined,
+        payment_method: paymentMethod,
+        cash_tendered: cashTendered !== '' ? cashTendered : undefined,
+      });
       
-      const updatedOrder = { ...order, status: 'preparing' as Status, customer_name: finalName, payment_method: paymentMethod };
+      const updatedOrder = { 
+        ...order, 
+        status: 'preparing' as Status, 
+        customer_name: finalName, 
+        payment_method: paymentMethod,
+        invoice_number: invoice_number,
+      };
       setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
-      const seqNumber = seqRef.current.map.get(order.id) ?? '001';
+      const seqNumber = updatedOrder.customer_code || '001';
       
       setActiveSuccessOrder({
         order: updatedOrder,
@@ -699,14 +523,19 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   };
 
   // ── Reprint receipt (completed card button) ───────────────────────────────
-  const handleReprintReceipt = useCallback((order: OnlineOrder, seqNumber: string) => {
-    triggerPrint('receipt', order, seqNumber);
+  const handleReprintReceipt = useCallback((order: OnlineOrder) => {
+    triggerPrint('receipt', order, order.customer_code || '001');
   }, [triggerPrint]);
 
   // ── Confirmation modal ────────────────────────────────────────────────────
   const handleConfirm = (id: number, status: Status) => {
     const order = orders.find(o => o.id === id);
-    setConfirmOrder({ id, status, invoice: orderInvoice(order!) });
+    setConfirmOrder({ 
+      id, 
+      status, 
+      invoice: orderInvoice(order!), 
+      customer_code: order?.customer_code 
+    });
   };
 
   // ── Move order ────────────────────────────────────────────────────────────
@@ -722,17 +551,13 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       const updatedOrder = order ? { ...order, status } : null;
       setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
 
-      const seqNumber = seqRef.current.map.get(id) ?? '001';
-
       if (status === 'preparing') {
         // Print kitchen ticket
-        if (updatedOrder) triggerPrint('kitchen', updatedOrder as OnlineOrder, seqNumber);
+        if (updatedOrder) triggerPrint('kitchen', updatedOrder as OnlineOrder, updatedOrder.customer_code || '001');
       }
 
       if (status === 'completed') {
         window.dispatchEvent(new CustomEvent('online-order-completed'));
-        // Print customer receipt
-        if (updatedOrder) triggerPrint('receipt', updatedOrder as OnlineOrder, seqNumber);
       }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
@@ -754,7 +579,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     const term = searchTerm.toLowerCase();
     return orders.filter(o => {
       const inv = orderInvoice(o).toLowerCase();
-      const seq = orderSequenceMap.get(o.id)?.toLowerCase() ?? '';
+      const seq = (o.customer_code || '').toLowerCase();
       return inv.includes(term) || seq.includes(term);
     });
   };
@@ -776,10 +601,70 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
       {/* Hidden print area — swaps between kitchen ticket and receipt */}
       {printJob?.type === 'kitchen' && (
-        <KitchenTicket order={printJob.order} seqNumber={printJob.seqNumber} />
+        <KitchenPrint 
+          cart={mapOrderToCart(printJob.order)} 
+          branchName={printJob.order.branch_name ?? '—'}
+          orNumber={orderInvoice(printJob.order)}
+          queueNumber={printJob.seqNumber}
+          customerName={printJob.order.customer_name ?? 'App Customer'}
+          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
+          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
+          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
+        />
       )}
       {printJob?.type === 'receipt' && (
-        <OnlineOrderReceipt order={printJob.order} seqNumber={printJob.seqNumber} />
+        <ReceiptPrint 
+          cart={mapOrderToCart(printJob.order)}
+          branchName={printJob.order.branch_name ?? '—'}
+          brand={branchDetails.brand || "LUCKY BOBA MILKTEA"}
+          {...branchDetails}
+          businessName={generalSettings.business_name}
+          contactEmail={generalSettings.contact_email}
+          contactPhone={generalSettings.contact_phone}
+          generalAddress={generalSettings.address}
+          ownerName={branchDetails.owner_name}
+          vatType={vatType}
+          addOnsData={addOnsData}
+          orNumber={orderInvoice(printJob.order)}
+          queueNumber={printJob.seqNumber}
+          cashierName="Customer App"
+          orderCharge={null}
+          totalCount={printJob.order.items.reduce((acc, i) => acc + itemQty(i), 0)}
+          subtotal={orderTotal(printJob.order)}
+          amtDue={orderTotal(printJob.order)}
+          vatableSales={orderTotal(printJob.order) / 1.12}
+          vatAmount={orderTotal(printJob.order) - (orderTotal(printJob.order) / 1.12)}
+          vatExemptSales={0}
+          change={0}
+          cashTendered={orderTotal(printJob.order)}
+          referenceNumber=""
+          paymentMethod={(printJob.order.payment_method ?? 'online').toUpperCase()}
+          selectedDiscount={null}
+          selectedDiscounts={[]}
+          totalDiscountDisplay={0}
+          itemDiscountTotal={0}
+          promoDiscount={0}
+          itemPaxAssignments={{}}
+          customerName={printJob.order.customer_name ?? 'App Customer'}
+          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
+          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
+          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
+          isReprint={false}
+          showDoubleQueueStub={printJob.order.order_type === 'take-out'}
+          posFooter={posFooter}
+        />
+      )}
+      {printJob?.type === 'stickers' && (
+        <StickerPrint 
+          cart={mapOrderToCart(printJob.order)}
+          branchName={printJob.order.branch_name ?? '—'}
+          orNumber={orderInvoice(printJob.order)}
+          queueNumber={printJob.seqNumber}
+          customerName={printJob.order.customer_name ?? 'App Customer'}
+          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
+          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
+          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
+        />
       )}
 
       {/* Header */}
@@ -845,7 +730,6 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
               onMove={handleConfirm}
               onPrint={handleReprintReceipt}
               updatingId={updatingId}
-              orderSequenceMap={orderSequenceMap}
             />
           ))}
         </div>
@@ -875,7 +759,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
                     {confirmOrder.status === 'preparing' ? 'Start Preparing?' : 'Mark as Done?'}
                   </h2>
                   <p className="text-white/70 text-[11px] font-bold mt-0.5 font-mono">
-                    #{seqRef.current.map.get(confirmOrder.id) ?? '—'} · {confirmOrder.invoice}
+                    #{confirmOrder.customer_code || '—'} · {confirmOrder.invoice}
                   </p>
                 </div>
               </div>
@@ -959,6 +843,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
             setActiveSuccessOrder(prev => prev ? { ...prev, printedStickers: true } : null);
           }}
           onNewOrder={() => setActiveSuccessOrder(null)}
+          allowSkipPrint={true}
         />
       )}
 

@@ -189,6 +189,7 @@ public function store(Request $request)
             'status'         => 'sometimes|required|in:active,inactive',
             'ownership_type' => 'sometimes|required|in:company,franchise',
             'vat_type'       => 'sometimes|required|in:vat,non_vat',
+            'kiosk_pin'      => 'sometimes|nullable|string|min:4|max:10',
         ]);
 
         if ($validator->fails()) {
@@ -216,6 +217,7 @@ public function store(Request $request)
     'min_number',
     'serial_number',
     'owner_name',
+    'kiosk_pin',
 ]));
 
             // Sync users.branch_name whenever branch name changes
