@@ -126,6 +126,7 @@ const KioskPage = () => {
     return stored ? JSON.parse(stored) : [];
   });
   const [expoCategoryFilter, setExpoCategoryFilter] = useState('');
+  const [expoSearchQuery, setExpoSearchQuery] = useState('');
 
   // Order Status State
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -1358,24 +1359,36 @@ const KioskPage = () => {
                   <h3 className="font-bold text-violet-900 uppercase">Select Expo Items</h3>
                   <p className="text-xs text-zinc-500 font-medium mb-4">Click to toggle items for the Expo.</p>
                   
-                  {/* Category Filter */}
+                  {/* Search and Category Filter */}
                   {items.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-4 mb-2">
-                      <button
-                        onClick={() => setExpoCategoryFilter('')}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
-                      >
-                        All
-                      </button>
-                      {Array.from(new Set(items.map(i => i.category))).filter(Boolean).map(cat => (
+                    <div className="flex flex-col gap-3 mb-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                        <input
+                          type="text"
+                          placeholder="Search items to add to Expo..."
+                          value={expoSearchQuery}
+                          onChange={(e) => setExpoSearchQuery(e.target.value)}
+                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-sm font-medium placeholder:text-zinc-400 focus:ring-2 focus:ring-violet-500 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-2">
                         <button
-                          key={cat}
-                          onClick={() => setExpoCategoryFilter(cat)}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === cat ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
+                          onClick={() => setExpoCategoryFilter('')}
+                          className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
                         >
-                          {cat}
+                          All
                         </button>
-                      ))}
+                        {Array.from(new Set(items.map(i => i.category))).filter(Boolean).map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setExpoCategoryFilter(cat)}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === cat ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -1383,7 +1396,11 @@ const KioskPage = () => {
                      <p className="text-xs text-zinc-400 italic">No items loaded for this branch.</p>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto p-1 pr-2">
-                      {items.filter(item => !expoCategoryFilter || item.category === expoCategoryFilter).map(item => {
+                      {items.filter(item => {
+                         const matchesSearch = !expoSearchQuery || item.name.toLowerCase().includes(expoSearchQuery.toLowerCase());
+                         const matchesCategory = !expoCategoryFilter || item.category === expoCategoryFilter;
+                         return matchesSearch && matchesCategory;
+                      }).map(item => {
                          const isSelected = expoItemIds.includes(item.id);
                          return (
                            <button
