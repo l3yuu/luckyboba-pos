@@ -6,6 +6,7 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import api from '../../../services/api';
+import { StatCard, Badge, Button as Btn } from '../SharedUI';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,40 +72,6 @@ const healthColor = (pct: number) => {
   if (pct >= 75) return '#16a34a';
   if (pct >= 50) return '#d97706';
   return '#dc2626';
-};
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-const StatCard: React.FC<{
-  label: string; value: number; sub: string;
-  icon: React.ReactNode;
-  bg: string; border: string; valueColor?: string; subColor?: string;
-}> = ({ label, value, sub, icon, bg, border, valueColor = '#1a0f2e', subColor }) => (
-  <div className="bg-white rounded-[0.625rem] p-5 flex items-center justify-between shadow-sm" style={{ border: `1px solid ${border}` }}>
-    <div>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{label}</p>
-      <p className="text-2xl font-black tabular-nums" style={{ color: valueColor }}>{value}</p>
-      <p className="text-[10px] font-semibold mt-1" style={{ color: subColor ?? '#a1a1aa' }}>{sub}</p>
-    </div>
-    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: bg }}>
-      {icon}
-    </div>
-  </div>
-);
-
-const Badge: React.FC<{ cls: string; children: React.ReactNode }> = ({ cls, children }) => {
-  const styles: Record<string, React.CSSProperties> = {
-    'badge-danger':  { background: '#fef2f2', color: '#dc2626', borderColor: '#fecaca' },
-    'badge-warning': { background: '#fffbeb', color: '#d97706', borderColor: '#fde68a' },
-    'badge-success': { background: '#f0fdf4', color: '#16a34a', borderColor: '#bbf7d0' },
-    'badge-violet':  { background: '#f5f0ff', color: '#3b2063', borderColor: '#e9d5ff' },
-  };
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border"
-      style={styles[cls]}>
-      {children}
-    </span>
-  );
 };
 
 const ProgressBar: React.FC<{ pct: number; color: string; width?: number }> = ({ pct, color, width = 80 }) => (
@@ -212,36 +179,41 @@ const resolveUnit = (unit: unknown): string => {
   );
 
   return (
-    <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
+    <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full fade-in">
+      <style>{`
+        .fade-in { animation: fadeIn 0.25s ease forwards; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+      `}</style>
 
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto" />
+      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+        <div className="flex-1">
+          <h1 className="text-xl font-bold text-[#1a0f2e]">Inventory Overview</h1>
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Real-time stock health</p>
         </div>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
-        <StatCard label="Total Items"  value={stats.total_items}  sub="Across all branches"    icon={<Package   size={16} color="#3b2063" />} bg="#f5f0ff" border="#e9d5ff" />
-        <StatCard label="Low Stock"    value={stats.low_stock}    sub="Below reorder level"    icon={<TrendingDown size={16} color="#dc2626" />} bg="#fef2f2" border="#fecaca" valueColor="#dc2626" subColor="#fca5a5" />
-        <StatCard label="Out of Stock" value={stats.out_of_stock} sub="Needs restock now"      icon={<XCircle   size={16} color="#d97706" />} bg="#fffbeb" border="#fde68a" valueColor="#d97706" subColor="#fbbf24" />
-        <StatCard label="Pending POs"  value={stats.pending_pos}  sub="Awaiting delivery"      icon={<Truck     size={16} color="#16a34a" />} bg="#f0fdf4" border="#bbf7d0" valueColor="#16a34a" subColor="#86efac" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <StatCard label="Total Items" value={stats.total_items} sub="Tracked materials" icon={<Package size={16} />} color="violet" />
+        <StatCard label="Low Stock" value={stats.low_stock} sub="Below reorder" icon={<TrendingDown size={16} />} color="amber" />
+        <StatCard label="Out of Stock" value={stats.out_of_stock} sub="Critical restock" icon={<XCircle size={16} />} color="red" />
+        <StatCard label="Pending POs" value={stats.pending_pos} sub="In transit" icon={<Truck size={16} />} color="emerald" />
       </div>
 
       {/* Two-column: Alerts + Movements */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
 
         {/* Low Stock Alerts */}
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center justify-between">
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-zinc-100 bg-zinc-50/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-[#3b2063] p-2 rounded text-white"><AlertTriangle size={13} /></div>
+              <div className="bg-[#3b2063] p-2 rounded-lg text-white shadow-sm"><AlertTriangle size={13} /></div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wide text-[#1a0f2e]">Low Stock Alerts</p>
-                <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Items below reorder level</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Items below reorder level</p>
               </div>
             </div>
-            <Badge cls="badge-danger">{alerts.length} items</Badge>
+            <Badge status={`${alerts.length} ITEMS`} />
           </div>
           {loading ? <Skeleton /> : (
             <div className="overflow-x-auto">
@@ -249,20 +221,20 @@ const resolveUnit = (unit: unknown): string => {
                 <thead>
                   <tr className="border-b border-zinc-100">
                     {['Item', 'Branch', 'Stock', 'Level', 'Status'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-[9px] font-black uppercase tracking-widest text-zinc-400">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-zinc-50">
                   {alerts.length === 0 ? (
                     <tr><td colSpan={5} className="py-10 text-center text-xs text-zinc-400 font-medium">No alerts — all items are well stocked!</td></tr>
                   ) : alerts.map(item => {
                     const pct = item.reorder_level > 0 ? (item.current_stock / (item.reorder_level * 2)) * 100 : 0;
-                    const { label, cls } = stockStatus(item);
+                    const { label } = stockStatus(item);
                     const barColor = item.current_stock === 0 ? '#dc2626' : pct < 30 ? '#dc2626' : '#d97706';
                     return (
-                      <tr key={item.id} className="border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
-                        <td className="px-4 py-3">
+                      <tr key={item.id} className="hover:bg-zinc-50/50 transition-colors">
+                        <td className="px-4 py-3.5">
                           <p className="font-bold text-[#1a0f2e] text-xs">{item.name}</p>
                           <p className="text-[10px] text-zinc-400">
                             {item.category} · {typeof item.unit === 'object' && item.unit !== null
@@ -270,17 +242,17 @@ const resolveUnit = (unit: unknown): string => {
   : item.unit}
                           </p>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f5f0ff] text-[#3b2063] border border-[#e9d5ff]">
+                        <td className="px-4 py-3.5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-violet-50 text-violet-700 border border-violet-100">
                             {item.branch_name}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="font-bold text-xs" style={{ color: barColor }}>{item.current_stock}</span>
-                          <span className="text-[10px] text-zinc-400"> / {item.reorder_level * 2}</span>
+                        <td className="px-4 py-3.5">
+                          <span className="font-bold text-xs tabular-nums" style={{ color: barColor }}>{item.current_stock}</span>
+                          <span className="text-[10px] text-zinc-400 tabular-nums"> / {item.reorder_level * 2}</span>
                         </td>
-                        <td className="px-4 py-3"><ProgressBar pct={pct} color={barColor} /></td>
-                        <td className="px-4 py-3"><Badge cls={cls}>{label}</Badge></td>
+                        <td className="px-4 py-3.5"><ProgressBar pct={pct} color={barColor} /></td>
+                        <td className="px-4 py-3.5 flex justify-end pr-4 mt-2"><Badge status={label} /></td>
                       </tr>
                     );
                   })}
@@ -291,29 +263,29 @@ const resolveUnit = (unit: unknown): string => {
         </div>
 
         {/* Recent Movements */}
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center justify-between">
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-zinc-100 bg-zinc-50/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-[#3b2063] p-2 rounded text-white"><Clock size={13} /></div>
+              <div className="bg-[#3b2063] p-2 rounded-lg text-white shadow-sm"><Clock size={13} /></div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wide text-[#1a0f2e]">Recent Movements</p>
-                <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Last 20 stock events</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Last 20 stock events</p>
               </div>
             </div>
-            <Badge cls="badge-violet">Live</Badge>
+            <Badge status="LIVE" />
           </div>
           {loading ? <Skeleton /> : (
-            <div className="overflow-y-auto max-h-90">
+            <div className="overflow-y-auto max-h-90 divide-y divide-zinc-50">
               {movements.length === 0 ? (
                 <p className="py-10 text-center text-xs text-zinc-400 font-medium">No recent movements.</p>
               ) : movements.map(m => (
-                <div key={m.id} className="flex items-start gap-3 px-5 py-3 border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
-                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: moveDotColor(m.type) }} />
+                <div key={m.id} className="flex items-start gap-4 px-5 py-4 hover:bg-zinc-50/50 transition-colors">
+                  <div className="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style={{ background: moveDotColor(m.type), boxShadow: `0 0 5px ${moveDotColor(m.type)}40` }} />
                   <div className="min-w-0">
                     <p className="text-xs text-zinc-700 leading-snug">
-                      <span className="font-bold">{moveLabel(m)}</span> {m.raw_material} — {m.branch_name}
+                      <span className="font-bold text-[#1a0f2e]">{moveLabel(m)}</span> {m.raw_material} — {m.branch_name}
                     </p>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">{m.reason} · {timeAgo(m.created_at)} · by {m.performed_by}</p>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{m.reason} · {timeAgo(m.created_at)} · by {m.performed_by}</p>
                   </div>
                 </div>
               ))}
@@ -323,14 +295,14 @@ const resolveUnit = (unit: unknown): string => {
       </div>
 
       {/* Branch Summary Table */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-        <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center gap-3">
-          <div className="bg-[#3b2063] p-2 rounded text-white">
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
+        <div className="px-5 py-4 border-b border-zinc-100 bg-zinc-50/50 flex items-center gap-3">
+          <div className="bg-[#3b2063] p-2 rounded-lg text-white shadow-sm">
             <Package size={13} />
           </div>
           <div>
             <p className="text-[11px] font-black uppercase tracking-wide text-[#1a0f2e]">Branch Stock Summary</p>
-            <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Per-branch health at a glance</p>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Per-branch health at a glance</p>
           </div>
         </div>
         {loading ? <Skeleton /> : (
@@ -339,30 +311,30 @@ const resolveUnit = (unit: unknown): string => {
               <thead>
                 <tr className="border-b border-zinc-100">
                   {['Branch', 'Total Items', 'Low Stock', 'Out of Stock', 'Pending POs', 'Health'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                    <th key={h} className="px-5 py-3 text-left text-[9px] font-black uppercase tracking-widest text-zinc-400">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-zinc-50">
                 {branches.length === 0 ? (
                   <tr><td colSpan={6} className="py-10 text-center text-xs text-zinc-400">No branch data available.</td></tr>
                 ) : branches.map(b => {
                   const color = healthColor(b.health_pct);
                   return (
-                    <tr key={b.branch_id} className="border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
+                    <tr key={b.branch_id} className="hover:bg-zinc-50/50 transition-colors">
                       <td className="px-5 py-3.5 font-bold text-[#1a0f2e] text-xs">{b.branch_name}</td>
-                      <td className="px-5 py-3.5 text-zinc-600 text-xs">{b.total_items}</td>
+                      <td className="px-5 py-3.5 text-zinc-600 text-xs tabular-nums">{b.total_items}</td>
                       <td className="px-5 py-3.5">
-                        <span className="font-bold text-xs" style={{ color: b.low_stock > 0 ? '#d97706' : '#16a34a' }}>{b.low_stock}</span>
+                        <span className="font-bold text-xs tabular-nums" style={{ color: b.low_stock > 0 ? '#d97706' : '#16a34a' }}>{b.low_stock}</span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="font-bold text-xs" style={{ color: b.out_of_stock > 0 ? '#dc2626' : '#16a34a' }}>{b.out_of_stock}</span>
+                        <span className="font-bold text-xs tabular-nums" style={{ color: b.out_of_stock > 0 ? '#dc2626' : '#16a34a' }}>{b.out_of_stock}</span>
                       </td>
-                      <td className="px-5 py-3.5"><Badge cls="badge-violet">{b.pending_pos}</Badge></td>
+                      <td className="px-5 py-3.5"><Badge status={`${b.pending_pos} PENDING`} /></td>
                       <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <ProgressBar pct={b.health_pct} color={color} width={100} />
-                          <span className="text-[11px] font-bold tabular-nums" style={{ color }}>{b.health_pct}%</span>
+                          <span className="text-[11px] font-black tabular-nums" style={{ color }}>{b.health_pct}%</span>
                         </div>
                       </td>
                     </tr>

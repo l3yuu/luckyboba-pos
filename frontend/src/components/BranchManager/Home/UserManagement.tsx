@@ -1,18 +1,14 @@
-"use client"
-
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Search, Plus, Eye, Edit2, Trash2, Lock, UserCheck, XCircle,
-  Users, X, AlertCircle, Mail, MapPin, ShieldCheck,
-  Trash, CheckCircle, Laptop, MonitorCheck, MonitorOff,
+import { 
+  MonitorCheck, MonitorOff, Mail, MapPin, Users, Plus, 
+  AlertCircle, Lock, Laptop, CheckCircle, Search, 
+  UserCheck, XCircle, Eye, Edit2, Trash2 
 } from 'lucide-react';
-import { createPortal } from 'react-dom';
 import api from '../../../services/api';
+import { StatCard, Button as Btn, ModalShell, Badge, ConfirmModal, AlertBox } from "../SharedUI";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type VariantKey = 'primary' | 'secondary' | 'danger' | 'ghost';
-type SizeKey    = 'sm' | 'md' | 'lg';
 
 interface User {
   id:             number;
@@ -93,129 +89,68 @@ const blankForm = (): FormState => ({
   manager_pin_confirmation: '',
 });
 
-// ─── Shared UI ────────────────────────────────────────────────────────────────
-
 const Avatar: React.FC<{ name: string; size?: string }> = ({ name, size = 'w-7 h-7 text-[10px]' }) => (
   <div className={`${size} rounded-full bg-[#ede8ff] flex items-center justify-center font-bold text-[#3b2063] shrink-0`}>
     {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
   </div>
 );
 
-const Badge: React.FC<{ status: string }> = ({ status }) => {
-  const isActive = status === 'ACTIVE' || status === 'active';
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
-      ${isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
-      {status}
-    </span>
-  );
-};
-
 // Inline device pill shown in the table row
 const DevicePill: React.FC<{ deviceNumber?: string | null }> = ({ deviceNumber }) =>
   deviceNumber ? (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-widest">
       <MonitorCheck size={9} />{deviceNumber}
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-[9px] font-black bg-zinc-50 text-zinc-400 border border-zinc-100 px-2 py-0.5 rounded-full uppercase tracking-widest">
       <MonitorOff size={9} />None
     </span>
   );
 
-interface BtnProps {
-  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
-  onClick?: () => void; className?: string; disabled?: boolean;
-  type?: 'button' | 'submit' | 'reset';
-}
-
-const Btn: React.FC<BtnProps> = ({
-  children, variant = 'primary', size = 'sm',
-  onClick, className = '', disabled = false, type = 'button',
-}) => {
-  const sizes:    Record<SizeKey,    string> = { sm: 'px-3 py-2 text-xs', md: 'px-4 py-2.5 text-sm', lg: 'px-6 py-3 text-sm' };
-  const variants: Record<VariantKey, string> = {
-    primary:   'bg-[#3b2063] hover:bg-[#2a1647] text-white',
-    secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
-    danger:    'bg-red-600 hover:bg-red-700 text-white',
-    ghost:     'bg-transparent text-zinc-500 hover:bg-zinc-100',
-  };
-  return (
-    <button type={type} onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  );
-};
-
-// ─── Modal Shell ──────────────────────────────────────────────────────────────
-
-const ModalShell: React.FC<{
-  onClose: () => void; icon: React.ReactNode; title: string; sub: string;
-  children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
-}> = ({ onClose, icon, title, sub, children, footer, maxWidth = 'max-w-md' }) =>
-  createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
-            <div>
-              <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
-              <p className="text-[10px] text-zinc-400">{sub}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
-            <X size={16} />
-          </button>
-        </div>
-        <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
-      </div>
-    </div>,
-    document.body
-  );
+// ─── Field helpers ────────────────────────────────────────────────────────────
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
 
 const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
   <div>
-    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5 block">
       {label} {required && <span className="text-red-400">*</span>}
     </label>
     {children}
-    {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
+    {error && <p className="text-[10px] text-red-500 mt-1 font-bold">{error}</p>}
   </div>
 );
 
 const inputCls = (err?: string) =>
-  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
+  `w-full text-xs font-bold text-zinc-700 bg-white border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400/20 focus:border-violet-400 transition-all shadow-sm ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
 
 // ─── View Modal ───────────────────────────────────────────────────────────────
 
 const ViewUserModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose, user }) => {
   const rows: [string, React.ReactNode][] = [
     ['User ID',    `#${user.id}`],
-    ['Name',       <div className="flex items-center gap-2"><Avatar name={user.name} />{user.name}</div>],
-    ['Email',      <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>],
-    ['Branch',     <span className="flex items-center gap-1"><MapPin size={11} />{user.branch}</span>],
+    ['Name',       <div className="flex items-center gap-2 font-bold text-[#1a0f2e]"><Avatar name={user.name} />{user.name}</div>],
+    ['Email',      <span className="flex items-center gap-1 font-bold text-[#1a0f2e]"><Mail size={11} />{user.email}</span>],
+    ['Branch',     <span className="flex items-center gap-1 font-bold text-[#1a0f2e]"><MapPin size={11} />{user.branch}</span>],
     ['Status',     <Badge status={user.status} />],
-    ['Last Login', user.lastLogin ?? '—'],
+    ['Last Login', <span className="font-bold tabular-nums text-[#1a0f2e]">{user.lastLogin ?? '—'}</span>],
     ['Device',     user.device_number
-      ? <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1"><MonitorCheck size={9} />{user.device_number}</span>
-      : <span className="text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full flex items-center gap-1"><MonitorOff size={9} />No device</span>],
+      ? <span className="text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-widest"><MonitorCheck size={9} />{user.device_number}</span>
+      : <span className="text-[9px] font-black bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-widest"><MonitorOff size={9} />No device</span>],
   ];
   return (
-    <ModalShell onClose={onClose} icon={<Eye size={15} className="text-violet-600" />}
-      title={user.name} sub="Staff details"
-      footer={<Btn variant="secondary" onClick={onClose}>Close</Btn>}>
-      <div className="flex flex-col divide-y divide-zinc-100 -my-1">
+    <ModalShell 
+      onClose={onClose} 
+      title={user.name} 
+      sub="Review staff member authentication & device mapping" 
+      icon={<Users size={18} className="text-[#3b2063]" />}
+      footer={<Btn variant="secondary" onClick={onClose} className="w-full justify-center">Close Profile</Btn>}
+    >
+      <div className="flex flex-col divide-y divide-zinc-50">
         {rows.map(([label, val]) => (
-          <div key={label as string} className="flex items-center justify-between py-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{label}</span>
-            <span className="text-xs font-semibold text-zinc-700">{val}</span>
+          <div key={label} className="flex items-center justify-between py-3">
+            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{label}</span>
+            <div className="text-right">{val}</div>
           </div>
         ))}
       </div>
@@ -323,97 +258,102 @@ const handleSubmit = async () => {
   const f = (key: keyof FormState) => ({
     value: form[key],
     onChange: (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setForm(p => ({ ...p, [key]: ev.target.value }));
-      setErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
+      setForm((p: FormState) => ({ ...p, [key]: ev.target.value }));
+      setErrors((prev: Record<string, string>) => { const n = { ...prev }; delete n[key]; return n; });
     },
   });
 
   return (
     <ModalShell
       onClose={onClose}
-      icon={editingUser ? <Edit2 size={15} className="text-violet-600" /> : <Users size={15} className="text-violet-600" />}
-      title={editingUser ? 'Edit Staff' : 'Add Staff'}
-      sub={editingUser ? `Updating ${editingUser.name}` : 'Create a new cashier, team leader, or supervisor account'}
+      title={editingUser ? 'Edit Staff Account' : 'Register New Staff'}
+      sub={editingUser ? `Updating credentials for ${editingUser.name}` : 'Provision access for branch cashiers or supervisors'}
+      icon={<Users size={18} className="text-[#3b2063]" />}
       footer={
-        <>
+        <div className="flex items-center justify-end gap-2 w-full">
           <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
-          <Btn onClick={handleSubmit} disabled={saving}>
+          <Btn onClick={handleSubmit} disabled={saving} className="min-w-[120px] justify-center">
             {saving
-              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
-              : editingUser ? 'Save Changes' : <><Plus size={13} /> Add Staff</>}
+              ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              : editingUser ? 'Save Profile' : <><Plus size={14} /> Create Staff</>}
           </Btn>
-        </>
+        </div>
       }>
-      {apiError && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle size={14} className="text-red-500 shrink-0" />
-          <p className="text-xs text-red-600 font-medium">{apiError}</p>
-        </div>
-      )}
-      <Field label="Full Name" required error={errors.name}>
-        <input {...f('name')} placeholder="e.g. Juan Dela Cruz" className={inputCls(errors.name)} />
-      </Field>
-      <Field label="Email" required error={errors.email}>
-        <input {...f('email')} type="email" placeholder="e.g. juan@luckyboba.com" className={inputCls(errors.email)} />
-      </Field>
-      <Field label={editingUser ? 'New Password' : 'Password'} required={!editingUser} error={errors.password}>
-        <input {...f('password')} type="password" placeholder={editingUser ? 'Leave blank to keep current' : 'Min. 6 characters'} className={inputCls(errors.password)} />
-      </Field>
-      <Field label="Confirm Password" error={errors.passwordConfirm}>
-        <input {...f('passwordConfirm')} type="password" placeholder="Re-enter password" className={inputCls(errors.passwordConfirm)} />
-      </Field>
-      <Field label="Status" required>
-        <select {...f('status')} className={inputCls()}>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-        </select>
-      </Field>
-      <Field label="Role" required>
-        <select {...f('role')} className={inputCls()}>
-          <option value="cashier">Cashier</option>
-          <option value="team_leader">Team Leader</option>
-          <option value="supervisor">Supervisor</option>
-        </select>
-      </Field>
-      {showPin && (
-        <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Lock size={13} className="text-violet-600 shrink-0" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-violet-700">Manager PIN</p>
+      <div className="space-y-4">
+        {apiError && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-lg shadow-sm">
+            <AlertCircle size={14} className="text-red-500 shrink-0" />
+            <p className="text-[11px] text-red-600 font-bold">{apiError}</p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="PIN" required error={errors.manager_pin}>
-              <input
-                {...f('manager_pin')}
-                type="password"
-                inputMode="numeric"
-                placeholder="4–8 digits"
-                maxLength={8}
-                className={inputCls(errors.manager_pin)}
-              />
-            </Field>
-            <Field label="Confirm PIN" required error={errors.manager_pin_confirmation}>
-              <input
-                {...f('manager_pin_confirmation')}
-                type="password"
-                inputMode="numeric"
-                placeholder="Re-enter PIN"
-                maxLength={8}
-                className={inputCls(errors.manager_pin_confirmation)}
-              />
-            </Field>
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Full Name" required error={errors.name}>
+            <input {...f('name')} placeholder="Juan Dela Cruz" className={inputCls(errors.name)} />
+          </Field>
+          <Field label="Role Selection" required>
+            <select {...f('role')} className={inputCls()}>
+              <option value="cashier">Cashier</option>
+              <option value="team_leader">Team Leader</option>
+              <option value="supervisor">Supervisor</option>
+            </select>
+          </Field>
+        </div>
+        <Field label="Email Address" required error={errors.email}>
+          <input {...f('email')} type="email" placeholder="juan@luckyboba.com" className={inputCls(errors.email)} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={editingUser ? 'Reset Password' : 'Password'} required={!editingUser} error={errors.password}>
+            <input {...f('password')} type="password" placeholder="••••••••" className={inputCls(errors.password)} />
+          </Field>
+          <Field label="Verify Password" error={errors.passwordConfirm}>
+            <input {...f('passwordConfirm')} type="password" placeholder="••••••••" className={inputCls(errors.passwordConfirm)} />
+          </Field>
+        </div>
+        <Field label="Account Status" required>
+          <select {...f('status')} className={inputCls()}>
+            <option value="ACTIVE">System Access Granted</option>
+            <option value="INACTIVE">Access Suspended</option>
+          </select>
+        </Field>
+        {showPin && (
+          <div className="p-4 bg-violet-50/50 border border-violet-100 rounded-xl space-y-3 shadow-inner">
+            <div className="flex items-center gap-2">
+              <Lock size={14} className="text-[#3b2063]" />
+              <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063]">Elevated Manager PIN</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Secure PIN" required error={errors.manager_pin}>
+                <input
+                  {...f('manager_pin')}
+                  type="password"
+                  inputMode="numeric"
+                  placeholder="4–8 digits"
+                  maxLength={8}
+                  className={inputCls(errors.manager_pin)}
+                />
+              </Field>
+              <Field label="Verify PIN" required error={errors.manager_pin_confirmation}>
+                <input
+                  {...f('manager_pin_confirmation')}
+                  type="password"
+                  inputMode="numeric"
+                  placeholder="Re-enter PIN"
+                  maxLength={8}
+                  className={inputCls(errors.manager_pin_confirmation)}
+                />
+              </Field>
+            </div>
           </div>
-        </div>
-      )}
-      {/* Hint for new cashiers: device assigned after saving */}
-      {!editingUser && (
-        <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg">
-          <Laptop size={13} className="text-violet-500 shrink-0" />
-          <p className="text-[10px] text-violet-700 font-medium">
-            You can assign a POS device to cashiers after saving.
-          </p>
-        </div>
-      )}
+        )}
+        {!editingUser && (
+          <div className="flex items-center gap-2.5 p-3 bg-zinc-50 border border-zinc-100 rounded-lg italic">
+            <Laptop size={14} className="text-zinc-400 shrink-0" />
+            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter">
+              POS devices can be linked after profile creation.
+            </p>
+          </div>
+        )}
+      </div>
     </ModalShell>
   );
 };
@@ -424,71 +364,19 @@ const ToggleStatusModal: React.FC<{
   onClose:   () => void;
   onToggled: (u: User) => void;
   user:      User;
-}> = ({ onClose, onToggled, user }) => {
-  const [saving,   setSaving]   = useState(false);
-  const [apiError, setApiError] = useState('');
-  const isActive = user.status === 'ACTIVE';
-
-  const handleToggle = async () => {
-    setSaving(true); setApiError('');
-    try {
+}> = ({ onClose, onToggled, user }) => (
+  <ConfirmModal
+    show={true}
+    cancel={onClose}
+    action={async () => {
       const res = await api.patch(`/users/${user.id}/toggle-status`);
       onToggled(mapUser(res.data?.data ?? res.data));
-      onClose();
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setApiError(msg ?? 'Failed to update status.');
-    } finally { setSaving(false); }
-  };
-
-  return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
-        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
-          <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 border ${isActive ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
-            {isActive ? <XCircle size={24} className="text-amber-500" /> : <UserCheck size={24} className="text-emerald-500" />}
-          </div>
-          <p className="text-base font-bold text-[#1a0f2e]">{isActive ? 'Deactivate Cashier?' : 'Activate Cashier?'}</p>
-          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
-            {isActive
-              ? <>This will prevent <span className="font-bold text-zinc-700">{user.name}</span> from logging in.</>
-              : <>This will restore <span className="font-bold text-zinc-700">{user.name}</span>'s access to the system.</>}
-          </p>
-          {apiError && (
-            <div className="flex items-center gap-2 mt-4 p-3 w-full bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle size={14} className="text-red-500 shrink-0" />
-              <p className="text-xs text-red-600 font-medium text-left">{apiError}</p>
-            </div>
-          )}
-        </div>
-        <div className="mx-6 mb-5 flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
-          <Avatar name={user.name} size="w-8 h-8 text-xs" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-[#1a0f2e] truncate">{user.name}</p>
-            <p className="text-[10px] text-zinc-400 truncate">{user.email}</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge status={user.status} />
-            <span className="text-zinc-300">→</span>
-            <Badge status={isActive ? 'INACTIVE' : 'ACTIVE'} />
-          </div>
-        </div>
-        <div className="flex items-center gap-2 px-6 pb-6">
-          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={saving}>Cancel</Btn>
-          <button onClick={handleToggle} disabled={saving}
-            className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer disabled:opacity-50 text-white ${isActive ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
-            {saving
-              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Updating...</span>
-              : isActive ? <><XCircle size={13} /> Deactivate</> : <><UserCheck size={13} /> Activate</>}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-};
+    }}
+    title={user.status === 'ACTIVE' ? 'Suspend Access?' : 'Restore Access?'}
+    desc={`Are you sure you want to ${user.status === 'ACTIVE' ? 'deactivate' : 'activate'} ${user.name}'s system credentials?`}
+    danger={user.status === 'ACTIVE'}
+  />
+);
 
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 
@@ -496,66 +384,19 @@ const DeleteUserModal: React.FC<{
   onClose:   () => void;
   onDeleted: (id: number) => void;
   user:      User;
-}> = ({ onClose, onDeleted, user }) => {
-  const [saving,   setSaving]   = useState(false);
-  const [apiError, setApiError] = useState('');
-
-  const handleDelete = async () => {
-    setSaving(true); setApiError('');
-    try {
+}> = ({ onClose, onDeleted, user }) => (
+  <ConfirmModal
+    show={true}
+    cancel={onClose}
+    action={async () => {
       await api.delete(`/users/${user.id}`);
       onDeleted(user.id);
-      onClose();
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setApiError(msg ?? 'Failed to delete cashier.');
-    } finally { setSaving(false); }
-  };
-
-  return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
-        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
-          <div className="w-14 h-14 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mb-4">
-            <Trash size={22} className="text-red-500" />
-          </div>
-          <p className="text-base font-bold text-[#1a0f2e]">Delete Cashier?</p>
-          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
-            You're about to permanently delete <span className="font-bold text-zinc-700">{user.name}</span>. This cannot be undone.
-          </p>
-          {apiError && (
-            <div className="flex items-center gap-2 mt-4 p-3 w-full bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle size={14} className="text-red-500 shrink-0" />
-              <p className="text-xs text-red-600 font-medium text-left">{apiError}</p>
-            </div>
-          )}
-        </div>
-        <div className="mx-6 mb-5 flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
-          <Avatar name={user.name} size="w-8 h-8 text-xs" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-[#1a0f2e] truncate">{user.name}</p>
-            <p className="text-[10px] text-zinc-400 truncate flex items-center gap-1">
-            <ShieldCheck size={9} />
-            {user.role === 'team_leader' ? 'Team Leader' : user.role === 'supervisor' ? 'Supervisor' : 'Cashier'}
-            </p>
-          </div>
-          <Badge status={user.status} />
-        </div>
-        <div className="flex items-center gap-2 px-6 pb-6">
-          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={saving}>Cancel</Btn>
-          <Btn variant="danger" className="flex-1 justify-center" onClick={handleDelete} disabled={saving}>
-            {saving
-              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
-              : <><Trash2 size={13} /> Delete</>}
-          </Btn>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-};
+    }}
+    title="Terminate Account?"
+    desc={`Are you certain you want to permanently delete ${user.name}? This action cannot be reversed.`}
+    danger={true}
+  />
+);
 
 // ─── Assign Device Modal ──────────────────────────────────────────────────────
 
@@ -571,7 +412,7 @@ const AssignDeviceModal: React.FC<{
   const [apiError,   setApiError]   = useState('');
   const [success,    setSuccess]    = useState(false);
 
-  const currentDevice = devices.find(d => d.user_id === user.id);
+  const currentDevice = devices.find((d: PosDevice) => d.user_id === user.id);
 
   useEffect(() => {
     (async () => {
@@ -582,7 +423,7 @@ const AssignDeviceModal: React.FC<{
         setDevices(list.filter(d => d.status === 'ACTIVE'));
         const assigned = list.find(d => d.user_id === user.id);
         if (assigned) setSelectedId(String(assigned.id));
-      } catch { setApiError('Failed to load devices.'); }
+      } catch { setApiError('Failed to load available devices.'); }
       finally { setLoading(false); }
     })();
   }, [user.id]);
@@ -592,12 +433,12 @@ const AssignDeviceModal: React.FC<{
     setSaving(true); setApiError('');
     try {
       await api.patch(`/pos-devices/${selectedId}/assign`, { user_id: user.id });
-      const assignedDevice = devices.find(d => String(d.id) === selectedId);
+      const assignedDevice = devices.find((d: PosDevice) => String(d.id) === selectedId);
       onAssigned?.(user.id, assignedDevice?.id ?? null, assignedDevice?.pos_number ?? null);
       setSuccess(true); setTimeout(onClose, 1500);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setApiError(msg ?? 'Failed to assign device.');
+      setApiError(msg ?? 'Failed to map device.');
     } finally { setSaving(false); }
   };
 
@@ -610,105 +451,81 @@ const AssignDeviceModal: React.FC<{
       setSuccess(true); setTimeout(onClose, 1500);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setApiError(msg ?? 'Failed to unassign device.');
+      setApiError(msg ?? 'Failed to release device.');
     } finally { setSaving(false); }
   };
 
   return (
-    <ModalShell onClose={onClose} icon={<Laptop size={15} className="text-violet-600" />}
-      title="Assign POS Device" sub={`Link a device to ${user.name}`}
+    <ModalShell
+      onClose={onClose}
+      title="Hardware Mapping"
+      sub={`Select a POS terminal to link with ${user.name}`}
+      icon={<Laptop size={18} className="text-[#3b2063]" />}
       footer={
-        success ? null : (
-          <>
+        !success && (
+          <div className="flex items-center justify-end gap-2 w-full">
             <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
             {currentDevice && (
-              <Btn variant="danger" onClick={handleUnassign} disabled={saving || loading}>
-                {saving ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Removing...</span> : <><MonitorOff size={13} /> Unassign</>}
+              <Btn variant="danger" onClick={handleUnassign} disabled={saving || loading} className="shadow-lg shadow-red-100">
+                {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><MonitorOff size={14} /> Release</>}
               </Btn>
             )}
-            <Btn onClick={handleAssign} disabled={saving || loading || !selectedId}>
-              {saving ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Assigning...</span> : <><MonitorCheck size={13} /> Assign Device</>}
+            <Btn onClick={handleAssign} disabled={saving || loading || !selectedId} className="shadow-lg shadow-purple-100">
+              {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><MonitorCheck size={14} /> Map Device</>}
             </Btn>
-          </>
+          </div>
         )
       }>
-      {success ? (
-        <div className="flex flex-col items-center py-4 gap-3">
-          <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center">
-            <CheckCircle size={24} className="text-emerald-500" />
+      <div className="space-y-4">
+        {success ? (
+          <div className="flex flex-col items-center py-6 gap-3">
+            <div className="w-14 h-14 bg-emerald-50 border border-emerald-100 rounded-full flex items-center justify-center shadow-inner">
+              <CheckCircle size={28} className="text-emerald-500" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-black text-[#1a0f2e]">Hardware Sync Complete</p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Cashier is now linked to terminal</p>
+            </div>
           </div>
-          <p className="text-sm font-bold text-[#1a0f2e]">Device updated successfully</p>
-        </div>
-      ) : (
-        <>
-          {apiError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle size={14} className="text-red-500 shrink-0" />
-              <p className="text-xs text-red-600 font-medium">{apiError}</p>
-            </div>
-          )}
-
-          {/* Cashier info row */}
-          <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
-            <Avatar name={user.name} size="w-8 h-8 text-xs" />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-[#1a0f2e] truncate">{user.name}</p>
-              <p className="text-[10px] text-zinc-400">{user.email}</p>
-            </div>
-            {currentDevice
-              ? <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <MonitorCheck size={9} />{currentDevice.pos_number}
-                </span>
-              : <span className="text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <MonitorOff size={9} />No device
-                </span>}
-          </div>
-
-          {/* Status banner */}
-          {currentDevice ? (
-            <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg">
-              <MonitorCheck size={13} className="text-violet-500 shrink-0" />
-              <p className="text-xs text-violet-700 font-medium">
-                Currently on <span className="font-bold">{currentDevice.pos_number}</span>
-                {currentDevice.branch?.name ? ` — ${currentDevice.branch.name}` : ''}. Switch device or unassign.
-              </p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <MonitorOff size={13} className="text-amber-500 shrink-0" />
-              <p className="text-xs text-amber-700 font-medium">No device assigned. Select one below to link it to this cashier.</p>
-            </div>
-          )}
-
-          <Field label="Select POS Device" required>
-            {loading ? (
-              <div className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
-            ) : devices.length === 0 ? (
-              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <AlertCircle size={13} className="text-amber-500 shrink-0" />
-                <p className="text-xs text-amber-700 font-medium">No active devices. Ask the superadmin to register a device first.</p>
+        ) : (
+          <>
+            {apiError && (
+              <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2">
+                <AlertCircle size={14} className="text-red-500 shrink-0" />
+                <p className="text-[11px] text-red-600 font-bold">{apiError}</p>
               </div>
-            ) : (
-              <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={inputCls()}>
-                <option value="">— Select a device —</option>
-                {devices.map(d => (
-                  <option key={d.id} value={String(d.id)}>
-                    {d.pos_number}
-                    {d.branch?.name ? ` — ${d.branch.name}` : ''}
-                    {d.user_id && d.user_id !== user.id
-                      ? ` ⚠ assigned to ${d.user?.name ?? 'another cashier'}`
-                      : d.user_id === user.id ? ' ✓ current' : ''}
-                  </option>
-                ))}
-              </select>
             )}
-          </Field>
 
-          <p className="text-[10px] text-zinc-400 font-medium">
-            Only <span className="font-bold">ACTIVE</span> devices are shown. Reassigning moves the device from the other cashier.
-          </p>
-        </>
-      )}
+            <div className="flex items-center gap-3 p-3.5 bg-zinc-50 border border-zinc-100 rounded-xl shadow-inner">
+              <Avatar name={user.name} size="w-9 h-9 text-xs" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-[#1a0f2e] truncate">{user.name}</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{user.role}</p>
+              </div>
+              <DevicePill deviceNumber={user.device_number} />
+            </div>
+
+            <Field label="Target Terminal" required>
+              {loading ? (
+                <div className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
+              ) : (
+                <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={inputCls()}>
+                  <option value="">— Choose a Terminal —</option>
+                  {devices.map((d: PosDevice) => (
+                    <option key={d.id} value={String(d.id)}>
+                      {d.pos_number} {d.user_id && d.user_id !== user.id ? `(mapped to ${d.user?.name ?? 'other'})` : d.user_id === user.id ? '(current)' : '(ready)'}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Field>
+
+            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter leading-tight italic">
+              * Active devices only. Re-mapping will automatically unassign the terminal from its previous user.
+            </p>
+          </>
+        )}
+      </div>
     </ModalShell>
   );
 };
@@ -764,13 +581,9 @@ const UserManagement: React.FC = () => {
         : list.filter(u => u.branch_id === myBranchId);
 
       setUsers(branchScoped);
-
-      // ── Load branches for device registration ─────────────────────────────
-
-
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setFetchError(msg ?? 'Failed to load cashiers.');
+      setFetchError(msg ?? 'Failed to load staff.');
     } finally { setLoading(false); }
   }, []);
 
@@ -778,185 +591,174 @@ const UserManagement: React.FC = () => {
 
   // Update device info in local state after assign/unassign — no full refetch needed
   const handleDeviceAssigned = (userId: number, deviceId: number | null, deviceNumber: string | null) => {
-    setUsers(prev => prev.map(u =>
+    setUsers((prev: User[]) => prev.map((u: User) =>
       u.id === userId ? { ...u, device_id: deviceId, device_number: deviceNumber } : u
     ));
   };
 
-  const filtered = users.filter(u =>
+  const filtered = users.filter((u: User) =>
     u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
+    u.email.toLowerCase().includes(search.toLowerCase()) ||
+    u.role.toLowerCase().includes(search.toLowerCase())
   );
 
-  const activeCount   = users.filter(u => u.status === 'ACTIVE').length;
-  const inactiveCount = users.filter(u => u.status !== 'ACTIVE').length;
+  const activeCount   = users.filter((u: User) => u.status === 'ACTIVE').length;
+  const inactiveCount = users.filter((u: User) => u.status !== 'ACTIVE').length;
 
   return (
-    <div className="p-6 md:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="p-6 md:p-8 space-y-6 fade-in pb-20">
+      <style>{`
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+      `}</style>
 
       {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-        <div className="flex-1 flex items-center gap-3">
-          <div className="relative group flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1a0f2e]">Staff Management</h1>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-1">Manage cashier permissions & terminal assignments</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative group min-w-[280px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
             <input
               type="text"
-              placeholder="Search cashiers..."
+              placeholder="Search by name, email, or role..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-4 focus:ring-violet-400/10 focus:border-violet-400 transition-all shadow-sm"
             />
           </div>
-          <Btn onClick={() => setAddOpen(true)} disabled={loading} className="px-5 py-3 rounded-xl shadow-sm shrink-0">
-            <Plus size={14} /> Add Staff
+          <Btn onClick={() => setAddOpen(true)} className="px-5 py-2.5 rounded-xl shadow-lg shadow-purple-100">
+            <Plus size={14} /> <span className="ml-1">Add Staff</span>
           </Btn>
         </div>
       </div>
 
-      {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-violet-50 border border-violet-200 flex items-center justify-center rounded-[0.4rem]">
-            <Users size={16} className="text-violet-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Staffs</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : users.length}</p>
-          </div>
-        </div>
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-50 border border-emerald-200 flex items-center justify-center rounded-[0.4rem]">
-            <UserCheck size={16} className="text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Active</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : activeCount}</p>
-          </div>
-        </div>
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-50 border border-red-200 flex items-center justify-center rounded-[0.4rem]">
-            <XCircle size={16} className="text-red-500" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Inactive</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : inactiveCount}</p>
-          </div>
-        </div>
+      {fetchError && (
+        <AlertBox 
+          type="error" 
+          message={fetchError} 
+          icon={<AlertCircle size={14} />} 
+        />
+      )}
+
+      {/* ── Stat Rows ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard
+          icon={<Users size={18} />}
+          label="Total Staff"
+          value={loading ? '—' : users.length}
+          sub="Local Team"
+          color="violet"
+        />
+        <StatCard
+          icon={<UserCheck size={18} />}
+          label="Active Accounts"
+          value={loading ? '—' : activeCount}
+          sub="System Access"
+          color="emerald"
+        />
+        <StatCard
+          icon={<XCircle size={18} />}
+          label="Suspended"
+          value={loading ? '—' : inactiveCount}
+          sub="Restricted Access"
+          color="amber"
+        />
       </div>
 
       {/* ── Table ── */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-
+      <div className="bg-white border border-zinc-200 rounded-[1rem] overflow-hidden shadow-sm">
+        <div className="px-6 py-4 border-b border-zinc-50 flex items-center justify-between bg-zinc-50/30">
+          <h3 className="text-[11px] font-black text-[#1a0f2e] uppercase tracking-wide">Branch Staff Directory</h3>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded border border-emerald-100 text-[9px] font-black uppercase tracking-widest leading-none">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live System
+            </div>
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full">
             <thead>
-              <tr className="border-b border-zinc-100">
-              {['Name', 'Email', 'Role', 'Device', 'Last Login', 'Status', 'Actions'].map(h => (
-                <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
-              ))}
+              <tr className="bg-zinc-50/20 text-left border-b border-zinc-50">
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest">Profile</th>
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">Permissions</th>
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">Terminal</th>
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">Integrity</th>
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">Last Active</th>
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-right">Activity</th>
               </tr>
             </thead>
-            <tbody>
-              {loading && [...Array(4)].map((_, i) => (
-                <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(7)].map((_, j) => (
-                    <td key={j} className="px-5 py-4">
-                      <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${60 + (j * 7) % 40}%` }} />
+            <tbody className="divide-y divide-zinc-50">
+              {loading ? (
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td colSpan={6} className="px-6 py-4"><div className="h-4 bg-zinc-50 rounded" /></td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-20 text-center">
+                    <div className="flex flex-col items-center gap-3 opacity-40">
+                      <Users size={48} strokeWidth={1} />
+                      <p className="text-xs font-black uppercase tracking-widest">No matching staff found</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((u) => (
+                  <tr key={u.id} className="hover:bg-zinc-50/50 transition-colors group">
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={u.name} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#1a0f2e] group-hover:text-[#3b2063] transition-colors">{u.name}</p>
+                          <p className="text-[10px] font-bold text-zinc-400 truncate tracking-tight">{u.email}</p>
+                        </div>
+                      </div>
                     </td>
-                  ))}
-                </tr>
-              ))}
-
-              {!loading && fetchError && (
-                <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <AlertCircle size={20} className="text-red-400" />
-                      <p className="text-sm font-semibold text-red-500">{fetchError}</p>
-                      <Btn variant="secondary" size="sm" onClick={fetchUsers}>Try again</Btn>
-                    </div>
-                  </td>
-                </tr>
-              )}
-
-              {!loading && !fetchError && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
-                    {search ? 'No cashiers match your search.' : 'No cashiers found in your branch.'}
-                  </td>
-                </tr>
-              )}
-
-              {!loading && !fetchError && filtered.map(u => (
-                <tr key={u.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2.5">
-                      <Avatar name={u.name} />
-                      <span className="font-semibold text-[#1a0f2e]">{u.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5 text-zinc-500">{u.email}</td>
-
-                  {/* Role badge */}
-                  <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      u.role === 'team_leader'
-                        ? 'bg-violet-50 text-violet-700 border border-violet-200'
-                        : u.role === 'supervisor'
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
-                    }`}>
-                      {u.role === 'team_leader' ? 'Team Leader' : u.role === 'supervisor' ? 'Supervisor' : 'Cashier'}
-                    </span>
-                  </td>
-
-                  {/* Device status pill — always visible for cashiers */}
-                  <td className="px-5 py-3.5">
-                    {u.role === 'cashier' ? (
+                    <td className="px-6 py-3.5 text-center">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${
+                        u.role === 'cashier' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                        u.role === 'team_leader' ? 'bg-violet-50 text-violet-600 border-violet-100' :
+                        'bg-amber-50 text-amber-600 border-amber-100'
+                      }`}>
+                        {u.role.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3.5 text-center">
                       <DevicePill deviceNumber={u.device_number} />
-                    ) : (
-                      <span className="text-zinc-300 text-xs">—</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3.5 text-zinc-400 text-xs">{u.lastLogin ?? '—'}</td>
-                  <td className="px-5 py-3.5"><Badge status={u.status} /></td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => setViewTarget(u)}
-                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="View">
-                        <Eye size={13} />
-                      </button>
-                      <button onClick={() => setEditTarget(u)}
-                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
-                        <Edit2 size={13} />
-                      </button>
-                      <button onClick={() => setToggleTarget(u)}
-                        className={`p-1.5 rounded-[0.4rem] transition-colors ${u.status === 'ACTIVE' ? 'hover:bg-amber-50 text-zinc-400 hover:text-amber-500' : 'hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600'}`}
-                        title={u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
-                        {u.status === 'ACTIVE' ? <Lock size={13} /> : <UserCheck size={13} />}
-                      </button>
-                      <button onClick={() => setDelTarget(u)}
-                        className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
-                        <Trash2 size={13} />
-                      </button>
-                      {/* Assign Device — always shown, colour indicates assignment state */}
-                      {u.role === 'cashier' && (
-                        <button
-                          onClick={() => setDeviceTarget(u)}
-                          className={`p-1.5 rounded-[0.4rem] transition-colors ${
-                            u.device_number
-                              ? 'hover:bg-violet-50 text-violet-500 hover:text-violet-700'
-                              : 'hover:bg-amber-50 text-amber-400 hover:text-amber-600'
-                          }`}
-                          title={u.device_number ? `Device: ${u.device_number} — click to change` : 'No device — click to assign'}>
-                          <Laptop size={13} />
+                    </td>
+                    <td className="px-6 py-3.5 text-center">
+                      <Badge status={u.status} />
+                    </td>
+                    <td className="px-6 py-3.5 text-center">
+                      <p className="text-[10px] font-bold text-zinc-500 tracking-tight">{u.lastLogin || 'Never'}</p>
+                    </td>
+                    <td className="px-6 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setViewTarget(u)} className="p-1.5 hover:bg-violet-50 text-zinc-400 hover:text-violet-600 rounded-lg" title="View Details">
+                          <Eye size={14} />
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        <button onClick={() => setDeviceTarget(u)} className="p-1.5 hover:bg-violet-50 text-zinc-400 hover:text-violet-600 rounded-lg" title="Hardware Sync">
+                          <Laptop size={14} />
+                        </button>
+                        <button onClick={() => setEditTarget(u)} className="p-1.5 hover:bg-violet-50 text-zinc-400 hover:text-violet-600 rounded-lg" title="Edit Profile">
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={() => setToggleTarget(u)} className="p-1.5 hover:bg-amber-50 text-zinc-400 hover:text-amber-600 rounded-lg" title={u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
+                          {u.status === 'ACTIVE' ? <Lock size={14} /> : <UserCheck size={14} />}
+                        </button>
+                        <button onClick={() => setDelTarget(u)} className="p-1.5 hover:bg-red-50 text-zinc-400 hover:text-red-500 rounded-lg" title="Terminate Account">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -964,7 +766,7 @@ const UserManagement: React.FC = () => {
 
       {/* ── Modals ── */}
       {addOpen && (
-        <CashierFormModal onClose={() => setAddOpen(false)} onSaved={u => setUsers(p => [u, ...p])} branchId={branchId} />
+        <CashierFormModal onClose={() => setAddOpen(false)} onSaved={(u: User) => setUsers((p: User[]) => [u, ...p])} branchId={branchId} />
       )}
       {viewTarget && (
         <ViewUserModal onClose={() => setViewTarget(null)} user={viewTarget} />
@@ -972,7 +774,7 @@ const UserManagement: React.FC = () => {
       {editTarget && (
         <CashierFormModal
           onClose={() => setEditTarget(null)}
-          onSaved={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setEditTarget(null); }}
+          onSaved={(u: User) => { setUsers((p: User[]) => p.map((x: User) => x.id === u.id ? u : x)); setEditTarget(null); }}
           editingUser={editTarget}
           branchId={branchId}
         />
@@ -980,14 +782,14 @@ const UserManagement: React.FC = () => {
       {toggleTarget && (
         <ToggleStatusModal
           onClose={() => setToggleTarget(null)}
-          onToggled={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setToggleTarget(null); }}
+          onToggled={(u: User) => { setUsers((p: User[]) => p.map((x: User) => x.id === u.id ? u : x)); setToggleTarget(null); }}
           user={toggleTarget}
         />
       )}
       {delTarget && (
         <DeleteUserModal
           onClose={() => setDelTarget(null)}
-          onDeleted={id => { setUsers(p => p.filter(x => x.id !== id)); setDelTarget(null); }}
+          onDeleted={(id: number) => { setUsers((p: User[]) => p.filter((x: User) => x.id !== id)); setDelTarget(null); }}
           user={delTarget}
         />
       )}

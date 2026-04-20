@@ -12,6 +12,7 @@ import React from 'react';
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 type ToastType = 'success' | 'error' | 'warning';
+type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'primary';
 
 export interface ButtonProps {
   children: React.ReactNode;
@@ -110,17 +111,30 @@ export const Avatar: React.FC<AvatarProps> = ({ name, size = 'w-7 h-7 text-[10px
 // ─── Badge Component ────────────────────────────────────────────────────────
 
 interface BadgeProps {
-  status: string;
+  status?: string;
+  variant?: BadgeVariant;
+  className?: string;
+  children?: React.ReactNode;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ status }) => {
-  const isActive = status === 'ACTIVE' || status === 'active';
+export const Badge: React.FC<BadgeProps> = ({ status, variant, className = '', children }) => {
+  const label = children || status;
+  
+  const variants: Record<BadgeVariant, string> = {
+    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    warning: 'bg-amber-50 text-amber-700 border-amber-200',
+    danger:  'bg-red-50 text-red-700 border-red-200',
+    info:    'bg-blue-50 text-blue-700 border-blue-200',
+    neutral: 'bg-zinc-100 text-zinc-500 border-zinc-200',
+    primary: 'bg-violet-50 text-violet-700 border-violet-200',
+  };
+
+  const finalVariant = variant || (status?.toUpperCase() === 'ACTIVE' ? 'success' : 'neutral');
+  const variantClass = variants[finalVariant] || variants.neutral;
+
   return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
-      ${isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}
-    >
-      {status}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${variantClass} ${className}`}>
+      {label}
     </span>
   );
 };
@@ -341,8 +355,8 @@ interface StatCardProps {
   label: string;
   value: string | number;
   sub?: string;
-  trend?: number;
-  color?: 'violet' | 'emerald' | 'red' | 'amber' | 'blue' | 'indigo';
+  trend?: { label: string; up: boolean | null };
+  color?: 'violet' | 'emerald' | 'red' | 'amber' | 'blue' | 'indigo' | 'sky';
 }
 
 export const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = 'violet' }) => {
@@ -353,28 +367,28 @@ export const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, tre
     amber: { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'text-amber-600' },
     blue: { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-blue-600' },
     indigo: { bg: 'bg-indigo-50', border: 'border-indigo-200', icon: 'text-indigo-600' },
+    sky: { bg: 'bg-sky-50', border: 'border-sky-200', icon: 'text-sky-600' },
   };
 
-  const c = colors[color];
+  const c = colors[color] || colors.violet;
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem]`}>
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
           <span className={c.icon}>{icon}</span>
         </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{value}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 truncate">{label}</p>
+          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums truncate">{value}</p>
+          {sub && <p className="text-[10px] text-zinc-400 font-medium mt-0.5 truncate">{sub}</p>}
         </div>
       </div>
-      {trend !== undefined && (
-        <div className={`flex items-center gap-1 text-xs font-bold ${trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-          {trend >= 0 ? <>↑</> : <>↓</>}
-          {Math.abs(trend)}%
+      {trend && trend.up !== null && (
+        <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-widest shrink-0 ml-2 ${trend.up ? 'text-emerald-600' : 'text-red-500'}`}>
+          {trend.up ? '↑' : '↓'} {trend.label}
         </div>
       )}
-      {sub && <p className="text-xs text-zinc-400 font-medium">{sub}</p>}
     </div>
   );
 };

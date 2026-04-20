@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import {
   TrendingUp, TrendingDown, DollarSign, AlertCircle,
-  ShoppingBag, Activity, ArrowUpRight, ArrowDownRight,
+  ShoppingBag, Activity,
   Wallet, Download,
 } from 'lucide-react';
 import {
@@ -12,146 +12,54 @@ import {
   BarChart, Bar, Cell,
 } from 'recharts';
 
+import { StatCard, Button as Btn } from '../SharedUI';
 
-// ─── Global Styles ────────────────────────────────────────────────────────────
-const GlobalStyles = () => (
-  <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-    *, *::before, *::after, body, input, button, select, textarea {
-      font-family: 'DM Sans', sans-serif !important;
-      box-sizing: border-box;
-    }
-    .card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
-    .card:hover { box-shadow: 0 4px 24px rgba(59,32,99,0.08); }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-    .fade-in { animation: fadeIn 0.25s ease forwards; }
-    @keyframes bmd-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-    .bmd-live-dot { width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 5px rgba(34,197,94,0.6); animation:bmd-pulse 2s infinite; }
-  `}</style>
-);
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface TopSellerItem { product_name: string; total_qty: number; }
-
-interface PeriodStats {
-  total_sales: number;
-  total_orders: number;
-  voided_sales: number;
-  cash_in: number;
-  cash_out: number;
+// ─── Types ─────────────────────────────────────────────────────────────────────
+interface TopSellerItem {
+  product_name: string;
+  total_qty: number;
 }
 
-interface PeriodData {
+interface SalesPeriodData {
   data: { date: string; day: string; value: number }[];
-  stats: PeriodStats;
+  stats: {
+    cash_in: number;
+    cash_out: number;
+    total_sales: number;
+    voided_sales: number;
+    total_orders: number;
+  };
   top_sellers: TopSellerItem[];
+}
+
+interface SalesAnalyticsResponse {
+  daily: SalesPeriodData;
+  weekly: SalesPeriodData;
+  monthly: SalesPeriodData;
+  top_seller_today: TopSellerItem[];
 }
 
 interface DashboardApiResponse {
   success: boolean;
   data: {
-    daily_sales: { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
-    weekly_sales: { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
-    monthly_sales: { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
-    statistics: { top_seller_today?: TopSellerItem[] };
+    daily_sales: SalesPeriodData;
+    weekly_sales: SalesPeriodData;
+    monthly_sales: SalesPeriodData;
+    statistics: {
+      top_seller_today: TopSellerItem[];
+    };
   };
 }
 
-interface SalesAnalyticsResponse {
-  daily: PeriodData;
-  weekly: PeriodData;
-  monthly: PeriodData;
-  top_seller_today: TopSellerItem[];
-}
-
-// ─── Props ────────────────────────────────────────────────────────────────────
 interface BM_DashboardProps {
   branchId: number | null;
 }
 
-// ─── Cache helpers ────────────────────────────────────────────────────────────
-const CACHE_VERSION = 'v6';
-const cacheKey = (branchId: number | null) =>
-  `lucky_boba_analytics_${CACHE_VERSION}_branch_${branchId ?? 'all'}`;
+const cacheKey = (id: number | null) => `bm_dashboard_cache_${id ?? 'global'}`;
+const GlobalStyles = () => null;
 
-// ─── Shared UI Components ─────────────────────────────────────────────────────
-type ColorKey = "violet" | "emerald" | "red" | "amber" | "sky";
-type VariantKey = "primary" | "secondary";
-type SizeKey = "sm" | "md";
 
-interface StatCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  sub?: string;
-  trend?: { label: string; up: boolean | null };
-  color?: ColorKey;
-}
-
-const COLORS: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-  violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
-  emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-  red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
-  amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
-  sky: { bg: "bg-sky-50", border: "border-sky-200", icon: "text-sky-600" },
-};
-
-const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
-  const c = COLORS[color];
-  return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between card">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
-          <span className={c.icon}>{icon}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-          <p className="text-lg font-bold text-[#1a0f2e] tabular-nums whitespace-nowrap">{value}</p>
-          {sub && <p className="text-[11px] text-zinc-400 font-medium mt-0.5">{sub}</p>}
-        </div>
-      </div>
-      {trend && trend.up !== null && (
-        <div className={`flex items-center gap-1 text-xs font-bold shrink-0 ml-2 ${trend.up ? "text-emerald-600" : "text-red-500"}`}>
-          {trend.up ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-          {trend.label}
-        </div>
-      )}
-      {trend && trend.up === null && (
-        <span className="text-xs font-bold text-zinc-400 shrink-0 ml-2">—</span>
-      )}
-    </div>
-  );
-};
-
-interface SectionHeaderProps { title: string; desc?: string; action?: React.ReactNode; }
-const SectionHeader: React.FC<SectionHeaderProps> = ({ title, desc, action }) => (
-  <div className="flex items-center justify-between mb-5">
-    <div>
-      <h2 className="text-base font-bold text-[#1a0f2e]">{title}</h2>
-      {desc && <p className="text-xs text-zinc-400 mt-0.5">{desc}</p>}
-    </div>
-    {action}
-  </div>
-);
-
-interface BtnProps {
-  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
-  onClick?: () => void; className?: string; disabled?: boolean;
-}
-const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false }) => {
-  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
-  const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
-    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-  };
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  );
-};
-
+// ─── Global Styles ────────────────────────────────────────────────────────────
 const SkeletonBar: React.FC<{ w?: string; h?: string }> = ({ w = "w-full", h = "h-4" }) => (
   <div className={`${w} ${h} bg-zinc-100 rounded animate-pulse`} />
 );
@@ -367,9 +275,19 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
     <>
       <GlobalStyles />
       <div className="p-6 md:p-8 flex flex-col gap-6 fade-in">
+        <style>{`
+          .bmd-live-dot { width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 5px rgba(34,197,94,0.6); animation:bmd-pulse 2s infinite; }
+          @keyframes bmd-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+          .card:hover { box-shadow: 0 4px 24px rgba(59,32,99,0.08); }
+          .fade-in { animation: fadeIn 0.25s ease forwards; }
+          @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        `}</style>
 
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 mb-2">
+          <div className="flex-1">
+             <h1 className="text-xl font-bold text-[#1a0f2e]">Branch Dashboard</h1>
+             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Real-time performance metrics</p>
+          </div>
           <div className="flex rounded-xl overflow-hidden border border-zinc-200 shadow-sm shrink-0">
             {([
               { key: 'daily', label: 'Daily' },
@@ -377,16 +295,15 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
               { key: 'monthly', label: 'Monthly' },
             ] as const).map(({ key, label }) => (
               <button key={key} onClick={() => setTimeFilter(key)}
-                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${timeFilter === key ? 'bg-[#3b2063] text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}>
+                className={`px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${timeFilter === key ? 'bg-[#3b2063] text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}>
                 {label}
               </button>
             ))}
           </div>
         </div>
-      </div>
 
         {/* ── Stat Cards ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <StatCard
             icon={<TrendingUp size={18} strokeWidth={2} />}
             label="Cash In"
@@ -439,16 +356,16 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
         {/* ── Quick Metrics Row ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Net Cash Flow', value: netCashFlow, icon: <ArrowUpRight size={13} />, color: '#10b981' },
+            { label: 'Net Cash Flow', value: netCashFlow, icon: <Activity size={13} />, color: '#10b981' },
             { label: 'Void Rate', value: voidRate, icon: <AlertCircle size={13} />, color: '#f59e0b' },
-            { label: 'Avg Order Value', value: avgOrderVal, icon: <Activity size={13} />, color: '#8b5cf6' },
+            { label: 'Avg Order Value', value: avgOrderVal, icon: <TrendingUp size={13} />, color: '#8b5cf6' },
             { label: 'Items Sold', value: itemsSold, icon: <ShoppingBag size={13} />, color: '#3b82f6' },
           ].map((o, i) => (
-            <div key={i} className="bg-white border border-zinc-200 rounded-[0.625rem] px-4 py-3 flex items-center gap-3 card">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+            <div key={i} className="bg-white border border-zinc-200 rounded-[0.625rem] px-4 py-3.5 flex items-center gap-3 card shadow-sm">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: o.color + '18', color: o.color }}>{o.icon}</div>
               <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">{o.label}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 truncate">{o.label}</p>
                 <p className="text-sm font-bold text-[#1a0f2e] tabular-nums truncate">{o.value}</p>
               </div>
             </div>
@@ -456,7 +373,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
         </div>
 
         {/* ── Revenue Chart + Top Sellers Today ── */}
-        <div className="grid grid-cols-12 gap-4">
+        <div className="grid grid-cols-12 gap-3">
           {/* Revenue Chart */}
           <div className="col-span-12 lg:col-span-8 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
@@ -565,9 +482,12 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
 
         {/* ── All-Time Best Sellers + Rank Breakdown ── */}
         {sellersAllTime.length > 0 && (
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-12 lg:col-span-7 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
-              <SectionHeader title="All-Time Best Sellers" desc="Cumulative sales volume by product" />
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 lg:col-span-7 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
+              <div className="mb-5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#3b2063]">Volume Analysis</p>
+                <h3 className="text-base font-bold text-[#1a0f2e]">All-Time Best Sellers</h3>
+              </div>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart
                   data={sellersAllTime.slice(0, 6).map((x: TopSellerItem) => ({ name: x.product_name.split(' ')[0], qty: x.total_qty }))}
@@ -590,8 +510,11 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
               </ResponsiveContainer>
             </div>
 
-            <div className="col-span-12 lg:col-span-5 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
-              <SectionHeader title="Rank Breakdown" desc="Share of total sales volume" />
+            <div className="col-span-12 lg:col-span-5 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
+              <div className="mb-5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#3b2063]">Share Analysis</p>
+                <h3 className="text-base font-bold text-[#1a0f2e]">Rank Breakdown</h3>
+              </div>
               <div className="flex flex-col gap-3">
                 {sellersAllTime.slice(0, 6).map((item: TopSellerItem, i: number) => {
                   const pct = Math.round((item.total_qty / allTimeMax) * 100);
@@ -620,8 +543,11 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
         )}
 
         {/* ── Sparkline Trends ── */}
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6">
-          <SectionHeader title="Period Trends" desc="Metric breakdown for selected period" />
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
+          <div className="mb-5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#3b2063]">Period Analysis</p>
+            <h3 className="text-base font-bold text-[#1a0f2e]">Movement Trends</h3>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
             {[
               { label: 'Cash In', spark: sparkCashIn, color: '#16a34a' },

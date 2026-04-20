@@ -1,11 +1,14 @@
+// components/BranchManager/SalesReport/BM_AppOrders.tsx
 "use client"
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  ShoppingBag, ChevronDown, ChevronUp,
-  Clock, Package, Receipt, Search,
-  Activity, RefreshCw,
+  ShoppingBag, Clock, ChevronDown, 
+  ChefHat, CheckCircle2, Search,
+  Activity, RefreshCw, Smartphone,
+  User, CreditCard, Receipt, X, Filter
 } from 'lucide-react';
+import { StatCard, Button as Btn, Badge, AlertBox } from "../SharedUI";
 
 const getToken = () =>
   localStorage.getItem('auth_token') ||
@@ -16,25 +19,6 @@ const authHeaders = () => ({
   'Accept': 'application/json',
   ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {}),
 });
-
-// ─── Global Styles ────────────────────────────────────────────────────────────
-const GlobalStyles = () => (
-  <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-    *, *::before, *::after, body, input, button, select, textarea {
-      font-family: 'DM Sans', sans-serif !important;
-      box-sizing: border-box;
-    }
-    .card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
-    .card:hover { box-shadow: 0 4px 24px rgba(59,32,99,0.08); }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-    .fade-in { animation: fadeIn 0.25s ease forwards; }
-    @keyframes ao-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-    .ao-live-dot { width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 5px rgba(34,197,94,0.6); animation:ao-pulse 2s infinite; }
-    @keyframes ao-spin { to { transform: rotate(360deg); } }
-    .ao-spin { animation: ao-spin 0.7s linear infinite; }
-  `}</style>
-);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface OrderItem {
@@ -56,97 +40,46 @@ interface AppOrder {
   items: OrderItem[];
 }
 
+interface Stats {
+  pending: number;
+  preparing: number;
+  completed_today: number;
+  total_today: number;
+  avg_wait_min: number;
+}
+
 type StatusFilter = 'all' | 'pending' | 'preparing' | 'completed' | 'cancelled';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (v: number) =>
   `₱${Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 
 const timeStr = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
 
-const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; border: string }> = {
-  pending: { label: 'Pending', bg: '#fef9c3', color: '#92400e', border: '#fde68a' },
-  preparing: { label: 'Preparing', bg: '#ede9fe', color: '#3b2063', border: '#ddd6f7' },
-  completed: { label: 'Completed', bg: '#dcfce7', color: '#166534', border: '#bbf7d0' },
-  cancelled: { label: 'Cancelled', bg: '#fee2e2', color: '#991b1b', border: '#fecaca' },
+const getBadgeStatus = (s: string) => {
+  const st = s.toLowerCase();
+  if (st === 'pending') return 'PENDING';
+  if (st === 'preparing') return 'PREPARING';
+  if (st === 'completed') return 'ACTIVE'; // Using 'ACTIVE' for emerald look in SharedUI Badge
+  if (st === 'cancelled') return 'CANCELLED';
+  return s.toUpperCase();
 };
 
-const statusCfg = (s: string) =>
-  STATUS_CONFIG[s.toLowerCase()] ?? { label: s, bg: '#f4f4f5', color: '#52525b', border: '#e4e4e7' };
-
-// ─── Shared UI Components ─────────────────────────────────────────────────────
-type ColorKey = "violet" | "emerald" | "red" | "amber" | "sky";
-type VariantKey = "primary" | "secondary";
-type SizeKey = "sm" | "md";
-
-interface StatCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  sub?: string;
-  color?: ColorKey;
-}
-
-const COLORS: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-  violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
-  emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-  red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
-  amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
-  sky: { bg: "bg-sky-50", border: "border-sky-200", icon: "text-sky-600" },
-};
-
-const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, color = "violet" }) => {
-  const c = COLORS[color];
-  return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between card">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
-          <span className={c.icon}>{icon}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-          <p className="text-lg font-bold text-[#1a0f2e] tabular-nums whitespace-nowrap">{value}</p>
-          {sub && <p className="text-[11px] text-zinc-400 font-medium mt-0.5">{sub}</p>}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface BtnProps {
-  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
-  onClick?: () => void; className?: string; disabled?: boolean;
-}
-const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false }) => {
-  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
-  const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
-    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-  };
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  );
-};
-
-// ─── Order Row ────────────────────────────────────────────────────────────────
+// ─── Order Row Component ──────────────────────────────────────────────────────
 const OrderRow = ({ order, onStatusChange }: {
   order: AppOrder;
   onStatusChange: (id: number, status: string) => void;
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const cfg = statusCfg(order.status);
 
   const nextStatus: Record<string, string> = {
     pending: 'preparing',
     preparing: 'completed',
   };
 
-  const handleAdvance = async () => {
+  const handleAdvance = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const next = nextStatus[order.status.toLowerCase()];
     if (!next) return;
     setUpdating(true);
@@ -165,105 +98,98 @@ const OrderRow = ({ order, onStatusChange }: {
   };
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden card">
-      {/* Row header */}
-      <div className="flex items-center gap-3 px-6 py-5">
+    <div className={`bg-white border border-zinc-200 rounded-[1.25rem] overflow-hidden transition-all duration-300 ${expanded ? 'shadow-xl shadow-purple-900/5 ring-1 ring-purple-500/20' : 'shadow-sm hover:border-[#3b2063]/30'}`}>
+      <div className="flex items-center gap-4 px-6 py-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${expanded ? 'bg-[#3b2063] text-white shadow-lg shadow-purple-200' : 'bg-zinc-50 text-zinc-400'}`}>
+           <Smartphone size={18} />
+        </div>
 
-        {/* Invoice + time */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold text-[#1a0f2e] tracking-tight">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="text-xs font-black text-[#1a0f2e] tracking-wide uppercase">
               {order.invoice_number}
             </span>
-            <span
-              style={{
-                fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em',
-                textTransform: 'uppercase', background: cfg.bg, color: cfg.color,
-                border: `1px solid ${cfg.border}`, borderRadius: '100px', padding: '2px 8px',
-              }}
-            >
-              {cfg.label}
-            </span>
+            <Badge status={getBadgeStatus(order.status)} />
           </div>
-          <div className="flex items-center gap-3 mt-1.5">
-            <span className="text-xs text-zinc-500 font-medium flex items-center gap-1">
-              <Clock size={12} />
-              {timeStr(order.created_at)}
-            </span>
-            <span className="text-zinc-300">·</span>
-            <span className="text-xs text-zinc-500 font-medium">{order.customer_name}</span>
-            <span className="text-zinc-300">·</span>
-            <span className="text-xs text-zinc-500 font-medium">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-tight">
+               <User size={10} /> {order.customer_name}
+            </div>
+            <div className="w-[1.5px] h-2.5 bg-zinc-200" />
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-tight">
+               <Clock size={10} /> {timeStr(order.created_at)}
+            </div>
+            <div className="w-[1.5px] h-2.5 bg-zinc-200" />
+            <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">
+               {order.items.length} Units
+            </div>
           </div>
         </div>
 
-        {/* Total */}
-        <div className="text-right shrink-0 px-4">
-          <p className="text-base font-bold text-[#3b2063] tracking-tight">
+        <div className="text-right px-4 hidden sm:block">
+          <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Yield</p>
+          <p className="text-sm font-black text-[#3b2063] tabular-nums tracking-tighter leading-none">
             {fmt(order.total_amount)}
           </p>
         </div>
 
-        {/* Advance button */}
         {nextStatus[order.status.toLowerCase()] && (
           <Btn
             variant={updating ? "secondary" : "primary"}
             disabled={updating}
             onClick={handleAdvance}
-            className="shrink-0"
+            className="shrink-0 px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-widest"
           >
             {updating
-              ? <><div className="ao-spin w-3 h-3 border-2 border-zinc-300 border-t-zinc-500 rounded-full" /> Wait</>
-              : order.status.toLowerCase() === 'pending' ? '→ Preparing' : '→ Complete'
+              ? <RefreshCw size={12} className="animate-spin" />
+              : order.status.toLowerCase() === 'pending' ? 'Prep Order' : 'Seal Order'
             }
           </Btn>
         )}
 
-        {/* Expand toggle */}
         <button
-          onClick={() => setExpanded(e => !e)}
-          className="w-8 h-8 flex items-center justify-center bg-zinc-100 hover:bg-zinc-200 text-zinc-500 rounded-md transition-colors shrink-0 ml-2"
+          className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${expanded ? 'bg-zinc-100 text-[#3b2063] rotate-180' : 'bg-zinc-50 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600'}`}
         >
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          <ChevronDown size={16} />
         </button>
       </div>
 
-      {/* Expanded items */}
       {expanded && (
-        <div className="border-t border-zinc-100 bg-zinc-50/50 px-6 py-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3">Order Items</p>
-          <div className="flex flex-col gap-3">
+        <div className="border-t border-zinc-100 bg-zinc-50/20 px-6 py-5 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center justify-between mb-4">
+             <h5 className="text-[10px] font-black text-[#1a0f2e] uppercase tracking-widest">Manifest Breakdown</h5>
+             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-zinc-100 text-zinc-500 rounded text-[8px] font-black uppercase tracking-widest leading-none">
+                <Receipt size={10} /> Detailed Invoice
+             </div>
+          </div>
+
+          <div className="space-y-2.5">
             {order.items.map(item => (
-              <div key={item.id} className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#3b2063] mt-2 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-[#1a0f2e]">
-                      {item.qty}× {item.name}
-                    </p>
-                    {item.cup_size && (
-                      <p className="text-xs text-zinc-500 mt-0.5">Size: {item.cup_size}</p>
-                    )}
-                    {item.add_ons && item.add_ons.length > 0 && (
-                      <p className="text-xs text-zinc-500 mt-0.5">
-                        Add-ons: {item.add_ons.join(', ')}
-                      </p>
-                    )}
-                  </div>
+              <div key={item.id} className="flex items-center justify-between bg-white border border-zinc-100 p-3 rounded-xl shadow-sm">
+                <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-100 flex items-center justify-center text-[11px] font-black text-[#3b2063]">
+                      {item.qty}×
+                   </div>
+                   <div>
+                      <p className="text-[11px] font-black text-[#1a0f2e] uppercase tracking-tight">{item.name}</p>
+                      <div className="flex gap-2 mt-0.5">
+                        {item.cup_size && <span className="text-[9px] font-bold text-zinc-400 uppercase bg-zinc-50 px-1.5 py-0.25 rounded border border-zinc-100">Size: {item.cup_size}</span>}
+                        {item.add_ons && item.add_ons.length > 0 && <span className="text-[9px] font-bold text-zinc-400 uppercase bg-zinc-50 px-1.5 py-0.25 rounded border border-zinc-100">Ext: {item.add_ons.join(', ')}</span>}
+                      </div>
+                   </div>
                 </div>
-                <span className="text-sm font-semibold text-zinc-500 shrink-0">
-                  {fmt(item.price)}
-                </span>
+                <div className="text-right">
+                   <p className="text-[11px] font-black text-[#3b2063] tabular-nums">{fmt(item.price)}</p>
+                </div>
               </div>
             ))}
           </div>
 
-          {/* Receipt footer */}
-          <div className="mt-4 pt-4 border-t border-zinc-200 flex justify-between items-center">
-            <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Total</span>
-            <span className="text-base font-bold text-[#3b2063]">
+          <div className="mt-5 pt-4 border-t border-dashed border-zinc-200 flex justify-between items-center">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Gross Settlement</p>
+            <p className="text-xl font-black text-[#3b2063] tabular-nums tracking-tighter leading-none">
               {fmt(order.total_amount)}
-            </span>
+            </p>
           </div>
         </div>
       )}
@@ -272,175 +198,151 @@ const OrderRow = ({ order, onStatusChange }: {
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const BM_AppOrders = () => {
+const BM_AppOrders: React.FC = () => {
   const [orders, setOrders] = useState<AppOrder[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [search, setSearch] = useState('');
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchOrders = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    else setRefreshing(true);
-    setError(null);
+  const fetchOrders = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    
     try {
-      const res = await fetch(`/api/branch/app-orders`, {
-        headers: authHeaders(),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetch("/api/online-orders", { headers: authHeaders() });
+      if (!res.ok) throw new Error("API Connection Interrupted");
       const data = await res.json();
-      setOrders(data.data ?? data);
-    } catch (e) {
-      setError('Could not load orders. Check your connection.');
-      console.error(e);
+      setOrders(Array.isArray(data) ? data : []);
+      setError("");
+    } catch {
+      setError("Failed to re-establish secure link with digital manifest stream.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/online-orders/stats", { headers: authHeaders() });
+      const data = await res.json();
+      if (data.success) setStats(data.data);
+    } catch { /* fail silently */ }
+  }, []);
 
-  // Auto-refresh every 30 seconds
   useEffect(() => {
-    const id = setInterval(() => fetchOrders(true), 30_000);
-    return () => clearInterval(id);
-  }, [fetchOrders]);
+    fetchOrders();
+    fetchStats();
+    pollRef.current = setInterval(() => {
+      fetchOrders();
+      fetchStats();
+    }, 5000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [fetchOrders, fetchStats]);
 
   const handleStatusChange = (id: number, newStatus: string) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
+    fetchStats();
   };
 
-  // Filtered orders
   const filtered = orders.filter(o => {
-    const matchStatus = statusFilter === 'all' || o.status.toLowerCase() === statusFilter;
-    const q = search.toLowerCase();
-    const matchSearch = !q
-      || o.invoice_number.toLowerCase().includes(q)
-      || o.customer_name.toLowerCase().includes(q)
-      || o.items.some(i => i.name.toLowerCase().includes(q));
-    return matchStatus && matchSearch;
+    if (statusFilter !== 'all' && o.status.toLowerCase() !== statusFilter) return false;
+    if (search && !o.invoice_number.toLowerCase().includes(search.toLowerCase()) && !o.customer_name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
   });
 
-  // Stats
-  const todayTotal = orders.reduce((s, o) => s + (o.status !== 'cancelled' ? o.total_amount : 0), 0);
-  const pendingCount = orders.filter(o => o.status.toLowerCase() === 'pending').length;
-  const doneCount = orders.filter(o => o.status.toLowerCase() === 'completed').length;
-  const totalCount = orders.length;
-
   const STATUS_TABS: { key: StatusFilter; label: string }[] = [
-    { key: 'all', label: 'All' },
+    { key: 'all', label: 'All Manifests' },
     { key: 'pending', label: 'Pending' },
     { key: 'preparing', label: 'Preparing' },
     { key: 'completed', label: 'Completed' },
-    { key: 'cancelled', label: 'Cancelled' },
   ];
 
   return (
-    <>
-      <GlobalStyles />
-      <div className="p-6 md:p-8 flex flex-col gap-6 fade-in">
+    <div className="p-6 md:p-8 space-y-6 fade-in pb-20">
+      <style>{`.fade-in { animation: fadeIn 0.3s ease-out forwards; } @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }`}</style>
+      
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1a0f2e]">Digital Channel</h1>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-1">App-specific order fulfillment & tracking</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 text-[9px] font-black uppercase tracking-widest leading-none">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Stream
+          </div>
+          <Btn variant="secondary" onClick={() => fetchOrders(true)} disabled={refreshing} className="px-5 py-2.5 rounded-xl shadow-sm">
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} /> <span className="ml-1">Sync Hub</span>
+          </Btn>
+        </div>
+      </div>
 
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-          <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
-            <input
-              type="text"
-              placeholder="Search orders or items..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+      <div className="flex flex-wrap items-center gap-3 p-4 bg-white border border-zinc-200 rounded-2xl shadow-sm">
+        <div className="flex bg-zinc-50 border border-zinc-200 rounded-xl p-1 shadow-inner">
+          {STATUS_TABS.map(tab => (
+            <button key={tab.key} onClick={() => setStatusFilter(tab.key)}
+              className={`px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${statusFilter === tab.key ? "bg-white text-[#3b2063] shadow-sm" : "text-zinc-400 hover:text-zinc-600"}`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative group max-w-sm flex-1 ml-auto">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
+          <input
+            type="text"
+            placeholder="Search manifests..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-100 rounded-xl text-xs font-bold focus:outline-none focus:ring-4 focus:ring-violet-400/5 focus:border-violet-400 focus:bg-white transition-all shadow-inner"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="App Settlement" value={loading ? "—" : fmt(stats?.total_today ?? 0)} sub="Total daily yield" icon={<CreditCard size={18} />} color="violet" />
+        <StatCard label="Traffic Volume" value={loading ? "—" : (stats?.total_today ?? 0).toLocaleString()} sub="Digital manifests" icon={<Activity size={18} />} color="sky" />
+        <StatCard label="In Processing" value={loading ? "—" : (stats?.pending ?? 0).toLocaleString()} sub="Awaiting sealing" icon={<Clock size={18} />} color="amber" />
+        <StatCard label="Vault Handover" value={loading ? "—" : (stats?.completed_today ?? 0).toLocaleString()} sub="Closed tickets" icon={<CheckCircle2 size={18} />} color="emerald" />
+      </div>
+
+      {loading ? (
+        <div className="space-y-3">
+           {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-zinc-50 border border-zinc-100 rounded-2xl animate-pulse" />)}
+        </div>
+      ) : error ? (
+        <AlertBox type="error" message={error} />
+      ) : filtered.length === 0 ? (
+        <div className="bg-white border border-zinc-200 rounded-[1.25rem] p-20 flex flex-col items-center text-center gap-4 shadow-sm">
+           <div className="w-20 h-20 rounded-[2rem] bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-200">
+              <ShoppingBag size={40} />
+           </div>
+           <div>
+             <h3 className="text-base font-black text-[#1a0f2e] uppercase tracking-wide">Silent Channel</h3>
+             <p className="text-[11px] text-zinc-400 font-bold max-w-xs">No active manifests detected for the current filter criteria.</p>
+           </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {filtered.map(order => (
+            <OrderRow
+              key={order.id}
+              order={order}
+              onStatusChange={handleStatusChange}
             />
-          </div>
-
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusFilter)}
-            className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
-            {STATUS_TABS.map(tab => (
-              <option key={tab.key} value={tab.key}>
-                {tab.label} ({tab.key === "all" ? orders.length : orders.filter(o => o.status.toLowerCase() === tab.key).length})
-              </option>
-            ))}
-          </select>
-
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
-              <div className="ao-live-dot" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Live</span>
-            </div>
-            <Btn variant="secondary" onClick={() => fetchOrders(true)} disabled={refreshing} className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-              <RefreshCw size={14} className={refreshing ? "ao-spin" : ""} /> Refresh
-            </Btn>
+          ))}
+          <div className="flex items-center justify-center gap-4 pt-6 opacity-30 select-none">
+             <div className="h-[1px] bg-zinc-300 flex-1" />
+             <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">End of Manifest Stream</div>
+             <div className="h-[1px] bg-zinc-300 flex-1" />
           </div>
         </div>
-      </div>
-
-        {/* ── Stat Cards ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Today's Revenue" sub="Completed + active orders"
-            value={fmt(todayTotal)}
-            icon={<Receipt size={18} strokeWidth={2} />}
-            color="violet"
-          />
-          <StatCard
-            label="Total Orders" sub="All statuses today"
-            value={String(totalCount)}
-            icon={<ShoppingBag size={18} strokeWidth={2} />}
-            color="sky"
-          />
-          <StatCard
-            label="Pending" sub="Awaiting preparation"
-            value={String(pendingCount)}
-            icon={<Clock size={18} strokeWidth={2} />}
-            color="amber"
-          />
-          <StatCard
-            label="Completed" sub="Fulfilled today"
-            value={String(doneCount)}
-            icon={<Package size={18} strokeWidth={2} />}
-            color="emerald"
-          />
-        </div>
-
-
-
-        {/* ── Orders List ── */}
-        {loading ? (
-          <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-12 flex flex-col items-center justify-center gap-3 w-full">
-            <Activity size={28} className="text-zinc-300 ao-spin" />
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Loading orders…</p>
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-[0.625rem] p-10 flex flex-col items-center justify-center gap-3">
-            <ShoppingBag size={24} className="text-red-500" />
-            <p className="text-sm font-semibold text-red-600">{error}</p>
-            <Btn onClick={() => fetchOrders()}>Try Again</Btn>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-16 flex flex-col items-center justify-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center mb-1">
-              <ShoppingBag size={24} className="text-zinc-300" />
-            </div>
-            <p className="text-base font-bold text-[#1a0f2e]">No orders found</p>
-            <p className="text-sm text-zinc-400 text-center max-w-sm">
-              {search || statusFilter !== 'all' ? 'Try adjusting your filters or search term to find what you are looking for.' : 'No app orders for your branch today. They will appear here when they arrive.'}
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {filtered.map(order => (
-              <OrderRow
-                key={order.id}
-                order={order}
-                onStatusChange={handleStatusChange}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </>
+      )}
+    </div>
   );
 };
 

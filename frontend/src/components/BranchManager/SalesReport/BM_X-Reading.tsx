@@ -2,12 +2,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import React from "react";
 import {
-  RefreshCw, AlertCircle, Printer, ChevronDown, TrendingUp, 
-   Menu,
+  RefreshCw, Printer, ChevronDown, TrendingUp, 
+  Menu, Clock, FileText, Search, LayoutGrid, Coffee, AlertCircle, ShoppingBag, CreditCard, LayoutDashboard
 } from "lucide-react";
-
-type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+import { Badge, Button as Btn, StatCard, AlertBox, ModalShell } from "../SharedUI";
 
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
@@ -19,7 +17,7 @@ const authHeaders = () => ({
 
 interface BranchOption { id: number; name: string; }
 
-// ── Receipt report type (mirrors cashier XReading) ────────────────────────────
+// ── Receipt report type ───────────────────────────────────────────────────────
 interface XReadingReport {
   date?: string;
   other_discount?: number;
@@ -74,33 +72,7 @@ interface XReadingReport {
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
 }
 
-interface BtnProps {
-  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
-  onClick?: () => void; className?: string; disabled?: boolean;
-}
-
-
-const Btn: React.FC<BtnProps> = ({
-  children, variant = "primary", size = "sm",
-  onClick, className = "", disabled = false,
-}) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
-  const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
-    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
-  };
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  );
-};
-
-
-// ── Receipt helpers (same as cashier) ─────────────────────────────────────────
+// ── Receipt helpers ───────────────────────────────────────────────────────────
 const ReceiptRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex justify-between text-[11px] leading-snug">
     <span className="uppercase w-[60%] leading-tight">{label}</span>
@@ -151,7 +123,6 @@ const BM_XReading: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ── Normalize API response (same logic as cashier) ────────────────────────
   const normalizeResponse = (type: string, raw: Record<string, unknown>): XReadingReport => {
     switch (type) {
       case "cash_count": {
@@ -218,57 +189,55 @@ const BM_XReading: React.FC = () => {
     }
   };
 
-const fetchReading = useCallback(async () => {
-  if (!branchId) return;
-  setLoading(true);
-  setError("");
-  setReportData(null);
-  try {
-    const params = new URLSearchParams({ branch_id: branchId, date });
-    if (shift !== "all") params.set("shift", shift);
+  const fetchReading = useCallback(async () => {
+    if (!branchId) return;
+    setLoading(true);
+    setError("");
+    setReportData(null);
+    try {
+      const params = new URLSearchParams({ branch_id: branchId, date });
+      if (shift !== "all") params.set("shift", shift);
 
-    // ── Special case: summary needs two endpoints merged ──────────────────
-    if (reportType === "summary") {
-      const [summaryRes, qtyRes] = await Promise.all([
-        fetch(`/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-        fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-      ]);
-      const merged = {
-        ...summaryRes,
-        categories:         qtyRes.categories         ?? [],
-        all_addons_summary: qtyRes.all_addons_summary ?? [],
-      };
-      const normalized = normalizeResponse("summary", merged as Record<string, unknown>);
-      setReportData({ ...normalized, report_type: "summary" });
-      return;
+      if (reportType === "summary") {
+        const [summaryRes, qtyRes] = await Promise.all([
+          fetch(`/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+        ]);
+        const merged = {
+          ...summaryRes,
+          categories:         qtyRes.categories         ?? [],
+          all_addons_summary: qtyRes.all_addons_summary ?? [],
+        };
+        const normalized = normalizeResponse("summary", merged as Record<string, unknown>);
+        setReportData({ ...normalized, report_type: "summary" });
+        return;
+      }
+
+      let url = "";
+      switch (reportType) {
+        case "hourly_sales": url = `/api/reports/hourly-sales?${params}`; break;
+        case "void_logs":    url = `/api/reports/void-logs?${params}`; break;
+        case "detailed":     url = `/api/reports/sales-detailed?${params}`; break;
+        case "qty_items":    url = `/api/reports/item-quantities?${params}`; break;
+        case "cash_count":   url = `/api/cash-counts/summary?${params}`; break;
+        case "search":
+          params.set("query", invoiceQuery);
+          url = `/api/receipts/search?${params}`;
+          break;
+        default:             url = `/api/reports/x-reading?${params}`; break;
+      }
+
+      const res  = await fetch(url, { headers: authHeaders() });
+      const json = await res.json() as Record<string, unknown>;
+      const normalized = normalizeResponse(reportType, json);
+      setReportData({ ...normalized, report_type: reportType });
+
+    } catch {
+      setError("Failed to load official reading data.");
+    } finally {
+      setLoading(false);
     }
-
-    // ── Determine URL ──────────────────────────────────────────────────────
-    let url = "";
-    switch (reportType) {
-      case "hourly_sales": url = `/api/reports/hourly-sales?${params}`; break;
-      case "void_logs":    url = `/api/reports/void-logs?${params}`; break;
-      case "detailed":     url = `/api/reports/sales-detailed?${params}`; break;
-      case "qty_items":    url = `/api/reports/item-quantities?${params}`; break;
-      case "cash_count":   url = `/api/cash-counts/summary?${params}`; break;
-      case "search":
-        params.set("query", invoiceQuery);
-        url = `/api/receipts/search?${params}`;
-        break;
-      default:             url = `/api/reports/x-reading?${params}`; break;
-    }
-
-    const res  = await fetch(url, { headers: authHeaders() });
-    const json = await res.json() as Record<string, unknown>;
-    const normalized = normalizeResponse(reportType, json);
-    setReportData({ ...normalized, report_type: reportType });
-
-  } catch {
-    setError("Failed to load report data.");
-  } finally {
-    setLoading(false);
-  }
-}, [branchId, date, shift, reportType, invoiceQuery]);
+  }, [branchId, date, shift, reportType, invoiceQuery]);
 
   useEffect(() => {
     if (branchId) fetchReading();
@@ -279,17 +248,17 @@ const fetchReading = useCallback(async () => {
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
   const menuCards = [
-    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#3b2063]"   },
-    { label: "OVERVIEW",    title: "SALES SUMMARY",  type: "summary",      color: "border-amber-400"   },
-    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#3b2063]"   },
-    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#3b2063]"   },
-    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#3b2063]"   },
-    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#3b2063]"   },
-    { label: "X-READING",   title: "X-READING",      type: "x_reading",    color: "border-emerald-500" },
-    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#3b2063]"   },
+    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "violet", icon: <Clock size={16} />  },
+    { label: "OVERVIEW",    title: "SALES SUMMARY",  type: "summary",      color: "amber",  icon: <LayoutDashboard size={16} /> },
+    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "red",    icon: <AlertCircle size={16} /> },
+    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "blue",   icon: <Search size={16} /> },
+    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "indigo", icon: <FileText size={16} /> },
+    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "sky",    icon: <ShoppingBag size={16} /> },
+    { label: "OFFICIAL",    title: "X-READING",      type: "x_reading",    color: "emerald",icon: <LayoutGrid size={16} /> },
+    { label: "CASH",        title: "CASH COUNT",     type: "cash_count",   color: "violet", icon: <CreditCard size={16} /> },
   ];
 
-  // ── Receipt render functions (ported from cashier) ────────────────────────
+  // ── Receipt render functions ────────────────
   const renderHourlySales = () => {
     const HOUR_LABELS = ["12am","1am","2am","3am","4am","5am","6am","7am","8am","9am","10am","11am","12pm","1pm","2pm","3pm","4pm","5pm","6pm","7pm","8pm","9pm","10pm","11pm"];
     const salesMap = new Map<number, { total: number; count: number }>();
@@ -346,8 +315,7 @@ const fetchReading = useCallback(async () => {
   );
 
   const renderQtyItems = () => {
-    if (!reportData?.categories)
-      return <p className="text-[11px] mt-4 text-center">No category data.</p>;
+    if (!reportData?.categories) return <p className="text-[11px] mt-4 text-center">No category data.</p>;
     const SIZE_ORDER = ["SM","UM","PCM","JR","SL","UL","PCL"];
     const totalItems = reportData.categories.reduce((acc, cat) => acc + cat.products.reduce((p, pr) => p + pr.total_qty, 0), 0);
     return (
@@ -732,8 +700,6 @@ const fetchReading = useCallback(async () => {
     );
   };
 
-  const HIDE_FOOTER = ["summary","qty_items","search","detailed"];
-
   const renderReceiptContent = () => {
     switch (reportData?.report_type) {
       case "hourly_sales": return renderHourlySales();
@@ -748,12 +714,12 @@ const fetchReading = useCallback(async () => {
   };
 
   return (
-    <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
+    <div className="p-6 md:p-8 fade-in flex flex-col gap-6">
       <style>{`
         @media print {
           @page { size: 80mm 2000mm; margin: 3mm 2mm !important; }
           body * { visibility: hidden; }
-          nav, header, aside, button { display: none !important; }
+          nav, header, aside, .no-print { display: none !important; }
           html, body { width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; }
           .printable-receipt-area, .printable-receipt-area * { visibility: visible !important; }
           .printable-receipt-area {
@@ -761,149 +727,196 @@ const fetchReading = useCallback(async () => {
             width: 80mm !important; display: block !important;
           }
         }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">X Reading</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Mid-shift running totals — does not close the shift</p>
+          <h1 className="text-2xl font-bold text-[#1a0f2e]">Official X Reading</h1>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-1">Mid-shift operational diagnostics & audit reporting</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${
-                isMenuOpen ? "bg-[#3b2063] text-white border-[#3b2063]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
-              }`}
-            >
-              <Menu size={13} /> Menu
-            </button>
-            {isMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-violet-100 shadow-2xl p-4 z-50 rounded-[0.625rem]">
-                <div className="grid grid-cols-2 gap-2">
-                  {menuCards.map(card => (
-                    <button
-                      key={card.type}
-                      onClick={() => { setReportType(card.type); setIsMenuOpen(false); }}
-                      className={`border-l-4 ${card.color} p-3 h-16 flex flex-col justify-center text-left hover:bg-violet-50 transition-all rounded-[0.625rem] w-full ${
-                        reportType === card.type ? "bg-violet-50" : "bg-white"
-                      }`}
-                    >
-                      <p className="text-zinc-400 font-bold uppercase tracking-widest text-[8px] mb-0.5">{card.label}</p>
-                      <p className="text-xs font-black text-slate-800 uppercase leading-tight">{card.title}</p>
-                    </button>
-                  ))}
+        <div className="flex items-center gap-3">
+          <div className="flex bg-zinc-50 border border-zinc-200 rounded-xl p-1 shadow-inner">
+            {([['all', 'All'], ['morning', 'AM'], ['evening', 'PM']] as const).map(([key, label]) => (
+              <button key={key} onClick={() => setShift(key)}
+                className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${shift === key ? 'bg-[#3b2063] text-white shadow-md' : 'text-zinc-400 hover:text-zinc-600'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="px-4 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-4 focus:ring-violet-400/10 focus:border-violet-400 transition-all shadow-sm cursor-pointer"
+          />
+          <Btn onClick={() => setIsMenuOpen(true)}>
+             <LayoutGrid size={14} /> <span className="ml-1">Report Matrix</span>
+          </Btn>
+        </div>
+      </div>
+
+      {error && <AlertBox type="error" message={error} />}
+
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 no-print">
+        <StatCard
+          icon={<TrendingUp size={18} />}
+          label="Gross Revenue"
+          value={loading ? "—" : phCurrency.format(reportData?.gross_sales || 0)}
+          sub="Pre-Discount Total"
+          color="violet"
+        />
+        <StatCard
+          icon={<Coffee size={18} />}
+          label="Net Sales"
+          value={loading ? "—" : phCurrency.format(reportData?.net_sales || 0)}
+          sub="After Tax & Disc"
+          color="emerald"
+        />
+        <StatCard
+          icon={<FileText size={18} />}
+          label="Transactions"
+          value={loading ? "—" : reportData?.transaction_count || 0}
+          sub="Official Slips"
+          color="amber"
+        />
+        <StatCard
+          icon={<CreditCard size={18} />}
+          label="Non-Cash"
+          value={loading ? "—" : phCurrency.format(reportData?.non_cash_total || 0)}
+          sub="E-Wallets & Card"
+          color="indigo"
+        />
+      </div>
+
+      {/* ── Main View Area ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Receipt Sidebar (Table of Contents) */}
+        <div className="lg:col-span-4 flex flex-col gap-3 no-print">
+          <div className="bg-white border border-zinc-200 rounded-[1.25rem] p-5 shadow-sm">
+             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 px-1">Selected Terminal Diagnostics</p>
+             <div className="flex flex-col gap-2">
+                {menuCards.map(card => (
+                  <button
+                    key={card.type}
+                    onClick={() => setReportType(card.type)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left group ${
+                      reportType === card.type 
+                        ? "bg-[#3b2063] border-[#3b2063] text-white shadow-lg shadow-purple-100" 
+                        : "bg-white border-zinc-50 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-200"
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                      reportType === card.type ? "bg-white/20 text-white" : "bg-zinc-50 text-zinc-400 group-hover:text-zinc-600"
+                    }`}>
+                      {card.icon}
+                    </div>
+                    <div>
+                      <p className={`text-[8px] font-black uppercase tracking-widest ${
+                        reportType === card.type ? "text-white/60" : "text-zinc-400"
+                      }`}>{card.label}</p>
+                      <p className="text-xs font-bold truncate">{card.title}</p>
+                    </div>
+                  </button>
+                ))}
+             </div>
+          </div>
+        </div>
+
+        {/* Official Receipt Preview */}
+        <div className="lg:col-span-8 flex flex-col items-center">
+          <div className="no-print mb-4 w-full flex justify-between items-center">
+             <div className="flex items-center gap-2">
+               <Badge variant={loading ? "neutral" : "success"}>{loading ? "Synchronising..." : "Live Data"}</Badge>
+               <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{reportType.replace('_', ' ')} Report</span>
+             </div>
+             <Btn variant="secondary" onClick={handlePrint} className="shadow-sm">
+               <Printer size={13} /> Print Slip
+             </Btn>
+          </div>
+
+          <div className="printable-receipt-area bg-white border border-zinc-200 shadow-2xl p-6 w-full max-w-[340px] font-mono text-black min-h-[500px]">
+             {/* Header */}
+             <div className="text-center space-y-1 mb-6">
+                <p className="text-sm font-black uppercase tracking-tighter">Lucky Boba Coffee</p>
+                <p className="text-[10px] uppercase">{selectedBranchName}</p>
+                <p className="text-[10px] uppercase">MID-SHIFT RUNNING TOTALS</p>
+                <div className="text-[9px] text-zinc-500 uppercase mt-2">
+                   Date: {date} <br />
+                   Shift: {shift.toUpperCase()}
                 </div>
-              </div>
-            )}
+             </div>
+
+             {loading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3 text-zinc-300">
+                  <RefreshCw size={32} className="animate-spin" />
+                  <p className="text-[10px] font-black uppercase tracking-widest">Initialising Diagnostics...</p>
+                </div>
+             ) : (
+                renderReceiptContent()
+             )}
+
+             {/* Footer */}
+             {!loading && (
+                <div className="mt-8 pt-4 border-t border-dashed border-black text-center pb-10">
+                   <p className="text-[10px] uppercase font-bold">Diagnostics Complete</p>
+                   <p className="text-[8px] text-zinc-500 mt-1 uppercase">POS Terminal v4.0.2</p>
+                   <p className="text-[8px] text-zinc-500 uppercase">Generated: {new Date().toLocaleString()}</p>
+                   <p className="text-[10px] font-black mt-4 uppercase tracking-[0.2em] opacity-30">INTERNAL USE ONLY</p>
+                </div>
+             )}
           </div>
-          <Btn variant="secondary" onClick={() => fetchReading()} disabled={loading || !branchId}>
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
-          <Btn onClick={handlePrint} disabled={!reportData}>
-            <Printer size={13} /> Print
-          </Btn>
         </div>
       </div>
 
-      {/* ── Filters ── */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch <span className="text-red-400">*</span></p>
-          <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
-              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-48">
-              <option value="">Select Branch</option>
-              {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
-            </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          </div>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date</p>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Shift</p>
-          <div className="relative">
-            <select value={shift} onChange={e => setShift(e.target.value)}
-              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-              <option value="all">All Shifts</option>
-              <option value="am">AM Shift</option>
-              <option value="pm">PM Shift</option>
-            </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          </div>
-        </div>
-        {reportType === "search" && (
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Invoice / Cashier</p>
-            <input type="text" value={invoiceQuery} onChange={e => setInvoiceQuery(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && fetchReading()}
-              placeholder="Search invoice..."
-              className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400 w-48" />
-          </div>
-        )}
-      </div>
-
-      {/* ── Error ── */}
-      {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle size={14} className="text-red-500 shrink-0" />
-          <p className="text-xs text-red-600 font-medium">{error}</p>
-        </div>
+      {/* Report Matrix Modal */}
+      {isMenuOpen && (
+        <ModalShell
+          onClose={() => setIsMenuOpen(false)}
+          title="Terminal Diagnostic Matrix"
+          sub="Select specialized reporting module"
+          icon={<LayoutGrid size={18} className="text-[#3b2063]" />}
+          footer={<Btn onClick={() => setIsMenuOpen(false)} className="w-full justify-center">Close Matrix</Btn>}
+        >
+           <div className="grid grid-cols-2 gap-3 py-2">
+              {menuCards.map(card => (
+                <button
+                  key={card.type}
+                  onClick={() => { setReportType(card.type); setIsMenuOpen(false); }}
+                  className={`p-4 rounded-2xl border-2 transition-all text-left flex flex-col gap-2 ${
+                    reportType === card.type 
+                      ? "bg-violet-50 border-[#3b2063]" 
+                      : "bg-white border-zinc-100 hover:border-violet-200"
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    reportType === card.type ? "bg-[#3b2063] text-white" : "bg-zinc-50 text-zinc-400"
+                  }`}>
+                    {card.icon}
+                  </div>
+                  <div>
+                    <p className={`text-[8px] font-black uppercase tracking-widest ${
+                      reportType === card.type ? "text-[#3b2063]" : "text-zinc-400"
+                    }`}>{card.label}</p>
+                    <p className="text-sm font-bold text-[#1a0f2e]">{card.title}</p>
+                  </div>
+                </button>
+              ))}
+           </div>
+        </ModalShell>
       )}
 
-      {/* ── Loading ── */}
-      {loading && (
-        <div className="flex flex-col items-center mt-20 opacity-50">
-          <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mb-3" />
-          <p className="text-sm text-zinc-400 font-bold uppercase">Generating report...</p>
-        </div>
-      )}
-
-      {/* ── Receipt preview — same as cashier XReading ── */}
-      {!loading && reportData && (
-        <div className="flex justify-center">
-          <div
-            className="printable-receipt-area bg-white border border-zinc-200 rounded-[0.625rem] shadow-sm p-6 w-full max-w-sm"
-            style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
-          >
-            <div className="text-center mb-2">
-              <p className="uppercase text-[13px] font-bold leading-tight">Lucky Boba Milktea</p>
-              <p className="uppercase text-[11px] mt-0.5">{selectedBranchName}</p>
-              <ReceiptDivider />
-              <p className="uppercase text-[12px] font-bold tracking-widest">
-                [X] {reportData.report_type === "x_reading" ? "X-READING" : (reportData.report_type ?? "REPORT").replace(/_/g, " ").toUpperCase()}
-              </p>
-              <p className="text-[10px] text-zinc-500">{date} · {shift === "all" ? "All Shifts" : shift.toUpperCase()}</p>
-            </div>
-            {renderReceiptContent()}
-            {!HIDE_FOOTER.includes(reportData.report_type ?? "") && (
-              <div className="mt-6 text-center text-[11px]">
-                <ReceiptDivider />
-                <p className="mt-3">____________________</p>
-                <p className="uppercase text-[10px] mt-0.5">Prepared By</p>
-                <p className="mt-3">____________________</p>
-                <p className="uppercase text-[10px] mt-0.5">Signed By</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Empty state ── */}
-      {!loading && !reportData && !error && (
-        <div className="flex flex-col items-center justify-center h-48 gap-2 text-zinc-400">
-          <TrendingUp size={28} className="text-zinc-200" />
-          <p className="text-sm font-semibold">Select a branch to load the report</p>
-          <p className="text-xs">Choose a branch and date from the filters above</p>
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#1a0f2e] text-white px-6 py-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-slide-up">
+           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+           <p className="text-[10px] font-black uppercase tracking-widest">{toast}</p>
         </div>
       )}
     </div>
-  )
+  );
 };
 
 export default BM_XReading;

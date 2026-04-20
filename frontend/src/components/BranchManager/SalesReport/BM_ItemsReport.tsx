@@ -1,102 +1,52 @@
 // components/BranchManager/SalesReport/BM_ItemsReport.tsx
-// Mirrors the SuperAdmin ItemsReportTab UI, locked to BM's own branch.
 import { useState, useEffect, useCallback, useMemo } from "react";
-import * as XLSX from 'xlsx';
 import {
-  Search, Download, AlertCircle,
-  ChevronDown, ChevronUp, Package,
-  ArrowUpRight, ArrowDownRight, Printer,
+  Search, Download, RefreshCw, AlertCircle,
+  ChevronDown, ChevronUp, X, Package,
+  Printer, Calendar, Layers,
 } from "lucide-react";
-import api from "../../../services/api";
-
-type ColorKey = "violet" | "emerald" | "red" | "amber";
-type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey = "sm" | "md" | "lg";
-type SortDir = "asc" | "desc";
-type SortKey = "product_name" | "category" | "total_quantity" | "total_revenue" | "avg_price";
-
-// ── Get BM branch info from localStorage ──────────────────────────────────────
-const getBMBranchName = (): string =>
-  localStorage.getItem("lucky_boba_user_branch") ?? "";
+import { StatCard, Button as Btn, Badge, AlertBox } from "../SharedUI";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ItemRow {
-  product_name: string;
-  category: string;
+  product_name:   string;
+  size?:          string;
+  cup_size_label?: string;
+  category:       string;
   total_quantity: number;
-  total_revenue: number;
-  avg_price: number;
-  times_ordered: number;
+  total_revenue:  number;
+  avg_price:      number;
+  times_ordered:  number;
 }
-
 interface CategoryOption { id: number; name: string; }
 
 interface ApiItemRow {
-  name: string;
-  category: string | null;
-  qty: string | number;
-  amount: string | number;
+  product_name:   string;
+  size?:          string;
+  cup_size_label?: string;
+  category:       string | null;
+  total_quantity: string | number;
+  total_revenue:  string | number;
+  avg_unit_price: string | number | null;
+  times_ordered:  string | number | null;
 }
+
+type SortDir = "asc" | "desc";
+type SortKey = "product_name" | "category" | "total_quantity" | "total_revenue" | "avg_price";
+
+// ── API Helpers ───────────────────────────────────────────────────────────────
+const getToken = () =>
+  localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  "Accept":       "application/json",
+  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+});
+
+const getBMBranchId = (): string => localStorage.getItem("lucky_boba_user_branch_id") || "";
+const getBMBranchName = (): string => localStorage.getItem("lucky_boba_user_branch") || "My Branch";
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
-interface StatCardProps {
-  icon: React.ReactNode; label: string; value: string | number;
-  sub?: string; trend?: number; color?: ColorKey;
-}
-interface BtnProps {
-  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
-  onClick?: () => void; className?: string; disabled?: boolean;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
-  const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
-    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
-    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
-  };
-  const c = colors[color];
-  return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem]`}>
-          <span className={c.icon}>{icon}</span>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{value}</p>
-          {sub && <p className="text-[10px] text-zinc-400 mt-0.5">{sub}</p>}
-        </div>
-      </div>
-      {trend !== undefined && (
-        <div className={`flex items-center gap-1 text-xs font-bold ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-          {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-          {Math.abs(trend)}%
-        </div>
-      )}
-    </div>
-  );
-};
-
-const Btn: React.FC<BtnProps> = ({
-  children, variant = "primary", size = "sm",
-  onClick, className = "", disabled = false,
-}) => {
-  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
-  const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
-    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger: "bg-red-600 hover:bg-red-700 text-white",
-    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
-  };
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  );
-};
-
 const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ col, active, dir }) => {
   if (col !== active) return <ChevronDown size={11} className="text-zinc-300 ml-0.5" />;
   return dir === "asc"
@@ -106,21 +56,20 @@ const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ c
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const BM_ItemsReport: React.FC = () => {
-  const today = new Date().toISOString().split("T")[0];
+  const today      = new Date().toISOString().split("T")[0];
   const firstMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     .toISOString().split("T")[0];
 
-  const [bmBranchName] = useState(() => getBMBranchName());
-  const [dateFrom, setDateFrom] = useState(firstMonth);
-  const [dateTo, setDateTo] = useState(today);
+  const [dateFrom,  setDateFrom]  = useState(firstMonth);
+  const [dateTo,    setDateTo]    = useState(today);
   const [categoryId, setCategoryId] = useState("");
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("total_quantity");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [search,    setSearch]    = useState("");
+  const [sortKey,   setSortKey]   = useState<SortKey>("total_quantity");
+  const [sortDir,   setSortDir]   = useState<SortDir>("desc");
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [items, setItems] = useState<ItemRow[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState("");
+  const [items,      setItems]      = useState<ItemRow[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
 
   const phCurrency = useMemo(() => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }), []);
@@ -128,68 +77,55 @@ const BM_ItemsReport: React.FC = () => {
 
   // Fetch categories once
   useEffect(() => {
-    api.get("/categories")
-      .then(res => {
-        const data = res.data;
-        if (data.success !== false) {
-          setCategories(Array.isArray(data) ? data : (data.data ?? []));
-        }
+    fetch("/api/categories", { headers: authHeaders() })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success !== false) setCategories(Array.isArray(data) ? data : (data.data ?? []));
       })
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get("/reports/items-report", {
-        params: {
-          from: dateFrom,
-          to: dateTo,
-          type: "item-list",
-        },
+      const branchId = getBMBranchId();
+      if (!branchId) throw new Error("Branch Identity Missing");
+
+      const params = new URLSearchParams({
+        date_from: dateFrom,
+        date_to:   dateTo,
+        branch_id: branchId,
       });
+      if (categoryId) params.set("category_id", categoryId);
 
-      const data = res.data as {
-        items: ApiItemRow[];
-        total_qty: number;
-        grand_total: number;
-      };
+      const res  = await fetch(`/api/reports/items-all?${params}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("API Exception");
+      const data = await res.json() as { top_products?: ApiItemRow[] };
 
-      if (data.items && data.items.length > 0) {
-        let mapped = data.items.map((p) => ({
-          product_name: p.name,
-          category: p.category ?? "—",
-          total_quantity: Number(p.qty),
-          total_revenue: Number(p.amount),
-          avg_price: Number(p.qty) > 0 ? Number(p.amount) / Number(p.qty) : 0,
-          times_ordered: 0, // not provided by this endpoint
-        }));
-
-        // Client-side category filter
-        if (categoryId) {
-          const cat = categories.find(c => String(c.id) === categoryId);
-          if (cat) {
-            mapped = mapped.filter(item =>
-              item.category.toLowerCase() === cat.name.toLowerCase()
-            );
-          }
-        }
-
-        setItems(mapped);
+      if (data.top_products) {
+        setItems(data.top_products.map((p) => ({
+          product_name:   p.product_name,
+          size:           p.size,
+          cup_size_label: p.cup_size_label,
+          category:       p.category ?? "—",
+          total_quantity: Number(p.total_quantity),
+          total_revenue:  Number(p.total_revenue),
+          avg_price:      Number(p.avg_unit_price ?? 0),
+          times_ordered:  Number(p.times_ordered  ?? 0),
+        })));
       } else {
         setItems([]);
       }
     } catch {
-      setError("Failed to load items report.");
+      setError("Failed to synchronise items report with the central node.");
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, categoryId, categories]);
+  }, [dateFrom, dateTo, categoryId]);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
-  // Client-side sort + search
   const filtered = useMemo(() => {
     let rows = items.filter(r =>
       r.product_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -210,41 +146,34 @@ const BM_ItemsReport: React.FC = () => {
     else { setSortKey(key); setSortDir("desc"); }
   };
 
-  const totalQty = filtered.reduce((s, r) => s + r.total_quantity, 0);
-  const totalRevenue = filtered.reduce((s, r) => s + r.total_revenue, 0);
-  const topItem = filtered[0];
+  const totalQty     = filtered.reduce((s, r) => s + r.total_quantity, 0);
+  const totalRevenue = filtered.reduce((s, r) => s + r.total_revenue,  0);
+  const topItem      = filtered[0];
 
   const handleExport = () => {
-    if (filtered.length === 0) { alert("No data to export"); return; }
-    const rows = filtered.map((item, index) => ({
-      "#": index + 1,
-      "Item Name": item.product_name,
-      "Category": item.category,
-      "Qty Sold": item.total_quantity,
-      "Avg Price": Number(item.avg_price.toFixed(2)),
-      "Total Sales": Number(item.total_revenue.toFixed(2)),
-      "Contribution %": totalRevenue > 0 ? `${Math.round((item.total_revenue / totalRevenue) * 100)}%` : "0%",
-    }));
-    rows.push({
-      "#": "",
-      "Item Name": "GRAND TOTAL",
-      "Category": "",
-      "Qty Sold": totalQty,
-      "Avg Price": "",
-      "Total Sales": Number(totalRevenue.toFixed(2)),
-      "Contribution %": "100%",
-    } as never);
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Items Report");
-    const branchSlug = (bmBranchName || "MY-BRANCH")
-      .toUpperCase().replace(/[^A-Z0-9]+/g, "-");
-    XLSX.writeFile(wb, `LuckyBoba_ItemsReport_${branchSlug}_${dateFrom}_to_${dateTo}.xlsx`);
+    const branchId = getBMBranchId();
+    const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+    if (branchId)   params.set("branch_id",   branchId);
+    if (categoryId) params.set("category_id", categoryId);
+    
+    const branchSlug = getBMBranchName().toUpperCase().replace(/[^A-Z0-9]+/g, "-");
+
+    fetch(`/api/reports/items-export?${params}`, { headers: authHeaders() })
+      .then(res => res.blob())
+      .then(blob => {
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `LuckyBoba_ItemsReport_${branchSlug}_${dateFrom}_to_${dateTo}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => alert('Export protocol failure.'));
   };
 
   const handlePrint = () => {
-    if (filtered.length === 0) { alert("No data to print"); return; }
-    setTimeout(() => window.print(), 150);
+    if (filtered.length === 0) return;
+    setTimeout(() => window.print(), 200);
   };
 
   const SortTh: React.FC<{ col: SortKey; label: string }> = ({ col, label }) => (
@@ -259,7 +188,6 @@ const BM_ItemsReport: React.FC = () => {
 
   return (
     <>
-      {/* ── Print Receipt (hidden on screen) ── */}
       <style>{`
         .bm-printable-receipt { display: none; }
         @media print {
@@ -274,16 +202,17 @@ const BM_ItemsReport: React.FC = () => {
         .flex-between { display: flex; justify-content: space-between; width: 100%; }
       `}</style>
 
+      {/* ── Print Receipt ── */}
       <div className="bm-printable-receipt text-slate-800">
         <div className="text-center space-y-1">
           <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea</h1>
-          <p className="text-[10px] uppercase font-bold">{bmBranchName || "My Branch"}</p>
+          <p className="text-[10px] uppercase font-bold">{getBMBranchName()}</p>
           <div className="receipt-divider" />
           <h2 className="font-black text-[11px] uppercase tracking-widest">Item Sales Report</h2>
           <div className="text-left text-[10px] space-y-0.5 mt-2 uppercase">
-            <div className="flex-between"><span>From Date</span><span>{dateFrom}</span></div>
-            <div className="flex-between"><span>To Date</span><span>{dateTo}</span></div>
-            <div className="flex-between"><span>Print Time</span><span>{new Date().toLocaleTimeString()}</span></div>
+            <div className="flex-between"><span>Start Range</span><span>{dateFrom}</span></div>
+            <div className="flex-between"><span>End Range</span><span>{dateTo}</span></div>
+            <div className="flex-between"><span>Generated</span><span>{new Date().toLocaleTimeString()}</span></div>
           </div>
         </div>
         <div className="my-4 pt-2">
@@ -291,9 +220,9 @@ const BM_ItemsReport: React.FC = () => {
           <table className="w-full text-[10px]">
             <thead>
               <tr className="font-black border-b border-black text-left">
-                <th className="pb-1 uppercase tracking-tighter w-1/2">Item</th>
+                <th className="pb-1 uppercase tracking-tighter w-1/2">Item Identity</th>
                 <th className="pb-1 text-center">QTY</th>
-                <th className="pb-1 text-right">TOTAL</th>
+                <th className="pb-1 text-right">Yield</th>
               </tr>
             </thead>
             <tbody>
@@ -308,186 +237,149 @@ const BM_ItemsReport: React.FC = () => {
           </table>
           <div className="receipt-divider" />
           <div className="space-y-1 mt-2">
-            <div className="flex-between text-[10px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{totalQty}</span></div>
-            <div className="flex-between font-black text-[12px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(totalRevenue)}</span></div>
+            <div className="flex-between text-[10px]"><span>TOTAL UNITS DISPENSED</span><span className="font-bold">{totalQty}</span></div>
+            <div className="flex-between font-black text-[12px] pt-1 border-t border-black"><span>TOTAL GROSS REVENUE</span><span>{phCurrency.format(totalRevenue)}</span></div>
           </div>
         </div>
       </div>
 
       {/* ── Main UI ── */}
-      <div className="bm-items-main p-6 md:p-8 fade-in flex flex-col gap-5">
+      <div className="bm-items-main p-6 md:p-8 space-y-6 fade-in pb-20">
+        <style>{`.fade-in { animation: fadeIn 0.3s ease-out forwards; } @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }`}</style>
 
-        <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-          <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
-            <div className="relative group flex-1 w-full md:w-auto">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
-              <input
-                type="text"
-                placeholder="Search items or category..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
-              />
-            </div>
-            
-            <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all flex-1" />
-              <span className="text-zinc-400 font-bold">-</span>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all flex-1" />
-            </div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-[#1a0f2e]">Inventory Reporting</h1>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-1">Itemized sales performance & category mapping</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Btn onClick={handleExport} variant="secondary" className="px-5 py-2.5 rounded-xl shadow-sm">
+              <Download size={14} /> <span className="ml-1">Export CSV</span>
+            </Btn>
+            <Btn onClick={handlePrint} variant="secondary" className="px-5 py-2.5 rounded-xl shadow-sm">
+              <Printer size={14} /> <span className="ml-1">Print POS</span>
+            </Btn>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
-                className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-3 p-4 bg-white border border-zinc-200 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-100 px-3 py-1.5 rounded-xl min-w-[320px]">
+            <Calendar size={14} className="text-zinc-400" />
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-[#3b2063] outline-none w-28" />
+            <div className="w-1.5 h-[1px] bg-zinc-300" />
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-[#3b2063] outline-none w-28" />
+          </div>
+
+          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-100 px-3 py-1.5 rounded-xl">
+             <Layers size={14} className="text-zinc-400" />
+             <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
+                className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-[#3b2063] outline-none cursor-pointer">
                 <option value="">All Categories</option>
                 {categories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
               </select>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-              <Btn onClick={handleExport} variant="secondary" className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-                <Download size={14} /> Export
-              </Btn>
-              <Btn onClick={handlePrint} variant="secondary" className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
-                <Printer size={14} /> Print
-              </Btn>
-            </div>
           </div>
+
+          <Btn onClick={fetchItems} disabled={loading} className="px-6 py-2 rounded-xl shadow-lg shadow-purple-100 ml-auto group">
+            {loading ? <RefreshCw size={14} className="animate-spin" /> : <><RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" /> <span className="ml-1">Sync Hub</span></>}
+          </Btn>
         </div>
 
-        {/* ── Error ── */}
-        {error && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <AlertCircle size={14} className="text-red-500 shrink-0" />
-            <p className="text-xs text-red-600 font-medium">{error}</p>
-            <Btn variant="secondary" size="sm" onClick={fetchItems} className="ml-auto">Retry</Btn>
-          </div>
-        )}
+        {error && <AlertBox type="error" message={error} />}
 
-        {/* ── Stat Cards ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard icon={<Package size={16} />}
-            label="Total Items" value={loading ? "—" : filtered.length.toLocaleString()} color="violet" />
-          <StatCard icon={<span className="font-black text-sm">Qty</span>}
-            label="Total Qty Sold" value={loading ? "—" : totalQty.toLocaleString()} color="emerald" />
-          <StatCard icon={<span className="font-black text-base">₱</span>}
-            label="Total Revenue" value={loading ? "—" : fmt(totalRevenue)}
-            sub={topItem ? `Top: ${topItem.product_name}` : undefined} color="amber" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <StatCard icon={<Package size={18} />} label="Catalog Coverage" value={loading ? "—" : filtered.length.toLocaleString()} sub="Unique Products" color="violet" />
+          <StatCard icon={<Printer size={18} />} label="Volume Dispensed" value={loading ? "—" : totalQty.toLocaleString()} sub="Total Units" color="emerald" />
+          <StatCard icon={<span className="font-black text-sm">₱</span>} label="Gross Sales" value={loading ? "—" : fmt(totalRevenue)} sub={topItem ? `MVP: ${topItem.product_name}` : "Yield Summary"} color="amber" />
         </div>
 
-        {/* ── Table ── */}
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-
-
+        <div className="bg-white border border-zinc-200 rounded-[1.25rem] overflow-hidden shadow-sm">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
+            <div className="flex-1 min-w-48 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+              <Search size={13} className="text-zinc-400 shrink-0" />
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+                placeholder="Search inventory matrix..." />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 shrink-0">
+              {filtered.length} units listed
+            </span>
+          </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100">
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 w-8">#</th>
-                  <SortTh col="product_name" label="Item Name" />
-                  <SortTh col="category" label="Category" />
-                  <SortTh col="total_quantity" label="Qty Sold" />
+                <tr className="bg-zinc-50/20 text-left border-b border-zinc-50">
+                  <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest w-12">#</th>
+                  <SortTh col="product_name" label="Item Identity" />
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Class</th>
+                  <SortTh col="total_quantity" label="Volume" />
                   <SortTh col="total_revenue" label="Revenue" />
-                  <SortTh col="avg_price" label="Avg Price" />
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Contribution</th>
+                  <SortTh col="avg_price" label="Mean Price" />
+                  <th className="px-6 py-3 text-right text-[9px] font-black text-zinc-400 uppercase tracking-widest">Share</th>
                 </tr>
               </thead>
-              <tbody>
-                {/* Skeleton */}
-                {loading && [...Array(8)].map((_, i) => (
-                  <tr key={i} className="border-b border-zinc-50">
-                    {[...Array(7)].map((_, j) => (
-                      <td key={j} className="px-5 py-4">
-                        <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${50 + Math.random() * 40}%` }} />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-zinc-50">
+                {loading ? (
+                   [...Array(6)].map((_, i) => <tr key={i} className="animate-pulse"><td colSpan={7} className="px-6 py-4"><div className="h-4 bg-zinc-50 rounded" /></td></tr>)
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={7} className="px-6 py-20 text-center text-[10px] font-black text-zinc-300 uppercase tracking-widest opacity-40">Zero items detected in range</td></tr>
+                ) : (
+                  filtered.map((item, i) => {
+                    const revShare = totalRevenue > 0 ? Math.round((item.total_revenue / totalRevenue) * 100) : 0;
+                    const maxQty = filtered[0]?.total_quantity ?? 1;
+                    const qtyPct = Math.round((item.total_quantity / maxQty) * 100);
 
-                {/* Empty */}
-                {!loading && filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
-                      {search ? "No items match your search." : "No items data for this period."}
-                    </td>
-                  </tr>
+                    return (
+                      <tr key={i} className="hover:bg-zinc-50/50 transition-colors group">
+                        <td className="px-6 py-3.5 text-[10px] font-black text-zinc-300 tabular-nums">{i + 1}</td>
+                        <td className="px-6 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-7 h-7 bg-violet-50 border border-violet-100 rounded flex items-center justify-center shrink-0">
+                               <Package size={12} className="text-violet-600" />
+                            </div>
+                            <span className="font-bold text-[#1a0f2e] text-xs uppercase tracking-tight">{item.product_name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <Badge status={item.category || '—'} />
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-12 h-1 bg-zinc-100 rounded-full overflow-hidden shadow-inner flex-1 max-w-[40px]">
+                              <div className="h-full bg-[#3b2063] rounded-full transition-all duration-700" style={{ width: `${qtyPct}%` }} />
+                            </div>
+                            <span className="font-black text-[#1a0f2e] text-[11px] tabular-nums">{item.total_quantity}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3.5 font-black text-[#3b2063] text-xs tabular-nums text-center">{fmt(item.total_revenue)}</td>
+                        <td className="px-6 py-3.5 text-zinc-500 font-bold text-[11px] tabular-nums text-center">{item.avg_price > 0 ? fmt(item.avg_price) : "—"}</td>
+                        <td className="px-6 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                             <span className="text-[10px] font-black text-emerald-600 tracking-tighter">{revShare}%</span>
+                             <div className="w-8 h-1 bg-emerald-50 rounded-full overflow-hidden flex-1 max-w-[30px]">
+                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${revShare}%` }} />
+                             </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
-
-                {/* Rows */}
-                {!loading && filtered.map((item, i) => {
-                  const revShare = totalRevenue > 0
-                    ? Math.round((item.total_revenue / totalRevenue) * 100) : 0;
-                  const maxQty = filtered[0]?.total_quantity ?? 1;
-                  const qtyPct = Math.round((item.total_quantity / maxQty) * 100);
-
-                  return (
-                    <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                      <td className="px-5 py-3.5 text-zinc-300 text-xs font-bold">{i + 1}</td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-md bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
-                            <Package size={9} className="text-violet-600" />
-                          </div>
-                          <span className="font-semibold text-[#1a0f2e] text-xs">{item.product_name}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {item.category !== "—" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200">
-                            {item.category}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400 text-xs">—</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-12 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-[#3b2063]" style={{ width: `${qtyPct}%` }} />
-                          </div>
-                          <span className="text-zinc-700 font-medium text-xs">{item.total_quantity.toLocaleString()}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.total_revenue)}</td>
-                      <td className="px-5 py-3.5 text-zinc-600 text-xs">{item.avg_price > 0 ? fmt(item.avg_price) : "—"}</td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-12 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-emerald-400" style={{ width: `${revShare}%` }} />
-                          </div>
-                          <span className="text-xs font-bold text-zinc-500">{revShare}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {/* Totals footer */}
                 {!loading && filtered.length > 0 && (
                   <tr className="bg-zinc-50 border-t border-zinc-200">
-                    <td className="px-5 py-3.5" />
-                    <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest" colSpan={2}>
-                      Total ({filtered.length} items)
-                    </td>
-                    <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs">{totalQty.toLocaleString()}</td>
-                    <td className="px-5 py-3.5 font-black text-[#3b2063] text-xs">{fmt(totalRevenue)}</td>
-                    <td className="px-5 py-3.5" />
-                    <td className="px-5 py-3.5 font-black text-zinc-600 text-xs">100%</td>
+                    <td className="px-6 py-3.5" />
+                    <td className="px-6 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest" colSpan={2}>Aggregate Yield</td>
+                    <td className="px-6 py-3.5 font-black text-[#1a0f2e] text-xs">{totalQty.toLocaleString()}</td>
+                    <td className="px-6 py-3.5 font-black text-[#3b2063] text-xs">{fmt(totalRevenue)}</td>
+                    <td className="px-6 py-3.5" />
+                    <td className="px-6 py-3.5 font-black text-emerald-600 text-xs text-right">100%</td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-
-          {/* Footer */}
-          {!loading && filtered.length > 0 && (
-            <div className="px-5 py-3 border-t border-zinc-50 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-              {dateFrom} → {dateTo} · {bmBranchName || "Your Branch"} · {filtered.length} items · sorted by {sortKey.replace("_", " ")} {sortDir}
-            </div>
-          )}
         </div>
       </div>
     </>
@@ -495,5 +387,3 @@ const BM_ItemsReport: React.FC = () => {
 };
 
 export default BM_ItemsReport;
-
-

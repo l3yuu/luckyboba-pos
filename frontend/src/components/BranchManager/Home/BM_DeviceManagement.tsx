@@ -1,12 +1,14 @@
-// components/NewSuperAdmin/Tabs/DeviceManagementTab.tsx
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Monitor, Plus, Trash2, AlertCircle,
   X, CheckCircle, ToggleLeft, ToggleRight,
   MonitorCheck, MonitorOff, Search, Laptop,
   Link,
 } from "lucide-react";
+import { StatCard, Button as Btn, ModalShell, Badge, ConfirmModal } from "../SharedUI";
 import { createPortal } from "react-dom";
+
+type ToastType = 'success' | 'error' | 'warning';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Branch {
@@ -42,87 +44,21 @@ const authHeaders = (): Record<string, string> => ({
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
-// ── Shared UI ─────────────────────────────────────────────────────────────────
-type ToastType = "success" | "error" | "warning";
-
-const Toast: React.FC<{ message: string; type: ToastType; onDone: () => void }> = ({ message, type, onDone }) => {
-  useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  const bar = type === "success" ? "bg-emerald-500" : type === "error" ? "bg-red-500" : "bg-amber-500";
-  return createPortal(
-    <div className="fixed bottom-6 right-6 z-99999" style={{ animation: "slideUpFade 0.25s ease forwards" }}>
-      <style>{`@keyframes slideUpFade { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }`}</style>
-      <div className="relative flex items-center gap-3 bg-[#1a0f2e] text-white pl-4 pr-3 py-3 rounded-xl shadow-2xl border border-white/10 min-w-55 max-w-xs overflow-hidden">
-        <div className={`absolute left-0 top-0 bottom-0 w-1 ${bar} rounded-l-xl`} />
-        <p className="text-xs font-semibold flex-1 leading-snug">{message}</p>
-        <button onClick={onDone} className="ml-1 text-white/40 hover:text-white"><X size={13} /></button>
-      </div>
-    </div>,
-    document.body
-  );
-};
-
-const Btn: React.FC<{
-  children: React.ReactNode;
-  variant?: "primary" | "secondary" | "danger" | "ghost";
-  size?: "sm" | "md";
-  onClick?: () => void;
-  disabled?: boolean;
-  className?: string;
-}> = ({ children, variant = "primary", size = "sm", onClick, disabled, className = "" }) => {
-  const v = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
-    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
-  }[variant];
-  const s = size === "sm" ? "px-3 py-2 text-xs" : "px-4 py-2.5 text-sm";
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all disabled:opacity-50 cursor-pointer ${v} ${s} ${className}`}>
-      {children}
-    </button>
-  );
-};
-
-const ModalShell: React.FC<{
-  onClose: () => void; icon: React.ReactNode; title: string; sub: string;
-  children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
-}> = ({ onClose, icon, title, sub, children, footer, maxWidth = "max-w-md" }) =>
-  createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
-            <div>
-              <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
-              <p className="text-[10px] text-zinc-400">{sub}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400 hover:text-zinc-600"><X size={16} /></button>
-        </div>
-        <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
-      </div>
-    </div>,
-    document.body
-  );
+// ── Modals are now using specialized SharedUI components or the standardized ModalShell ──
 
 const Field: React.FC<{ label: string; required?: boolean; error?: string; hint?: string; children: React.ReactNode }> = ({ label, required, error, hint, children }) => (
   <div>
-    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1.5 block">
       {label} {required && <span className="text-red-400">*</span>}
     </label>
-    {hint && <p className="text-[10px] text-zinc-400 mb-1.5 -mt-1">{hint}</p>}
+    {hint && <p className="text-[9px] text-zinc-400 mb-1.5 -mt-1 font-bold">{hint}</p>}
     {children}
-    {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
+    {error && <p className="text-[10px] text-red-500 mt-1 font-bold">{error}</p>}
   </div>
 );
 
 const inputCls = (err?: string) =>
-  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? "border-red-300 bg-red-50" : "border-zinc-200"}`;
+  `w-full text-xs font-bold text-zinc-700 bg-white border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400/20 focus:border-violet-400 transition-all shadow-sm ${err ? "border-red-300 bg-red-50" : "border-zinc-200"}`;
 
 // ── Register Device Modal ─────────────────────────────────────────────────────
 const RegisterDeviceModal: React.FC<{
@@ -182,50 +118,55 @@ body: JSON.stringify({ device_name: form.device_name.trim(), pos_number: form.po
   });
 
   return (
-    <ModalShell onClose={onClose} icon={<Monitor size={15} className="text-violet-600" />}
-      title="Register POS Device" sub="Add a new terminal to the system"
+    <ModalShell onClose={onClose} icon={<Laptop size={18} className="text-[#3b2063]" />}
+      title="Hardware Registration" sub="Provision a new POS terminal into the system"
       footer={success ? null : (
-        <>
+        <div className="flex items-center justify-end gap-2 w-full">
           <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
-          <Btn onClick={handleSubmit} disabled={saving}>
-            {saving ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Registering...</span> : <><Plus size={13} /> Register Device</>}
+          <Btn onClick={handleSubmit} disabled={saving} className="min-w-[140px] justify-center">
+            {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Plus size={14} /> Register Terminal</>}
           </Btn>
-        </>
+        </div>
       )}>
       {success ? (
-        <div className="flex flex-col items-center py-4 gap-3">
-          <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center">
-            <CheckCircle size={24} className="text-emerald-500" />
+        <div className="flex flex-col items-center py-6 gap-3">
+          <div className="w-14 h-14 bg-emerald-50 border border-emerald-100 rounded-full flex items-center justify-center shadow-inner">
+            <CheckCircle size={28} className="text-emerald-500" />
           </div>
-          <p className="text-sm font-bold text-[#1a0f2e]">Device registered successfully</p>
-          <p className="text-xs text-zinc-400">You can now assign it to a cashier.</p>
+          <div className="text-center">
+            <p className="text-sm font-black text-[#1a0f2e]">Registration Successful</p>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Terminal is now ready for cashier mapping</p>
+          </div>
         </div>
       ) : (
-        <>
+        <div className="space-y-4">
           {apiError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-lg shadow-sm">
               <AlertCircle size={14} className="text-red-500 shrink-0" />
-              <p className="text-xs text-red-600 font-medium">{apiError}</p>
+              <p className="text-[11px] text-red-600 font-bold">{apiError}</p>
             </div>
           )}
-          <div className="flex items-start gap-3 p-3 bg-violet-50 border border-violet-200 rounded-lg">
-            <Laptop size={14} className="text-violet-500 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3 p-3.5 bg-violet-50/50 border border-violet-100 rounded-xl shadow-inner">
+            <Laptop size={16} className="text-violet-500 shrink-0 mt-0.5" />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-violet-700 mb-0.5">How to get the Device ID</p>
-              <p className="text-xs text-violet-600 leading-relaxed">
-                On the POS terminal, open the app. If unregistered it shows a <span className="font-bold">"Device Not Registered"</span> screen with the Device ID.
+              <p className="text-[9px] font-black uppercase tracking-widest text-violet-700 mb-1">Retrieving Device ID</p>
+              <p className="text-[11px] text-violet-600 leading-relaxed font-bold">
+                Launch the application on the target POS. Copy the unique identifier displayed on the <span className="font-black">"Unregistered Device"</span> splash screen.
               </p>
             </div>
           </div>
-          <Field label="Device ID" required error={errors.device_name} hint="Paste the ID shown on the terminal's unregistered screen.">
-            <input {...f("device_name")} placeholder="e.g. DEV-3700E18D-2001-4E36-9270-ABCD1234..." className={inputCls(errors.device_name)} />
+          <Field label="System Device ID" required error={errors.device_name} hint="Paste the UUID sequence from the terminal screen.">
+            <input {...f("device_name")} placeholder="DEV-3700E18D-..." className={inputCls(errors.device_name)} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="POS Number" required error={errors.pos_number}>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="POS Designation" required error={errors.pos_number}>
               <input {...f("pos_number")} placeholder="e.g. POS-001" className={inputCls(errors.pos_number)} />
             </Field>
           </div>
-        </>
+          <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter leading-tight italic">
+            * This terminal will be locked to the current branch.
+          </p>
+        </div>
       )}
     </ModalShell>
   );
@@ -313,149 +254,115 @@ useEffect(() => {
   };
 
   return (
-    <ModalShell onClose={onClose} icon={<Link size={15} className="text-violet-600" />}
-      title="Assign Cashiers" sub={`Manage cashiers for ${device.pos_number}`}
+    <ModalShell onClose={onClose} icon={<Link size={18} className="text-[#3b2063]" />}
+      title="Hardware Mapping" sub={`Link cashiers to terminal ${device.pos_number}`}
       footer={
-        <>
+        <div className="flex items-center justify-end gap-2 w-full">
           <Btn variant="secondary" onClick={onClose} disabled={saving}>Close</Btn>
-          <Btn onClick={handleAssign} disabled={saving || loading || !selectedId}>
+          <Btn onClick={handleAssign} disabled={saving || loading || !selectedId} className="min-w-[100px] justify-center">
             {saving
-              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Assigning...</span>
-              : <><Link size={13} /> Assign</>}
+              ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              : <><Link size={14} /> Map User</>}
           </Btn>
-        </>
+        </div>
       }>
 
-      {/* Device info */}
-      <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
-        <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center shrink-0">
-          <Monitor size={16} className="text-violet-600" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-[#1a0f2e]">{device.pos_number}</p>
-          <p className="text-[10px] text-zinc-400">{device.branch?.name ?? "—"}</p>
-        </div>
-        <span className="text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full">
-          {assigned.length} assigned
-        </span>
-      </div>
-
-      {apiError && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle size={14} className="text-red-500 shrink-0" />
-          <p className="text-xs text-red-600 font-medium">{apiError}</p>
-        </div>
-      )}
-
-      {success && (
-        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-          <CheckCircle size={14} className="text-emerald-500 shrink-0" />
-          <p className="text-xs text-emerald-700 font-medium">Cashier assigned successfully.</p>
-        </div>
-      )}
-
-      {/* Currently assigned list */}
-      {assigned.length > 0 && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2">Currently Assigned</p>
-          <div className="flex flex-col gap-1.5">
-            {assigned.map(c => (
-              <div key={c.id} className="flex items-center gap-2.5 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <MonitorCheck size={12} className="text-emerald-600 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-emerald-800 truncate">{c.name}</p>
-                  <p className="text-[10px] text-emerald-600 truncate">{c.email}</p>
-                </div>
-                <button
-                  onClick={() => handleUnassign(c.id)}
-                  disabled={saving}
-                  className="p-1 hover:bg-red-100 rounded text-emerald-400 hover:text-red-500 transition-colors disabled:opacity-40"
-                  title="Unassign">
-                  <X size={11} />
-                </button>
-              </div>
-            ))}
+      <div className="space-y-4">
+        {/* Device info */}
+        <div className="flex items-center gap-3 p-3.5 bg-zinc-50 border border-zinc-100 rounded-xl shadow-inner">
+          <div className="w-10 h-10 bg-violet-50 border border-violet-100 rounded-lg flex items-center justify-center shrink-0">
+            <Monitor size={18} className="text-violet-600" />
           </div>
-        </div>
-      )}
-
-      {/* Add new cashier */}
-      <Field label="Add Cashier" required>
-        {loading ? (
-          <div className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
-        ) : cashiers.length === 0 ? (
-          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <AlertCircle size={13} className="text-amber-500 shrink-0" />
-            <p className="text-xs text-amber-700 font-medium">No active cashiers found for this branch.</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black text-[#1a0f2e]">{device.pos_number}</p>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{device.branch?.name ?? "—"}</p>
           </div>
-        ) : (
-          <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={inputCls()}>
-            <option value="">— Select a cashier to add —</option>
-            {cashiers.map(c => (
-              <option key={c.id} value={String(c.id)}>
-                {c.name} — {c.email}
-                {isAlreadyAssigned(c.id) ? " ✓ assigned" : ""}
-              </option>
-            ))}
-          </select>
+          <span className="text-[9px] font-black bg-violet-50 text-violet-700 border border-violet-100 px-2 py-0.5 rounded-full uppercase tracking-widest">
+            {assigned.length} Linked
+          </span>
+        </div>
+
+        {apiError && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-lg shadow-sm">
+            <AlertCircle size={14} className="text-red-500 shrink-0" />
+            <p className="text-[11px] text-red-600 font-bold">{apiError}</p>
+          </div>
         )}
-      </Field>
+
+        {success && (
+          <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-100 rounded-lg shadow-sm">
+            <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+            <p className="text-[11px] text-emerald-700 font-bold italic">User mapped successfully.</p>
+          </div>
+        )}
+
+        {/* Currently assigned list */}
+        {assigned.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Linked Cashiers</p>
+            <div className="flex flex-col gap-1.5">
+              {assigned.map(c => (
+                <div key={c.id} className="flex items-center gap-3 px-3 py-2 bg-emerald-50/50 border border-emerald-100 rounded-xl group transition-all">
+                  <MonitorCheck size={14} className="text-emerald-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-black text-emerald-800 truncate uppercase tracking-tight">{c.name}</p>
+                    <p className="text-[10px] text-emerald-600/70 truncate font-bold">{c.email}</p>
+                  </div>
+                  <button
+                    onClick={() => handleUnassign(c.id)}
+                    disabled={saving}
+                    className="p-1.5 bg-white border border-emerald-100 hover:bg-red-50 hover:border-red-100 rounded-lg text-emerald-400 hover:text-red-500 transition-all shadow-sm disabled:opacity-40"
+                    title="Unlink User">
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Add new cashier */}
+        <Field label="Map New Cashier" required>
+          {loading ? (
+            <div className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
+          ) : cashiers.length === 0 ? (
+            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-100 rounded-lg shadow-sm">
+              <AlertCircle size={13} className="text-amber-500 shrink-0" />
+              <p className="text-[11px] text-amber-700 font-bold leading-tight">No active cashiers found for this branch setup.</p>
+            </div>
+          ) : (
+            <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={inputCls()}>
+              <option value="">— Select Staff Member —</option>
+              {cashiers.map(c => (
+                <option key={c.id} value={String(c.id)}>
+                  {c.name} {isAlreadyAssigned(c.id) ? " (Linked)" : ""}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      </div>
     </ModalShell>
   );
 };
 
 // ── Delete Device Modal ───────────────────────────────────────────────────────
 const DeleteDeviceModal: React.FC<{
-  onClose: () => void;
+  onClose:   () => void;
   onDeleted: (id: number) => void;
-  device: PosDevice;
-}> = ({ onClose, onDeleted, device }) => {
-  const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState("");
-
-  const handleDelete = async () => {
-    setLoading(true);
-    try {
-      const res  = await fetch(`/api/pos-devices/${device.id}`, { method: "DELETE", headers: authHeaders() });
-      const data = await res.json();
-      if (!res.ok) { setApiError(data.message ?? "Failed to delete."); return; }
+  device:    PosDevice;
+}> = ({ onClose, onDeleted, device }) => (
+  <ConfirmModal
+    onClose={onClose}
+    onConfirm={async () => {
+      await fetch(`/api/pos-devices/${device.id}`, { method: "DELETE", headers: authHeaders() });
       onDeleted(device.id);
-      onClose();
-    } catch { setApiError("Network error."); }
-    finally { setLoading(false); }
-  };
-
-  return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
-        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
-          <div className="w-14 h-14 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mb-4">
-            <Trash2 size={22} className="text-red-500" />
-          </div>
-          <p className="text-base font-bold text-[#1a0f2e]">Delete Device?</p>
-          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
-            Permanently remove <span className="font-bold text-zinc-700">{device.pos_number}</span>. This cannot be undone.
-          </p>
-          {apiError && (
-            <div className="flex items-center gap-2 mt-4 p-3 w-full bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle size={14} className="text-red-500 shrink-0" />
-              <p className="text-xs text-red-600 font-medium text-left">{apiError}</p>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 px-6 pb-6">
-          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>Cancel</Btn>
-          <Btn variant="danger" className="flex-1 justify-center" onClick={handleDelete} disabled={loading}>
-            {loading ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span> : <><Trash2 size={13} /> Delete</>}
-          </Btn>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-};
+    }}
+    title="Deprovision Terminal?"
+    desc={`Permanently remove ${device.pos_number} from the system network? This action is irreversible.`}
+    type="danger"
+  />
+);
 
 // ── Main Tab ──────────────────────────────────────────────────────────────────
 const BM_DeviceManagementTab: React.FC<{ branchId?: number | null }> = ({ branchId: branchIdProp }) => {
@@ -533,163 +440,169 @@ const fetchData = async () => {
   const assigned = devices.filter(d => (d.assigned_users?.length ?? (d.user_id ? 1 : 0)) > 0).length;
 
   return (
-    <div className="p-6 md:p-8 fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-        <div className="flex-1 flex items-center gap-3">
-          <div className="relative group flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+    <div className="p-6 md:p-8 space-y-6 fade-in pb-20">
+      <style>{`
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+      `}</style>
+
+      {/* ── Header ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1a0f2e]">Device Management</h1>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-1">Provision & monitor POS hardware terminals</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative group min-w-[280px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
             <input
               type="text"
-              placeholder="Search by POS number, device ID, or cashier..."
+              placeholder="Search by POS #, Device ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-4 focus:ring-violet-400/10 focus:border-violet-400 transition-all shadow-sm"
             />
           </div>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0">
+            className="bg-white border border-zinc-200 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#3b2063] outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0">
             <option value="">All Status</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
+            <option value="ACTIVE">Online</option>
+            <option value="INACTIVE">Offline</option>
           </select>
-          <Btn onClick={() => setRegisterOpen(true)} disabled={loading} className="px-5 py-3 rounded-xl shadow-sm shrink-0">
-            <Plus size={14} /> Register Device
+          <Btn onClick={() => setRegisterOpen(true)} className="px-5 py-2.5 rounded-xl shadow-lg shadow-purple-100 shrink-0">
+            <Plus size={14} /> <span className="ml-1">Register</span>
           </Btn>
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {[
-          { label: "Total Devices", value: loading ? "—" : total,    icon: <Monitor size={16} />,     bg: "bg-violet-50",  border: "border-violet-200",  text: "text-violet-600"  },
-          { label: "Active",        value: loading ? "—" : active,   icon: <MonitorCheck size={16} />, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-600" },
-          { label: "Assigned",      value: loading ? "—" : assigned, icon: <Link size={16} />,         bg: "bg-amber-50",   border: "border-amber-200",   text: "text-amber-600"   },
-        ].map(c => (
-          <div key={c.label} className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-            <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem]`}>
-              <span className={c.text}>{c.icon}</span>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{c.label}</p>
-              <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{c.value}</p>
-            </div>
-          </div>
-        ))}
+      {/* ── Stat Rows ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard
+          icon={<Monitor size={18} />}
+          label="Total Terminals"
+          value={loading ? "—" : total}
+          sub="Provisioned Units"
+          color="violet"
+        />
+        <StatCard
+          icon={<MonitorCheck size={18} />}
+          label="Online"
+          value={loading ? "—" : active}
+          sub="Operational"
+          color="emerald"
+        />
+        <StatCard
+          icon={<Link size={18} />}
+          label="Mapped"
+          value={loading ? "—" : assigned}
+          sub="Staff Integrated"
+          color="amber"
+        />
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-        {/* Filters */}
-
+      {/* ── Table ── */}
+      <div className="bg-white border border-zinc-200 rounded-[1rem] overflow-hidden shadow-sm">
+        <div className="px-6 py-4 border-b border-zinc-50 flex items-center justify-between bg-zinc-50/30">
+          <h3 className="text-[11px] font-black text-[#1a0f2e] uppercase tracking-wide">Terminal Inventory</h3>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded border border-emerald-100 text-[9px] font-black uppercase tracking-widest leading-none">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Hardware
+            </div>
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full">
             <thead>
-              <tr className="border-b border-zinc-100">
-                {["POS Number", "Device ID", "Branch", "Assigned Cashier", "Last Seen", "Status", "Actions"].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
-                ))}
+              <tr className="bg-zinc-50/20 text-left border-b border-zinc-50">
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest">POS Unit</th>
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest">System Identifier</th>
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">Mapped Staff</th>
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">Last Sync</th>
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">Status</th>
+                <th className="px-6 py-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-right">Integrity</th>
               </tr>
             </thead>
-            <tbody>
-              {loading && [...Array(4)].map((_, i) => (
-                <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(7)].map((_, j) => (
-                    <td key={j} className="px-5 py-4">
-                      <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${50 + (j * 11) % 40}%` }} />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              {!loading && fetchError && (
+            <tbody className="divide-y divide-zinc-50">
+              {loading ? (
+                [...Array(4)].map((_, i) => (
+                  <tr key={i} className="animate-pulse border-b border-zinc-50">
+                    <td colSpan={6} className="px-6 py-4"><div className="h-4 bg-zinc-50 rounded" /></td>
+                  </tr>
+                ))
+              ) : fetchError ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <AlertCircle size={20} className="text-red-400" />
-                      <p className="text-sm font-semibold text-red-500">{fetchError}</p>
-                      <Btn variant="secondary" onClick={fetchData}>Try again</Btn>
+                  <td colSpan={6} className="px-6 py-20 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <AlertCircle size={32} className="text-red-400" />
+                      <p className="text-[11px] font-black uppercase tracking-widest text-red-500">{fetchError}</p>
+                      <Btn variant="secondary" onClick={fetchData}>Try Re-syncing</Btn>
                     </div>
                   </td>
                 </tr>
-              )}
-              {!loading && !fetchError && filtered.length === 0 && (
+              ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
-                    {search || statusFilter ? "No devices match your filters." : "No devices registered yet."}
+                  <td colSpan={6} className="px-6 py-20 text-center text-zinc-400 text-xs font-black uppercase tracking-widest opacity-40">
+                    {search || statusFilter ? "No matching hardware records" : "No provisioned terminals"}
                   </td>
                 </tr>
-              )}
-              {!loading && !fetchError && filtered.map(d => (
-                <tr key={d.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  {/* POS Number */}
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center shrink-0">
-                        <Monitor size={13} className="text-violet-600" />
+              ) : (
+                filtered.map(d => (
+                  <tr key={d.id} className="hover:bg-zinc-50/50 transition-colors group">
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-violet-50 border border-violet-100 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-[#3b2063] group-hover:border-[#3b2063] transition-colors">
+                          <Monitor size={14} className="text-violet-600 group-hover:text-white transition-colors" />
+                        </div>
+                        <span className="font-bold text-[#1a0f2e] text-xs">{d.pos_number}</span>
                       </div>
-                      <span className="font-bold text-[#1a0f2e] text-sm">{d.pos_number}</span>
-                    </div>
-                  </td>
-                  {/* Device ID */}
-                  <td className="px-5 py-3.5">
-                    <span className="font-mono text-[10px] text-zinc-400 bg-zinc-50 border border-zinc-200 px-2 py-1 rounded-md">
-                      {d.device_name.length > 28 ? `${d.device_name.slice(0, 28)}…` : d.device_name}
-                    </span>
-                  </td>
-                  {/* Branch */}
-                  <td className="px-5 py-3.5 text-zinc-600 text-xs font-medium">{d.branch?.name ?? "—"}</td>
-{/* Cashier */}
-<td className="px-5 py-3.5">
-  {(d.assigned_users ?? (d.user ? [d.user] : [])).length > 0 ? (
-    <div className="flex flex-wrap gap-1">
-      {(d.assigned_users ?? (d.user ? [d.user] : [])).map(u => (
-        <span key={u.id} className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-          <MonitorCheck size={10} />{u.name}
-        </span>
-      ))}
-    </div>
-  ) : (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full">
-      <MonitorOff size={10} />Unassigned
-    </span>
-  )}
-</td>
-                  {/* Last Seen */}
-                  <td className="px-5 py-3.5 text-zinc-400 text-xs">{d.last_seen ? new Date(d.last_seen).toLocaleString() : "—"}</td>
-                  {/* Status */}
-                  <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${d.status === "ACTIVE" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-zinc-100 text-zinc-500 border border-zinc-200"}`}>
-                      {d.status}
-                    </span>
-                  </td>
-                  {/* Actions */}
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-1">
-                      {/* Assign cashier */}
-                      <button onClick={() => setAssignTarget(d)}
-                        className={`p-1.5 rounded-[0.4rem] transition-colors ${d.user_id ? "hover:bg-violet-50 text-violet-400 hover:text-violet-700" : "hover:bg-amber-50 text-amber-400 hover:text-amber-600"}`}
-                        title={d.user_id ? "Change assigned cashier" : "Assign cashier"}>
-                        <Link size={13} />
-                      </button>
-                      {/* Toggle status */}
-                      <button onClick={() => handleToggle(d)} disabled={togglingId === d.id}
-                        className="p-1.5 hover:bg-zinc-100 rounded-[0.4rem] text-zinc-400 hover:text-zinc-700 transition-colors disabled:opacity-40"
-                        title={d.status === "ACTIVE" ? "Deactivate" : "Activate"}>
-                        {togglingId === d.id
-                          ? <div className="w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" />
-                          : d.status === "ACTIVE" ? <ToggleRight size={15} className="text-emerald-500" /> : <ToggleLeft size={15} className="text-zinc-400" />}
-                      </button>
-                      {/* Delete */}
-                      <button onClick={() => setDeleteTarget(d)}
-                        className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors"
-                        title="Delete device">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-3.5">
+                      <span className="font-mono text-[9px] font-black text-zinc-400 bg-zinc-50 border border-zinc-100 px-2 py-0.5 rounded uppercase tracking-tighter">
+                        {d.device_name.length > 20 ? `${d.device_name.slice(0, 20)}...` : d.device_name}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3.5 text-center">
+                      {(d.assigned_users ?? (d.user ? [d.user] : [])).length > 0 ? (
+                        <div className="flex flex-wrap justify-center gap-1">
+                          {(d.assigned_users ?? (d.user ? [d.user] : [])).map(u => (
+                            <span key={u.id} className="inline-flex items-center gap-1 text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
+                              <MonitorCheck size={9} />{u.name}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-black bg-zinc-50 text-zinc-400 border border-zinc-100 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                          <MonitorOff size={9} />Unmapped
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-3.5 text-center text-zinc-400 text-[10px] font-bold tabular-nums">
+                      {d.last_seen ? new Date(d.last_seen).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : "—"}
+                    </td>
+                    <td className="px-6 py-3.5 text-center">
+                      <Badge variant={d.status === "ACTIVE" ? "success" : "neutral"} className="text-[9px] font-black">
+                        {d.status === "ACTIVE" ? "Online" : "Offline"}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setAssignTarget(d)} className="p-1.5 hover:bg-violet-50 text-zinc-400 hover:text-violet-600 rounded-lg" title="Mapping">
+                          <Link size={14} />
+                        </button>
+                        <button onClick={() => handleToggle(d)} disabled={togglingId === d.id} className="p-1.5 hover:bg-zinc-50 text-zinc-400 hover:text-zinc-700 rounded-lg transition-all" title={d.status === "ACTIVE" ? "Killswitch" : "Activate"}>
+                          {togglingId === d.id
+                            ? <div className="w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" />
+                            : d.status === "ACTIVE" ? <ToggleRight size={16} className="text-emerald-500" /> : <ToggleLeft size={16} className="text-zinc-300" />}
+                        </button>
+                        <button onClick={() => setDeleteTarget(d)} className="p-1.5 hover:bg-red-50 text-zinc-400 hover:text-red-500 rounded-lg" title="Deprovision">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -699,39 +612,46 @@ const fetchData = async () => {
       {registerOpen && (
         <RegisterDeviceModal
           onClose={() => setRegisterOpen(false)}
-          onRegistered={device => { setDevices(p => [device, ...p]); showToast("Device registered. You can now assign a cashier."); }}
+          onRegistered={device => { setDevices(p => [device, ...p]); showToast("Terminal Provisioned Successfully."); }}
           defaultBranchId={branchId}
         />
       )}
-    {assignTarget && (
-    <AssignCashierModal
-        onClose={() => setAssignTarget(null)}
-onAssigned={(deviceId, userId, user) => {
-  setDevices(p => p.map(d => {
-    if (d.id !== deviceId) return d;
-    const currentAssigned = d.assigned_users ?? (d.user ? [d.user] : []);
-    const newAssigned = userId && user
-      ? [...currentAssigned.filter(u => u.id !== userId), user]
-      : currentAssigned.filter(u => u.id !== user?.id);  // user?.id is the unassigned cashier's id
-    return {
-      ...d,
-      assigned_users: newAssigned,
-      user_id: newAssigned[0]?.id ?? null,
-      user:    newAssigned[0] ?? null,
-    };
-  }));
-}}
-        device={assignTarget}
-    />
-    )}
+      {assignTarget && (
+        <AssignCashierModal
+          onClose={() => setAssignTarget(null)}
+          onAssigned={(deviceId, userId, user) => {
+            setDevices(p => p.map(d => {
+              if (d.id !== deviceId) return d;
+              const currentAssigned = d.assigned_users ?? (d.user ? [d.user] : []);
+              const newAssigned = userId && user
+                ? [...currentAssigned.filter(u => u.id !== userId), user]
+                : currentAssigned.filter(u => u.id !== userId);
+              return {
+                ...d,
+                assigned_users: newAssigned,
+                user_id: newAssigned[0]?.id ?? null,
+                user:    newAssigned[0] ?? null,
+              };
+            }));
+          }}
+          device={assignTarget}
+        />
+      )}
       {deleteTarget && (
         <DeleteDeviceModal
           onClose={() => setDeleteTarget(null)}
-          onDeleted={id => { setDevices(p => p.filter(d => d.id !== id)); setDeleteTarget(null); showToast("Device deleted.", "error"); }}
+          onDeleted={id => { setDevices(p => p.filter(d => d.id !== id)); setDeleteTarget(null); showToast("Terminal Deprovisioned.", "warning"); }}
           device={deleteTarget}
         />
       )}
-      {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-9999 animate-in slide-in-from-bottom-2 fade-in duration-300">
+          <div className={`flex items-center gap-3 px-4 py-3 bg-white rounded-xl shadow-2xl border ${toast.type === 'error' ? 'border-red-100' : 'border-emerald-100'}`}>
+            {toast.type === 'error' ? <AlertCircle size={14} className="text-red-500" /> : <CheckCircle size={14} className="text-emerald-500" />}
+            <p className="text-xs font-black text-[#1a0f2e] uppercase tracking-widest">{toast.message}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

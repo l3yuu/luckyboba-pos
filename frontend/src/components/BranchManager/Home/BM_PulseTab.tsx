@@ -6,6 +6,7 @@ import {
   Clock, ShieldCheck
 } from "lucide-react";
 import axios from 'axios';
+import { StatCard } from "../SharedUI";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface PulseSale {
@@ -40,37 +41,12 @@ interface BM_PulseTabProps {
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────
-const getToken = () =>
-  localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
-
-// ── Shared UI ─────────────────────────────────────────────────────────────────
-interface StatCardProps { icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: "violet" | "emerald" | "amber" }
-const StatCard = ({ icon, label, value, sub, color = "violet" }: StatCardProps) => {
-  const colors: Record<string, { bg: string; border: string; icon: string }> = {
-    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#3b2063]" },
-    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
-  };
-  const c = colors[color];
-  return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 shadow-sm overflow-hidden">
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
-          <span className={c.icon}>{icon}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">{label}</p>
-          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums truncate">{value}</p>
-          {sub && <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5">{sub}</p>}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const Skeleton = ({ className }: { className?: string }) => (
   <div className={`bg-zinc-100 animate-pulse rounded ${className}`} />
 );
+
+const getToken = () =>
+  localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 
 const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
   const [loading, setLoading] = useState(true);
@@ -103,6 +79,8 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
   return (
     <div className="p-6 md:p-8 flex flex-col gap-6 fade-in pb-20">
       <style>{`
+        .fade-in { animation: fadeIn 0.25s ease forwards; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes pulse-ring { 0% { transform: scale(0.33); } 80%, 100% { opacity: 0; } }
         .pulse-indicator { position: relative; display: flex; align-items: center; justify-content: center; }
         .pulse-indicator::before {
@@ -116,45 +94,46 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
         .custom-scroll::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 10px; }
       `}</style>
 
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-black text-[#1a0f2e]">Live Pulse</h2>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full border border-rose-100">
+            <h1 className="text-xl font-bold text-[#1a0f2e]">Live Pulse</h1>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full border border-rose-100 shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-600 pulse-indicator" />
-              <span className="text-[0.6rem] font-black uppercase tracking-wider">Live Monitoring</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">Live Monitoring</span>
             </div>
           </div>
-          <p className="text-xs text-zinc-400 font-bold uppercase tracking-tighter opacity-70 mt-0.5">Real-time activity for your branch</p>
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Real-time branch activity heartbeat</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-[0.55rem] font-bold uppercase tracking-widest text-zinc-400">Last Sync</p>
-            <p className="text-[0.7rem] font-black text-[#3b2063] tabular-nums">
+            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Last Sync</p>
+            <p className="text-[11px] font-bold text-[#3b2063] tabular-nums tracking-wide">
               {lastPulseSync.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </p>
           </div>
-          <button onClick={fetchPulse} className="p-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-xl hover:bg-zinc-50 transition-all">
+          <button onClick={fetchPulse} className="p-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-xl hover:bg-zinc-50 transition-all shadow-sm">
             <RefreshCw size={14} className={loading && pulse ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
 
       {/* Main Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 relative overflow-hidden group shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 relative overflow-hidden group shadow-sm transition-all hover:shadow-md">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-rose-50 border border-rose-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
+            <div className="w-10 h-10 bg-rose-50 border border-rose-200 flex items-center justify-center rounded-lg shrink-0 shadow-sm">
               <span className="text-rose-600"><TrendingUp size={18} strokeWidth={2.5} /></span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">Branch Revenue Today</p>
-              <p className="text-xl font-black text-rose-600 tabular-nums truncate">₱{(pulse?.stats.today_total ?? 0).toLocaleString()}</p>
-              <p className="text-[10px] text-rose-400 font-bold mt-0.5 italic">● Tracking Live</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 truncate">Branch Revenue Today</p>
+              <p className="text-xl font-bold text-[#1a0f2e] tabular-nums truncate">₱{(pulse?.stats.today_total ?? 0).toLocaleString()}</p>
+              <p className="text-[9px] text-rose-500 font-black uppercase tracking-widest mt-1 italic animate-pulse">● Tracking Live</p>
             </div>
           </div>
         </div>
@@ -176,17 +155,17 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
         {/* Live Sales Ticker */}
         <div className="xl:col-span-8 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm flex flex-col min-h-[400px]">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#f5f0ff] flex items-center justify-center text-[#3b2063]">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center text-[#3b2063] shadow-sm">
                 <Clock size={16} />
               </div>
               <div>
-                <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wider opacity-80">Real-time Sales Ticker</h3>
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest opacity-70">Latest 10 Transactions</p>
+                <h3 className="text-base font-bold text-[#1a0f2e]">Real-time Sales Ticker</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Latest 10 Transactions</p>
               </div>
             </div>
             <Activity size={16} className="text-rose-400 animate-pulse" />
@@ -205,22 +184,22 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
               ))
             ) : pulse && pulse.recent_sales.length > 0 ? (
               pulse.recent_sales.map((sale) => (
-                <div key={sale.id} className="ticker-item bg-white hover:bg-zinc-50/50 border border-zinc-100 hover:border-[#ede8ff] hover:shadow-md p-4 rounded-xl transition-all flex items-center justify-between group">
+                <div key={sale.id} className="ticker-item bg-white hover:bg-zinc-50/50 border border-zinc-100 hover:border-violet-200 hover:shadow-md p-4 rounded-[1rem] transition-all flex items-center justify-between group shadow-sm">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:border-[#3b2063] transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:border-violet-300 transition-colors shadow-sm">
                       <DollarSign size={18} className="text-[#3b2063]" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[0.85rem] font-black text-[#1a0f2e]">{sale.invoice_number}</span>
-                        <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[0.6rem] font-black rounded uppercase">Completed</span>
+                        <span className="text-[0.9rem] font-bold text-[#1a0f2e]">{sale.invoice_number}</span>
+                        <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] font-black rounded uppercase tracking-widest border border-emerald-100">Completed</span>
                       </div>
-                      <p className="text-[0.7rem] font-bold text-zinc-500 mt-1">Processed by <span className="text-[#3b2063]">{sale.cashier_name}</span></p>
+                      <p className="text-[11px] font-bold text-zinc-400 mt-1">Processed by <span className="text-[#3b2063]">{sale.cashier_name}</span></p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-lg font-black text-[#1a0f2e]">₱{Number(sale.total_amount).toLocaleString()}</p>
-                    <p className="text-[0.65rem] font-black text-zinc-400 uppercase tracking-widest">{sale.created_at}</p>
+                    <p className="text-lg font-bold text-[#1a0f2e]">₱{Number(sale.total_amount).toLocaleString()}</p>
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-0.5">{sale.created_at}</p>
                   </div>
                 </div>
               ))
@@ -236,12 +215,12 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
         {/* Staff Monitor */}
         <div className="xl:col-span-4 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm flex flex-col">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
               <ShieldCheck size={16} />
             </div>
             <div>
-              <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wider opacity-80">Staff Presence</h3>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest opacity-70">On-Duty Local Team</p>
+              <h3 className="text-base font-bold text-[#1a0f2e]">Staff Presence</h3>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">On-Duty Local Team</p>
             </div>
           </div>
 
@@ -250,10 +229,10 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
               [...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)
             ) : pulse && pulse.active_users.length > 0 ? (
               pulse.active_users.map((staff) => (
-                <div key={staff.id} className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-50 hover:border-emerald-100 hover:bg-emerald-50/20 transition-all group">
+                <div key={staff.id} className="flex items-center justify-between p-3.5 rounded-[1rem] border border-zinc-50 hover:border-emerald-100 hover:bg-emerald-50/20 transition-all group shadow-sm">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="relative">
-                      <div className="w-9 h-9 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-black text-[#3b2063] group-hover:border-emerald-300 transition-colors">
+                      <div className="w-9 h-9 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-black text-[#3b2063] group-hover:border-emerald-300 transition-colors shadow-sm">
                         {staff.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-white rounded-full flex items-center justify-center border-2 border-white">
@@ -261,13 +240,13 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[0.8rem] font-black text-[#1a0f2e] truncate">{staff.name}</p>
-                      <p className="text-[0.6rem] font-bold text-zinc-400 uppercase tracking-widest">{staff.role}</p>
+                      <p className="text-[0.85rem] font-bold text-[#1a0f2e] truncate">{staff.name}</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{staff.role}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[0.6rem] font-black text-emerald-600 uppercase">Online</p>
-                    <p className="text-[0.55rem] font-bold text-zinc-400 tabular-nums">{staff.last_seen}</p>
+                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Online</p>
+                    <p className="text-[10px] font-bold text-zinc-400 tabular-nums">{staff.last_seen}</p>
                   </div>
                 </div>
               ))
