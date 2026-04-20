@@ -1,7 +1,6 @@
-// components/NewSuperAdmin/Sidebar/Navigation/OnlineOrdersTab.tsx
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  ShoppingBag, Clock, ChefHat, CheckCircle2, RefreshCw,
+  ShoppingBag, Clock, ChefHat, CheckCircle2,
   Search, TrendingUp, AlertCircle, Eye, X, Filter,
 } from "lucide-react";
 
@@ -214,30 +213,63 @@ const OnlineOrdersTab: React.FC = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [newOrderIds, setNewOrderIds] = useState<Set<number>>(new Set());
   const [updating, setUpdating] = useState<number | null>(null);
-  const [prevPendingCount, setPrevPendingCount] = useState(0);
-
+  const lastOrderIds = useRef<Set<number>>(new Set());
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const playPing = useCallback(() => {
+    try {
+      const win = window as unknown as Window & { _audioCtx?: AudioContext; webkitAudioContext?: typeof AudioContext };
+      const g = win._audioCtx || new (window.AudioContext || win.webkitAudioContext)();
+      win._audioCtx = g;
+      const o = g.createOscillator();
+      const n = g.createGain();
+      o.connect(n);
+      n.connect(g.destination);
+      o.type = "sine";
+      o.frequency.setValueAtTime(880, g.currentTime);
+      n.gain.setValueAtTime(0.1, g.currentTime);
+      n.gain.exponentialRampToValueAtTime(0.0001, g.currentTime + 0.5);
+      o.start();
+      o.stop(g.currentTime + 0.5);
+    } catch { 
+      // fallback to silent audio if context fails
+      new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA").play().catch(() => {});
+    }
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     try {
       const res = await fetch("/api/online-orders", { headers: authHeaders() });
       const data = await res.json();
       const list: Order[] = Array.isArray(data) ? data : [];
-      setOrders(list);
+      
+      const brandNew = list.filter(o => o.status === "pending" && !lastOrderIds.current.has(o.id));
 
-      // Audio alert for new pending orders
-      const newPending = list.filter(o => o.status === "pending").length;
-      if (prevPendingCount > 0 && newPending > prevPendingCount) {
-        try { new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA").play(); } catch { /* ignore */ }
+      if (brandNew.length > 0 && lastOrderIds.current.size > 0) {
+        playPing();
+        setNewOrderIds(prev => {
+          const next = new Set(prev);
+          brandNew.forEach(o => next.add(o.id));
+          return next;
+        });
+        setTimeout(() => {
+          setNewOrderIds(prev => {
+            const next = new Set(prev);
+            brandNew.forEach(o => next.delete(o.id));
+            return next;
+          });
+        }, 10000);
       }
-      setPrevPendingCount(newPending);
 
+      lastOrderIds.current = new Set(list.map(o => o.id));
+      setOrders(list);
       setError("");
     } catch { setError("Failed to load orders."); }
     finally { setLoading(false); }
-  }, [prevPendingCount]);
+  }, [playPing]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -248,10 +280,40 @@ const OnlineOrdersTab: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Initial fetch
     fetchOrders();
     fetchStats();
-    pollRef.current = setInterval(() => { fetchOrders(); fetchStats(); }, 15000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+
+    const startPolling = () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(() => {
+        fetchOrders();
+        fetchStats();
+      }, 3000); // High-frequency 3s polling
+    };
+
+    const stopPolling = () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = null;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        fetchOrders();
+        fetchStats();
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [fetchOrders, fetchStats]);
 
   const updateStatus = async (id: number, newStatus: string) => {
@@ -311,22 +373,6 @@ const OnlineOrdersTab: React.FC = () => {
       )}
 
       <div className="p-6 md:p-8 fade-in">
-
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            {stats && stats.pending > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-xs font-bold text-amber-700">{stats.pending} pending</span>
-              </div>
-            )}
-          </div>
-          <button onClick={refresh} disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50">
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
-          </button>
-        </div>
 
         {/* Error */}
         {error && (
@@ -446,11 +492,15 @@ const OnlineOrdersTab: React.FC = () => {
                   const cfg = getStatusCfg(o.status);
                   const wait = waitMinutes(o.created_at);
                   const isUpdating = updating === o.id;
+                  const isNew = newOrderIds.has(o.id);
 
                   return (
                     <tr key={o.id}
-                      className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors cursor-pointer"
+                      className={`border-b border-zinc-50 hover:bg-zinc-50 transition-all cursor-pointer relative ${isNew ? "bg-emerald-50/40" : ""}`}
                       onClick={() => setSelectedOrder(o)}>
+                      {isNew && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-emerald-500 rounded-r-full animate-pulse" />
+                      )}
                       <td className="px-5 py-3.5">
                         <div className="min-w-0">
                           <span className="font-bold text-[#1a0f2e] text-xs block">{o.invoice_number}</span>
@@ -476,8 +526,8 @@ const OnlineOrdersTab: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={`text-xs font-bold tabular-nums ${wait >= 10 ? "text-red-500"
-                            : wait >= 5 ? "text-amber-500"
-                              : "text-zinc-500"
+                          : wait >= 5 ? "text-amber-500"
+                            : "text-zinc-500"
                           }`}>
                           {o.status === "completed" ? "—" : `${wait}m`}
                         </span>
@@ -510,10 +560,14 @@ const OnlineOrdersTab: React.FC = () => {
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-2.5 border-t border-zinc-50">
+          <div className="px-5 py-2.5 border-t border-zinc-50 flex items-center justify-between">
             <p className="text-[10px] text-zinc-300 font-medium">
-              {filtered.length} orders shown · Auto-refreshes every 15s
+              {filtered.length} orders shown · Live Updates active (3s)
             </p>
+            <div className="flex items-center gap-2">
+               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+               <span className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest">Live</span>
+            </div>
           </div>
         </div>
       </div>
