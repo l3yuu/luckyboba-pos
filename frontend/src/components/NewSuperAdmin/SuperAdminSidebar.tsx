@@ -6,7 +6,7 @@ import {
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
   Truck, ShoppingCart, ArrowLeftRight,
   DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown, Monitor,
-  CreditCard, AlertTriangle, Sparkles, UserCheck, Bell, ShoppingBag, Smartphone
+  CreditCard, AlertTriangle, Sparkles, UserCheck, ShoppingBag, Smartphone
 } from "lucide-react";
 
 // ── Tab IDs ───────────────────────────────────────────────────────────────────

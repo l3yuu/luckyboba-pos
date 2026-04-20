@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, CreditCard, CalendarDays, Gift, CheckCircle2, ShieldCheck, AlertCircle, XCircle, Activity, User } from 'lucide-react';
 import api from '../../../../services/api';

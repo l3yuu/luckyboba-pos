@@ -221,8 +221,9 @@ const OnlineOrdersTab: React.FC = () => {
 
   const playPing = useCallback(() => {
     try {
-      const g = (window as any)._audioCtx || new (window.AudioContext || (window as any).webkitAudioContext)();
-      (window as any)._audioCtx = g;
+      const win = window as unknown as Window & { _audioCtx?: AudioContext; webkitAudioContext?: typeof AudioContext };
+      const g = win._audioCtx || new (window.AudioContext || win.webkitAudioContext)();
+      win._audioCtx = g;
       const o = g.createOscillator();
       const n = g.createGain();
       o.connect(n);

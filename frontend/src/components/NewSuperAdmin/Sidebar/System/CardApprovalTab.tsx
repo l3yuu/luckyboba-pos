@@ -3,8 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   CreditCard, CheckCircle, XCircle, Clock, RefreshCw,
-  AlertCircle, AlertTriangle, User, Mail, Hash,
-  Smartphone, Calendar,
+  AlertCircle, AlertTriangle, Smartphone, Calendar,
 } from "lucide-react";
 import api from "../../../../services/api";
 

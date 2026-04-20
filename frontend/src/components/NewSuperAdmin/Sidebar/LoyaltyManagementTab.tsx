@@ -255,7 +255,7 @@ const LoyaltyManagementTab: React.FC = () => {
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveSubTab(tab.id as any)}
+              onClick={() => setActiveSubTab(tab.id as "settings" | "rewards" | "users")}
               className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeSubTab === tab.id
                 ? "bg-white text-[#3b2063] shadow-sm ring-1 ring-zinc-200/50"
                 : "text-zinc-500 hover:text-zinc-700 hover:bg-white/50"

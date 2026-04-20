@@ -1,8 +1,7 @@
 import { 
   Plus, Edit2, Trash2, CheckCircle, XCircle, Search, 
-  CreditCard, Image as ImageIcon, Upload, Filter, 
-  Eye, TrendingUp, AlertCircle, LayoutGrid, List,
-  Calendar, DollarSign, Activity
+  CreditCard, Image as ImageIcon, Upload,
+  AlertCircle, DollarSign, Activity
 } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
