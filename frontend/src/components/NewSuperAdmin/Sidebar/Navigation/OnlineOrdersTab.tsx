@@ -1,7 +1,7 @@
 // components/NewSuperAdmin/Sidebar/Navigation/OnlineOrdersTab.tsx
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  ShoppingBag, Clock, ChefHat, CheckCircle2, RefreshCw,
+  ShoppingBag, Clock, ChefHat, CheckCircle2,
   Search, TrendingUp, AlertCircle, Eye, X, Filter,
 } from "lucide-react";
 
@@ -312,22 +312,6 @@ const OnlineOrdersTab: React.FC = () => {
 
       <div className="p-6 md:p-8 fade-in">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            {stats && stats.pending > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-xs font-bold text-amber-700">{stats.pending} pending</span>
-              </div>
-            )}
-          </div>
-          <button onClick={refresh} disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50">
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
-          </button>
-        </div>
-
         {/* Error */}
         {error && (
           <div className="flex items-center gap-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -476,8 +460,8 @@ const OnlineOrdersTab: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={`text-xs font-bold tabular-nums ${wait >= 10 ? "text-red-500"
-                            : wait >= 5 ? "text-amber-500"
-                              : "text-zinc-500"
+                          : wait >= 5 ? "text-amber-500"
+                            : "text-zinc-500"
                           }`}>
                           {o.status === "completed" ? "—" : `${wait}m`}
                         </span>
