@@ -78,7 +78,8 @@ if ($branchId) {
             'menu_items.status',
             'categories.name as category',
             'menu_items.price as sellingPrice',
-            'menu_items.image'
+            'menu_items.image',
+            'menu_items.size'
         )
         ->where('menu_items.status', 'active') // globally inactive = always hidden
         ->get()

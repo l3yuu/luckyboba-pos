@@ -27,6 +27,7 @@ interface MenuItem {
   category: string;
   sellingPrice: number;
   image: string | null;
+  size?: string;
 }
 
 interface Branch {
@@ -408,7 +409,7 @@ const KioskPage = () => {
             name: ao.name,
             price: ao.price
           })),
-          size: 'Standard',
+          size: item.size || 'Standard',
         }))
       };
 
@@ -694,8 +695,11 @@ const KioskPage = () => {
                               </div>
                             )}
                           </div>
-                          <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1">
-                            {item.name.toLowerCase()}
+                          <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1 flex flex-col justify-center">
+                            <span>
+                              {item.name.toLowerCase()}
+                              {item.size && <span className="font-bold text-violet-400 capitalize ml-1">({item.size.toLowerCase()})</span>}
+                            </span>
                           </h3>
 
                           <div className="w-full flex items-center justify-between mt-auto pt-2 px-1 text-xs">
@@ -738,7 +742,12 @@ const KioskPage = () => {
                           </div>
                         )}
                       </div>
-                      <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1">{item.name.toLowerCase()}</h3>
+                      <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1 flex flex-col justify-center">
+                        <span>
+                          {item.name.toLowerCase()}
+                          {item.size && <span className="font-bold text-violet-400 capitalize ml-1">({item.size.toLowerCase()})</span>}
+                        </span>
+                      </h3>
                       <div className="w-full flex items-center justify-between mt-auto pt-2 px-1">
                         <div className="text-[#3b2063] font-black text-2xl">₱{Number(item.sellingPrice).toFixed(2)}</div>
                         <button className="bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm"><Plus size={20} strokeWidth={3} /></button>
@@ -783,7 +792,10 @@ const KioskPage = () => {
                     {item.image && <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-black text-zinc-800 uppercase text-xs mb-1 truncate">{item.name}</h4>
+                    <h4 className="font-black text-zinc-800 uppercase text-xs mb-1 truncate">
+                      {item.name}
+                      {item.size && <span className="text-[8px] font-bold text-violet-400 ml-1">({item.size})</span>}
+                    </h4>
                     <div className="flex flex-wrap gap-1 mb-2">
                       {item.selectedSugarLevel && (
                         <span className="text-[8px] px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded-md font-bold uppercase tracking-tight">
@@ -1393,7 +1405,10 @@ const KioskPage = () => {
                              }}
                              className={`p-4 rounded-xl border-2 text-left flex items-center justify-between group transition-colors ${isSelected ? 'border-violet-600 bg-violet-50 text-violet-900' : 'border-zinc-100 bg-white hover:border-violet-200 text-zinc-500'}`}
                            >
-                              <span className={`text-xs font-bold leading-tight capitalize`}>{item.name.toLowerCase()}</span>
+                              <span className={`text-xs font-bold leading-tight capitalize`}>
+                                {item.name.toLowerCase()}
+                                {item.size && <span className="font-bold text-violet-400 capitalize ml-1">({item.size.toLowerCase()})</span>}
+                              </span>
                               <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-300'}`}>
                                 {isSelected ? <CheckCircle2 size={14} strokeWidth={4} /> : <div className="w-2 h-2 bg-current rounded-full" />}
                               </div>
