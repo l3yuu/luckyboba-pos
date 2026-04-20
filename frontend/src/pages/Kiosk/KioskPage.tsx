@@ -117,6 +117,14 @@ const KioskPage = () => {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
 
+  // Admin & Expo State
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isExpoMode, setIsExpoMode] = useState<boolean>(() => localStorage.getItem('kiosk_expo_mode') === 'true');
+  const [expoItemIds, setExpoItemIds] = useState<number[]>(() => {
+    const stored = localStorage.getItem('kiosk_expo_items');
+    return stored ? JSON.parse(stored) : [];
+  });
+
   // Order Status State
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -159,7 +167,14 @@ const KioskPage = () => {
           const rawItems: MenuItem[] = res.data;
           setItems(rawItems);
 
-          const cats = Array.from(new Set(rawItems.map(i => i.category))).filter(Boolean);
+          const isExpo = localStorage.getItem('kiosk_expo_mode') === 'true';
+          let eIds: number[] = [];
+          const stored = localStorage.getItem('kiosk_expo_items');
+          if (stored) eIds = JSON.parse(stored);
+
+          const displayItems = isExpo ? rawItems.filter(i => eIds.includes(i.id)) : rawItems;
+
+          const cats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
           setCategories(cats);
           if (cats.length > 0) setActiveCategory(cats[0]);
 
@@ -227,7 +242,14 @@ const KioskPage = () => {
 
         const rawItems: MenuItem[] = res.data;
         setItems(rawItems);
-        const cats = Array.from(new Set(rawItems.map(i => i.category))).filter(Boolean);
+        
+        const isExpo = localStorage.getItem('kiosk_expo_mode') === 'true';
+        let eIds: number[] = [];
+        const stored = localStorage.getItem('kiosk_expo_items');
+        if (stored) eIds = JSON.parse(stored);
+
+        const displayItems = isExpo ? rawItems.filter(i => eIds.includes(i.id)) : rawItems;
+        const cats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
         setCategories(cats);
         // Default to 'All Items' for better user experience
         setActiveCategory('');
@@ -638,6 +660,7 @@ const KioskPage = () => {
               .filter(cat => activeCategory === '' || cat === activeCategory)
               .map(cat => {
                 const categoryItems = items.filter((item: MenuItem) => {
+                  if (isExpoMode && !expoItemIds.includes(item.id)) return false;
                   const matchesSearch = searchQuery === '' || item.name.toLowerCase().includes(searchQuery.toLowerCase());
                   const matchesCategory = item.category === cat;
                   return matchesSearch && matchesCategory;
@@ -691,14 +714,14 @@ const KioskPage = () => {
               })}
 
             {/* Flat list for uncategorized items if using All Items search */}
-            {activeCategory === '' && items.filter(i => !i.category).length > 0 && (
+            {activeCategory === '' && items.filter(i => (!i.category) && (!isExpoMode || expoItemIds.includes(i.id))).length > 0 && (
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
                   <h2 className="text-2xl font-black text-[#3b2063] uppercase italic tracking-tight">Others</h2>
                   <div className="h-px flex-1 bg-zinc-100"></div>
                 </div>
                 <div className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                  {items.filter(i => !i.category).map((item) => (
+                  {items.filter(i => (!i.category) && (!isExpoMode || expoItemIds.includes(i.id))).map((item) => (
                     <div
                       key={item.id}
                       onClick={() => handleItemClick(item)}
@@ -1208,8 +1231,9 @@ const KioskPage = () => {
                       setPinInput(newPin);
                       if (newPin.length === 4) {
                         if (newPin === '1234') {
-                          localStorage.removeItem('kiosk_branch_id');
-                          window.location.reload();
+                          setPinInput('');
+                          setIsPinModalOpen(false);
+                          setIsAdminModalOpen(true);
                         } else {
                           setPinError(true);
                           setTimeout(() => {
@@ -1238,8 +1262,9 @@ const KioskPage = () => {
                     setPinInput(newPin);
                     if (newPin.length === 4) {
                       if (newPin === '1234') {
-                        localStorage.removeItem('kiosk_branch_id');
-                        window.location.reload();
+                        setPinInput('');
+                        setIsPinModalOpen(false);
+                        setIsAdminModalOpen(true);
                       } else {
                         setPinError(true);
                         setTimeout(() => {
@@ -1267,6 +1292,108 @@ const KioskPage = () => {
                 Incorrect PIN
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Admin Settings Modal */}
+      {isAdminModalOpen && (
+        <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center print:hidden animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-10 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col items-center">
+            <h2 className="text-3xl font-black text-[#3b2063] uppercase italic mb-8 shrink-0">Admin Settings</h2>
+              
+            <div className="w-full flex-1 overflow-y-auto pr-2 space-y-6 text-left shrink">
+              {/* Expo Mode Toggle */}
+              <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-zinc-900 uppercase">Expo Mode</h3>
+                  <p className="text-xs text-zinc-500 font-medium">Limit the menu to specific items only.</p>
+                </div>
+                <button 
+                  onClick={() => {
+                      const newMode = !isExpoMode;
+                      setIsExpoMode(newMode);
+                      localStorage.setItem('kiosk_expo_mode', String(newMode));
+                      
+                      const displayItems = newMode ? items.filter(i => expoItemIds.includes(i.id)) : items;
+                      const newCats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
+                      setCategories(newCats);
+                      if (!newCats.includes(activeCategory)) setActiveCategory('');
+                  }}
+                  className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-colors w-32 shrink-0 ${isExpoMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-600' : 'bg-zinc-200 text-zinc-400 hover:bg-zinc-300'}`}
+                >
+                  {isExpoMode ? 'Enabled' : 'Disabled'}
+                </button>
+              </div>
+
+              {/* Expo Item Selection */}
+              {isExpoMode && (
+                <div className="bg-white p-6 rounded-2xl border border-violet-100">
+                  <h3 className="font-bold text-violet-900 uppercase">Select Expo Items</h3>
+                  <p className="text-xs text-zinc-500 font-medium mb-4">Click to toggle items for the Expo.</p>
+                  
+                  {items.length === 0 ? (
+                     <p className="text-xs text-zinc-400 italic">No items loaded for this branch.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 max-h-72 overflow-y-auto p-1">
+                      {items.map(item => {
+                         const isSelected = expoItemIds.includes(item.id);
+                         return (
+                           <button
+                             key={item.id}
+                             onClick={() => {
+                               let newIds = [...expoItemIds];
+                               if (isSelected) {
+                                  newIds = newIds.filter(id => id !== item.id);
+                               } else {
+                                  newIds.push(item.id);
+                               }
+                               setExpoItemIds(newIds);
+                               localStorage.setItem('kiosk_expo_items', JSON.stringify(newIds));
+                               
+                               const displayItems = items.filter(i => newIds.includes(i.id));
+                               const newCats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
+                               setCategories(newCats);
+                               if (!newCats.includes(activeCategory)) setActiveCategory('');
+                             }}
+                             className={`p-4 rounded-xl border-2 text-left flex items-center justify-between group transition-colors ${isSelected ? 'border-violet-600 bg-violet-50 text-violet-900' : 'border-zinc-100 bg-white hover:border-violet-200 text-zinc-500'}`}
+                           >
+                              <span className={`text-xs font-bold leading-tight capitalize`}>{item.name.toLowerCase()}</span>
+                              <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-300'}`}>
+                                {isSelected ? <CheckCircle2 size={14} strokeWidth={4} /> : <div className="w-2 h-2 bg-current rounded-full" />}
+                              </div>
+                           </button>
+                         )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Reset Kiosk */}
+              <div className="bg-white p-6 rounded-2xl border border-red-50 flex items-center justify-between mt-8">
+                <div>
+                  <h3 className="font-bold text-red-600 uppercase">Reset Location</h3>
+                  <p className="text-xs text-red-400 font-medium">Unbind this device.</p>
+                </div>
+                <button 
+                  onClick={() => {
+                     localStorage.removeItem('kiosk_branch_id');
+                     window.location.reload();
+                  }}
+                  className="px-6 py-4 bg-red-50 border border-red-100 text-red-600 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-red-600 hover:text-white transition-colors"
+                >
+                  Reset Now
+                </button>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setIsAdminModalOpen(false)}
+               className="mt-8 py-5 bg-[#3b2063] hover:bg-[#2d184d] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-[#3b2063]/20 w-full shrink-0"
+            >
+              Close Settings
+            </button>
           </div>
         </div>
       )}
