@@ -634,7 +634,7 @@ const KioskPage = () => {
           <div className="flex flex-col items-center gap-3 animate-fade-up">
             <button
               onClick={() => setStep('menu')}
-              className="group px-14 py-4 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white font-black text-lg uppercase tracking-[0.08em] shadow-[0_12px_35px_rgba(124,58,237,0.35)] flex items-center gap-2.5 hover:from-violet-500 hover:to-fuchsia-500 hover:-translate-y-[1px] transition-all active:scale-95"
+              className="group px-14 py-4 rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 text-white font-black text-lg uppercase tracking-[0.08em] shadow-[0_12px_35px_rgba(124,58,237,0.35)] flex items-center gap-2.5 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 hover:-translate-y-[1px] transition-all active:scale-95"
             >
               Continue
               <ChevronRight size={20} strokeWidth={3} className="transition-transform group-hover:translate-x-1" />
@@ -901,9 +901,9 @@ const KioskPage = () => {
 
         {/* Customization Modal */}
         {showCustomizer && customizingItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-zinc-900/60">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-zinc-900/55">
             <div className="absolute inset-0" onClick={() => setShowCustomizer(false)} />
-            <div className="relative bg-zinc-50 w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="relative bg-gradient-to-br from-violet-50 to-fuchsia-50 w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-violet-100/70">
               
               <div className="p-8 border-b border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-6">
@@ -916,7 +916,7 @@ const KioskPage = () => {
                   </div>
                   <div>
                     <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase line-clamp-1">{customizingItem.name}</h3>
-                    <div className="inline-block px-3 py-1 bg-violet-50 border border-violet-100 text-violet-700 rounded-lg text-sm font-bold uppercase tracking-widest mt-2">{customizingItem.category}</div>
+                    <div className="inline-block px-3 py-1 bg-white/80 border border-violet-200 text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 rounded-lg text-sm font-bold uppercase tracking-widest mt-2">{customizingItem.category}</div>
                   </div>
                 </div>
                 <button
@@ -930,9 +930,9 @@ const KioskPage = () => {
               <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
                 {(customizingItem.category?.toLowerCase().includes('milk tea') ||
                   customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
-                    <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
+                    <div className="bg-white/95 p-8 rounded-3xl border border-violet-100 shadow-sm">
                       <div className="flex items-center gap-4 mb-6">
-                        <div className="w-10 h-10 bg-violet-100 text-violet-700 rounded-full flex items-center justify-center font-black text-lg shrink-0">1</div>
+                        <div className="w-10 h-10 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0">1</div>
                         <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase">Select Sugar</h4>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -941,7 +941,7 @@ const KioskPage = () => {
                             key={sl.id}
                             onClick={() => setSelectedSugarLevel(sl.value)}
                             className={`py-5 rounded-2xl font-bold text-lg transition-all border-4 ${selectedSugarLevel === sl.value
-                                ? 'bg-violet-50 border-violet-600 text-violet-800 scale-105 shadow-md'
+                                ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500 border-violet-600 text-white scale-105 shadow-[0_12px_25px_rgba(124,58,237,0.35)]'
                                 : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300'
                               }`}
                           >
@@ -952,9 +952,9 @@ const KioskPage = () => {
                     </div>
                   )}
 
-                <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
+                <div className="bg-white/95 p-8 rounded-3xl border border-violet-100 shadow-sm">
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="w-10 h-10 bg-zinc-100 text-zinc-700 rounded-full flex items-center justify-center font-black text-lg shrink-0 border border-zinc-200">
+                    <div className="w-10 h-10 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 border border-violet-300/50">
                       {((customizingItem.category?.toLowerCase().includes('milk') || customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0) ? '2' : '1'}
                     </div>
                     <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase">Add Toppings</h4>
@@ -979,15 +979,15 @@ const KioskPage = () => {
                               );
                             }}
                             className={`p-5 rounded-2xl border-4 flex flex-col transition-all text-left ${isSelected
-                                ? 'border-violet-600 bg-violet-50 scale-[1.02] shadow-md'
+                                ? 'border-violet-600 bg-gradient-to-r from-violet-50 to-fuchsia-50 scale-[1.02] shadow-md'
                                 : 'border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300'
                               }`}
                           >
                             <div className="flex justify-between items-start mb-2 w-full">
-                               <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-violet-600 bg-violet-600 text-white' : 'border-zinc-300 bg-zinc-50'}`}>
+                               <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-violet-600 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white' : 'border-zinc-300 bg-zinc-50'}`}>
                                   {isSelected && <CheckCircle2 size={20} strokeWidth={3}/>}
                                </div>
-                               <span className={`font-black text-xl ${isSelected ? 'text-violet-700' : 'text-zinc-500'}`}>
+                               <span className={`font-black text-xl ${isSelected ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500' : 'text-zinc-500'}`}>
                                   +₱{Number(ao.price).toFixed(0)}
                                </span>
                             </div>
@@ -1004,7 +1004,7 @@ const KioskPage = () => {
               <div className="p-8 border-t border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgb(0,0,0,0.03)] z-10">
                 <div>
                   <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-1">Total</p>
-                  <div className="text-4xl font-black text-zinc-900 tracking-tighter">
+                  <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-700 to-fuchsia-500 tracking-tighter">
                     ₱{(
                       Number(customizingItem.sellingPrice) +
                       selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
@@ -1013,7 +1013,7 @@ const KioskPage = () => {
                 </div>
                 <button
                   onClick={confirmCustomization}
-                  className="bg-violet-600 text-white px-12 py-6 rounded-2xl font-black uppercase tracking-wider text-xl flex items-center gap-3 hover:bg-violet-700 transition-all shadow-[0_8px_20px_rgb(124,58,237,0.3)] hover:shadow-[0_12px_25px_rgb(124,58,237,0.4)] hover:-translate-y-[1px] active:scale-95"
+                  className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white px-12 py-6 rounded-2xl font-black uppercase tracking-wider text-xl flex items-center gap-3 hover:from-violet-500 hover:to-fuchsia-500 transition-all shadow-[0_8px_20px_rgba(124,58,237,0.35)] hover:shadow-[0_12px_25px_rgba(124,58,237,0.45)] hover:-translate-y-[1px] active:scale-95"
                 >
                   <span>Add to Tray</span>
                   <Plus size={24} strokeWidth={3}/>
@@ -1028,8 +1028,14 @@ const KioskPage = () => {
 
 
       const ConfirmView = () => (
-    <div className="flex-1 flex flex-col p-12 animate-in fade-in zoom-in-95 duration-500 bg-zinc-50 overflow-y-auto relative">
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-violet-600/5 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+    <div
+      className="flex-1 flex flex-col p-12 animate-in fade-in zoom-in-95 duration-500 overflow-y-auto relative"
+      style={{
+        background: 'linear-gradient(145deg, #faf7ff 0%, #f2ecff 45%, #fff4fb 78%, #fff8ec 100%)'
+      }}
+    >
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[110px] translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+      <div className="absolute bottom-[-8%] left-[-6%] w-[420px] h-[420px] bg-fuchsia-400/10 rounded-full blur-[115px] pointer-events-none"></div>
 
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-12 max-w-2xl mx-auto w-full relative z-10">
         
@@ -1066,7 +1072,7 @@ const KioskPage = () => {
 
         <button
           onClick={handleReset}
-          className="bg-zinc-900 hover:bg-violet-600 text-white px-16 py-6 rounded-full font-black uppercase text-2xl tracking-wider transition-all shadow-[0_12px_40px_rgba(24,24,27,0.2)] hover:shadow-[0_16px_50px_rgba(124,58,237,0.3)] hover:-translate-y-1 active:scale-95"
+          className="bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-500 text-white px-16 py-6 rounded-full font-black uppercase text-2xl tracking-wider transition-all shadow-[0_12px_40px_rgba(124,58,237,0.3)] hover:shadow-[0_16px_50px_rgba(124,58,237,0.4)] hover:-translate-y-1 active:scale-95"
         >
           New Order
         </button>
@@ -1083,23 +1089,30 @@ const KioskPage = () => {
     );
 
     return (
-      <div className="flex-1 flex flex-col bg-zinc-50 p-10 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-100 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/3 pointer-events-none opacity-40"></div>
+      <div
+        className="flex-1 flex flex-col p-10 overflow-hidden relative"
+        style={{
+          background: 'linear-gradient(145deg, #faf7ff 0%, #f2ecff 45%, #fff4fb 78%, #fff8ec 100%)'
+        }}
+      >
+        <div className="absolute top-0 right-0 w-[420px] h-[420px] bg-violet-500/12 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] left-[-6%] w-[420px] h-[420px] bg-fuchsia-400/12 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute top-[35%] left-[45%] w-[300px] h-[300px] bg-amber-300/10 rounded-full blur-[120px] pointer-events-none"></div>
 
         <div className="max-w-4xl mx-auto w-full flex flex-col h-full relative z-10">
           <div className="flex flex-col items-center mb-10 shrink-0">
-            <img src={logo} alt="Lucky Boba" className="w-32 h-auto mb-6" />
-            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Kiosk Setup</h1>
-            <p className="text-zinc-500 font-medium text-sm mt-2">Select the branch for this device</p>
+            <img src={logo} alt="Lucky Boba" className="w-32 h-auto mb-6 drop-shadow-sm" />
+            <h1 className="text-4xl font-black text-zinc-900 tracking-tight">Kiosk Setup</h1>
+            <p className="text-zinc-500 font-semibold text-sm mt-2 uppercase tracking-[0.12em]">Select the branch for this device</p>
           </div>
 
           <div className="mb-8 shrink-0 w-full max-w-xl mx-auto">
-            <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-xl px-5 py-4 shadow-sm group focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-50 transition-all">
+            <div className="flex items-center gap-3 bg-white/95 border border-violet-200 rounded-2xl px-5 py-4 shadow-lg group focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-100 transition-all backdrop-blur-sm">
               <Search size={20} className="text-zinc-400 group-focus-within:text-violet-500 transition-colors" />
               <input
                 value={branchSearch}
                 onChange={e => setBranchSearch(e.target.value)}
-                className="flex-1 bg-transparent text-base font-medium text-zinc-900 outline-none placeholder:text-zinc-400"
+                className="flex-1 bg-transparent text-base font-semibold text-zinc-900 outline-none placeholder:text-zinc-400"
                 placeholder="Search by name or address..."
               />
               {branchSearch && (
@@ -1115,16 +1128,27 @@ const KioskPage = () => {
               <button
                 key={branch.id}
                 onClick={() => handleSelectBranch(branch)}
-                className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200/80 flex flex-col items-start text-left hover:border-violet-300 hover:shadow-md transition-all group active:scale-[0.98]"
+                className={`p-6 rounded-2xl shadow-md border flex flex-col items-start text-left transition-all group active:scale-[0.98] backdrop-blur-sm ${
+                  selectedBranchToConfirm?.id === branch.id
+                    ? 'bg-white border-violet-500 ring-4 ring-violet-100 shadow-xl -translate-y-[2px]'
+                    : 'bg-white/95 border-zinc-200/80 hover:border-violet-300 hover:shadow-xl hover:-translate-y-[2px]'
+                }`}
               >
                 <div className="flex items-center gap-4 w-full mb-4">
-                  <div className="w-12 h-12 bg-zinc-50 border border-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-violet-600 group-hover:border-violet-600 group-hover:text-white transition-colors">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors border ${
+                    selectedBranchToConfirm?.id === branch.id
+                      ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500 border-violet-500 text-white'
+                      : 'bg-zinc-50 border-zinc-100 text-zinc-600 group-hover:bg-gradient-to-r group-hover:from-violet-600 group-hover:to-fuchsia-500 group-hover:border-violet-600 group-hover:text-white'
+                  }`}>
                     <ShoppingBag size={22} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-zinc-900 line-clamp-1 capitalize">{branch.name.toLowerCase()}</h3>
+                    <h3 className="text-lg font-black text-zinc-900 line-clamp-1 capitalize">{branch.name.toLowerCase()}</h3>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase tracking-wider">Active</span>
+                      {selectedBranchToConfirm?.id === branch.id && (
+                        <span className="text-[10px] font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 px-2 py-0.5 rounded uppercase tracking-wider">Selected</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1141,7 +1165,11 @@ const KioskPage = () => {
                 </div>
 
                 <div className="mt-6 flex items-center justify-between w-full">
-                  <div className="flex items-center gap-1 text-xs font-semibold text-violet-600 opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                  <div className={`flex items-center gap-1 text-xs font-semibold transition-all duration-300 ${
+                    selectedBranchToConfirm?.id === branch.id
+                      ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 opacity-100 translate-x-0'
+                      : 'text-violet-600 opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0'
+                  }`}>
                     <span>Select Branch</span>
                     <ChevronRight size={16} />
                   </div>
@@ -1211,7 +1239,7 @@ const KioskPage = () => {
               </button>
               <button
                 onClick={confirmBranchSelection}
-                className="flex-1 py-3.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold tracking-wide text-sm shadow-[0_4px_14px_0_rgb(124,58,237,0.39)] hover:shadow-[0_6px_20px_rgba(124,58,237,0.23)] active:scale-[0.98] transition-all"
+                className="flex-1 py-3.5 bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 text-white rounded-xl font-semibold tracking-wide text-sm shadow-[0_4px_14px_0_rgba(124,58,237,0.39)] hover:shadow-[0_6px_20px_rgba(124,58,237,0.3)] active:scale-[0.98] transition-all"
               >
                 Confirm
               </button>
