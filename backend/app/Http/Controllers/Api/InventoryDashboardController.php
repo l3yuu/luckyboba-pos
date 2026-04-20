@@ -33,7 +33,7 @@ class InventoryDashboardController extends Controller
                 ')
                 ->groupBy('sale_items.product_name')
                 ->orderBy('total_qty', 'desc')
-                ->limit(5)
+                ->limit(20)
                 ->get();
 
             $data = $topProducts->map(function ($item) {
