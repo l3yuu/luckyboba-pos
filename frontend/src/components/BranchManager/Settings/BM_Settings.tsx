@@ -189,7 +189,7 @@ const BM_Settings = () => {
       await api.put(`/branches/${branchInfo.id}`, { kiosk_pin: kioskPinInput });
       showSaved('Kiosk PIN updated!');
       setBranchInfo(prev => ({ ...prev, kiosk_pin: kioskPinInput }));
-    } catch (err) {
+    } catch (_err) {
       showSaved('Failed to update Kiosk PIN.');
     } finally {
       setIsUpdatingPin(false);

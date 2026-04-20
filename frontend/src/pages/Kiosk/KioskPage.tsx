@@ -1236,7 +1236,7 @@ const KioskPage = () => {
             } else {
               triggerError();
             }
-          } catch (err) {
+          } catch (_err) {
             triggerError();
           } finally {
             setLoading(false);

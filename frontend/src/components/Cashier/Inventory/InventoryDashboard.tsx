@@ -487,7 +487,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
   const recipeCategoryList = useMemo(() => {
     const cats = recipes.map(r => {
       const cat = r.menu_item.category;
-      if (typeof cat === 'object' && cat !== null) return (cat as any).name;
+      if (typeof cat === 'object' && cat !== null) return (cat as { name: string }).name;
       return (cat as string) || 'General';
     });
     return ['All', ...[...new Set(cats)].sort() as string[]];
@@ -527,7 +527,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
     if (recipeCategoryFilter !== 'All') {
       data = data.filter(r => {
         const cat = r.menuItem.category;
-        const catName = (typeof cat === 'object' && cat !== null) ? (cat as any).name : (cat || 'General');
+        const catName = (typeof cat === 'object' && cat !== null) ? (cat as { name: string }).name : (cat || 'General');
         return catName === recipeCategoryFilter;
       });
     }
