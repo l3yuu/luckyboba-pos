@@ -1195,7 +1195,39 @@ const KioskPage = () => {
       )}
 
       {/* Admin Security PIN Modal */}
-      {isPinModalOpen && (
+      {isPinModalOpen && (() => {
+        
+        const handleVerifyPin = async (pinToVerify: string) => {
+          try {
+            setLoading(true);
+            const response = await api.post('/kiosk/verify-pin', {
+              pin: pinToVerify,
+              branch_id: branchId
+            });
+            
+            if (response.data.success) {
+              setPinInput('');
+              setIsPinModalOpen(false);
+              setIsAdminModalOpen(true);
+            } else {
+              triggerError();
+            }
+          } catch (err) {
+            triggerError();
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const triggerError = () => {
+          setPinError(true);
+          setTimeout(() => {
+            setPinError(false);
+            setPinInput('');
+          }, 600);
+        };
+
+        return (
         <div className="absolute inset-0 bg-zinc-900/60 backdrop-blur-md z-[100] flex items-center justify-center print:hidden p-6">
           <div className={`bg-white rounded-3xl p-10 max-w-sm w-full shadow-2xl transition-all duration-300 ${pinError ? 'animate-shake' : ''}`}>
             <div className="w-20 h-20 bg-violet-100 text-violet-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
@@ -1230,17 +1262,7 @@ const KioskPage = () => {
                       const newPin = pinInput + num;
                       setPinInput(newPin);
                       if (newPin.length === 4) {
-                        if (newPin === '1234') {
-                          setPinInput('');
-                          setIsPinModalOpen(false);
-                          setIsAdminModalOpen(true);
-                        } else {
-                          setPinError(true);
-                          setTimeout(() => {
-                            setPinError(false);
-                            setPinInput('');
-                          }, 600);
-                        }
+                        handleVerifyPin(newPin);
                       }
                     }
                   }}
@@ -1261,17 +1283,7 @@ const KioskPage = () => {
                     const newPin = pinInput + '0';
                     setPinInput(newPin);
                     if (newPin.length === 4) {
-                      if (newPin === '1234') {
-                        setPinInput('');
-                        setIsPinModalOpen(false);
-                        setIsAdminModalOpen(true);
-                      } else {
-                        setPinError(true);
-                        setTimeout(() => {
-                          setPinError(false);
-                          setPinInput('');
-                        }, 600);
-                      }
+                      handleVerifyPin(newPin);
                     }
                   }
                 }}
@@ -1294,7 +1306,8 @@ const KioskPage = () => {
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Admin Settings Modal */}
       {isAdminModalOpen && (

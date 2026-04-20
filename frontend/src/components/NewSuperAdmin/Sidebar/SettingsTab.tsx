@@ -151,6 +151,7 @@ const SettingsTab: React.FC = () => {
     contact_email: 'admin@luckyboba.com',
     contact_phone: '+63 912 345 6789',
     address: 'Cebu City, Philippines',
+    global_kiosk_pin: '1234',
   });
 
   // ── Tax & Receipt settings state ─────────────────────────────────────────
@@ -203,6 +204,7 @@ const SettingsTab: React.FC = () => {
           contact_email: data.contact_email ?? '',
           contact_phone: data.contact_phone ?? '',
           address: data.address ?? '',
+          global_kiosk_pin: data.global_kiosk_pin ?? '1234',
         });
         setTaxFields({
           vat_rate: data.vat_rate ?? '',
@@ -418,12 +420,14 @@ const SettingsTab: React.FC = () => {
                 { label: "Contact Email", key: "contact_email" as const, icon: <Mail size={14} /> },
                 { label: "Contact Phone", key: "contact_phone" as const, icon: <Phone size={14} /> },
                 { label: "Address", key: "address" as const, icon: <MapPin size={14} /> },
+                { label: "Global Kiosk PIN", key: "global_kiosk_pin" as const, icon: <Lock size={14} /> },
               ].map((f) => (
                 <div key={f.key} className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-zinc-50 border border-zinc-200 rounded-[0.4rem] flex items-center justify-center text-zinc-400 shrink-0">{f.icon}</div>
                   <div className="flex-1">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">{f.label}</p>
                     <input
+                      type={f.key === "global_kiosk_pin" ? "password" : "text"}
                       value={generalFields[f.key]}
                       onChange={e => setGeneralFields((v: typeof generalFields) => ({ ...v, [f.key]: e.target.value }))}
                       className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-[0.4rem] px-3 py-1.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"

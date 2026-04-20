@@ -105,6 +105,33 @@ if ($branchId) {
 })->middleware('throttle:30,1');
 // ─────────────────────────────────────────────────────────────────────────────
 
+Route::post('/kiosk/verify-pin', function (Illuminate\Http\Request $request) {
+    $request->validate([
+        'pin' => 'required|string'
+    ]);
+    $pin = $request->input('pin');
+    $branchId = $request->input('branch_id'); // Optional if kiosk is unbound
+
+    // Check Global SuperAdmin PIN
+    $globalPin = \App\Models\Setting::where('key', 'global_kiosk_pin')->value('value') ?? '1234';
+    if ($pin === $globalPin) {
+        return response()->json(['success' => true]);
+    }
+
+    // Check Branch PIN if a branch is specified
+    if ($branchId) {
+        $branch = \App\Models\Branch::find($branchId);
+        if ($branch) {
+            $branchPin = $branch->kiosk_pin ?? '1234';
+            if ($pin === $branchPin) {
+                return response()->json(['success' => true]);
+            }
+        }
+    }
+
+    return response()->json(['success' => false, 'message' => 'Invalid PIN'], 403);
+})->middleware('throttle:30,1');
+
 Route::get('/branches/available', [BranchController::class, 'availableBranches']);
 Route::post('/google-login', [AuthController::class, 'googleLogin'])->middleware('throttle:10,1');
 Route::post('/register', [AuthController::class, 'register']);
