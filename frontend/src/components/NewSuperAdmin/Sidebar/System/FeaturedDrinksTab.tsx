@@ -1,28 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
-  Plus, Trash2, Edit3, Eye, EyeOff, GripVertical, Upload, X, Image as ImageIcon, Sparkles,
+  Plus, Trash2, Edit3, Eye, EyeOff, GripVertical, Upload,
+  Image as ImageIcon, Sparkles, RefreshCw, CheckCircle2,
+  XCircle, Info, Search, LayoutGrid
 } from "lucide-react";
 
-/* ── Helpers ────────────────────────────────────────────────────── */
-const getToken = () =>
-  localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
+// ── Types ──────────────────────────────────────────────────────────────────────
+type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 
-const api = async (path: string, opts: RequestInit = {}) => {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-  // Don't set Content-Type for FormData
-  if (!(opts.body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
-  }
-  const res = await fetch(`/api${path}`, { ...opts, headers });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-};
-
-/* ── Types ──────────────────────────────────────────────────────── */
 interface FeaturedDrink {
   id: number;
   title: string;
@@ -34,31 +20,115 @@ interface FeaturedDrink {
   sort_order: number;
 }
 
-/* ── Component ──────────────────────────────────────────────────── */
+// ── Auth & API helpers ─────────────────────────────────────────────────────────
+const getToken = () =>
+  localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
+
+const api = async (path: string, opts: RequestInit = {}) => {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+  if (!(opts.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+  const res = await fetch(`/api${path}`, { ...opts, headers });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+// ── Shared UI Components ──────────────────────────────────────────────────────
+const Btn: React.FC<{
+  children: React.ReactNode; variant?: VariantKey;
+  size?: "sm" | "md"; onClick?: () => void; className?: string; disabled?: boolean;
+  type?: "button" | "submit";
+}> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
+  const sizes = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
+  const variants = {
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white shadow-sm",
+    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
+    danger: "bg-red-50 text-red-600 border border-red-100 hover:bg-red-500 hover:text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+};
+
+const ModalShell: React.FC<{
+  onClose: () => void; icon: React.ReactNode; title: string; sub: string;
+  children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
+}> = ({ onClose, icon, title, sub, children, footer, maxWidth = "max-w-md" }) =>
+    createPortal(
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-sm">
+        <div className="absolute inset-0" onClick={onClose} />
+        <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl overflow-hidden flex flex-col`}>
+          <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-violet-50 border border-violet-200 rounded-xl flex items-center justify-center shrink-0">{icon}</div>
+              <div>
+                <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
+                <p className="text-[10px] text-zinc-400 font-medium">{sub}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400">
+              <XCircle size={18} />
+            </button>
+          </div>
+          <div className="px-6 py-6 flex flex-col gap-5 max-h-[80vh] overflow-y-auto sa-scroll">{children}</div>
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-100 bg-zinc-50/50">{footer}</div>
+        </div>
+      </div>,
+      document.body
+    );
+
+const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
+  <div>
+    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+      {label} {required && <span className="text-red-400">*</span>}
+    </label>
+    {children}
+    {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
+  </div>
+);
+
+const Badge: React.FC<{ active: boolean; label?: string }> = ({ active, label }) => (
+  <div className={`px-2 py-1 text-[8px] font-black uppercase tracking-[0.2em] rounded border inline-flex items-center gap-1.5 ${active ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-zinc-50 text-zinc-400 border-zinc-100"
+    }`}>
+    {active && <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />}
+    {label || (active ? "Live" : "Inactive")}
+  </div>
+);
+
+const inputCls = (err?: string) =>
+  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? "border-red-300 bg-red-50" : "border-zinc-200"}`;
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 const FeaturedDrinksTab = () => {
-  const [items, setItems]         = useState<FeaturedDrink[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [showForm, setShowForm]   = useState(false);
-  const [editing, setEditing]     = useState<FeaturedDrink | null>(null);
-  const [saving, setSaving]       = useState(false);
-  const [deleting, setDeleting]   = useState<number | null>(null);
+  const [items, setItems] = useState<FeaturedDrink[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<FeaturedDrink | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   // Form state
-  const [title, setTitle]         = useState("");
-  const [subtitle, setSubtitle]   = useState("");
-  const [ctaText, setCtaText]     = useState("ORDER NOW");
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [ctaText, setCtaText] = useState("ORDER NOW");
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [preview, setPreview]     = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
     try {
       const data = await api("/featured-drinks");
       setItems(data);
-    } catch {
-      /* silently fail */
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* fail silently */ }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
@@ -97,33 +167,25 @@ const FeaturedDrinksTab = () => {
       }
       resetForm();
       fetchItems();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this featured drink?")) return;
+    if (!confirm("Are you sure you want to delete this featured banner?")) return;
     setDeleting(id);
     try {
       await api(`/featured-drinks/${id}`, { method: "DELETE" });
       fetchItems();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setDeleting(null);
-    }
+    } catch (err) { console.error(err); }
+    finally { setDeleting(null); }
   };
 
   const handleToggle = async (id: number) => {
     try {
       await api(`/featured-drinks/${id}/toggle`, { method: "PATCH" });
       fetchItems();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,296 +195,191 @@ const FeaturedDrinksTab = () => {
     setPreview(URL.createObjectURL(file));
   };
 
-  /* ── Render ─────────────────────────────────────────────────── */
-  return (
-    <div style={{ padding: "28px 32px", fontFamily: "'DM Sans', sans-serif", maxWidth: 1100 }}>
+  const activeCount = items.filter(i => i.is_active).length;
 
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-        <div>
-          <h2 style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1a0f2e", margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
-            <Sparkles size={20} color="#7c3aed" />
-            Featured Drinks
-          </h2>
-          <p style={{ fontSize: "0.82rem", color: "#71717a", margin: "4px 0 0", fontWeight: 500 }}>
-            Manage hero banners shown on the mobile app homepage
-          </p>
+  return (
+    <div className="p-6 md:p-10 max-w-7xl mx-auto flex flex-col h-full fade-in sa-scroll">
+
+      <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden flex flex-col flex-1 mb-4 min-h-0">
+        <div className="px-4 py-2.5 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-y-3 gap-x-6 bg-zinc-50/10 shrink-0">
+          <div className="flex items-center gap-4">
+            <h2 className="text-[11px] font-black text-[#1a0f2e] uppercase tracking-tight flex items-center gap-2 shrink-0">
+              <Sparkles size={14} className="text-violet-600" />
+              Promo Media
+            </h2>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded border border-emerald-100 text-[8px] font-black uppercase tracking-widest leading-none">
+                <Eye size={10} /> {activeCount} Live
+              </div>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded border border-violet-100 text-[8px] font-black uppercase tracking-widest leading-none">
+                <LayoutGrid size={10} /> {items.length} Total
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 flex-1 justify-end">
+            <div className="relative group w-full max-w-[240px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={13} />
+              <input
+                type="text"
+                placeholder="Quick search..."
+                className={`${inputCls()} pl-9 h-8 text-xs rounded-lg`}
+              />
+            </div>
+            <Btn onClick={() => { resetForm(); setShowForm(true); }} size="sm" className="h-8 py-0 px-3 shadow-sm shrink-0">
+              <Plus size={14} /> New Creative
+            </Btn>
+          </div>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowForm(true); }}
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "10px 22px", fontSize: "0.78rem", fontWeight: 700,
-            letterSpacing: "0.06em", textTransform: "uppercase",
-            color: "#fff", background: "linear-gradient(135deg, #7c3aed, #3b2063)",
-            border: "none", borderRadius: "0.7rem", cursor: "pointer",
-            boxShadow: "0 4px 16px rgba(124,58,237,0.25)",
-            transition: "transform 0.12s, box-shadow 0.12s",
-          }}
-          onMouseDown={e => (e.currentTarget.style.transform = "scale(0.97)")}
-          onMouseUp={e => (e.currentTarget.style.transform = "scale(1)")}
-        >
-          <Plus size={15} /> Add Featured
-        </button>
+
+        <div className="overflow-x-auto flex-1 sa-scroll">
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead>
+              <tr className="bg-zinc-50/50 border-b border-zinc-100">
+                <th className="px-4 py-2 text-[8px] font-black uppercase tracking-widest text-zinc-400 w-12">Pos</th>
+                <th className="px-4 py-2 text-[8px] font-black uppercase tracking-widest text-zinc-400 text-center">Creative</th>
+                <th className="px-4 py-2 text-[8px] font-black uppercase tracking-widest text-zinc-400">Details</th>
+                <th className="px-4 py-2 text-[8px] font-black uppercase tracking-widest text-zinc-400">Action</th>
+                <th className="px-4 py-2 text-center text-[8px] font-black uppercase tracking-widest text-zinc-400">Status</th>
+                <th className="px-4 py-2 text-right text-[8px] font-black uppercase tracking-widest text-zinc-400">Tools</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-50">
+              {loading ? (
+                [...Array(4)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td colSpan={6} className="px-8 py-8"><div className="h-12 bg-zinc-50 rounded-2xl w-full" /></td>
+                  </tr>
+                ))
+              ) : items.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-8 py-32 text-center">
+                    <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-zinc-200">
+                      <ImageIcon size={40} />
+                    </div>
+                    <p className="text-zinc-400 font-black uppercase tracking-widest text-sm">No promo media found</p>
+                    <p className="text-xs text-zinc-400 mt-2 max-w-xs mx-auto">Create eye-catching banners to engage your mobile users.</p>
+                  </td>
+                </tr>
+              ) : items.map((item, idx) => (
+                <tr key={item.id} className={`hover:bg-violet-50/20 transition-colors group ${!item.is_active && "opacity-60 grayscale-[0.5]"}`}>
+                  <td className="px-4 py-1.5">
+                    <div className="flex items-center gap-2">
+                      <GripVertical size={11} className="text-zinc-300 group-hover:text-violet-400 transition-colors cursor-grab" />
+                      <span className="font-mono text-[10px] font-black text-zinc-300">{idx + 1}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-1.5 flex justify-center">
+                    <div className="w-16 h-8 rounded-md overflow-hidden bg-zinc-50 border border-zinc-100 shadow-sm relative transition-all">
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center"><ImageIcon size={14} className="text-zinc-200" /></div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-1.5">
+                    <div>
+                      <p className="font-black text-[#1a0f2e] text-[11px] group-hover:text-violet-600 transition-colors truncate max-w-[120px]">{item.title}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-1.5">
+                    <div className="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-zinc-50 border border-zinc-100 rounded-md">
+                      <span className="text-[8px] font-bold text-violet-600 uppercase tracking-wider">{item.cta_text}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-1.5 text-center">
+                    <Badge active={item.is_active} />
+                  </td>
+                  <td className="px-4 py-1.5 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleToggle(item.id)} className="w-7 h-7 bg-white border border-zinc-200 text-zinc-400 hover:text-violet-600 hover:border-violet-200 rounded-md flex items-center justify-center transition-all shadow-sm">
+                        {item.is_active ? <EyeOff size={11} /> : <Eye size={11} />}
+                      </button>
+                      <button onClick={() => openEdit(item)} className="w-7 h-7 bg-white border border-zinc-200 text-zinc-400 hover:text-violet-600 hover:border-violet-200 rounded-md flex items-center justify-center transition-all shadow-sm">
+                        <Edit3 size={11} />
+                      </button>
+                      <button onClick={() => handleDelete(item.id)} disabled={deleting === item.id} className="w-7 h-7 bg-white border border-zinc-200 text-zinc-400 hover:text-red-600 hover:border-red-100 rounded-md flex items-center justify-center transition-all shadow-sm">
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Tip Section - Collapsed for space */}
+      <div className="flex items-center gap-2 px-4 py-2 bg-zinc-100 border border-zinc-200 rounded-lg shrink-0 mb-4">
+        <Info size={12} className="text-zinc-400" />
+        <p className="text-[9px] text-zinc-500 font-medium">
+          <span className="font-bold text-zinc-700 uppercase tracking-tighter">Tip:</span> Use 16:9 banners (800x450px) for optimal display. Drag rows to manage mobile app priority.
+        </p>
       </div>
 
       {/* Form Modal */}
       {showForm && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 100,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)",
-        }}>
-          <form onSubmit={handleSubmit} style={{
-            background: "#fff", width: "100%", maxWidth: 480,
-            borderRadius: "1.25rem", padding: 32,
-            boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-              <h3 style={{ fontSize: "1.05rem", fontWeight: 800, color: "#1a0f2e", margin: 0 }}>
-                {editing ? "Edit Featured Drink" : "New Featured Drink"}
-              </h3>
-              <button type="button" onClick={resetForm} style={{
-                width: 32, height: 32, borderRadius: "50%", border: "none",
-                background: "#f4f4f5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <X size={14} color="#71717a" />
-              </button>
-            </div>
-
-            {/* Image upload */}
-            <label style={{
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-              width: "100%", height: 160, borderRadius: "0.85rem",
-              border: "2px dashed #d4d4d8", cursor: "pointer", marginBottom: 20,
-              background: preview ? `url(${preview}) center/cover no-repeat` : "#fafafa",
-              position: "relative", overflow: "hidden",
-              transition: "border-color 0.15s",
-            }}>
-              {!preview && (
-                <>
-                  <Upload size={28} color="#a1a1aa" />
-                  <span style={{ fontSize: "0.78rem", color: "#a1a1aa", marginTop: 8, fontWeight: 600 }}>
-                    Click to upload banner image
-                  </span>
-                </>
-              )}
-              {preview && (
-                <div style={{
-                  position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)",
-                  display: "flex", alignItems: "center", justifyContent: "center", opacity: 0,
-                  transition: "opacity 0.15s",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                onMouseLeave={e => (e.currentTarget.style.opacity = "0")}
-                >
-                  <ImageIcon size={22} color="#fff" />
-                  <span style={{ color: "#fff", fontSize: "0.75rem", fontWeight: 700, marginLeft: 8 }}>Change Image</span>
-                </div>
-              )}
-              <input type="file" accept="image/*" onChange={onFileChange} style={{ display: "none" }} />
-            </label>
-
-            {/* Title */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#71717a", display: "block", marginBottom: 6 }}>
-                Title *
+        <ModalShell
+          onClose={resetForm}
+          icon={<Sparkles size={22} className="text-violet-600" />}
+          title={editing ? "Modify Banner Config" : "Deploy New Creative"}
+          sub={editing ? `Updating "${editing.title}" collection` : "Design a new hero banner for mobile players"}
+          maxWidth="max-w-xl"
+          footer={
+            <>
+              <Btn variant="ghost" onClick={resetForm} disabled={saving}>Cancel</Btn>
+              <Btn type="submit" onClick={() => (document.getElementById('bannerForm') as HTMLFormElement)?.requestSubmit()} disabled={saving} className="min-w-[140px] justify-center">
+                {saving ? <RefreshCw size={16} className="animate-spin" /> : <><CheckCircle2 size={16} /> {editing ? "Save Changes" : "Confirm & Push"}</>}
+              </Btn>
+            </>
+          }
+        >
+          <form id="bannerForm" onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1.5">Banner Creative *</label>
+              <label className={`relative flex flex-col items-center justify-center w-full h-44 rounded-[1.25rem] border-2 border-dashed transition-all cursor-pointer overflow-hidden ${preview ? "border-violet-200" : "border-zinc-200 hover:border-violet-300 bg-zinc-50"
+                }`}>
+                {preview ? (
+                  <>
+                    <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <Upload size={24} className="text-white" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Replace Design</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-zinc-100 flex items-center justify-center text-zinc-400">
+                      <ImageIcon size={24} />
+                    </div>
+                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Click to upload 16:9 banner</span>
+                  </div>
+                )}
+                <input type="file" accept="image/*" onChange={onFileChange} className="hidden" />
               </label>
-              <input
-                required value={title} onChange={e => setTitle(e.target.value)}
-                placeholder="e.g. Cheese Series"
-                style={{
-                  width: "100%", padding: "10px 14px", fontSize: "0.88rem", fontWeight: 500,
-                  border: "1.5px solid #e4e4e7", borderRadius: "0.6rem", outline: "none",
-                  transition: "border-color 0.15s",
-                }}
-                onFocus={e => (e.target.style.borderColor = "#7c3aed")}
-                onBlur={e => (e.target.style.borderColor = "#e4e4e7")}
-              />
             </div>
 
-            {/* Subtitle */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#71717a", display: "block", marginBottom: 6 }}>
-                Subtitle
-              </label>
-              <input
-                value={subtitle} onChange={e => setSubtitle(e.target.value)}
-                placeholder="e.g. Premium Collection"
-                style={{
-                  width: "100%", padding: "10px 14px", fontSize: "0.88rem", fontWeight: 500,
-                  border: "1.5px solid #e4e4e7", borderRadius: "0.6rem", outline: "none",
-                  transition: "border-color 0.15s",
-                }}
-                onFocus={e => (e.target.style.borderColor = "#7c3aed")}
-                onBlur={e => (e.target.style.borderColor = "#e4e4e7")}
-              />
-            </div>
+            <Field label="Hero Title" required>
+              <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Wintermelon Series" className={inputCls()} required />
+            </Field>
 
-            {/* CTA Text */}
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#71717a", display: "block", marginBottom: 6 }}>
-                Button Text
-              </label>
-              <input
-                value={ctaText} onChange={e => setCtaText(e.target.value)}
-                placeholder="ORDER NOW"
-                style={{
-                  width: "100%", padding: "10px 14px", fontSize: "0.88rem", fontWeight: 500,
-                  border: "1.5px solid #e4e4e7", borderRadius: "0.6rem", outline: "none",
-                  transition: "border-color 0.15s",
-                }}
-                onFocus={e => (e.target.style.borderColor = "#7c3aed")}
-                onBlur={e => (e.target.style.borderColor = "#e4e4e7")}
-              />
-            </div>
+            <Field label="Supportive Subtitle (Optional)">
+              <input value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="e.g. Try our new limited collection" className={inputCls()} />
+            </Field>
 
-            {/* Submit */}
-            <div style={{ display: "flex", gap: 10 }}>
-              <button type="button" onClick={resetForm} style={{
-                flex: 1, padding: "12px", fontSize: "0.72rem", fontWeight: 700,
-                letterSpacing: "0.15em", textTransform: "uppercase",
-                color: "#71717a", background: "#fff", border: "1.5px solid #e4e4e7",
-                borderRadius: "0.6rem", cursor: "pointer",
-              }}>
-                Cancel
-              </button>
-              <button type="submit" disabled={saving} style={{
-                flex: 1, padding: "12px", fontSize: "0.72rem", fontWeight: 700,
-                letterSpacing: "0.15em", textTransform: "uppercase",
-                color: "#fff", background: saving ? "#a78bfa" : "linear-gradient(135deg, #7c3aed, #3b2063)",
-                border: "none", borderRadius: "0.6rem", cursor: saving ? "not-allowed" : "pointer",
-              }}>
-                {saving ? "Saving..." : editing ? "Update" : "Create"}
-              </button>
-            </div>
+            <Field label="Call-To-Action Label">
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-[10px] uppercase tracking-widest group-focus-within:text-violet-500 transition-colors">Label:</div>
+                <input value={ctaText} onChange={e => setCtaText(e.target.value)} placeholder="ORDER NOW" className={`${inputCls()} pl-16 font-black uppercase text-violet-600`} />
+              </div>
+            </Field>
           </form>
-        </div>
+        </ModalShell>
       )}
-
-      {/* List */}
-      {loading ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {[1, 2, 3].map(i => (
-            <div key={i} style={{
-              height: 100, borderRadius: "1rem", background: "#f4f4f5",
-              animation: "sa-pulse 2s ease-in-out infinite",
-            }} />
-          ))}
-        </div>
-      ) : items.length === 0 ? (
-        <div style={{
-          textAlign: "center", padding: "60px 20px",
-          background: "#fafafa", borderRadius: "1rem", border: "1.5px dashed #e4e4e7",
-        }}>
-          <Sparkles size={36} color="#d4d4d8" style={{ marginBottom: 12 }} />
-          <p style={{ fontSize: "0.95rem", fontWeight: 700, color: "#71717a", margin: "0 0 6px" }}>
-            No featured drinks yet
-          </p>
-          <p style={{ fontSize: "0.78rem", color: "#a1a1aa", margin: 0 }}>
-            Add your first promo banner to display on the mobile app
-          </p>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {items.map(item => (
-            <div key={item.id} style={{
-              display: "flex", alignItems: "center", gap: 16,
-              padding: 14, borderRadius: "1rem",
-              background: "#fff", border: "1.5px solid #f0f0f2",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-              transition: "box-shadow 0.15s, border-color 0.15s",
-              opacity: item.is_active ? 1 : 0.55,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 20px rgba(124,58,237,0.1)"; e.currentTarget.style.borderColor = "#ede8ff"; }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor = "#f0f0f2"; }}
-            >
-              {/* Grip */}
-              <GripVertical size={16} color="#d4d4d8" style={{ flexShrink: 0 }} />
-
-              {/* Image thumbnail */}
-              <div style={{
-                width: 100, height: 64, borderRadius: "0.65rem", flexShrink: 0,
-                background: item.image_url ? `url(${item.image_url}) center/cover` : "linear-gradient(135deg, #ede8ff, #ddd5ff)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                {!item.image_url && <ImageIcon size={20} color="#a78bfa" />}
-              </div>
-
-              {/* Text */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: "0.92rem", fontWeight: 700, color: "#1a0f2e", margin: "0 0 3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {item.title}
-                </p>
-                <p style={{ fontSize: "0.75rem", fontWeight: 500, color: "#a1a1aa", margin: 0 }}>
-                  {item.subtitle || "No subtitle"} · <span style={{ color: "#7c3aed", fontWeight: 600 }}>{item.cta_text}</span>
-                </p>
-              </div>
-
-              {/* Status badge */}
-              <span style={{
-                padding: "4px 12px", borderRadius: "0.5rem",
-                fontSize: "0.62rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em",
-                background: item.is_active ? "#d1fae5" : "#f3f4f6",
-                color: item.is_active ? "#065f46" : "#6b7280",
-              }}>
-                {item.is_active ? "Live" : "Hidden"}
-              </span>
-
-              {/* Actions */}
-              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                <button onClick={() => handleToggle(item.id)} title={item.is_active ? "Hide" : "Show"} style={{
-                  width: 34, height: 34, borderRadius: "0.5rem", border: "1.5px solid #e4e4e7",
-                  background: "#fff", cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  transition: "background 0.12s",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#f4f2ff")}
-                onMouseLeave={e => (e.currentTarget.style.background = "#fff")}
-                >
-                  {item.is_active ? <EyeOff size={14} color="#71717a" /> : <Eye size={14} color="#71717a" />}
-                </button>
-                <button onClick={() => openEdit(item)} title="Edit" style={{
-                  width: 34, height: 34, borderRadius: "0.5rem", border: "1.5px solid #e4e4e7",
-                  background: "#fff", cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  transition: "background 0.12s",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#f4f2ff")}
-                onMouseLeave={e => (e.currentTarget.style.background = "#fff")}
-                >
-                  <Edit3 size={14} color="#7c3aed" />
-                </button>
-                <button onClick={() => handleDelete(item.id)} disabled={deleting === item.id} title="Delete" style={{
-                  width: 34, height: 34, borderRadius: "0.5rem", border: "1.5px solid #fee2e2",
-                  background: "#fff", cursor: deleting === item.id ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  transition: "background 0.12s",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#fff0f0")}
-                onMouseLeave={e => (e.currentTarget.style.background = "#fff")}
-                >
-                  <Trash2 size={14} color="#be2525" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Tip */}
-      <div style={{
-        marginTop: 28, padding: "14px 18px", borderRadius: "0.75rem",
-        background: "#f5f3ff", border: "1.5px solid #ede8ff",
-        display: "flex", alignItems: "flex-start", gap: 12,
-      }}>
-        <Sparkles size={16} color="#7c3aed" style={{ flexShrink: 0, marginTop: 2 }} />
-        <p style={{ fontSize: "0.78rem", color: "#3b2063", margin: 0, fontWeight: 500, lineHeight: 1.6 }}>
-          <strong>Tip:</strong> Featured drinks appear as hero banners on the mobile app homepage.
-          Upload eye-catching images (recommended: 800×400px) and keep titles short for the best look.
-          Toggle visibility to show/hide without deleting.
-        </p>
-      </div>
     </div>
   );
 };

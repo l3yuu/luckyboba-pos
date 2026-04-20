@@ -22,7 +22,7 @@ export type TabId =
   | "card_members"
   | "loyalty"
   | "customers"
-  | "notifications" | "promotions" | "vouchers" | "payment_settings" | "audit" | "settings" | "featured_drinks";
+  | "promotions" | "vouchers" | "payment_settings" | "audit" | "settings" | "featured_drinks";
 
 export interface SuperAdminSidebarProps {
   open:          boolean;
@@ -230,7 +230,6 @@ const MOBILE_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 ];
 
 const SYSTEM_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "notifications", label: "Notification Center",    icon: <Bell        size={14} /> },
   { id: "promotions",    label: "Promotions & Discounts", icon: <Tag         size={14} /> },
   { id: "audit",         label: "Audit Logs",             icon: <ShieldCheck size={14} /> },
 ];
