@@ -374,6 +374,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
 
   const cachedDashboard = getCache<DashboardData>('inventory-top-products');
   const [salesData, setSalesData] = useState<TopProduct[]>(cachedDashboard?.products ?? []);
+  const [dashboardSearch, setDashboardSearch] = useState('');
   const [totals, setTotals] = useState({ sold: cachedDashboard?.weekly_sold_total ?? 0, profit: cachedDashboard?.weekly_profit_total ?? 0 });
   const [salesLoading, setSalesLoading] = useState(cachedDashboard === null);
 
@@ -441,6 +442,19 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
   }, [addToast]);
 
   useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
+
+  useEffect(() => {
+    localStorage.setItem('inventory_dashboard_view', view);
+  }, [view]);
+
+  const displaySalesData = useMemo(() => {
+    if (!dashboardSearch) return salesData;
+    const s = dashboardSearch.toLowerCase();
+    return salesData.filter(p => 
+      p.name.toLowerCase().includes(s) || 
+      p.barcode.toLowerCase().includes(s)
+    );
+  }, [salesData, dashboardSearch]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -660,8 +674,20 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
               </div>
 
               <div className="bg-white border border-zinc-200 overflow-hidden shadow-sm rounded-[0.625rem] mb-6">
-                <div className="bg-white px-7 py-5 border-b border-zinc-100">
-                  <h2 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.15em] text-center">TOP PRODUCTS by Qty Sold FROM {start} TO {end}</h2>
+                <div className="bg-white px-7 py-5 border-b border-zinc-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <h2 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.15em]">TOP PRODUCTS ({start} - {end})</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Search:</span>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={dashboardSearch} 
+                        onChange={e => setDashboardSearch(e.target.value)} 
+                        placeholder="Search product..." 
+                        className="border border-[#e9d5ff] bg-white px-4 py-2 text-xs outline-none focus:border-[#3b2063] w-48 md:w-64 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-300 shadow-sm transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="overflow-x-auto min-h-[350px]">
                   <table className="w-full text-left border-collapse">
@@ -675,7 +701,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                     <tbody className="divide-y divide-zinc-100">
                       {salesLoading ? (
                         <tr><td colSpan={8} className="py-20 text-center"><div className="flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3b2063]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span></div></td></tr>
-                      ) : salesData.length > 0 ? salesData.map((item, index) => (
+                      ) : displaySalesData.length > 0 ? displaySalesData.map((item, index) => (
                         <tr key={index} className="hover:bg-[#f5f0ff] transition-colors">
                           <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#1c1c1e]">{index + 1}</span></td>
                           <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#3b2063]">{item.qty}</span></td>
@@ -687,7 +713,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                           <td className="px-7 py-3.5 text-right"><span className="text-[12px] font-semibold text-zinc-500">{item.barcode}</span></td>
                         </tr>
                       )) : (
-                        <tr><td colSpan={8} className="px-8 py-20 text-center"><p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">No sales data recorded for this week</p></td></tr>
+                        <tr><td colSpan={8} className="px-8 py-20 text-center"><p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{dashboardSearch ? `No results for "${dashboardSearch}"` : 'No sales data recorded'}</p></td></tr>
                       )}
                     </tbody>
                     <tfoot className="bg-white border-t-2 border-zinc-100">
@@ -702,7 +728,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                 </div>
                 <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
                   <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /><span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span></div>
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Showing {salesData.length} products</p>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Showing {displaySalesData.length} products</p>
                 </div>
               </div>
             </>
