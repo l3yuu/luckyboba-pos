@@ -15,6 +15,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { CustomerNameModal, SuccessModal } from './modals';
 import { OnlineOrderPaymentModal } from './OnlineOrderPaymentModals';
 import { ReceiptPrint, KitchenPrint, StickerPrint } from './print';
+import type { CartItem } from '../../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,16 +100,16 @@ const elapsed = (dateStr: string) => {
 
 // ─── Print Mappers ────────────────────────────────────────────────────────────
 
-const mapOrderToCart = (order: OnlineOrder): any[] => {
+const mapOrderToCart = (order: OnlineOrder): CartItem[] => {
   return order.items.map(item => ({
     name: item.name,
     qty: itemQty(item),
     price: itemPrice(item),
     cupSizeLabel: item.cup_size && item.cup_size !== 'none' ? item.cup_size.toUpperCase() : '',
     size: item.cup_size || 'none',
-    addOns: Array.isArray(item.add_ons) ? item.add_ons.map((a: any) => typeof a === 'string' ? a : (a.name || a.addon_name || '')) : [],
+    addOns: Array.isArray(item.add_ons) ? item.add_ons.map((a: string | Record<string, string>) => typeof a === 'string' ? a : (a.name || a.addon_name || '')) : [],
     options: []
-  }));
+  })) as unknown as CartItem[];
 };
 
 // ─── Order Card ───────────────────────────────────────────────────────────────
@@ -361,8 +362,9 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   const [generalSettings, setGeneralSettings] = useState<{
     business_name: string; contact_email: string; contact_phone: string; address: string;
   }>({ business_name: '', contact_email: '', contact_phone: '', address: '' });
-  const [posFooter, setPosFooter] = useState<any>({});
-  const [addOnsData, setAddOnsData] = useState<any[]>([]);
+  const [posFooter, setPosFooter] = useState<Record<string, unknown>>({});
+  interface AddOnType { id: number; name: string; price: number; grab_price?: number; panda_price?: number; }
+  const [addOnsData, setAddOnsData] = useState<AddOnType[]>([]);
   
   useEffect(() => {
     if (!user?.branch_id) return;
@@ -878,6 +880,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
             setActiveSuccessOrder(prev => prev ? { ...prev, printedStickers: true } : null);
           }}
           onNewOrder={() => setActiveSuccessOrder(null)}
+          allowSkipPrint={true}
         />
       )}
 
