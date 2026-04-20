@@ -773,7 +773,23 @@ const KioskPage = () => {
                     <div className="p-3 flex flex-col flex-1">
                       <h3 className="font-bold text-xs text-zinc-900 leading-tight mb-1 h-8 overflow-hidden line-clamp-2 uppercase">
                         {item.name}
-                        {item.size && <span className="text-violet-400 ml-1">({item.size})</span>}
+                        {(() => {
+                          const s = item.size?.toLowerCase();
+                          const cat = item.category?.toLowerCase() || '';
+                          const isJunior = cat.includes('jr') || cat.includes('junior');
+                          
+                          let displaySize = null;
+                          if (isJunior && (!s || s === 'none')) displaySize = 'jr';
+                          else if (s === 'l') displaySize = 'sl';
+                          else if (s === 'm') displaySize = 'sm';
+                          else if (s && !['none'].includes(s)) displaySize = s;
+
+                          const allowed = ['sl', 'sm', 'pcm', 'pcl', 'ul', 'um', 'jr'];
+                          if (displaySize && allowed.includes(displaySize)) {
+                            return <span className="text-violet-400 ml-1">({displaySize})</span>;
+                          }
+                          return null;
+                        })()}
                       </h3>
                       
                       <div className="flex items-center justify-between mt-auto pt-1">
@@ -826,7 +842,23 @@ const KioskPage = () => {
                   <div className="flex-1 min-w-0 flex flex-col">
                     <h4 className="font-bold text-zinc-900 text-[11px] leading-tight uppercase line-clamp-2">
                       {item.name}
-                      {item.size && <span className="text-violet-400 ml-1">({item.size})</span>}
+                      {(() => {
+                        const s = item.size?.toLowerCase();
+                        const cat = item.category?.toLowerCase() || '';
+                        const isJunior = cat.includes('jr') || cat.includes('junior');
+                        
+                        let displaySize = null;
+                        if (isJunior && (!s || s === 'none')) displaySize = 'jr';
+                        else if (s === 'l') displaySize = 'sl';
+                        else if (s === 'm') displaySize = 'sm';
+                        else if (s && !['none'].includes(s)) displaySize = s;
+
+                        const allowed = ['sl', 'sm', 'pcm', 'pcl', 'ul', 'um', 'jr'];
+                        if (displaySize && allowed.includes(displaySize)) {
+                          return <span className="text-violet-400 ml-1">({displaySize})</span>;
+                        }
+                        return null;
+                      })()}
                     </h4>
                     <div className="flex flex-col gap-0.5 mt-0.5 mb-1">
                        {item.selectedSugarLevel && <p className="text-[9px] font-bold text-violet-600 uppercase">Sugar: {item.selectedSugarLevel}</p>}
@@ -1375,7 +1407,23 @@ const KioskPage = () => {
                            >
                               <span className={`text-xs font-bold leading-tight capitalize`}>
                                 {item.name.toLowerCase()}
-                                {item.size && <span className="font-bold text-violet-400 capitalize ml-1">({item.size.toLowerCase()})</span>}
+                                {(() => {
+                                  const s = item.size?.toLowerCase();
+                                  const cat = item.category?.toLowerCase() || '';
+                                  const isJunior = cat.includes('jr') || cat.includes('junior');
+                                  
+                                  let displaySize = null;
+                                  if (isJunior && (!s || s === 'none')) displaySize = 'jr';
+                                  else if (s === 'l') displaySize = 'sl';
+                                  else if (s === 'm') displaySize = 'sm';
+                                  else if (s && !['none'].includes(s)) displaySize = s;
+
+                                  const allowed = ['sl', 'sm', 'pcm', 'pcl', 'ul', 'um', 'jr'];
+                                  if (displaySize && allowed.includes(displaySize)) {
+                                    return <span className="font-bold text-violet-400 capitalize ml-1">({displaySize})</span>;
+                                  }
+                                  return null;
+                                })()}
                               </span>
                               <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-300'}`}>
                                 {isSelected ? <CheckCircle2 size={14} strokeWidth={4} /> : <div className="w-2 h-2 bg-current rounded-full" />}
