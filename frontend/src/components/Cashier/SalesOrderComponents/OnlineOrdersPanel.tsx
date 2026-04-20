@@ -378,7 +378,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     }).catch(console.error);
 
     api.get(`/branches/${user.branch_id}/payment-settings`).then(res => {
-      const data = res.data;
+      const data = res.data.data ?? res.data;
       setPosFooter(data);
       setGeneralSettings({
         business_name: data.business_name ?? '',
