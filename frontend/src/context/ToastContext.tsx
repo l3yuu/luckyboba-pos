@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 
 export interface ToastContextType {
-  showToast: (message: string, type?: 'success' | 'error' | 'warning') => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info', actionLabel?: string, onAction?: () => void, duration?: number) => void;
   dismissToast: () => void;
 }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SkeletonBox } from '../SharedSkeletons';
 
 interface InventoryItem {
   id: number;
@@ -42,8 +43,15 @@ const InventoryListPanel = ({ branchId }: { branchId: number | null }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3b2063]"></div>
+      <div className="p-6 space-y-6">
+        <SkeletonBox h="h-14" w="w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <SkeletonBox h="h-24" />
+          <SkeletonBox h="h-24" />
+          <SkeletonBox h="h-24" />
+          <SkeletonBox h="h-24" />
+        </div>
+        <SkeletonBox h="h-96" />
       </div>
     );
   }

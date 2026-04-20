@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   LayoutGrid, Users, History, BarChart2, 
-  Package, Search, LogOut, ShieldCheck
+  Package, Search, LogOut, ShieldCheck,
+  ArrowRightLeft, Wallet
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid size={14} /> },
       { id: 'users',     label: 'Staff Overview', icon: <Users size={14} /> },
+      { id: 'expenses',  label: 'Expenses', icon: <Wallet size={14} /> },
     ]
   },
   {
@@ -52,6 +54,7 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { id: 'sales-dashboard', label: 'Sales Analytics', icon: <BarChart2 size={13} /> },
       { id: 'items-report',    label: 'Items Report', icon: <History size={13} /> },
+      { id: 'usage-report',    label: 'Usage Report', icon: <History size={13} /> },
     ]
   },
   {
@@ -59,6 +62,17 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { id: 'inventory-list', label: 'Stock Levels', icon: <Package size={13} /> },
       { id: 'item-checker',   label: 'Item Checker', icon: <Search size={13} /> },
+      { id: 'raw-materials',  label: 'Raw Materials', icon: <Package size={13} /> },
+      { id: 'stock-transfer', label: 'Stock Transfer', icon: <ArrowRightLeft size={13} /> },
+      { id: 'recipes',        label: 'Recipes', icon: <Package size={13} /> },
+    ]
+  },
+  {
+    label: 'Menu',
+    items: [
+      { id: 'menu-list',          label: 'Menu Items', icon: <Package size={13} /> },
+      { id: 'categories-list',    label: 'Categories', icon: <Package size={13} /> },
+      { id: 'sub-categories-list',label: 'Sub-Categories', icon: <Package size={13} /> },
     ]
   }
 ];

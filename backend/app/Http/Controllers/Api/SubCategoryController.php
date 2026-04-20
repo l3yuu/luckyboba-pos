@@ -14,6 +14,15 @@ class SubCategoryController extends Controller
 {
     use MenuCache;
 
+    private function denyIfSupervisor()
+    {
+        $user = auth()->user();
+        if ($user && $user->role === 'supervisor') {
+            return response()->json(['message' => 'Supervisors have read-only access.'], 403);
+        }
+        return null;
+    }
+
     public function index(Request $request)
     {
         $query = DB::table('sub_categories')
@@ -46,6 +55,8 @@ class SubCategoryController extends Controller
 
     public function store(Request $request)
     {
+        if ($deny = $this->denyIfSupervisor()) return $deny;
+
         $validated = $request->validate([
             'name'        => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
@@ -74,6 +85,8 @@ class SubCategoryController extends Controller
 
     public function update(Request $request, $id)
     {
+        if ($deny = $this->denyIfSupervisor()) return $deny;
+
         $validated = $request->validate([
             'name'        => 'sometimes|required|string|max:255|unique:sub_categories,name,' . $id,
             'category_id' => 'sometimes|required|exists:categories,id',
@@ -106,6 +119,8 @@ class SubCategoryController extends Controller
 
     public function destroy($id)
     {
+        if ($deny = $this->denyIfSupervisor()) return $deny;
+
         try {
             $subCategory = SubCategory::findOrFail($id);
 

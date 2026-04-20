@@ -8,13 +8,22 @@ use Illuminate\Http\Request;
 
 class RecipeController extends Controller
 {
+    private function denyIfSupervisor(Request $request)
+    {
+        $user = $request->user();
+        if ($user && $user->role === 'supervisor') {
+            return response()->json(['message' => 'Supervisors have read-only access.'], 403);
+        }
+        return null;
+    }
+
     /**
      * GET /api/recipes
      * List all recipes with their ingredients and menu item.
      */
     public function index(Request $request)
     {
-        $query = Recipe::with('items.rawMaterial', 'menuItem');
+        $query = Recipe::with('items.rawMaterial', 'menuItem.category');
 
         // Filter by menu_item_id
         if ($request->filled('menu_item_id')) {
@@ -48,7 +57,7 @@ class RecipeController extends Controller
      */
     public function show(Recipe $recipe)
     {
-        return response()->json($recipe->load('items.rawMaterial', 'menuItem'));
+        return response()->json($recipe->load('items.rawMaterial', 'menuItem.category'));
     }
 
     /**
@@ -57,6 +66,8 @@ class RecipeController extends Controller
      */
     public function store(Request $request)
     {
+        if ($deny = $this->denyIfSupervisor($request)) return $deny;
+
         $validated = $request->validate([
             'menu_item_id'            => 'required|exists:menu_items,id',
             'size'                    => 'nullable|string|max:10',
@@ -91,7 +102,7 @@ class RecipeController extends Controller
             $recipe->items()->create($item);
         }
 
-        return response()->json($recipe->load('items.rawMaterial', 'menuItem'), 201);
+        return response()->json($recipe->load('items.rawMaterial', 'menuItem.category'), 201);
     }
 
     /**
@@ -100,6 +111,8 @@ class RecipeController extends Controller
      */
     public function update(Request $request, Recipe $recipe)
     {
+        if ($deny = $this->denyIfSupervisor($request)) return $deny;
+
         $validated = $request->validate([
             'is_active'               => 'boolean',
             'notes'                   => 'nullable|string',
@@ -121,7 +134,7 @@ class RecipeController extends Controller
             $recipe->items()->create($item);
         }
 
-        return response()->json($recipe->load('items.rawMaterial', 'menuItem'));
+        return response()->json($recipe->load('items.rawMaterial', 'menuItem.category'));
     }
 
     /**
@@ -130,6 +143,11 @@ class RecipeController extends Controller
      */
     public function destroy(Recipe $recipe)
     {
+        $user = auth()->user();
+        if ($user && $user->role === 'supervisor') {
+            return response()->json(['message' => 'Supervisors have read-only access.'], 403);
+        }
+
         $recipe->items()->delete();
         $recipe->delete();
 
@@ -142,6 +160,11 @@ class RecipeController extends Controller
      */
     public function toggle(Recipe $recipe)
     {
+        $user = auth()->user();
+        if ($user && $user->role === 'supervisor') {
+            return response()->json(['message' => 'Supervisors have read-only access.'], 403);
+        }
+
         $recipe->update(['is_active' => !$recipe->is_active]);
 
         return response()->json([

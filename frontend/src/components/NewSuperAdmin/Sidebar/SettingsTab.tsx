@@ -1,3 +1,4 @@
+// CI/CD Trigger
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -9,11 +10,6 @@ import { useToast } from "../../../hooks/useToast";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey = "sm" | "md" | "lg";
 
-interface SectionHeaderProps {
-  title: string;
-  desc?: string;
-  action?: React.ReactNode;
-}
 interface BtnProps {
   children: React.ReactNode;
   variant?: VariantKey;
@@ -31,15 +27,6 @@ interface BackupFile {
   timestamp: number;
 }
 
-const SectionHeader: React.FC<SectionHeaderProps> = ({ title, desc, action }) => (
-  <div className="flex items-center justify-between mb-5">
-    <div>
-      <h2 className="text-base font-bold text-[#1a0f2e]">{title}</h2>
-      {desc && <p className="text-xs text-zinc-400 mt-0.5">{desc}</p>}
-    </div>
-    {action}
-  </div>
-);
 
 const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
@@ -258,6 +245,13 @@ const SettingsTab: React.FC = () => {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+      // Cache contact info for the POS receipt
+      if (payload.contact_email || payload.contact_phone) {
+        localStorage.setItem('pos_contact_email', payload.contact_email ?? '')
+        localStorage.setItem('pos_contact_phone', payload.contact_phone ?? '')
+      }
+
       showToast('Settings saved successfully!', 'success');
     } catch (e) {
       console.error('Save failed:', e);
@@ -410,7 +404,6 @@ const SettingsTab: React.FC = () => {
         </div>
       )}
 
-      <SectionHeader title="System Settings" desc="Global configuration for all branches" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* ── Left column ──────────────────────────────────────────────── */}

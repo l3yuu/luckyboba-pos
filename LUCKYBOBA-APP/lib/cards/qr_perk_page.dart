@@ -13,7 +13,7 @@ class QrPerkPage extends StatefulWidget {
   final String perkName;
   const QrPerkPage({super.key, required this.perkName});
 
-  @override
+  @override 
   State<QrPerkPage> createState() => _QrPerkPageState();
 }
 

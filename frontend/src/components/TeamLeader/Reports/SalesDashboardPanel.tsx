@@ -9,6 +9,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
+import { SkeletonBox } from '../SharedSkeletons';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface SalesData {
@@ -63,9 +64,6 @@ const STYLES = `
   .sdb-label { font-size: 0.62rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.12em; }
   .sdb-value { font-size: 1.65rem; font-weight: 800; color: #0f172a; letter-spacing: -0.04em; line-height: 1.2; }
 
-  @keyframes sdb-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  .sdb-pulse { animation: sdb-pulse 1.5s ease-in-out infinite; }
-  .sdb-skeleton { background: #f1f5f9; border-radius: 0.5rem; }
   
   @keyframes sdb-spin { to { transform: rotate(360deg); } }
   .sdb-spin { animation: sdb-spin 1s linear infinite; }
@@ -156,11 +154,11 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
   if (loading) return (
     <div className="p-8 sdb-root">
       <style>{STYLES}</style>
-      <div className="h-10 w-48 sdb-skeleton sdb-pulse mb-10" />
+      <SkeletonBox className="h-10 w-48 mb-10" />
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-        {[1,2,3,4].map(i => <div key={i} className="h-32 sdb-skeleton sdb-pulse" />)}
+        {[1,2,3,4].map(i => <SkeletonBox key={i} className="h-32" />)}
       </div>
-      <div className="h-[450px] sdb-skeleton sdb-pulse" />
+      <SkeletonBox className="h-[450px]" />
     </div>
   );
 

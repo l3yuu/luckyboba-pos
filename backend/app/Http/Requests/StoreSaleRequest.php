@@ -21,6 +21,7 @@ class StoreSaleRequest extends FormRequest
     {
         return [
             'si_number'                => 'required|string',
+            'branch_id'                => 'nullable|exists:branches,id',
             'items'                    => 'required|array|min:1',
             'items.*.menu_item_id'     => 'nullable|exists:menu_items,id',
             'items.*.bundle_id'        => 'nullable|exists:bundles,id',
@@ -64,6 +65,9 @@ class StoreSaleRequest extends FormRequest
             'senior_id'                => 'nullable|string',
             'pwd_id'                   => 'nullable|string',
             'vat_exempt_sales'         => 'nullable|numeric|min:0',
+            'status'                   => 'nullable|string',
+            'source'                   => 'nullable|string',
+            'order_type'               => 'nullable|string',
         ];
     }
 }

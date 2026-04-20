@@ -174,13 +174,17 @@ class SalesDashboardService
         $voidCount        = $this->saleRepo->getVoidCountBetween($from, $to, $branchId);
         $begSI            = $this->saleRepo->getFirstSiNumberBetween($from, $to, $branchId);
         $endSI            = $this->saleRepo->getLastSiNumberBetween($from, $to, $branchId);
+        $grossOrdered     = $this->saleRepo->getGrossItemSalesBetween($from, $to, $branchId);
+        $discounts        = $this->saleRepo->getDiscountsBreakdown($from, $to, $branchId);
 
-        $discounts      = $this->saleRepo->getDiscountsBreakdown($from, $to, $branchId);
         $totalDiscounts = round(
             $discounts['sc_discount'] + $discounts['pwd_discount'] +
             $discounts['diplomat_discount'] + $discounts['other_discount'],
             2
         );
+
+        $scPwdTotal = $discounts['sc_discount'] + $discounts['pwd_discount'];
+        $lessVat    = $scPwdTotal > 0 ? round(($scPwdTotal / 0.20) * 0.12, 2) : 0;
 
         $paymentBreakdown = $this->saleRepo->getPaymentMethodBreakdown($from, $to, $branchId);
         $totalCollected   = (float) $paymentBreakdown->sum('amount');
@@ -198,8 +202,16 @@ class SalesDashboardService
 
         // totalCollected IS netSales (voids already excluded by status='completed')
         $netSales   = $totalCollected;
-        $grossSales = round($totalCollected + $totalDiscounts + $voidAmount, 2);
+        
+        // Present Gross matches Z-reading logic
+        $grossSales = round($grossOrdered + $voidAmount, 2);
         $netTotal   = round($vatableSales + $vatExemptSales, 2);
+
+        // Accumulated counts/sums (matching Z-reading signature)
+        $isSingleDay         = true;
+        $previousAccumulated = $this->saleRepo->getSalesAccumulatedUpTo($from, $branchId);
+        $presentAccumulated  = round($previousAccumulated + $grossSales, 2);
+        $zCounter            = $this->saleRepo->getZReadingsCountUpTo($from, $branchId, $isSingleDay);
 
         // Rounding adjustment should be 0 by construction (golden rule)
         $roundingAdjustment = round($totalCollected - $netSales, 2);
@@ -245,6 +257,11 @@ class SalesDashboardService
             'cash_in_drawer'      => $cashIn + $cashSales - $cashDrop,
             'cash_drop'           => $cashDrop,
             'rounding_adjustment' => $roundingAdjustment,
+            'less_vat'            => $lessVat,
+            'z_counter'           => $zCounter,
+            'previous_accumulated' => $previousAccumulated,
+            'present_accumulated'  => $presentAccumulated,
+            'reset_counter'       => 0,
         ];
     }
 
@@ -265,12 +282,16 @@ class SalesDashboardService
         $cash             = $this->saleRepo->getNetCashPayments($start, $end, $branchId);
         $discounts        = $this->saleRepo->getDiscountsBreakdown($start, $end, $branchId);
         $paymentBreakdown = $this->saleRepo->getPaymentMethodBreakdown($start, $end, $branchId);
+        $grossOrdered     = $this->saleRepo->getGrossItemSalesBetween($start, $end, $branchId);
 
         $totalDiscounts = round(
             $discounts['sc_discount'] + $discounts['pwd_discount'] +
             $discounts['diplomat_discount'] + $discounts['other_discount'],
             2
         );
+
+        $scPwdTotal = $discounts['sc_discount'] + $discounts['pwd_discount'];
+        $lessVat    = $scPwdTotal > 0 ? round(($scPwdTotal / 0.20) * 0.12, 2) : 0;
 
         // totalCollected = SUM(total_amount) = what customers actually paid
         $totalCollected = (float) $paymentBreakdown->sum('amount');
@@ -288,7 +309,8 @@ class SalesDashboardService
 
         // totalCollected IS netSales (voids already excluded by status filter)
         $netSales = $totalCollected;
-        $gross    = round($totalCollected + $totalDiscounts + $voidAmount, 2);
+        // Gross is based on ordered items before discounts/VAT allocation split.
+        $gross    = round($grossOrdered + $voidAmount, 2);
         $netTotal = round($vatableSales + $vatExemptSales, 2);
 
         // Rounding adjustment = 0 by construction (golden rule)
@@ -334,12 +356,14 @@ class SalesDashboardService
             'cash_in'              => $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId),
             'cash_drop'            => $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId),
             'cash_in_drawer'       => round($this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId) + $cash - $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId), 2),
+            'expected_amount'      => round($this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId) + $cash - $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId), 2),
             'z_counter'            => $this->saleRepo->getZReadingsCountUpTo($start, $branchId, ($fromStr === $toStr)),
             'reset_counter'        => 0,
             'previous_accumulated' => $previousAccumulated,
             'present_accumulated'  => $presentAccumulated,
             'sales_for_the_day'    => $netSales,
-            'rounding_adjustment'  => 0.0,
+            'less_vat'             => $lessVat,
+            'rounding_adjustment'  => $roundingAdjustment,
             'category_breakdown'   => [],
             'generated_at'         => now()->toDateTimeString(),
         ];

@@ -6,6 +6,7 @@ import { isAxiosError } from 'axios';
 import { useToast } from '../../../hooks/useToast';
 import { Loader2, Plus, Trash2, Calendar, FileText, ShoppingBag, DollarSign, Search } from 'lucide-react';
 import { getCache, setCache, clearCache } from '../../../utils/cache';
+import { SkeletonBar } from '../SharedSkeletons';
 
 const dashboardFont = { fontFamily: "'DM Sans', sans-serif" };
 
@@ -216,7 +217,9 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
           </div>
           <div>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Active Orders</p>
-            <p className="text-xl font-black text-[#1a0f2e] tabular-nums">{isFetching ? "..." : stats.active_orders}</p>
+            {isFetching ? <SkeletonBar h="h-6" w="w-16" className="mt-1" /> : (
+               <p className="text-xl font-black text-[#1a0f2e] tabular-nums">{stats.active_orders}</p>
+            )}
           </div>
         </div>
         <div className="bg-white p-5 rounded-[0.625rem] shadow-sm border border-zinc-200 flex items-center gap-4">
@@ -225,7 +228,9 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
           </div>
           <div>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Pending Payment</p>
-            <p className="text-xl font-black text-[#1a0f2e] tabular-nums">{isFetching ? "..." : `₱${stats.pending_payment.toLocaleString()}`}</p>
+            {isFetching ? <SkeletonBar h="h-6" w="w-24" className="mt-1" /> : (
+               <p className="text-xl font-black text-[#1a0f2e] tabular-nums">₱{stats.pending_payment.toLocaleString()}</p>
+            )}
           </div>
         </div>
         <div className="bg-white p-5 rounded-[0.625rem] shadow-sm border border-[#e9d5ff] flex items-center gap-4">
@@ -234,7 +239,9 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
           </div>
           <div>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Monthly Spend</p>
-            <p className="text-xl font-black text-[#1a0f2e] tabular-nums">{isFetching ? "..." : `₱${stats.monthly_spend.toLocaleString()}`}</p>
+            {isFetching ? <SkeletonBar h="h-6" w="w-24" className="mt-1" /> : (
+               <p className="text-xl font-black text-[#1a0f2e] tabular-nums">₱{stats.monthly_spend.toLocaleString()}</p>
+            )}
           </div>
         </div>
       </div>
@@ -274,7 +281,14 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
             <tbody className="divide-y divide-zinc-50">
               {isFetching ? (
                 [...Array(5)].map((_, i) => (
-                  <tr key={i}><td colSpan={6} className="px-6 py-4"><div className="h-4 bg-zinc-50 rounded animate-pulse" /></td></tr>
+                  <tr key={i}>
+                    <td className="px-6 py-5"><SkeletonBar h="h-4" w="w-24" /></td>
+                    <td className="px-6 py-5"><SkeletonBar h="h-4" w="w-32" /></td>
+                    <td className="px-6 py-5"><SkeletonBar h="h-4" w="w-24" /></td>
+                    <td className="px-6 py-5"><SkeletonBar h="h-4" w="w-20 ml-auto" /></td>
+                    <td className="px-6 py-5 flex justify-center"><SkeletonBar h="h-5" w="w-16 rounded-full" /></td>
+                    <td className="px-6 py-5"><SkeletonBar h="h-8" w="w-8 ml-auto" /></td>
+                  </tr>
                 ))
               ) : filteredOrders.length > 0 ? (
                 filteredOrders.map((po) => (

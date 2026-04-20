@@ -13,6 +13,7 @@ class SaleItem extends Model
 
     protected $fillable = [
         'sale_id',
+    'branch_id',
         'menu_item_id',
         'product_name',
         'unit_price',
@@ -38,6 +39,7 @@ class SaleItem extends Model
     protected $casts = [
         'options'          => 'array',
         'add_ons'          => 'array',
+        'unit_price'       => 'decimal:2',
         'price'            => 'decimal:2',
         'final_price'      => 'decimal:2',
         'surcharge'        => 'decimal:2',

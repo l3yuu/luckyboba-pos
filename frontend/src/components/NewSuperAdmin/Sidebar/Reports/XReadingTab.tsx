@@ -93,6 +93,10 @@ interface XReadingReport {
   cash_in_drawer?: number;
   cash_in?: number;
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
+  less_vat?: number;
+  z_counter?: number;
+  previous_accumulated?: number;
+  present_accumulated?: number;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -163,7 +167,7 @@ const ReceiptDivider = () => <div className="border-t border-dashed border-black
 const XReadingTab: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
-  const [branchId, setBranchId] = useState("");
+  const [branchId, setBranchId] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [date, setDate] = useState(today);
   const [shift, setShift] = useState("all");
   const [loading, setLoading] = useState(false);
@@ -181,17 +185,26 @@ const XReadingTab: React.FC = () => {
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
 
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
+
   useEffect(() => {
     fetch("/api/branches", { headers: authHeaders() })
       .then(r => r.json())
       .then(d => {
         if (d.success && d.data.length > 0) {
           setBranches(d.data);
-          setBranchId(String(d.data[0].id));
+          if (!branchId) {
+            const defaultId = String(d.data[0].id);
+            setBranchId(defaultId);
+            localStorage.setItem('superadmin_selected_branch', defaultId);
+          }
         }
       })
       .catch(() => { });
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -690,6 +703,10 @@ const XReadingTab: React.FC = () => {
             <span className="w-[35%] text-right">{r.value}</span>
           </div>
         ))}
+        <div className="flex text-[11px] leading-snug">
+          <span className="flex-1 text-right uppercase pr-1">SC/PWD VAT:</span>
+          <span className="w-[35%] text-right">{phCurrency.format(reportData?.less_vat || 0)}</span>
+        </div>
         <div className="flex text-[11px] border-t border-black mt-0.5 pt-0.5">
           <span className="flex-1 text-right uppercase pr-1 font-bold">Net Amount:</span>
           <span className="w-[35%] text-right font-bold">{phCurrency.format(netAmount)}</span>
@@ -708,7 +725,8 @@ const XReadingTab: React.FC = () => {
         ))}
         <ReceiptDivider />
         <ReceiptRow label="SC and PWD Amount:" value={phCurrency.format(scDiscount + pwdDiscount)} />
-        <ReceiptRow label="Total Voids:" value={phCurrency.format(voids)} />
+        <ReceiptRow label="SC/PWD VAT:"       value={phCurrency.format(reportData?.less_vat || 0)} />
+        <ReceiptRow label="Total Voids:"       value={phCurrency.format(voids)} />
       </div>
     );
   };
@@ -758,6 +776,7 @@ const XReadingTab: React.FC = () => {
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
         <ReceiptRow label="Net Sales" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="SC/PWD VAT"       value={phCurrency.format(reportData?.less_vat || 0)} />
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="Gross Amount" value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -789,6 +808,11 @@ const XReadingTab: React.FC = () => {
         <ReceiptDivider />
         <ReceiptRow label="Total Qty Sold" value={reportData?.total_qty_sold ?? 0} />
         <ReceiptRow label="Transaction Count" value={txCount} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">Accumulated Totals</p>
+        <ReceiptRow label="Previous Accumulated" value={phCurrency.format(reportData?.previous_accumulated || 0)} />
+        <ReceiptRow label="Present Accumulated" value={phCurrency.format(reportData?.present_accumulated || 0)} />
+        <ReceiptRow label="Z-Counter" value={String(reportData?.z_counter || 1).padStart(4, "0")} />
       </div>
     );
   };
@@ -861,7 +885,7 @@ const XReadingTab: React.FC = () => {
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch <span className="text-red-400">*</span></p>
           <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-48">
               <option value="">Select Branch</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}

@@ -6,6 +6,9 @@ import {
   Coffee, Search, Sparkles,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useToast } from "../../../../hooks/useToast";
+import { triggerSync } from "../../../../utils/sync";
+
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey = "sm" | "md" | "lg";
@@ -400,10 +403,11 @@ const CategoryModal: React.FC<{
   onClose: () => void;
   onSaved: (c: Category) => void;
 }> = ({ category, onClose, onSaved }) => {
+  const { showToast } = useToast();
   const isEdit = !!category;
 
   const [name, setName] = useState(category?.name ?? "");
-  const [baseType, setBaseType] = useState<CategoryType>(category?.type ?? "food");
+  const [baseType, setBaseType] = useState<CategoryType>((category?.type && POS_BEHAVIOR_BY_TYPE[category.type as CategoryType]) ? (category.type as CategoryType) : "food");
   const [posBehavior, setPosBehavior] = useState<string>(category?.category_type ?? "food");
   const [isActive, setIsActive] = useState(category?.is_active ?? true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -412,10 +416,13 @@ const CategoryModal: React.FC<{
 
   const handleBaseTypeChange = (t: CategoryType) => {
     setBaseType(t);
-    setPosBehavior(POS_BEHAVIOR_BY_TYPE[t][0].value);
+    const options = POS_BEHAVIOR_BY_TYPE[t];
+    if (options && options.length > 0) {
+      setPosBehavior(options[0].value);
+    }
   };
 
-  const behaviorOptions = POS_BEHAVIOR_BY_TYPE[baseType];
+  const behaviorOptions = POS_BEHAVIOR_BY_TYPE[baseType] || [];
   const selectedBehavior = behaviorOptions.find(o => o.value === posBehavior);
 
   const handleSubmit = async () => {
@@ -436,6 +443,10 @@ const CategoryModal: React.FC<{
       const data = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Something went wrong."); return; }
       onSaved(data.data ?? data);
+      try {
+        triggerSync();
+        showToast(isEdit ? "Category updated successfully" : "Category added successfully", "success");
+      } catch (e) { console.error("Broadcast failed:", e); }
       onClose();
     } catch { setApiError("Network error."); }
     finally { setLoading(false); }
@@ -740,6 +751,7 @@ const CategoryDrinksManager: React.FC<{
 // ── Main Component ────────────────────────────────────────────────────────────
 
 const CategoriesTab: React.FC = () => {
+  const { showToast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -778,7 +790,10 @@ const CategoriesTab: React.FC = () => {
       });
       if (res.ok) {
         setCategories(p => p.map(c => c.id === cat.id ? { ...c, is_active: !c.is_active } : c));
-        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch { /* ignore */ }
+        try {
+          triggerSync();
+          showToast(`Category ${!cat.is_active ? 'enabled' : 'disabled'} successfully`, "success");
+        } catch { /* ignore */ }
       }
     } catch { /* silent */ }
   };
@@ -788,7 +803,13 @@ const CategoriesTab: React.FC = () => {
     try {
       const res = await fetch(`/api/categories/${cat.id}`, { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
-      if (res.ok) { setCategories(p => p.filter(c => c.id !== cat.id)); setDelTarget(null); }
+      if (res.ok) {
+        setCategories(p => p.filter(c => c.id !== cat.id)); setDelTarget(null);
+        try {
+          triggerSync();
+          showToast("Category deleted successfully", "success");
+        } catch { /* ignore */ }
+      }
       else setError(data.message ?? "Failed to delete.");
     } catch { setError("Network error."); }
     finally { setDelLoading(false); }
@@ -801,7 +822,13 @@ const CategoriesTab: React.FC = () => {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ name: inlineVal }),
       });
-      if (res.ok) setCategories(p => p.map(c => c.id === cat.id ? { ...c, name: inlineVal } : c));
+      if (res.ok) {
+        setCategories(p => p.map(c => c.id === cat.id ? { ...c, name: inlineVal } : c));
+        try {
+          triggerSync();
+          showToast("Category updated successfully", "success");
+        } catch { /* ignore */ }
+      }
     } catch { /* silent */ }
     finally { setInlineEdit(null); }
   };
@@ -822,7 +849,7 @@ const CategoriesTab: React.FC = () => {
   const filtered = useMemo(() => {
     return categories.filter(c => {
       const matchType = filterType === "all" || c.type === filterType;
-      const matchStatus = filterStatus === "all" || 
+      const matchStatus = filterStatus === "all" ||
         (filterStatus === "active" ? c.is_active : !c.is_active);
       const matchSearch = search === "" || c.name.toLowerCase().includes(search.toLowerCase());
       return matchType && matchStatus && matchSearch;
@@ -909,7 +936,7 @@ const CategoriesTab: React.FC = () => {
             </Btn>
           </div>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

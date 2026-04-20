@@ -1,8 +1,7 @@
-
 // components/BranchManager/SalesReport/BM_ItemsReport.tsx
 // Mirrors the SuperAdmin ItemsReportTab UI, locked to BM's own branch.
 import { useState, useEffect, useCallback, useMemo } from "react";
-import * as XLSX from "xlsx";
+import * as XLSX from 'xlsx';
 import {
   Search, Download, AlertCircle,
   ChevronDown, ChevronUp, Package,
@@ -496,3 +495,5 @@ const BM_ItemsReport: React.FC = () => {
 };
 
 export default BM_ItemsReport;
+
+

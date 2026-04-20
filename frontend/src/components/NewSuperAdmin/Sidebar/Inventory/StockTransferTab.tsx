@@ -22,9 +22,11 @@ type SortKey = "transfer_number" | "transfer_date" | "status" | "from_branch_nam
 interface TransferItem {
   id?: number;
   raw_material_id: number;
-  raw_material?: { name: string; unit: string };
+  raw_material?: { name: string; unit: string; purchase_unit?: string; purchase_to_base_factor?: number };
   material_name?: string;
   unit?: string;
+  ordered_unit?: string;
+  conversion_factor?: number;
   quantity: number | '';
 }
 
@@ -40,13 +42,27 @@ interface StockTransfer {
   transfer_date?: string;
   status: TransferStatus;
   notes?: string;
+  created_by?: { name: string };
+  approved_by?: { name: string };
+  dispatched_by?: { name: string };
+  received_by?: { name: string };
   items?: TransferItem[];
   stock_transfer_items?: TransferItem[];
   created_at?: string;
+  approved_at?: string;
+  dispatched_at?: string;
+  received_at?: string;
 }
 
 interface Branch { id: number; name: string; }
-interface RawMaterial { id: number; name: string; unit: string; current_stock?: number; }
+interface RawMaterial { 
+  id: number; 
+  name: string; 
+  unit: string; 
+  purchase_unit?: string;
+  purchase_to_base_factor?: number;
+  current_stock?: number; 
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -128,7 +144,20 @@ const resolveItems = (t: StockTransfer): TransferItem[] =>
     ...i,
     material_name: i.raw_material?.name ?? i.material_name ?? '',
     unit: i.raw_material?.unit ?? i.unit ?? '',
+    ordered_unit: i.ordered_unit ?? i.raw_material?.purchase_unit ?? i.raw_material?.unit ?? i.unit ?? '',
+    conversion_factor: i.conversion_factor ?? i.raw_material?.purchase_to_base_factor ?? 1,
   }));
+
+const formatDateTime = (value?: string) => {
+  if (!value) return '—';
+  return new Date(value).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
 // ─── Create Transfer Modal ────────────────────────────────────────────────────
 
@@ -148,8 +177,14 @@ const CreateTransferModal: React.FC<{
   const [apiErr, setApiErr] = useState('');
 
   useEffect(() => {
-    api.get('/raw-materials').then(r => setRawMaterials(Array.isArray(r.data) ? r.data : r.data?.data ?? [])).catch(console.error);
-  }, []);
+    if (fromBranchId) {
+      api.get(`/raw-materials?branch_id=${fromBranchId}`).then(r => setRawMaterials(Array.isArray(r.data) ? r.data : r.data?.data ?? [])).catch(console.error);
+    } else {
+      setRawMaterials([]);
+    }
+    // Optional: if branch changes, old items might be invalid. We clear them to be safe.
+    setTransferItems([]);
+  }, [fromBranchId]);
 
   const addRow = () => setTransferItems(p => [...p, { raw_material_id: 0, material_name: '', unit: '', quantity: '' }]);
   const removeRow = (idx: number) => setTransferItems(p => p.filter((_, i) => i !== idx));
@@ -159,7 +194,14 @@ const CreateTransferModal: React.FC<{
       if (i !== idx) return row;
       if (field === 'raw_material_id') {
         const mat = rawMaterials.find(m => m.id === Number(value));
-        return { ...row, raw_material_id: Number(value), material_name: mat?.name ?? '', unit: mat?.unit ?? '' };
+        return { 
+          ...row, 
+          raw_material_id: Number(value), 
+          material_name: mat?.name ?? '', 
+          unit: mat?.unit ?? '',
+          ordered_unit: mat?.purchase_unit ?? mat?.unit ?? '',
+          conversion_factor: mat?.purchase_to_base_factor ?? 1
+        };
       }
       return { ...row, [field]: value };
     }));
@@ -168,9 +210,9 @@ const CreateTransferModal: React.FC<{
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!fromBranchId) e.from = 'Source required.';
-    if (!toBranchId) e.to = 'Destination required.';
-    if (fromBranchId === toBranchId && fromBranchId) e.to = 'Branches must differ.';
+    if (fromBranchId === '') e.from = 'Source required.';
+    if (toBranchId === '') e.to = 'Destination required.';
+    if (fromBranchId === toBranchId && fromBranchId !== '') e.to = 'Branches must differ.';
     if (!transferDate) e.date = 'Date required.';
     if (transferItems.length === 0) e.items = 'Add at least one item.';
     transferItems.forEach((item, i) => {
@@ -186,8 +228,8 @@ const CreateTransferModal: React.FC<{
     setSaving(true); setApiErr('');
     try {
       const res = await api.post('/stock-transfers', {
-        from_branch_id: fromBranchId,
-        to_branch_id: toBranchId,
+        from_branch_id: fromBranchId === 0 ? null : fromBranchId,
+        to_branch_id: toBranchId === 0 ? null : toBranchId,
         transfer_date: transferDate,
         notes,
         items: transferItems.map(i => ({ raw_material_id: i.raw_material_id, quantity: Number(i.quantity) })),
@@ -230,8 +272,9 @@ const CreateTransferModal: React.FC<{
           <div className="grid grid-cols-[1fr_40px_1fr] items-center gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-0.5">Source Branch</label>
-              <select value={fromBranchId} onChange={e => setFromBranchId(Number(e.target.value))} className={inputCls(errors.from)}>
+              <select value={fromBranchId} onChange={e => setFromBranchId(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls(errors.from)}>
                 <option value="">Select branch...</option>
+                <option value="0">Global (Main Office)</option>
                 {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
               {errors.from && <p className="text-[10px] text-red-500 italic mt-1">{errors.from}</p>}
@@ -241,8 +284,9 @@ const CreateTransferModal: React.FC<{
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-0.5">Destination</label>
-              <select value={toBranchId} onChange={e => setToBranchId(Number(e.target.value))} className={inputCls(errors.to)}>
+              <select value={toBranchId} onChange={e => setToBranchId(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls(errors.to)}>
                 <option value="">Select destination...</option>
+                <option value="0">Global (Main Office)</option>
                 {branches.filter(b => b.id !== Number(fromBranchId)).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
               {errors.to && <p className="text-[10px] text-red-500 italic mt-1">{errors.to}</p>}
@@ -295,10 +339,17 @@ const CreateTransferModal: React.FC<{
                         {errors[`mat_${idx}`] && <p className="text-[9px] text-red-500 font-bold mt-1 italic">{errors[`mat_${idx}`]}</p>}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <input type="number" min="0" value={item.quantity} onChange={e => updateRow(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))}
-                            className={`w-full text-xs font-black text-right bg-white border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-violet-400 tabular-nums ${errors[`qty_${idx}`] ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`} placeholder="0" />
-                          {item.unit && <span className="text-[9px] font-black text-violet-600 bg-violet-50 px-2 py-1.5 rounded-lg border border-violet-100 uppercase tracking-widest shrink-0">{item.unit}</span>}
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <input type="number" min="0" value={item.quantity} onChange={e => updateRow(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))}
+                              className={`w-full text-xs font-black text-right bg-white border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-violet-400 tabular-nums ${errors[`qty_${idx}`] ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`} placeholder="0" />
+                            {item.ordered_unit && <span className="text-[9px] font-black text-violet-600 bg-violet-50 px-2 py-1.5 rounded-lg border border-violet-100 uppercase tracking-widest shrink-0">{item.ordered_unit}</span>}
+                          </div>
+                          {(item.conversion_factor && item.conversion_factor > 1) && (
+                            <p className="text-[9px] text-zinc-400 font-bold italic text-right px-1">
+                              = {Number(item.quantity || 0) * (item.conversion_factor || 1)} {item.unit} (Base)
+                            </p>
+                          )}
                         </div>
                         {errors[`qty_${idx}`] && <p className="text-[9px] text-red-500 font-bold mt-1 italic text-right">{errors[`qty_${idx}`]}</p>}
                       </td>
@@ -373,6 +424,23 @@ const ViewTransferModal: React.FC<{
               {transfer.transfer_date ? new Date(transfer.transfer_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
             </div>
           </div>
+          <div className="bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Chain of Custody</p>
+            <div className="space-y-2">
+              {[
+                { label: 'Initiated', user: transfer.created_by?.name ?? 'Unknown', at: transfer.created_at },
+                { label: 'Approved', user: transfer.approved_by?.name ?? 'Pending', at: transfer.approved_at },
+                { label: 'Dispatched', user: transfer.dispatched_by?.name ?? 'Pending', at: transfer.dispatched_at },
+                { label: 'Received', user: transfer.received_by?.name ?? 'Pending', at: transfer.received_at },
+              ].map((step) => (
+                <div key={step.label} className="grid grid-cols-[90px_1fr_auto] gap-2 items-center text-[11px]">
+                  <span className="font-black text-zinc-500 uppercase tracking-wider">{step.label}</span>
+                  <span className="font-bold text-[#3b2063]">{step.user}</span>
+                  <span className="font-semibold text-zinc-400 tabular-nums">{formatDateTime(step.at)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Timeline Visual */}
           <div className="relative flex items-center justify-between gap-4 p-5 bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden mt-2">
@@ -381,7 +449,7 @@ const ViewTransferModal: React.FC<{
               <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">From Source</p>
               <div className="flex items-center gap-2 bg-white border border-zinc-200 px-3 py-2 rounded-xl shadow-sm w-full min-h-[44px] justify-center text-center">
                 <Building2 size={14} className="text-zinc-400 shrink-0" />
-                <span className="text-xs font-black text-[#1a0f2e]">{transfer.from_branch?.name ?? transfer.from_branch_name ?? '—'}</span>
+                <span className="text-xs font-black text-[#1a0f2e]">{transfer.from_branch?.name ?? transfer.from_branch_name ?? (transfer.from_branch_id === null ? 'Main Office' : '—')}</span>
               </div>
             </div>
             <div className="shrink-0 flex items-center justify-center pt-5">
@@ -393,7 +461,7 @@ const ViewTransferModal: React.FC<{
               <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">To Destination</p>
               <div className="flex items-center gap-2 bg-white border border-zinc-200 px-3 py-2 rounded-xl shadow-sm w-full min-h-[44px] justify-center text-center">
                 <Building2 size={14} className="text-zinc-400 shrink-0" />
-                <span className="text-xs font-black text-[#1a0f2e]">{transfer.to_branch?.name ?? transfer.to_branch_name ?? '—'}</span>
+                <span className="text-xs font-black text-[#1a0f2e]">{transfer.to_branch?.name ?? transfer.to_branch_name ?? (transfer.to_branch_id === null ? 'Main Office' : '—')}</span>
               </div>
             </div>
           </div>
@@ -422,10 +490,26 @@ const ViewTransferModal: React.FC<{
                 <tbody className="divide-y divide-zinc-50 whitespace-nowrap">
                   {items.map((item, i) => (
                     <tr key={i} className="hover:bg-zinc-50/50">
-                      <td className="px-4 py-3 font-bold text-zinc-700 text-xs">{item.material_name}</td>
-                      <td className="px-4 py-3 font-black text-[#3b2063] text-sm text-right tabular-nums">{item.quantity}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-bold text-zinc-700 text-xs">{item.material_name}</p>
+                        {item.conversion_factor && item.conversion_factor > 1 && (
+                          <p className="text-[9px] text-zinc-400 font-bold italic">Base: {item.unit}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                         <div className="flex flex-col items-end">
+                            <span className="font-black text-[#3b2063] text-sm tabular-nums">{item.quantity}</span>
+                            {item.conversion_factor && item.conversion_factor > 1 && (
+                              <span className="text-[9px] text-zinc-400 font-bold tabular-nums">
+                                Total: {Number(item.quantity) * item.conversion_factor}
+                              </span>
+                            )}
+                         </div>
+                      </td>
                       <td className="px-4 py-3 text-center">
-                        <span className="text-[9px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full uppercase tracking-tighter">{item.unit}</span>
+                        <span className="text-[9px] font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-full border border-violet-100 uppercase tracking-tighter">
+                          {item.ordered_unit}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -467,7 +551,7 @@ const StockTransferTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [branchFromFilter, setBranchFromFilter] = useState('');
+  const [branchFromFilter, setBranchFromFilter] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [branchToFilter, setBranchToFilter] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('transfer_date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -487,6 +571,22 @@ const StockTransferTab: React.FC = () => {
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAll();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
+
+  const handleBranchFromChange = (val: string) => {
+    setBranchFromFilter(val);
+    if (!val) {
+      localStorage.removeItem('superadmin_selected_branch');
+    } else {
+      localStorage.setItem('superadmin_selected_branch', val);
+    }
+  };
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -556,10 +656,10 @@ const StockTransferTab: React.FC = () => {
         </div>
         <div>
           <p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-1.5 px-0.5">From Branch</p>
-          <select value={branchFromFilter} onChange={e => setBranchFromFilter(e.target.value)}
+          <select value={branchFromFilter} onChange={e => handleBranchFromChange(e.target.value)}
             className="appearance-none text-sm font-bold text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-[150px]">
             <option value="">All Sources</option>
-            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
           </select>
         </div>
         <div>
@@ -646,9 +746,21 @@ const StockTransferTab: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black text-violet-700 bg-violet-50 border border-violet-100">
-                          {items.length} units
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black text-violet-700 bg-violet-50 border border-violet-100">
+                            {items.length} materials
+                          </span>
+                          {branchFromFilter && branchFromFilter === String(t.to_branch_id) && (
+                            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest px-1 flex items-center gap-1">
+                               <Package size={10} /> Incoming
+                            </span>
+                          )}
+                          {branchFromFilter && branchFromFilter === String(t.from_branch_id) && (
+                            <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest px-1 flex items-center gap-1">
+                               <Truck size={10} /> Outgoing
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-4"><StatusBadge status={t.status} /></td>
                       <td className="px-6 py-4 text-right">

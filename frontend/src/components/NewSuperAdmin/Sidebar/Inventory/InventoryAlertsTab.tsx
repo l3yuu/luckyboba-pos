@@ -425,15 +425,24 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number |
 
 interface AlertProps {
   onNavigate?: (id: TabId) => void;
+  fixedBranchId?: number | null;
 }
 
-const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate }) => {
+const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate, fixedBranchId = null }) => {
   const [data, setData] = useState<BranchAlertGroup[]>([]);
   const [summary, setSummary] = useState<AlertSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState<"all" | Severity>("all");
-  const [branchFilter, setBranchFilter] = useState<number | "all">("all");
+  const [branchFilter, setBranchFilter] = useState<number | "all">(() => {
+    if (fixedBranchId) return fixedBranchId;
+    const saved = localStorage.getItem('superadmin_selected_branch');
+    return saved ? Number(saved) : "all";
+  });
+  useEffect(() => {
+    if (fixedBranchId) setBranchFilter(fixedBranchId);
+  }, [fixedBranchId]);
+
 
   // ── Modal State ──
   const [allBranches, setAllBranches] = useState<Branch[]>([]);
@@ -485,6 +494,16 @@ const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate }) => {
 
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  const handleBranchChange = (val: number | "all") => {
+    if (fixedBranchId) return;
+    setBranchFilter(val);
+    if (val === "all") {
+      localStorage.removeItem('superadmin_selected_branch');
+    } else {
+      localStorage.setItem('superadmin_selected_branch', String(val));
+    }
+  };
 
   const filteredData = useMemo(() => {
     return data.filter(branch => {
@@ -554,19 +573,21 @@ const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate }) => {
           />
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Building2 size={14} className="text-zinc-400" />
-            <select
-              value={branchFilter}
-              onChange={(e) => setBranchFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
-              className="bg-white border border-zinc-200 text-sm font-semibold text-zinc-600 rounded-lg px-3 py-2 focus:outline-none"
-            >
-              <option value="all">All Branches</option>
-              {branches.map(b => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
+          {!fixedBranchId && (
+            <div className="flex items-center gap-2">
+              <Building2 size={14} className="text-zinc-400" />
+              <select
+                value={branchFilter}
+                onChange={(e) => handleBranchChange(e.target.value === "all" ? "all" : Number(e.target.value))}
+                className="bg-white border border-zinc-200 text-sm font-semibold text-zinc-600 rounded-lg px-3 py-2 focus:outline-none"
+              >
+                <option value="all">All Branches</option>
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Filter size={14} className="text-zinc-400" />
             <select

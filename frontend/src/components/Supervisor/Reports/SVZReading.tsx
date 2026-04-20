@@ -53,6 +53,7 @@ interface ZReadingReport {
   solo_parent_discount?: number;
   vat_exempt_sales?: number;
   sc_pwd_vat?: number;
+  less_vat?: number;
   beg_si?: string; end_si?: string; total_qty_sold?: number; cash_drop?: number; cash_in_drawer?: number; cash_in?: number;
   reset_counter?: number; z_counter?: number; present_accumulated?: number; previous_accumulated?: number; sales_for_the_day?: number;
   category_breakdown?: { category_name: string; total_qty: number; total_disc: number; total_sold: number }[];
@@ -109,6 +110,7 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
 
   const menuRef    = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+  const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 
   const localVatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = reportData?.is_vat !== undefined ? reportData.is_vat : localVatType === 'vat';
@@ -562,15 +564,16 @@ const ccData   = ccRes.data as Record<string, unknown>;
     const vatableSales = reportData?.vatable_sales    ?? 0;
     const vatAmount    = reportData?.vat_amount       ?? 0;
     const vatExempt    = reportData?.vat_exempt_sales ?? 0;
+    const scPwdVat     = reportData?.sc_pwd_vat ?? reportData?.less_vat ?? 0;
     const scDisc    = reportData?.sc_discount          ?? 0;
     const pwdDisc   = reportData?.pwd_discount         ?? 0;
     const naacDisc  = (reportData as ZReadingReport & { naac_discount?: number })?.naac_discount ?? 0;
     const soloDisc  = (reportData as ZReadingReport & { solo_parent_discount?: number })?.solo_parent_discount ?? 0;
     const otherDisc = reportData?.diplomat_discount    ?? 0;
-    const totalDisc = scDisc + pwdDisc + naacDisc + soloDisc + otherDisc;
+    const totalDisc = roundTo2(scDisc + pwdDisc + naacDisc + soloDisc + otherDisc);
     const voids     = reportData?.total_void_amount ?? 0;
     const reportIsVat = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
-    const netSales   = reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc);
+    const netSales   = roundTo2(reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc));
 
     const resetCounter = reportData?.reset_counter        ?? 0;
     const zCounter     = reportData?.z_counter            ?? 1;
@@ -586,17 +589,17 @@ const ccData   = ccRes.data as Record<string, unknown>;
     const totalCredit  = ['visa', 'mastercard', 'food panda', 'grab', 'gcash'].reduce((a, m) => a + (pMap.get(m) ?? 0), 0);
     const totalDebit   = 0;
     const actualCash   = pMap.get('cash') ?? 0;
-    const totalPaymentsReceived = reportData?.total_payments ?? Array.from(pMap.values()).reduce((a, b) => a + b, 0);
-    const actualNonCash = reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash);
+    const totalPaymentsReceived = roundTo2(reportData?.total_payments ?? Array.from(pMap.values()).reduce((a, b) => a + b, 0));
+    const actualNonCash = roundTo2(reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash));
 
     const cashDenoms     = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count   ?? reportData?.cash_count?.grand_total   ?? 0;
     const cashIn         = reportData?.cash_in   ?? 0;
     const cashDrop       = reportData?.cash_drop ?? 0;
     const apiExpected    = reportData?.expected_amount ?? 0;
-    const expectedEOD    = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
+    const expectedEOD    = roundTo2(apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop));
     const apiShortOver   = reportData?.over_short;
-    const overShort      = apiShortOver !== undefined ? apiShortOver : (totalCashCount - expectedEOD);
+    const overShort      = roundTo2(apiShortOver !== undefined ? apiShortOver : (totalCashCount - expectedEOD));
     const netTotal       = reportData?.net_total ?? netSales;
 
     const isRange   = dateMode === 'range';
@@ -630,6 +633,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
         <Row label="Zero-Rated Sales"           value={phCurrency.format(0)} />
         <Divider />
         <Row label="NET SALES" value={phCurrency.format(netSales)} />
+        <Row label="SC/PWD VAT"                 value={phCurrency.format(scPwdVat)} />
         <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
           <span></span>
         </div>
@@ -663,7 +667,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
         {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
           <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
         )}
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netSales + (reportData?.rounding_adjustment || 0))} />
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(roundTo2(netSales + (reportData?.rounding_adjustment || 0)))} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />

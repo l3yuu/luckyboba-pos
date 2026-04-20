@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOfflineQueue } from '../hooks/useOfflineQueue'
 import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner'
@@ -9,10 +9,11 @@ import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/Offli
 import {
   type MenuItem, type Category, type CartItem,
   type Bundle, type BundleComponentCustomization,
+  SUGAR_LEVELS
 } from '../types/index';
-import { useToast }  from '../hooks/useToast';
-import { useAuth }   from '../hooks/useAuth';
-import api           from '../services/api';
+import { useToast } from '../hooks/useToast';
+import { useAuth } from '../hooks/useAuth';
+import api from '../services/api';
 import { ChevronRight } from 'lucide-react';
 
 import {
@@ -35,12 +36,13 @@ import {
   SuccessModal,
   AddOnModalShell,
   MixAndMatchDrinkModal,
+  PaymentSelectModal,
   type ItemPaxAssignments,
 } from '../components/Cashier/SalesOrderComponents/modals'
 
 import { ReceiptPrint, KitchenPrint, StickerPrint } from '../components/Cashier/SalesOrderComponents/print'
-
 import OrderTypeModal from '../components/Cashier/OrderTypeModal'
+import SyncOverlay from '../components/SyncOverlay'
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 const round = (n: number, d = 2) => Math.round(n * 10 ** d) / 10 ** d
@@ -54,12 +56,13 @@ interface Discount {
   status: 'ON' | 'OFF'
 }
 
+
 // ── Component ─────────────────────────────────────────────────────────────────
 const SalesOrder = () => {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { user } = useAuth()
-  const { enqueue, queueCount, isSyncing, queue, syncNow, remove } = useOfflineQueue()
+  const { enqueue, queueCount, isSyncing, queue, syncNow, remove, resetAttempts } = useOfflineQueue()
   const [isOnline, setIsOnline] = useState(navigator.onLine)
 
   useEffect(() => {
@@ -74,7 +77,9 @@ const SalesOrder = () => {
   }, [])
 
   const branchId = user?.branch_id ?? null
-  const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
+  const [branchName, setBranchName] = useState(() =>
+    user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
+  )
   const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
     () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
   )
@@ -92,10 +97,10 @@ const SalesOrder = () => {
 
 
   const [branchDetails, setBranchDetails] = useState<{
-  brand?: string; companyName?: string; storeAddress?: string;
-  vatRegTin?: string; minNumber?: string; serialNumber?: string;
-  owner_name?: string;
-}>({});
+    brand?: string; companyName?: string; storeAddress?: string;
+    vatRegTin?: string; minNumber?: string; serialNumber?: string;
+    owner_name?: string;
+  }>({});
   const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | 'delivery' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
@@ -104,6 +109,14 @@ const SalesOrder = () => {
 
   //Receipt Footer
   const [posFooter, setPosFooter] = useState<Record<string, string>>({});
+
+  // General Settings
+  const [generalSettings, setGeneralSettings] = useState<{
+    business_name?: string;
+    contact_email?: string;
+    contact_phone?: string;
+    address?: string;
+  }>({});
   // Cart
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -117,15 +130,16 @@ const SalesOrder = () => {
   // Cash-in gate
   const [menuAvailable, setMenuAvailable] = useState(false)
   const [checkingCashIn, setCheckingCashIn] = useState(true)
+  const [syncRequired, setSyncRequired] = useState(false)
 
   // Menu / category
-  const [categories] = useState<Category[]>(() => {
+  const [categories, setCategories] = useState<Category[]>(() => {
     const cached = localStorage.getItem('pos_menu_cache')
     return cached ? JSON.parse(cached) : []
   })
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [categorySize, setCategorySize] = useState<string | null>(null)
-  const [loading] = useState(!localStorage.getItem('pos_menu_cache'))
+  const [loading, setLoading] = useState(!localStorage.getItem('pos_menu_cache'))
   const [searchQuery, setSearchQuery] = useState('')
 
   // Item selection modal
@@ -134,12 +148,12 @@ const SalesOrder = () => {
   const [remarks, setRemarks] = useState('')
   const [sugarLevel, setSugarLevel] = useState('')
   const [sugarLevels, setSugarLevels] = useState<{ id: number; label: string; value: string }[]>(() => {
-    try {
-      const c = localStorage.getItem('pos_sugar_levels_cache')
-      return c ? JSON.parse(c) : []
-    } catch {
-      return []
-    }
+    // REVERT to standard 0, 25, 50, 75, 100 as per user request
+    return SUGAR_LEVELS.map((label, i) => ({
+      id: i + 1,
+      label,
+      value: label
+    }));
   })
   const [size, setSize] = useState<'M' | 'L' | 'none'>('M')
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
@@ -151,8 +165,8 @@ const SalesOrder = () => {
 
   // FIX #1 — use branchId in the key so it's always defined at the time
   // syncNextSequence reads it (avoids stale closure on branchId).
-  const seqKey    = `last_or_sequence_${branchId ?? 'default'}`
-  const queueKey  = `last_queue_sequence_${branchId ?? 'default'}`
+  const seqKey = `last_or_sequence_${branchId ?? 'default'}`
+  const queueKey = `last_queue_sequence_${branchId ?? 'default'}`
 
   // Add-ons data
   const [addOnsData, setAddOnsData] = useState<
@@ -218,6 +232,7 @@ const SalesOrder = () => {
 
   // Confirm / payment
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+  const [isPaymentSelectModalOpen, setIsPaymentSelectModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState<'payment' | 'discount' | 'pax'>('payment')
   const [cashTendered, setCashTendered] = useState<number | ''>('')
@@ -278,7 +293,7 @@ const SalesOrder = () => {
 
   const filteredAddOns = addOnsData.filter(a => {
     if (isWaffleCategory) return a.category === 'waffle';
-    if (isFoodCategory)   return a.category === 'food';
+    if (isFoodCategory) return a.category === 'food';
     return a.category !== 'waffle' && a.category !== 'food';
   });
 
@@ -359,8 +374,8 @@ const SalesOrder = () => {
     ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
     : 0
   const vatableSales = isVat ? round(vatableBase / 1.12) : 0
-  const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
-  const lessVat      = isVat && hasPaxDiscount ? round(totalVatExemptSales * 0.12) : 0
+  const vatAmount = isVat ? round(vatableBase - vatableSales) : 0
+  const lessVat = isVat && hasPaxDiscount ? round(totalVatExemptSales * 0.12) : 0
 
   const amtDue = isVat
     ? Math.max(0, round(vatableBase + vatExemptSales))
@@ -377,6 +392,14 @@ const SalesOrder = () => {
     if (paxPwd > 0 && pwdDiscount) applied.push(pwdDiscount)
     setSelectedDiscounts(applied)
   }, [paxSenior, paxPwd, scDiscount, pwdDiscount])
+
+  // ── Auto-clear delivery charges if order type is changed to Take Out/Dine In ──
+  useEffect(() => {
+    if (orderType !== 'delivery' && orderCharge !== null) {
+      setOrderCharge(null)
+      setCart(prev => prev.map(item => ({ ...item, charges: { grab: false, panda: false } })))
+    }
+  }, [orderType, orderCharge])
 
   // ── Sticker logic ─────────────────────────────────────────────────────────
   const hasStickers = cart.some(
@@ -406,7 +429,7 @@ const SalesOrder = () => {
         module: 'sales_order',
         details: `Cashier: ${currentCashierName} | Branch: ${branchName} | ${new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour12: true })}`,
       })
-      .catch(() => {})
+      .catch(() => { })
   }
 
   // ── FIX #1 — Define syncNextSequence BEFORE the boot useEffect so it is
@@ -438,6 +461,196 @@ const SalesOrder = () => {
     }
   }
 
+  // ── Sync Logic ─────────────────────────────────────────────────────────────
+
+  const refreshPOSData = useCallback(async (isSilent = false) => {
+    if (!isSilent) showToast("Updating menu data...", "info");
+    const t = Date.now(); // Cache busting timestamp
+
+    try {
+      const [menuRes, addonsRes, bundlesRes, discountsRes, branchRes, paymentRes] = await Promise.allSettled([
+        api.get(`/menu?t=${t}`),
+        api.get(`/add-ons?t=${t}`),
+        api.get(`/bundles?t=${t}`),
+        api.get(`/discounts?t=${t}`),
+        branchId ? api.get(`/branches/${branchId}?t=${t}`) : Promise.reject('no_branch'),
+        api.get(`/payment-settings?t=${t}`)
+      ]);
+
+      // 1. Menu & Categories
+      if (menuRes.status === 'fulfilled') {
+        const data = menuRes.value.data;
+        if (Array.isArray(data)) {
+          localStorage.setItem('pos_menu_cache', JSON.stringify(data));
+          setCategories(data);
+
+          // CRITICAL: Re-sync selectedCategory reference to avoid stale objects
+          setSelectedCategory(prev => {
+            if (!prev) return null;
+            return data.find((c: Category) => c.id === prev.id) || null;
+          });
+
+          // Re-sync selectedItem if it exists
+          setSelectedItem(prev => {
+            if (!prev) return null;
+            // Find item in any category
+            for (const cat of data) {
+              const item = cat.menu_items?.find((i: MenuItem) => i.id === prev.id);
+              if (item) return item;
+            }
+            return null;
+          });
+        }
+      }
+
+      // 2. Add-ons
+      if (addonsRes.status === 'fulfilled') {
+        const data = addonsRes.value.data;
+        localStorage.setItem('pos_addons_cache', JSON.stringify(data));
+        setAddOnsData(data);
+      }
+
+      // 3. Sugar Levels (Maintain standard levels even after sync)
+      // We ignore server sugar levels to stick to standard 0-100% per user request
+      setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })));
+
+      // 4. Bundles
+      if (bundlesRes.status === 'fulfilled') {
+        const data = bundlesRes.value.data;
+        localStorage.setItem('pos_bundles_cache', JSON.stringify(data));
+        setBundlesData(data);
+      }
+
+      // 5. Discounts
+      if (discountsRes.status === 'fulfilled') {
+        const data = discountsRes.value.data;
+        localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
+        const seen = new Set<string>();
+        const unique = data
+          .filter((d: Discount) => d.status === 'ON')
+          .filter((d: Discount) => {
+            const key = `${d.name}-${d.amount}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        setDiscounts(unique);
+      }
+
+      // 6. Branch Details
+      if (branchRes.status === 'fulfilled') {
+        const respBody = branchRes.value.data;
+        const b = respBody.data ?? respBody; // Handle wrapper
+        const newName = b.name ?? b.branch_name ?? '';
+        const newVat = b.vat_type ?? 'vat';
+
+        setBranchName(newName);
+        setVatType(newVat as 'vat' | 'non_vat');
+        setBranchDetails({
+          brand: b.brand,
+          companyName: b.company_name,
+          storeAddress: b.store_address,
+          vatRegTin: b.vat_reg_tin,
+          minNumber: b.min_number,
+          serialNumber: b.serial_number,
+          owner_name: b.owner_name,
+        });
+
+        localStorage.setItem('lucky_boba_user_branch', newName);
+        localStorage.setItem('lucky_boba_user_branch_vat', newVat);
+      }
+
+      // 7. Payment Settings
+      if (paymentRes.status === 'fulfilled') {
+        const data = paymentRes.value.data;
+        setPosFooter(prev => ({ ...prev, ...data }));
+        setGeneralSettings({
+          business_name: data.business_name ?? '',
+          contact_email: data.contact_email ?? '',
+          contact_phone: data.contact_phone ?? '',
+          address: data.address ?? '',
+        });
+      }
+
+      if (!isSilent) showToast("Menu updated successfully", "success");
+    } catch (error) {
+      console.error("Failed to refresh POS data:", error);
+      if (!isSilent) showToast("Failed to update menu", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast, branchId]);
+
+  useEffect(() => {
+    const SYNC_CHANNEL_NAME = 'lucky_boba_pos_sync_v1';
+    const SYNC_STORAGE_KEY = 'lb-pos-sync-trigger-v1';
+    const origin = window.location.origin;
+
+    const channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
+
+    // Migration: clear stale ms-based values from previous code (PHP uses seconds)
+    const raw = localStorage.getItem('lb-pos-menu-version') || '0';
+    if (parseInt(raw, 10) > 10_000_000_000) {
+      localStorage.removeItem('lb-pos-menu-version');
+    }
+    // Track the last known backend version (in SECONDS, same unit as PHP time())
+    let localMenuVersion = parseInt(localStorage.getItem('lb-pos-menu-version') || '0', 10);
+
+    const handleSync = () => {
+      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering UI overlay.`);
+      setSyncRequired(true);
+    };
+
+    // 1. BroadcastChannel (Same Browser)
+    channel.onmessage = (event) => {
+      const data = event.data;
+      const msg = typeof data === 'string' ? data : data?.type;
+      console.log(`[Sync] Broadcast message received at ${origin}:`, data);
+      if (msg === 'menu-updated') handleSync();
+    };
+
+    // 2. LocalStorage (Same Browser, different tab fallback)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === SYNC_STORAGE_KEY) {
+        console.log(`[Sync] Storage event received at ${origin}:`, e.newValue);
+        handleSync();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 3. API Polling (Cross-Browser / Cross-Device)
+    const checkVersion = async () => {
+      try {
+        const { data } = await api.get('/menu/version');
+        const remoteVersion = parseInt(data.version || '0', 10);
+
+        if (remoteVersion > 0 && localMenuVersion > 0 && remoteVersion > localMenuVersion) {
+          console.info(`[Sync] 🔄 Remote version (${remoteVersion}) > Local (${localMenuVersion}).`);
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+          handleSync();
+        } else if (localMenuVersion === 0 && remoteVersion > 0) {
+          // Initialize local version on first poll without triggering a sync
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+        }
+      } catch {
+        // Silent catch for polling
+      }
+    };
+
+    // Check every 10 seconds for faster cross-browser detection
+    const intervalId = setInterval(checkVersion, 10000);
+    // Initial check
+    checkVersion();
+
+    return () => {
+      channel.close();
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(intervalId);
+    };
+  }, [refreshPOSData, showToast]);
+
   // ── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -465,55 +678,31 @@ const SalesOrder = () => {
           setVatType(b.vat_type as 'vat' | 'non_vat');
           localStorage.setItem('lucky_boba_user_branch_vat', b.vat_type);
         }
-      }).catch(() => {});
+      }).catch(() => { });
+    }
+
+    // Initial sync of non-mount-critical data if cache is missing or for updates
+    if (!localStorage.getItem('pos_menu_cache')) {
+      refreshPOSData(true);
     }
 
     api
       .get('/payment-settings')
-      .then(({ data }) => setPosFooter(data))
-      .catch(() => {});
-
-    api
-      .get('/discounts')
       .then(({ data }) => {
-        localStorage.setItem('pos_discounts_cache', JSON.stringify(data))
-        const seen = new Set<string>()
-        const unique = data
-          .filter((d: Discount) => d.status === 'ON')
-          .filter((d: Discount) => {
-            const key = `${d.name}-${d.amount}`
-            if (seen.has(key)) return false
-            seen.add(key)
-            return true
-          })
-        setDiscounts(unique)
+        // /payment-settings returns ALL settings (including contact_email, contact_phone)
+        setPosFooter(prev => ({
+          ...prev,
+          ...data,
+        }));
+        // Also populate generalSettings for receipt header/footer
+        setGeneralSettings({
+          business_name: data.business_name ?? '',
+          contact_email: data.contact_email ?? '',
+          contact_phone: data.contact_phone ?? '',
+          address: data.address ?? '',
+        });
       })
-      .catch(() => {})
-
-    api
-      .get('/add-ons')
-      .then(({ data }) => {
-        localStorage.setItem('pos_addons_cache', JSON.stringify(data))
-        setAddOnsData(data)
-      })
-      .catch(() => {})
-
-    api
-      .get('/sugar-levels')
-      .then(({ data }) => {
-        const levels = data.data ?? data
-        localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(levels))
-        setSugarLevels(levels)
-      })
-      .catch(() => {})
-
-    api
-      .get('/bundles')
-      .then(({ data }) => {
-        localStorage.setItem('pos_bundles_cache', JSON.stringify(data))
-        setBundlesData(data)
-      })
-      .catch(() => {})
+      .catch(() => { })
 
     const onCashIn = () => {
       setMenuAvailable(true)
@@ -550,7 +739,7 @@ const SalesOrder = () => {
       cart.forEach((item, i) => {
         const key = String(i)
         const existing = prev[key] ?? []
-        const arr = Array(item.qty).fill('none').map((_, ui) => existing[ui] ?? 'none') as ('none'|'sc'|'pwd')[];
+        const arr = Array(item.qty).fill('none').map((_, ui) => existing[ui] ?? 'none') as ('none' | 'sc' | 'pwd')[];
         updated[key] = arr;
       });
       return updated;
@@ -567,10 +756,10 @@ const SalesOrder = () => {
     setSelectedCategory(cat);
     setCategorySize(null);
     setActiveCategoryGroup(null);
-    const catType    = cat.category_type ?? cat.type;
+    const catType = cat.category_type ?? cat.type;
     const isDrinkCat = catType === 'drink' || catType === 'bundle';
     const isWingsCat = catType === 'wings';
-    const subCats    = cat.sub_categories ?? [];
+    const subCats = cat.sub_categories ?? [];
     if (!isDrinkCat && !isWingsCat) { setCategorySize('all'); return; }
     if (isWingsCat) return;
     if (subCats.length === 1) { setCategorySize(subCats[0].name); return; }
@@ -649,13 +838,13 @@ const SalesOrder = () => {
             return found
               ? { ...found, size: validSize(d.size || found.size || 'none') }
               : ({
-                  id: d.menu_item_id,
-                  name: d.name,
-                  price: d.price,
-                  size: validSize(d.size),
-                  barcode: '',
-                  category_id: categoryId,
-                } as unknown as MenuItem)
+                id: d.menu_item_id,
+                name: d.name,
+                price: d.price,
+                size: validSize(d.size),
+                barcode: '',
+                category_id: categoryId,
+              } as unknown as MenuItem)
           })
         } catch {
           allDrinks = []
@@ -711,15 +900,9 @@ const SalesOrder = () => {
 
     const isDrinkItem = catType === 'drink' || catType === 'combo'
     if (isDrinkItem) {
-      try {
-        const { data } = await api.get(`/sugar-levels/by-item/${item.id}`)
-        const levels = data.data ?? []
-        setSugarLevels(levels)
-        setSugarLevel('')
-      } catch {
-        setSugarLevels([])
-        setSugarLevel('')
-      }
+      // REVERT: Use standard sugar levels instead of fetching per-item
+      setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })))
+      setSugarLevel('')
     } else {
       setSugarLevels([])
       setSugarLevel('')
@@ -820,9 +1003,9 @@ const SalesOrder = () => {
       remarks,
       charges: { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
       sugarLevel: isDrink ? sugarLevel : undefined,
-      size:       cartSize, cupSizeLabel,
-      options:    isDrink ? selectedOptions : undefined,
-      addOns:     (isDrink || isWaffle || isFoodCategory) ? selectedAddOns : undefined,
+      size: cartSize, cupSizeLabel,
+      options: isDrink ? selectedOptions : undefined,
+      addOns: (isDrink || isWaffle || isFoodCategory) ? selectedAddOns : undefined,
       finalPrice: unitPrice * qty,
     }
     if (isCombo) {
@@ -1136,7 +1319,7 @@ const SalesOrder = () => {
     const orderData = {
       si_number: orNumber,
       branch_id: branchId,
-      order_type: orderType ?? 'take-out',
+      order_type: (paymentMethod === 'grab' || paymentMethod === 'food_panda') ? 'delivery' : (orderType ?? 'take-out'),
       items: cart.map(item => ({
         menu_item_id: item.isBundle ? null : item.id,
         bundle_id: item.isBundle ? Number(item.bundleId) : null,
@@ -1180,6 +1363,9 @@ const SalesOrder = () => {
       // FIX #3 — join the arrays to strings to match the backend's expected scalar fields
       senior_id: seniorIds.length > 0 ? seniorIds.join(',') : null,
       pwd_id: pwdIds.length > 0 ? pwdIds.join(',') : null,
+      source: (paymentMethod === 'grab' || paymentMethod === 'food_panda') 
+                ? (paymentMethod === 'food_panda' ? 'panda' : 'grab') 
+                : (orderCharge || 'pos'),
     }
 
     if (navigator.onLine) {
@@ -1210,6 +1396,9 @@ const SalesOrder = () => {
             sessionStorage.setItem('lucky_boba_receipt_cache_date', today)
           }),
         ]).catch(e => console.error('Failed to fetch fresh data', e))
+        const salesTick = String(Date.now())
+        localStorage.setItem('lucky_boba_live_sales_tick', salesTick)
+        window.dispatchEvent(new CustomEvent('luckyboba:sale-recorded', { detail: { at: salesTick } }))
         setPrintedReceipt(false)
         setPrintedKitchen(false)
         setPrintedStickers(false)
@@ -1248,20 +1437,38 @@ const SalesOrder = () => {
   // ── Print handlers ─────────────────────────────────────────────────────────
 
   const handlePrintReceipt = () => {
-    setPrintTarget('receipt')
-    setPrintedReceipt(true)
-    setTimeout(() => window.print(), 100)
+    setPrintTarget(null);
+    setTimeout(() => {
+      setPrintTarget('receipt');
+      setPrintedReceipt(true);
+    }, 50);
   }
   const handlePrintKitchen = () => {
-    setPrintTarget('kitchen')
-    setPrintedKitchen(true)
-    setTimeout(() => window.print(), 100)
+    setPrintTarget(null);
+    setTimeout(() => {
+      setPrintTarget('kitchen');
+      setPrintedKitchen(true);
+    }, 50);
   }
   const handlePrintStickers = () => {
-    setPrintTarget('stickers')
-    setPrintedStickers(true)
-    setTimeout(() => window.print(), 100)
+    setPrintTarget(null);
+    setTimeout(() => {
+      setPrintTarget('stickers');
+      setPrintedStickers(true);
+    }, 50);
   }
+
+  // Handle Systemic Printing Trigger
+  useEffect(() => {
+    if (printTarget) {
+      const timer = setTimeout(() => {
+        window.print();
+        // We DO NOT reset printTarget here because the user might want to reprint
+        // or print stickers after the receipt.
+      }, 500); 
+      return () => clearTimeout(timer);
+    }
+  }, [printTarget, orNumber]); // orNumber check for new orders
 
   // ── New order ──────────────────────────────────────────────────────────────
 
@@ -1299,11 +1506,11 @@ const SalesOrder = () => {
   // ── Filtered categories ────────────────────────────────────────────────────
 
   const GROUP_TYPES: Record<string, string[]> = {
-    drinks:        ['drink'],
-    bundles:       ['bundle'],
-    food:          ['food', 'combo', 'waffle', 'wings'],
+    drinks: ['drink'],
+    bundles: ['bundle'],
+    food: ['food', 'combo', 'waffle', 'wings'],
     mix_and_match: ['mix_and_match'],
-    others:        ['promo', 'other'],
+    others: ['promo', 'other'],
   };
 
   const filteredCategories = categories
@@ -1313,12 +1520,12 @@ const SalesOrder = () => {
       )
       const enrichedItems = searchQuery
         ? matchedItems.map(item => {
-            if (!item.size || item.size === 'none') return item
-            const cupM = cat.cup?.size_m ?? 'M'
-            const cupL = cat.cup?.size_l ?? 'L'
-            const sizeLabel = item.size === 'L' ? cupL : cupM
-            return { ...item, name: `${item.name} (${sizeLabel})` }
-          })
+          if (!item.size || item.size === 'none') return item
+          const cupM = cat.cup?.size_m ?? 'M'
+          const cupL = cat.cup?.size_l ?? 'L'
+          const sizeLabel = item.size === 'L' ? cupL : cupM
+          return { ...item, name: `${item.name} (${sizeLabel})` }
+        })
         : matchedItems
       return { ...cat, menu_items: enrichedItems }
     })
@@ -1374,26 +1581,6 @@ const SalesOrder = () => {
 
   return (
     <>
-      <style>{`
-        @media print {
-          @page { ${printTarget === 'stickers' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'} margin: 0 !important; }
-          html, body { margin: 0 !important; padding: 0 !important; }
-          body * { visibility: hidden; }
-          nav, header, aside, button, .print\\:hidden { display: none !important; }
-          img { display: block !important; }
-          .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
-          .printable-receipt-container {
-            position: static !important;
-            width: 100% !important;
-            max-width: ${printTarget === 'stickers' ? '38.5mm' : '76mm'} !important;
-            margin: 0 !important; padding: 0 !important;
-            height: auto !important;
-          }
-          .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
-          .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
-          .queue-stub { page-break-before: always !important; break-before: page !important; }
-        }
-      `}</style>
 
       <div className="flex flex-col h-screen w-screen bg-[#f4f2fb] relative overflow-hidden font-sans print:hidden">
         {editingCartItem && editingCartIndex !== null && (
@@ -1425,6 +1612,7 @@ const SalesOrder = () => {
             isFoodCategory={isFoodCategory}
             filteredAddOns={filteredAddOns}
             onOpenAddOns={() => setIsAddOnModalOpen(true)} onAddToOrder={addToOrder}
+            orderType={orderType ?? 'take-out'}
             onClose={() => {
               setSelectedItem(null)
               setIsAddOnModalOpen(false)
@@ -1481,6 +1669,7 @@ const SalesOrder = () => {
                 }}
                 orderCharge={orderCharge}
                 onToggleOrderCharge={toggleBundleOrderCharge}
+                orderType={orderType ?? 'take-out'}
                 bundleGrabPrice={bundleGrabPrice}
                 bundlePandaPrice={bundlePandaPrice}
               />
@@ -1538,12 +1727,25 @@ const SalesOrder = () => {
               setMixMatchDrinkAddOns(prev => (prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]))
             }
             onToggleOrderCharge={toggleOrderCharge}
+            orderType={orderType ?? 'take-out'}
             onConfirm={confirmMixAndMatch}
             onClose={() => {
               setIsMixMatchModalOpen(false)
               setPendingMixMatchCart(null)
               if (searchQuery.trim()) setSelectedCategory(null)
             }}
+          />
+        )}
+
+        {isPaymentSelectModalOpen && (
+          <PaymentSelectModal 
+            orderCharge={orderCharge}
+            onSelect={(method) => {
+              setPaymentMethod(method);
+              setIsPaymentSelectModalOpen(false);
+              setIsConfirmModalOpen(true);
+            }}
+            onClose={() => setIsPaymentSelectModalOpen(false)}
           />
         )}
 
@@ -1574,6 +1776,7 @@ const SalesOrder = () => {
             discounts={discounts}
             activeTab={activeTab as 'payment' | 'discount' | 'pax'}
             submitting={submitting}
+            orderType={orderType}
             onTabChange={t => setActiveTab(t as 'payment' | 'discount' | 'pax')}
             onPaymentMethodChange={setPaymentMethod}
             onCashTenderedChange={setCashTendered}
@@ -1631,6 +1834,7 @@ const SalesOrder = () => {
           isSyncing={isSyncing}
           syncNow={syncNow}
           remove={remove}
+          resetAttempts={resetAttempts}
         />
 
         {/* ── Category nav bar ───────────────────────────────────────────── */}
@@ -1638,11 +1842,10 @@ const SalesOrder = () => {
           <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto scrollbar-none">
 
             <span
-              className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${
-                !selectedCategory
+              className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${!selectedCategory
                   ? 'text-[#7c14d4] bg-[#7c14d4]/10'
                   : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100'
-              }`}
+                }`}
               onClick={() => { setSelectedCategory(null); setCategorySize(null); setActiveCategoryGroup(null); }}
             >
               All
@@ -1652,11 +1855,10 @@ const SalesOrder = () => {
               <>
                 <ChevronRight size={11} className="text-zinc-300 shrink-0" />
                 <span
-                  className={`text-xs font-semibold shrink-0 px-2 py-1.5 rounded-lg transition-colors ${
-                    !categorySize
+                  className={`text-xs font-semibold shrink-0 px-2 py-1.5 rounded-lg transition-colors ${!categorySize
                       ? 'text-[#7c14d4] bg-[#7c14d4]/10'
                       : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100 cursor-pointer'
-                  }`}
+                    }`}
                   onClick={() => { if (categorySize && !categoryHasOnlyOneSize) setCategorySize(null); }}
                 >
                   {selectedCategory.name}
@@ -1678,11 +1880,11 @@ const SalesOrder = () => {
             )}
 
             {!selectedCategory && [
-              { key: 'drinks',        label: 'Drinks' },
-              { key: 'bundles',       label: 'Bundles' },
-              { key: 'food',          label: 'Food' },
+              { key: 'drinks', label: 'Drinks' },
+              { key: 'bundles', label: 'Bundles' },
+              { key: 'food', label: 'Food' },
               { key: 'mix_and_match', label: 'Mix & Match' },
-              { key: 'others',        label: 'Others' },
+              { key: 'others', label: 'Others' },
             ].map(group => {
               const isActive = activeCategoryGroup === group.key;
               const count = filteredCategories.filter(c =>
@@ -1693,16 +1895,14 @@ const SalesOrder = () => {
                 <button
                   key={group.key}
                   onClick={() => setActiveCategoryGroup(isActive ? null : group.key)}
-                  className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all border ${
-                    isActive
+                  className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all border ${isActive
                       ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-sm'
                       : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#7c14d4]/40 hover:text-[#7c14d4] hover:bg-violet-50'
-                  }`}
+                    }`}
                 >
                   <span>{group.label}</span>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                    isActive ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-500'
-                  }`}>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-500'
+                    }`}>
                     {count}
                   </span>
                 </button>
@@ -1736,9 +1936,6 @@ const SalesOrder = () => {
             subtotal={subtotal}
             onEditItem={openCartItemEdit}
             onConfirmOrder={() => {
-              if (orderCharge === 'grab') setPaymentMethod('grab')
-              else if (orderCharge === 'panda') setPaymentMethod('food_panda')
-              else setPaymentMethod('cash')
               setIsConfirmModalOpen(true)
             }}
           />
@@ -1749,6 +1946,10 @@ const SalesOrder = () => {
         <ReceiptPrint
           {...printProps}
           {...branchDetails}
+          businessName={generalSettings.business_name}
+          contactEmail={generalSettings.contact_email}
+          contactPhone={generalSettings.contact_phone}
+          generalAddress={generalSettings.address}
           ownerName={branchDetails.owner_name}
           vatType={vatType}
           addOnsData={addOnsData}
@@ -1772,8 +1973,24 @@ const SalesOrder = () => {
           posFooter={posFooter}
         />
       )}
-      {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
+      {printTarget === 'kitchen' && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
+
+      {/* Mandatory Sync Modal Overlay — NON-DISMISSIBLE until sync completes */}
+      {syncRequired && (
+        <SyncOverlay
+          onSync={async () => {
+            await refreshPOSData(true);
+            // Store the server's version (seconds) — NOT Date.now() (milliseconds)
+            try {
+              const { data } = await api.get('/menu/version');
+              const v = parseInt(data.version || '0', 10);
+              if (v > 0) localStorage.setItem('lb-pos-menu-version', v.toString());
+            } catch { /* version will be picked up on next poll */ }
+            setSyncRequired(false);
+          }}
+        />
+      )}
     </>
   )
 }

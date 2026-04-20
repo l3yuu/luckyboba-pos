@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
+import { SkeletonBar, SkeletonBox } from '../SharedSkeletons';
 
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
@@ -25,9 +26,6 @@ const STYLES = `
   .tl-label { font-size: 0.62rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.12em; }
   .tl-value { font-size: 1.65rem; font-weight: 800; color: #0f172a; letter-spacing: -0.04em; line-height: 1.2; }
 
-  @keyframes tl-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  .tl-pulse { animation: tl-pulse 1.5s ease-in-out infinite; }
-  .tl-skeleton { background: #f1f5f9; border-radius: 0.5rem; }
   
   @keyframes tl-spin { to { transform: rotate(360deg); } }
   .tl-spin { animation: tl-spin 1s linear infinite; }
@@ -729,24 +727,30 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-        <StatTile
-          icon={Users}
-          label="Total Staff"
-          value={loading ? '—' : staff.length}
-          color="#3b2063"
-        />
-        <StatTile
-          icon={UserCheck}
-          label="Active"
-          value={loading ? '—' : activeCount}
-          color="#10b981"
-        />
-        <StatTile
-          icon={XCircle}
-          label="Inactive"
-          value={loading ? '—' : inactiveCount}
-          color="#f43f5e"
-        />
+        {loading ? (
+          [...Array(3)].map((_, i) => <SkeletonBox key={i} className="min-h-[140px]" />)
+        ) : (
+          <>
+            <StatTile
+              icon={Users}
+              label="Total Staff"
+              value={staff.length}
+              color="#3b2063"
+            />
+            <StatTile
+              icon={UserCheck}
+              label="Active"
+              value={activeCount}
+              color="#10b981"
+            />
+            <StatTile
+              icon={XCircle}
+              label="Inactive"
+              value={inactiveCount}
+              color="#f43f5e"
+            />
+          </>
+        )}
       </div>
 
       {/* ── Table Container ── */}
@@ -781,7 +785,7 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
                 <tr key={i} className="border-b border-slate-50">
                   {[...Array(7)].map((_, j) => (
                     <td key={j} className="px-6 py-5">
-                      <div className="h-4 tl-skeleton tl-pulse" style={{ width: `${60 + (j * 7) % 40}%` }} />
+                      <SkeletonBar h="h-4" style={{ width: `${60 + (j * 7) % 40}%` }} />
                     </td>
                   ))}
                 </tr>

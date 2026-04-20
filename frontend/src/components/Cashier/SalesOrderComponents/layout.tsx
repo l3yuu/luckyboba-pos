@@ -16,14 +16,11 @@ interface HeaderProps {
   searchQuery: string;
   onSearchChange: (v: string) => void;
   onHomeClick: () => void;
-  onRefresh?: () => void;
-  isRefreshing?: boolean;
 }
 
 export const Header = ({
   branchName, formattedDate, formattedTime,
   searchQuery, onSearchChange, onHomeClick,
-  onRefresh, isRefreshing = false,
 }: HeaderProps) => (
   <div className="flex gap-3 px-4 py-3 bg-white border-b border-[#e9d5ff] items-center h-20 shrink-0 shadow-sm z-20">
     <button
@@ -48,26 +45,6 @@ export const Header = ({
         className="flex-1 bg-transparent font-bold text-black outline-none uppercase placeholder:text-[#3b2063]/30 text-sm"
       />
     </div>
-
-    {onRefresh && (
-      <button
-        onClick={onRefresh}
-        disabled={isRefreshing}
-        className={`bg-white border-2 border-[#e9d5ff] text-[#3b2063] h-full px-4 rounded-[0.625rem] font-black text-[10px] uppercase tracking-widest hover:border-[#3b2063] transition-all flex items-center gap-2 group ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
-      >
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          fill="none" 
-          viewBox="0 0 24 24" 
-          strokeWidth={2.5} 
-          stroke="currentColor" 
-          className={`w-4 h-4 transition-transform duration-500 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.062 12.352a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-        </svg>
-        {isRefreshing ? 'Syncing...' : 'Sync'}
-      </button>
-    )}
 
     <div className="flex gap-2 h-full">
       <div className="bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] flex items-center justify-center px-4">
@@ -159,9 +136,20 @@ export const MenuArea = ({
                   item.name.toLowerCase().includes(searchQuery.toLowerCase())
                 )
               ).map(item => (
-                <button key={item.id} onClick={() => onItemClick(item)}
-                  className={`${BASE_CARD} hover:bg-[#3b2063] hover:border-[#3b2063] hover:text-white`}>
-                  {item.name}
+                <button 
+                  key={item.id} 
+                  onClick={() => onItemClick(item)}
+                  className={`${BASE_CARD} hover:border-[#3b2063] group p-0 overflow-hidden flex-col h-auto`}
+                >
+                  <div className="w-full aspect-square bg-white flex items-center justify-center overflow-hidden border-b border-zinc-100 shrink-0">
+                    <div className="opacity-10 text-[#3b2063]">
+                      <DrinkIcon size={32} />
+                    </div>
+                  </div>
+                  <div className="p-3 w-full flex-1 flex flex-col justify-between">
+                    <span className="text-[10px] font-black uppercase text-zinc-900 leading-tight line-clamp-2 mb-1">{item.name}</span>
+                    <span className="text-xs font-black text-[#7c14d4]">₱{Number(item.sellingPrice || item.price).toFixed(2)}</span>
+                  </div>
                 </button>
               ))}
               {getFilteredItems(selectedCategory.menu_items).length === 0 && (
@@ -252,15 +240,22 @@ export const MenuArea = ({
                         <span className="text-[10px] text-zinc-400 font-bold">{cat.menu_items.length}</span>
                       </div>
 
-                      {/* Items in this category */}
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                         {cat.menu_items.map(item => (
                           <button
                             key={`${item.id}-${cat.id}`}
                             onClick={() => onItemClick(item)}
-                            className={`${BASE_CARD} hover:bg-[#3b2063] hover:border-[#3b2063] hover:text-white flex-col gap-1`}
+                            className={`${BASE_CARD} hover:border-[#3b2063] group p-0 overflow-hidden flex-col h-auto`}
                           >
-                            <span>{item.name}</span>
+                            <div className="w-full aspect-square bg-white flex items-center justify-center overflow-hidden border-b border-zinc-100 shrink-0">
+                              <div className="opacity-10 text-[#3b2063]">
+                                <DrinkIcon size={32} />
+                              </div>
+                            </div>
+                            <div className="p-3 w-full flex-1 flex flex-col justify-between text-black">
+                              <span className="text-[10px] font-black uppercase leading-tight line-clamp-2 mb-1">{item.name}</span>
+                              <span className="text-xs font-black text-[#7c14d4]">₱{Number(item.sellingPrice || item.price).toFixed(2)}</span>
+                            </div>
                           </button>
                         ))}
                       </div>
@@ -346,11 +341,6 @@ interface CartSidebarProps {
   onConfirmOrder: () => void;
 }
 
-const getItemSurcharge = (item: CartItem): number => {
-  if (item.charges?.grab)  return Number(item.grab_price  ?? 0) * item.qty;
-  if (item.charges?.panda) return Number(item.panda_price ?? 0) * item.qty;
-  return 0;
-};
 
 export const CartSidebar = ({
   cart, cashierName, orNumber, totalCount, subtotal, terminalNumber, onEditItem, onConfirmOrder,
@@ -413,9 +403,6 @@ export const CartSidebar = ({
                     <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
                   </svg>
                 </div>
-                <p className="font-black text-sm text-black">
-                  ₱{(item.finalPrice + getItemSurcharge(item)).toFixed(2)}
-                </p>
               </div>
             </div>
           ))}

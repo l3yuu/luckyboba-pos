@@ -22,6 +22,13 @@ class StockTransfer extends Model
         'transfer_date',
         'status',
         'notes',
+        'created_by_id',
+        'approved_by_id',
+        'approved_at',
+        'dispatched_by_id',
+        'dispatched_at',
+        'received_by_id',
+        'received_at',
     ];
 
     public function fromBranch()
@@ -37,5 +44,25 @@ class StockTransfer extends Model
     public function items()
     {
         return $this->hasMany(StockTransferItem::class);
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by_id');
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by_id');
+    }
+
+    public function dispatchedBy()
+    {
+        return $this->belongsTo(User::class, 'dispatched_by_id');
+    }
+
+    public function receivedBy()
+    {
+        return $this->belongsTo(User::class, 'received_by_id');
     }
 }

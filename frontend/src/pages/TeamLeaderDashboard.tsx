@@ -16,9 +16,12 @@ import RecipesPanel        from '../components/TeamLeader/Inventory/RecipesPanel
 import UsageReportPanel    from '../components/TeamLeader/Inventory/UsageReportPanel';
 import ItemCheckerPanel    from '../components/TeamLeader/Inventory/ItemCheckerPanel';
 import SV_VoidLogsPanel    from '../components/Supervisor/Logging/SVVoidLogs';
-import TL_ExpensePanel      from '../components/TeamLeader/Inventory/TL_ExpensePanel';
+import TL_ExpensesTab      from '../components/TeamLeader/Expenses/TL_ExpensesTab';
 import TL_StockTransferPanel from '../components/TeamLeader/Inventory/TL_StockTransferPanel';
 import TL_PurchaseOrderPanel from '../components/TeamLeader/Inventory/TL_PurchaseOrderPanel';
+import TL_CategoriesTab    from '../components/TeamLeader/Menu/TL_CategoriesTab';
+import TL_SubCategoriesTab from '../components/TeamLeader/Menu/TL_SubCategoriesTab';
+import TL_MenuItemsTab     from '../components/TeamLeader/Menu/TL_MenuItemsTab';
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const DASHBOARD_STYLES = `
@@ -78,9 +81,12 @@ const TeamLeaderDashboard = () => {
       case 'recipes':         return <RecipesPanel />;
       case 'usage-report':    return <UsageReportPanel  branchId={bId} />;
       case 'item-checker':    return <ItemCheckerPanel  branchId={bId} />;
-      case 'expenses':        return <TL_ExpensePanel    branchId={bId} />;
+      case 'expenses':        return <TL_ExpensesTab    branchId={bId} />;
       case 'stock-transfer':  return <TL_StockTransferPanel branchId={bId} />;
       case 'purchase-order':  return <TL_PurchaseOrderPanel branchId={bId} />;
+      case 'tl-menu-categories':    return <TL_CategoriesTab />;
+      case 'tl-menu-subcategories': return <TL_SubCategoriesTab />;
+      case 'tl-menu-items':         return <TL_MenuItemsTab />;
       default:                return <TL_DashboardPanel />;
     }
   };

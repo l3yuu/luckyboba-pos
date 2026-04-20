@@ -66,7 +66,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     setState(() { _isLoading = true; _error = null; });
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
+      final token = prefs.getString('session_token') ?? prefs.getString('token') ?? '';
 
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrl}/my-orders'),
@@ -105,7 +105,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
+      final token = prefs.getString('session_token') ?? prefs.getString('token') ?? '';
 
       final response = await http.get(
         Uri.parse('${AppConfig.apiUrl}/orders/$orderId/reorder'),

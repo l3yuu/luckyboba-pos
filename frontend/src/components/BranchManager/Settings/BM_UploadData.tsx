@@ -66,7 +66,7 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
         const workbook  = XLSX.read(data, { type: 'array' });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData  = XLSX.utils.sheet_to_json<ExcelRow>(worksheet);
-        setPreview(jsonData.map(row => ({
+        setPreview(jsonData.map((row: ExcelRow) => ({
           name:   row.name   || 'N/A',
           amount: String(row.amount || '0'),
           status: row.status || 'ON',
@@ -442,3 +442,4 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
 };
 
 export default BM_UploadData;
+

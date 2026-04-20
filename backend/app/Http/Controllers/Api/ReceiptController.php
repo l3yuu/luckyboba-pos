@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\SaleItemResource;
 use App\Models\Receipt;
 use App\Models\Sale;
 use App\Models\ZReading;
@@ -261,10 +262,8 @@ public function voidRequest(Request $request, $id)
 
         $saleArray = $sale->toArray();
 
-        // Normalize items → sale_items
-        if (!isset($saleArray['sale_items']) && isset($saleArray['items'])) {
-            $saleArray['sale_items'] = $saleArray['items'];
-        }
+        // Normalize items → sale_items using Resource for consistent formatting
+        $saleArray['sale_items'] = SaleItemResource::collection($sale->items)->resolve();
 
         // Queue number (from SI)
         $saleArray['queue_number'] = ltrim(

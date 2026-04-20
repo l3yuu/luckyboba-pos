@@ -1,4 +1,4 @@
-package com.example.luckyboba_app
+package com.luckyboba.app
 
 import io.flutter.embedding.android.FlutterActivity
 

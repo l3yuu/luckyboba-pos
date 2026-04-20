@@ -85,17 +85,20 @@ const BM_PaymentSettings = ({ onBack }: { onBack: () => void }) => {
     setSaving(true);
     try {
       const formData = new FormData();
-      formData.append('gcash_name', data.gcash_name);
-      formData.append('gcash_number', data.gcash_number);
-      formData.append('maya_name', data.maya_name);
-      formData.append('maya_number', data.maya_number);
+      formData.append('gcash_name', data.gcash_name || '');
+      formData.append('gcash_number', data.gcash_number || '');
+      formData.append('maya_name', data.maya_name || '');
+      formData.append('maya_number', data.maya_number || '');
+
+      // If data contains branch_id (e.g. from superadmin view), include it
+      if ('branch_id' in data && data.branch_id) {
+        formData.append('branch_id', String(data.branch_id));
+      }
 
       if (gcashFile) formData.append('gcash_qr', gcashFile);
       if (mayaFile) formData.append('maya_qr', mayaFile);
 
-      const res = await api.post('/branch/payment-settings', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await api.post('/branch/payment-settings', formData);
 
       if (res.data.success) {
         setData(res.data.data);

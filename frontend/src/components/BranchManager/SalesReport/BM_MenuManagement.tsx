@@ -17,10 +17,15 @@ const STYLES = `
   .mm-spin  { animation: mm-spin 0.7s linear infinite; }
 `;
 
-const API_BASE = 'http://localhost:8000/api';
 const getToken = () =>
   localStorage.getItem('auth_token') ||
   localStorage.getItem('lucky_boba_token') || '';
+
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {}),
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface MenuItem {
@@ -168,11 +173,8 @@ const BM_MenuManagement = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/branch/menu-items`, {
-        headers: {
-          'Accept':        'application/json',
-          'Authorization': `Bearer ${getToken()}`,
-        },
+      const res = await fetch(`/api/branch/menu-items`, {
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -202,12 +204,9 @@ const BM_MenuManagement = () => {
   const handleToggle = async (id: number) => {
     setToggling(prev => new Set(prev).add(id));
     try {
-      const res = await fetch(`${API_BASE}/branch/menu-items/${id}/toggle`, {
+      const res = await fetch(`/api/branch/menu-items/${id}/toggle`, {
         method: 'POST',
-        headers: {
-          'Accept':        'application/json',
-          'Authorization': `Bearer ${getToken()}`,
-        },
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();

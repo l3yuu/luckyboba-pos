@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, CustomerController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController };
+use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, CustomerController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController, FavoriteController, ReviewController, FranchiseController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchManagerAppController; // ✅ FIXED: now in Api namespace
@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PosDeviceController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\SugarLevelController;
+use App\Http\Controllers\Api\MenuItemAddonController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
@@ -39,10 +40,15 @@ Route::post('/purchase-card',             [CardPurchaseController::class, 'purch
 Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus'])->middleware('throttle:30,1');
 
 // ✅ PUBLIC MOBILE ROUTES
+Route::post('/kiosk-sales', [SalesController::class, 'store']); // Allow kiosk orders without auth
 Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/cards/image/{path}', [CardController::class, 'image'])
+    ->where('path', '.*')
+    ->middleware('throttle:120,1');
 Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');
+Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:60,1');
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
 Route::get('/public-menu', function (Illuminate\Http\Request $request) {
@@ -117,8 +123,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // ── LOYALTY (Mobile & Shared) ──────────────────────────────────────────
     Route::get('/loyalty/rewards', [LoyaltyManagementController::class, 'getRewards']);
-    Route::get('/vouchers/available', [\App\Http\Controllers\Api\VoucherController::class, 'available']);
-    Route::get('/vouchers/validate', [\App\Http\Controllers\Api\VoucherController::class, 'validateCode']);
+    Route::get('/vouchers/available', [VoucherController::class, 'available']);
+    Route::get('/vouchers/validate', [VoucherController::class, 'validateCode']);
 
     // ── FAVORITES ────────────────────────────────────────────────────────
     Route::get('/favorites', [FavoriteController::class, 'index']);
@@ -252,8 +258,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         
         Route::get('/menu',                    [MenuController::class, 'index']);
         Route::get('/bundles',                 [BundleController::class, 'index']);
-        Route::get('/sugar-levels',            [SugarLevelController::class, 'index']);
-        Route::get('/add-ons',                 [AddOnController::class, 'index']);
         Route::get('/notifications/summary',   [NotificationController::class, 'summary']);
 
         Route::prefix('sales')->group(function () {
@@ -298,6 +302,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get ('/menu-item-options',       [MenuItemOptionController::class, 'index']);
         Route::get ('/menu-item-options/bulk',  [MenuItemOptionController::class, 'bulk']);
         Route::put ('/menu-item-options/{id}',  [MenuItemOptionController::class, 'update']);
+        
+        Route::get ('/menu-item-addons',       [MenuItemAddonController::class, 'index']);
+        Route::put ('/menu-item-addons/{id}',  [MenuItemAddonController::class, 'update']);
 
         Route::get('/bundles',         [BundleController::class,       'index']);
         Route::get('/category-drinks', [CategoryDrinkController::class,'index']);
@@ -307,8 +314,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
 
         Route::get('/cups',                                      [CupController::class,       'index']);
-        Route::get('/sugar-levels',                              [SugarLevelController::class,'index']);
         Route::get('/sugar-levels/by-item/{menuItemId}',         [SugarLevelController::class,'byMenuItem']);
+        Route::get('/menu-item-sugar-levels',                    [SugarLevelController::class,'byMenuItemViaQuery']); // Added to match frontend
+        Route::put('/menu-item-sugar-levels/{id}',               [SugarLevelController::class,'updateAssignment']);   // Added to match frontend
 
         Route::prefix('inventory')->group(function () {
             Route::get('/',             [InventoryController::class,          'index']);
@@ -338,6 +346,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get ('/recipes',  [RecipeController::class, 'index']);
         Route::get ('/expenses',        [ExpenseController::class,'index']);
         Route::post('/expenses',        [ExpenseController::class,'store']);
+        Route::post('/expenses/{id}/mark-as-paid', [ExpenseController::class,'markAsPaid']);
         Route::get ('/expenses/export', [ExpenseController::class,'export']);
         Route::put ('/expenses/{id}',   [ExpenseController::class,'update']);
         Route::delete('/expenses/{id}', [ExpenseController::class,'destroy']);
@@ -410,6 +419,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('purchase-orders')->group(function () {
             Route::post ('/',             [PurchaseOrderController::class, 'store']);
             Route::patch('/{id}/status',  [PurchaseOrderController::class, 'updateStatus']);
+            Route::post ('/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve']);
+            Route::post ('/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive']);
+            Route::post ('/{purchaseOrder}/receive-items', [PurchaseOrderController::class, 'receiveItems']);
+            Route::post ('/{purchaseOrder}/cancel',  [PurchaseOrderController::class, 'cancel']);
         });
 
         Route::prefix('item-serials')->group(function () {
@@ -455,29 +468,34 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post  ('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
 
-        // ── BRANCH PAYMENT SETTINGS ──
-        Route::get('/branch/payment-settings', [\App\Http\Controllers\Api\BranchSettingsController::class, 'getPaymentSettings']);
-        Route::post('/branch/payment-settings', [\App\Http\Controllers\Api\BranchSettingsController::class, 'updatePaymentSettings']);
-
-
-    });
-
-    // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
-    Route::middleware(['role:superadmin'])->group(function () {
-        Route::get('/search', [SearchController::class, 'index']);
-        Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
-
-        // ── FRANCHISES (SuperAdmin) ──────────────────────────────────────────
-        Route::apiResource('/franchises', FranchiseController::class);
-        Route::post('/franchises/{id}/assign-branches', [FranchiseController::class, 'assignBranches']);
-
-        // ── CUSTOMER MANAGEMENT (SuperAdmin) ────────────────────────────────
+        // ── CUSTOMER MANAGEMENT (SuperAdmin + BranchManager) ────────────────
         Route::prefix('customers')->group(function () {
             Route::get('/',                    [CustomerController::class, 'index']);
             Route::get('/stats',               [CustomerController::class, 'stats']);
             Route::get('/{id}',                [CustomerController::class, 'show']);
             Route::patch('/{id}/toggle-status', [CustomerController::class, 'toggleStatus']);
         });
+
+        // ── BRANCH PAYMENT SETTINGS ──
+        Route::get('/branch/payment-settings', [BranchSettingsController::class, 'getPaymentSettings']);
+        Route::post('/branch/payment-settings', [BranchSettingsController::class, 'updatePaymentSettings']);
+
+
+    });
+
+    // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
+    Route::middleware(['role:superadmin'])->group(function () {
+        Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
+
+        // ── EXPENSE APPROVALS (SuperAdmin) ──────────────────────────────────
+        Route::post('/expenses/{id}/approve', [ExpenseController::class, 'approve']);
+        Route::post('/expenses/{id}/reject',  [ExpenseController::class, 'reject']);
+
+        // ── FRANCHISES (SuperAdmin) ──────────────────────────────────────────
+        Route::apiResource('/franchises', FranchiseController::class);
+        Route::post('/franchises/{id}/assign-branches', [FranchiseController::class, 'assignBranches']);
+
+        // ── CUSTOMER MANAGEMENT (Moved to shared block) ─────────────────────
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::apiResource('raw-materials', RawMaterialController::class)->except(['index', 'show']);
@@ -547,7 +565,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('admin/cards')->group(function () {
             Route::get ('/',                          [CardController::class, 'adminIndex']);
             Route::post('/',                          [CardController::class, 'store']);
-            Route::put ('/{id}',                      [CardController::class, 'update']);
+            Route::post('/{id}',                      [CardController::class, 'update']);
             Route::delete('/{id}',                    [CardController::class, 'destroy']);
             Route::patch('/{id}/toggle',              [CardController::class, 'toggle']);
             

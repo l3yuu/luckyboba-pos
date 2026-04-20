@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   LayoutGrid, Users, History, BarChart2, 
   Package, Search, LogOut, ShieldCheck,
-  CreditCard, ArrowLeftRight, FileText
+  ArrowLeftRight, FileText, Tag, Layers, Utensils, Wallet
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: 'Floor Ops',
     items: [
       { id: 'void-logs',  label: 'Void Journal',    icon: <ShieldCheck size={14} /> },
-      { id: 'expenses',   label: 'Branch Expenses', icon: <CreditCard size={14} /> },
+      { id: 'expenses',   label: 'Branch Expenses', icon: <Wallet size={14} /> },
     ]
   },
   {
@@ -67,6 +67,14 @@ const MENU_GROUPS: MenuGroup[] = [
       { id: 'items-report',    label: 'Items Report', icon: <History size={13} /> },
       { id: 'x-reading',       label: 'X-Reading', icon: <History size={13} /> },
       { id: 'z-reading',       label: 'Z-Reading', icon: <History size={13} /> },
+    ]
+  },
+  {
+    label: 'Product Menu',
+    items: [
+      { id: 'tl-menu-categories',    label: 'Categories',    icon: <Tag size={13} /> },
+      { id: 'tl-menu-subcategories', label: 'Subcategories', icon: <Layers size={13} /> },
+      { id: 'tl-menu-items',         label: 'Menu Items',    icon: <Utensils size={13} /> },
     ]
   }
 ];

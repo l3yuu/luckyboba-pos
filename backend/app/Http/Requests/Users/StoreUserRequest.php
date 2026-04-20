@@ -25,7 +25,7 @@ class StoreUserRequest extends FormRequest
         // Branch managers force their own branch and role
         if ($user->role === 'branch_manager') {
             $inputRole = $this->input('role');
-            $role = in_array($inputRole, ['cashier', 'team_leader']) ? $inputRole : 'cashier';
+            $role = in_array($inputRole, ['cashier', 'team_leader', 'supervisor']) ? $inputRole : 'cashier';
 
             $this->merge([
                 'role'        => $role,
@@ -43,7 +43,7 @@ class StoreUserRequest extends FormRequest
             'role'        => 'required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin,supervisor',
             'branch_id'   => 'nullable|integer|exists:branches,id',
             'status'      => 'required|in:ACTIVE,INACTIVE',
-            'manager_pin' => 'nullable|string|min:4|max:20',
+            'manager_pin' => 'nullable|digits_between:4,8',
         ];
     }
 }

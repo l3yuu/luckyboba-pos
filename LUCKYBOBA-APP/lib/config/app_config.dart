@@ -13,6 +13,12 @@ class AppConfig {
   static bool get isStaging => _env == 'staging';
   static bool get isDev => _env == 'development';
 
+  static String get envLabel {
+    if (isProduction) return 'PROD';
+    if (isStaging) return 'STAGING';
+    return 'DEV';
+  }
+
   // Read injected API_URL and STRIPE_KEY
   static const String _injectedApiUrl = String.fromEnvironment('API_URL');
   static const String _injectedStripeKey = String.fromEnvironment('STRIPE_KEY');
@@ -39,4 +45,16 @@ class AppConfig {
   static String get storageUrl => '$baseUrl/storage';
 
   static String get stripeKey => _injectedStripeKey.isNotEmpty ? _injectedStripeKey : 'your_stripe_key';
+
+  static const String _supportEmail = String.fromEnvironment(
+    'SUPPORT_EMAIL',
+    defaultValue: 'support@luckybobastores.com',
+  );
+  static const String _privacyUrl = String.fromEnvironment(
+    'PRIVACY_URL',
+    defaultValue: 'https://luckybobastores.com/privacy',
+  );
+
+  static String get supportEmail => _supportEmail;
+  static String get privacyUrl => _privacyUrl;
 }

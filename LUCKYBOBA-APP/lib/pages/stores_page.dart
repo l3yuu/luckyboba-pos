@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import '../config/app_config.dart';
 import '../cart/menu_page.dart';
+import '../widgets/app_top_bar.dart';
 
 // ── Shared palette ────────────────────────────────────────────────────────────
 const Color _kPurple   = Color(0xFF7C3AED);
@@ -64,13 +65,19 @@ class _StoresPageState extends State<StoresPage> {
                 'name': b['name'] ?? 'Unknown Branch',
                 'branch_id': b['id'],
                 'address': b['location'] ?? 'No address provided',
-                'image': b['image'] ?? 'assets/images/maps_logo.png',
+                'image': b['image'], // keep it null if null
                 'lat': lat,
                 'lng': lng,
                 'closeTime': '09:00 PM',
                 'url': 'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
               };
-            }).toList();
+            }).where((s) => s['lat'] != 0.0 || s['lng'] != 0.0).toList();
+            
+            if (storeLocations.isEmpty) {
+              _useFallbackStores();
+              return;
+            }
+
             _calculateAndSortStores();
             _isLoadingStores = false;
           });
@@ -286,82 +293,37 @@ class _StoresPageState extends State<StoresPage> {
             ),
           ),
 
-          // ── Top app bar (white pill, matches screenshot) ────────────────────
+          // ── Top bar (consistent light style) ───────────────────────────────
           Positioned(
-            top:  topPad + 10,
-            left: 16, right: 16,
+            top: topPad,
+            left: 0,
+            right: 0,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              decoration: BoxDecoration(
-                color:        Colors.white,
-                borderRadius: BorderRadius.circular(50),
-                boxShadow: [
-                  BoxShadow(
-                    color:      Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 16,
-                    offset:     const Offset(0, 4),
+              color: Colors.white.withValues(alpha: 0.90),
+              child: AppTopBar(
+                title: 'Stores',
+                subtitle: 'Choose a branch near you',
+                onBack: widget.onBack ?? () => Navigator.of(context).maybePop(),
+                trailing: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _kSurface,
+                    shape: BoxShape.circle,
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // Back button
-                  GestureDetector(
-                    onTap: () {
-                      if (widget.onBack != null) {
-                        widget.onBack!();
-                      } else {
-                        Navigator.of(context).maybePop();
-                      }
-                    },
-                    child: Container(
-                      width:  36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color:  _kSurface,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.chevron_left_rounded,
-                          color: _kPurple, size: 22),
-                    ),
+                  child: const Icon(
+                    Icons.search_rounded,
+                    color: _kPurple,
+                    size: 20,
                   ),
-
-                  const SizedBox(width: 10),
-
-                  // Title
-                  Expanded(
-                    child: Text(
-                      'Unified Lucky Branch Locator',
-                      style: GoogleFonts.outfit(
-                        fontSize:   14,
-                        fontWeight: FontWeight.w700,
-                        color:      _kTextDark,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-
-                  const SizedBox(width: 10),
-
-                  // Search icon
-                  Container(
-                    width:  36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: _kSurface,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.search_rounded,
-                        color: _kPurple, size: 20),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
 
           // ── My-location FAB ─────────────────────────────────────────────────
           Positioned(
-            bottom: 240,
+            bottom: 350,
             right:  16,
             child: GestureDetector(
               onTap: _isLoadingLocation ? null : _getCurrentLocation,
@@ -391,7 +353,7 @@ class _StoresPageState extends State<StoresPage> {
           ),
 
           Positioned(
-            bottom: 0,
+            bottom: 110,
             left: 0,
             right: 0,
             child: SizedBox(
@@ -460,25 +422,32 @@ class _StoresPageState extends State<StoresPage> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  store['image'].toString().startsWith('http')
-                      ? Image.network(
-                          store['image'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, trace) => Container(
-                            color: _kSurface,
-                            child: const Icon(Icons.store_rounded,
-                                color: _kPurple, size: 40),
+                  (store['image'] == null || store['image'].toString().isEmpty)
+                      ? Container(
+                          color: _kSurface.withValues(alpha: 0.5),
+                          child: Center(
+                            child: Icon(Icons.store_rounded, color: _kPurple.withValues(alpha: 0.5), size: 40),
                           ),
                         )
-                      : Image.asset(
-                          store['image'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, trace) => Container(
-                            color: _kSurface,
-                            child: const Icon(Icons.store_rounded,
-                                color: _kPurple, size: 40),
-                          ),
-                        ),
+                      : store['image'].toString().startsWith('http')
+                          ? Image.network(
+                              store['image'],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, trace) => Container(
+                                color: _kSurface,
+                                child: const Icon(Icons.store_rounded,
+                                    color: _kPurple, size: 40),
+                              ),
+                            )
+                          : Image.asset(
+                              store['image'],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, trace) => Container(
+                                color: _kSurface,
+                                child: const Icon(Icons.store_rounded,
+                                    color: _kPurple, size: 40),
+                              ),
+                            ),
                   // Subtle dark gradient for readability
                   Container(
                     decoration: BoxDecoration(

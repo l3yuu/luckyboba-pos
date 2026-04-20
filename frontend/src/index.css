@@ -20,44 +20,99 @@
 
 /* ── Print Styles ─────────────────────────────────────────────────────────── */
 @media print {
+  /* Paper: 80mm wide thermal roll, unlimited vertical height */
   @page {
     size: 80mm auto;
-    margin: 0;
+    margin: 0mm;
   }
 
+  /* Force color printing */
   * {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
   }
 
-  body {
-    margin: 0;
-    padding: 0;
-    background: white;
-  }
-
-  .printable-receipt-container {
-    display: block !important;
+  /* Constrain the root to 80mm — all child % widths resolve from this */
+  html, body {
     width: 80mm !important;
+    max-width: 80mm !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: white !important;
+    height: auto !important;
   }
 
-  .receipt-area {
-    width: 80mm !important;
-    min-height: auto !important;
+  /* Step 1: Make everything invisible */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Step 2: Re-show only the printable container and its children */
+  .printable-receipt-container,
+  .printable-receipt-container * {
+    visibility: visible !important;
+  }
+
+  /* Step 3: The container itself — STATIC positioning so its width
+     resolves from the 80mm body, not the screen viewport */
+  .printable-receipt-container {
+    display: block !important;
+    position: static !important;  /* ← KEY: not absolute/fixed */
+    width: 100% !important;       /* = 80mm inherited from body  */
+    max-width: 100% !important;
     margin: 0 !important;
-    padding: 4mm !important;
+    padding: 0 !important;
+    background: white !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    height: auto !important;
   }
 
+  /* Sticker mode */
+  .printable-receipt-container.sticker-mode {
+    width: 38.5mm !important;
+    max-width: 38.5mm !important;
+  }
+
+  /* 4mm padding each side = 72mm live area inside 80mm paper */
+  .printable-receipt-container:not(.sticker-mode) {
+    padding: 0 4mm !important;
+  }
+
+  /* receipt-area: just fills the padded container (kept for compat) */
+  .receipt-area {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 2mm 0 !important;
+    overflow-x: hidden !important;
+    word-break: break-word !important;
+  }
+
+  /* Sticker label */
   .sticker-area {
-    width: 57mm !important;
-    height: 30mm !important;
-    overflow: hidden;
+    width: 38.5mm !important;
+    height: 50.8mm !important;
+    margin: 0 auto !important;
+    padding: 2mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    visibility: visible !important;
   }
 
+  /* Page-break helper */
   .page-break {
-    page-break-after: always;
-    break-after: page;
+    page-break-after: always !important;
+    break-after: page !important;
   }
-}
+
+  /* Utility: hide elements from print */
+  .print-hidden {
+    display: none !important;
+  }
+}

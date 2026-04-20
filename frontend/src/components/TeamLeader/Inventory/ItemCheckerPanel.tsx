@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SkeletonBox } from '../SharedSkeletons';
 
 interface Item {
   id: number;
@@ -25,9 +26,9 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
           { id: 1, name: 'Classic Milk Tea', category: 'Milk Tea', price: 30.00, available: true, last_sold: '5 mins ago', stock_status: 'in_stock' },
           { id: 2, name: 'Taro Milk Tea', category: 'Milk Tea', price: 35.00, available: true, last_sold: '12 mins ago', stock_status: 'in_stock' },
           { id: 3, name: 'Wintermelon Tea', category: 'Fruit Tea', price: 30.00, available: false, stock_status: 'out_of_stock' },
-          { id: 4, name: 'Strawberry Smoothie', category: 'Smoothie', price: 40.00, available: true, last_sold: '8 mins ago', stock_status: 'low_stock' },
+
           { id: 5, name: 'Chocolate Milk Tea', category: 'Milk Tea', price: 35.00, available: true, last_sold: '20 mins ago', stock_status: 'in_stock' },
-          { id: 6, name: 'Mango Slush', category: 'Slush', price: 40.00, available: false, stock_status: 'out_of_stock' },
+          { id: 6, name: 'Red Velvet', category: 'Milk Tea', price: 40.00, available: true, last_sold: '15 mins ago', stock_status: 'in_stock' },
           { id: 7, name: 'Matcha Latte', category: 'Milk Tea', price: 45.00, available: true, last_sold: '1 hour ago', stock_status: 'in_stock' },
           { id: 8, name: 'Coffee Milk Tea', category: 'Milk Tea', price: 38.00, available: true, last_sold: '30 mins ago', stock_status: 'low_stock' },
         ];
@@ -44,8 +45,15 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3b2063]"></div>
+      <div className="p-6 space-y-6">
+        <SkeletonBox h="h-14" w="w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <SkeletonBox h="h-24" />
+          <SkeletonBox h="h-24" />
+          <SkeletonBox h="h-24" />
+          <SkeletonBox h="h-24" />
+        </div>
+        <SkeletonBox h="h-96" />
       </div>
     );
   }

@@ -10,6 +10,7 @@ import {
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
 import { AuthContext } from '../../../context/AuthContext';
+import { SkeletonBar } from '../SharedSkeletons';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ interface StockTransfer {
   transfer_date?:   string;
   status:           TransferStatus;
   notes?:           string;
+  created_by?:      { name: string };
   items?:           TransferItem[];
   stock_transfer_items?: TransferItem[];
   created_at?:      string;
@@ -406,6 +408,10 @@ const ViewTransferModal: React.FC<{
                <p className="text-xs font-bold text-zinc-500 italic leading-relaxed">"{transfer.notes}"</p>
             </div>
           )}
+          <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+            <span>Initiated By:</span>
+            <span className="text-[#3b2063]">{transfer.created_by?.name ?? 'Unknown'}</span>
+          </div>
 
           <div className="space-y-3">
              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-1">Items Included</p>
@@ -429,6 +435,11 @@ const ViewTransferModal: React.FC<{
 
         <div className="flex items-center gap-3 px-6 py-5 border-t border-zinc-100 bg-zinc-50/50 shrink-0">
           <Btn variant="secondary" onClick={onClose} className="flex-1 justify-center py-2.5">Close</Btn>
+          {(isSource && transfer.status === 'Pending') && (
+            <Btn onClick={() => doAction('approve')} disabled={loading} className="flex-1 justify-center py-2.5">
+               {loading ? 'Processing...' : 'Approve Transfer'}
+            </Btn>
+          )}
           {(isDestination && transfer.status === 'Approved') && (
             <Btn onClick={() => doAction('receive')} disabled={loading} className="flex-1 justify-center py-2.5 bg-emerald-600 hover:bg-emerald-700">
                {loading ? 'Processing...' : 'Receive Stocks'}
@@ -482,6 +493,13 @@ const TL_StockTransferPanel: React.FC<{ branchId?: number | null }> = ({ branchI
   }, [currentBranchId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAll();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -574,7 +592,15 @@ const TL_StockTransferPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
                         {loading ? [...Array(6)].map((_, i) => (
-                        <tr key={i}><td colSpan={7} className="px-7 py-6"><div className="h-4 bg-zinc-50 rounded animate-pulse w-full max-w-[220px]" /></td></tr>
+                          <tr key={i}>
+                             <td className="px-5 py-5 pl-7"><SkeletonBar h="h-4" w="w-24" /></td>
+                             <td className="px-5 py-5"><SkeletonBar h="h-4" w="w-32" /></td>
+                             <td className="px-5 py-5"><SkeletonBar h="h-4" w="w-32" /></td>
+                             <td className="px-5 py-5"><SkeletonBar h="h-4" w="w-20" /></td>
+                             <td className="px-5 py-5"><SkeletonBar h="h-4" w="w-16" /></td>
+                             <td className="px-5 py-5"><SkeletonBar h="h-5" w="w-20 rounded-full" /></td>
+                             <td className="px-7 py-5"><SkeletonBar h="h-8" w="w-16 ml-auto" /></td>
+                          </tr>
                         )) : filtered.length === 0 ? (
                         <tr><td colSpan={7} className="py-24 text-center">
                             <LayoutGrid size={40} className="mx-auto text-zinc-200 mb-4" />

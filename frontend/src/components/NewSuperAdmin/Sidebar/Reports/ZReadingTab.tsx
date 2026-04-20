@@ -128,6 +128,7 @@ interface XReadingReport {
   over_short?: number;
   net_total?: number;
   expected_amount?: number;
+  less_vat?: number;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -215,7 +216,7 @@ const CloseShiftModal: React.FC<{
 const ZReadingTab: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
-  const [branchId,     setBranchId]     = useState("");
+  const [branchId,     setBranchId]     = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [dateFrom,     setDateFrom]     = useState(today);
   const [dateTo,       setDateTo]       = useState(today);
   const [loading,      setLoading]      = useState(false);
@@ -234,8 +235,14 @@ const ZReadingTab: React.FC = () => {
   const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
+  const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
+
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
   const [zStatus, setZStatus] = useState<{ exists: boolean; is_closed: boolean; has_sales: boolean } | null>(null);
   const [gaps, setGaps] = useState<string[]>([]);
   const [checkingStatus, setCheckingStatus] = useState(false);
@@ -414,11 +421,15 @@ const ZReadingTab: React.FC = () => {
         const list = d.success ? d.data : (Array.isArray(d) ? d : []);
         if (list.length > 0) {
           setBranches(list);
-          setBranchId(String(list[0].id));
+          if (!branchId) {
+            const defaultId = String(list[0].id);
+            setBranchId(defaultId);
+            localStorage.setItem('superadmin_selected_branch', defaultId);
+          }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [branchId]);
 
   // ── Full Z-Reading = merge z-reading + cash-counts + item-quantities + void-logs ──
   const fetchFullZReading = useCallback(async () => {
@@ -468,7 +479,8 @@ const ZReadingTab: React.FC = () => {
         cash_denominations: cashDenominations,
         total_cash_count:   totalCashCount,
         expected_amount:    expectedAmount,
-        over_short:         totalCashCount - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+        less_vat:           Number(zData.less_vat ?? 0),
+        over_short:         totalCashCount - expectedAmount,
         categories:         (qtyRes as Record<string, unknown>).categories ?? [],
         all_addons_summary: (qtyRes as Record<string, unknown>).all_addons_summary ?? [],
         logs:               (voidRes as Record<string, unknown>).logs ?? (Array.isArray(voidRes) ? voidRes : []),
@@ -982,12 +994,12 @@ const handlePrint = () => window.print();
     const pwdDiscount  = reportData?.pwd_discount      || 0;
     const diplomat     = reportData?.diplomat_discount || 0;
     const otherDisc    = reportData?.other_discount    || 0;
-    const totalDisc    = scDiscount + pwdDiscount + diplomat + otherDisc;
+    const totalDisc    = roundTo2(scDiscount + pwdDiscount + diplomat + otherDisc);
     const reportIsVat  = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
     const vatableSales = reportData?.vatable_sales    || 0;
     const vatAmount    = reportData?.vat_amount       || 0;
     const vatExempt    = reportData?.vat_exempt_sales || 0;
-    const netSales     = reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc);
+    const netSales     = roundTo2(reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc));
     const cashTotal    = reportData?.cash_total        || 0;
     const nonCash      = reportData?.non_cash_total    || 0;
     const voids        = reportData?.total_void_amount || 0;
@@ -1045,7 +1057,7 @@ const handlePrint = () => window.print();
         {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
           <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
         )}
-        <ReceiptRow label="Total Payments"  value={phCurrency.format(gross + (reportData?.rounding_adjustment || 0))} />
+        <ReceiptRow label="Total Payments"  value={phCurrency.format(roundTo2(netSales + (reportData?.rounding_adjustment || 0)))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Transaction Summary</p>
         <ReceiptRow label="Cash In"          value={phCurrency.format(reportData?.cash_in || 0)} />
@@ -1064,7 +1076,8 @@ const handlePrint = () => window.print();
     const pwdDiscount    = reportData?.pwd_discount || 0;
     const diplomat       = reportData?.diplomat_discount || 0;
     const otherDiscount  = reportData?.other_discount || 0;
-    const totalDisc      = reportData?.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
+    const lessVat        = reportData?.less_vat || 0;
+    const totalDisc      = roundTo2(reportData?.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount));
     const txCount        = reportData?.transaction_count || 0;
     const vatableSales   = reportData?.vatable_sales || 0;
     const vatAmount      = reportData?.vat_amount || 0;
@@ -1076,7 +1089,7 @@ const handlePrint = () => window.print();
     const resetCounter   = reportData?.reset_counter ?? 0;
     const zCounter       = reportData?.z_counter ?? 1;
     const reportIsVat    = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
-    const netSales       = reportIsVat ? (vatableSales + vatAmount + vatExemptSales) : (gross - totalDisc);
+    const netSales       = roundTo2(reportIsVat ? (vatableSales + vatAmount + vatExemptSales) : (gross - totalDisc));
     const salesForDay    = netSales;
     const previousAccumulated = reportData?.previous_accumulated ?? 0;
     const presentAccumulated  = previousAccumulated + salesForDay;
@@ -1099,13 +1112,13 @@ const handlePrint = () => window.print();
     const totalDebit  = 0;
     const totalCard   = totalCredit + totalDebit;
     const actualCash    = paymentMap.get("cash") || 0;
-    const totalPaymentsReceived = reportData?.total_payments ?? Array.from(paymentMap.values()).reduce((a, b) => a + b, 0);
-    const actualNonCash = reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash);
+    const totalPaymentsReceived = roundTo2(reportData?.total_payments ?? Array.from(paymentMap.values()).reduce((a, b) => a + b, 0));
+    const actualNonCash = roundTo2(reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash));
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
     const apiExpected = reportData?.expected_amount ?? 0;
-    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
-    const overShort   = reportData?.over_short ?? (totalCashCount - expectedEOD);
+    const expectedEOD = roundTo2(apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop));
+    const overShort   = roundTo2(reportData?.over_short ?? (totalCashCount - expectedEOD));
     const now = new Date();
     const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
@@ -1136,9 +1149,7 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
         <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
-        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
-          <span></span>
-        </div>
+        <ReceiptRow label="SC/PWD VAT" value={phCurrency.format(lessVat)} />
         <ReceiptRow label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -1167,7 +1178,7 @@ const handlePrint = () => window.print();
         {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
           <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
         )}
-        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(netSales + (reportData?.rounding_adjustment || 0))} />
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(roundTo2(netSales + (reportData?.rounding_adjustment || 0)))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <ReceiptRow label="TRANSACTION COUNT" value={txCount} />
@@ -1378,7 +1389,7 @@ const handlePrint = () => window.print();
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch <span className="text-red-400">*</span></p>
           <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-48">
               <option value="">Select Branch</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}

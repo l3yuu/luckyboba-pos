@@ -59,7 +59,7 @@ class _PaymentInstructionsPageState extends State<PaymentInstructionsPage> {
     'Enter the exact amount: ₱${widget.amount.toStringAsFixed(2)}',
     'In the message/note, type your Order ID:\n${widget.siNumber}',
     'Review the details and tap "Send".',
-    'Come back here and tap "I\'ve Sent My Payment".',
+    'Come back here and tap "I\'ve Sent Payment".',
   ]
       : [
     'Open the Maya app on your phone.',
@@ -68,7 +68,7 @@ class _PaymentInstructionsPageState extends State<PaymentInstructionsPage> {
     'Enter the exact amount: ₱${widget.amount.toStringAsFixed(2)}',
     'In the note/message, type your Order ID:\n${widget.siNumber}',
     'Review the details and confirm the transfer.',
-    'Come back here and tap "I\'ve Sent My Payment".',
+    'Come back here and tap "I\'ve Sent Payment".',
   ];
 
   @override
@@ -133,6 +133,17 @@ class _PaymentInstructionsPageState extends State<PaymentInstructionsPage> {
     setState(() => _isConfirming = true);
     Future.delayed(const Duration(milliseconds: 600), () {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Payment marked as sent. We’ll confirm once the cashier verifies it.',
+            style: GoogleFonts.poppins(color: Colors.white),
+          ),
+          backgroundColor: _purple,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -485,7 +496,7 @@ class _PaymentInstructionsPageState extends State<PaymentInstructionsPage> {
                       : const Icon(Icons.check_circle_rounded,
                       color: Colors.white, size: 20),
                   label: Text(
-                    _isConfirming ? 'Confirming...' : "I've Sent My Payment",
+                    _isConfirming ? 'Saving...' : "I've Sent Payment",
                     style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
