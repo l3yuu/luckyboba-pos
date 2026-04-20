@@ -98,6 +98,7 @@ const KioskPage = () => {
   const [printData, setPrintData] = useState<{
     invoice: string;
     cart: CartItem[];
+    queueNumber?: string;
   } | null>(null);
   const [branchId, setBranchId] = useState<number | null>(null);
   const [confirmCountdown, setConfirmCountdown] = useState<number>(30);
@@ -365,11 +366,15 @@ const KioskPage = () => {
       setLoading(true);
       
       let seq = 1;
+      let nextQueue = 1;
       try {
         const { data } = await api.get('/receipts/next-sequence');
         const serverSeq = parseInt(data.next_sequence, 10);
+        const serverQueue = parseInt(data.next_queue, 10);
+        
         if (!isNaN(serverSeq)) {
           seq = serverSeq;
+          nextQueue = !isNaN(serverQueue) ? serverQueue : 1;
           const seqKey = `last_or_sequence_${branchId}`;
           localStorage.setItem(seqKey, String(seq));
         } else {
@@ -382,7 +387,6 @@ const KioskPage = () => {
       }
       
       const siNumber = generateORNumber(seq);
-      const timestamp = Math.floor(Date.now() / 1000).toString();
 
       const total = calculateTotal();
       const vatableSales = total / 1.12;
@@ -415,8 +419,14 @@ const KioskPage = () => {
       };
 
       await api.post('/kiosk-sales', payload);
-      setOrderNumber(timestamp.slice(-4));
-      setPrintData({ invoice: siNumber, cart: [...cart] });
+      
+      const formattedQueue = String(nextQueue).padStart(3, '0');
+      setOrderNumber(formattedQueue);
+      setPrintData({ 
+        invoice: siNumber, 
+        cart: [...cart],
+        queueNumber: formattedQueue
+      });
       setStep('confirm');
       setConfirmCountdown(30);
 
@@ -1163,7 +1173,7 @@ const KioskPage = () => {
           cart={printData.cart}
           branchName={branchName}
           orNumber={printData.invoice}
-          queueNumber={printData.invoice.slice(-4)}
+          queueNumber={printData.queueNumber || printData.invoice.slice(-4)}
           formattedDate={new Date().toLocaleDateString()}
           formattedTime={new Date().toLocaleTimeString()}
           totalAmount={printData.cart.reduce((s: number, i: CartItem) => s + (Number(i.sellingPrice) * i.qty), 0)}

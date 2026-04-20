@@ -12,23 +12,23 @@ const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = () => ({
   "Content-Type": "application/json",
-  Accept:         "application/json",
+  Accept: "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface Branch  { id: number; name: string; }
+interface Branch { id: number; name: string; }
 interface Discount {
-  id:         number;
-  name:       string;
-  code:       string | null;
-  amount:     number;
-  type:       string;
-  status:     "ON" | "OFF";
+  id: number;
+  name: string;
+  code: string | null;
+  amount: number;
+  type: string;
+  status: "ON" | "OFF";
   used_count: number;
-  starts_at:  string | null;
-  ends_at:    string | null;
-  branches:   Branch[];
+  starts_at: string | null;
+  ends_at: string | null;
+  branches: Branch[];
   created_at: string;
 }
 
@@ -51,10 +51,10 @@ const StatCard: React.FC<{
   icon: React.ReactNode; label: string; value: string | number; color?: ColorKey;
 }> = ({ icon, label, value, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
-    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+    red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
   };
   const c = colors[color];
   return (
@@ -81,14 +81,13 @@ const DiscountCard: React.FC<{
     ? "All branches"
     : discount.branches.map(b => b.name).join(", ");
 
-  const now     = todayStr();
-  const expired = !!discount.ends_at   && discount.ends_at   < now;
-  const notYet  = !!discount.starts_at && discount.starts_at > now;
+  const now = todayStr();
+  const expired = !!discount.ends_at && discount.ends_at < now;
+  const notYet = !!discount.starts_at && discount.starts_at > now;
 
   return (
-    <div className={`bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-      expired ? "border-red-200" : isOn ? "border-emerald-200" : "border-zinc-200"
-    }`}>
+    <div className={`bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${expired ? "border-red-200" : isOn ? "border-emerald-200" : "border-zinc-200"
+      }`}>
 
       {/* Top accent bar */}
       <div className={`h-1 w-full ${expired ? "bg-red-400" : isOn ? "bg-emerald-400" : "bg-zinc-300"}`} />
@@ -97,15 +96,14 @@ const DiscountCard: React.FC<{
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3 min-w-0">
-            <div className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center border ${
-              isOn && !expired ? "bg-emerald-50 border-emerald-200"
-              : expired        ? "bg-red-50 border-red-200"
-              :                  "bg-zinc-100 border-zinc-200"
-            }`}>
+            <div className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center border ${isOn && !expired ? "bg-emerald-50 border-emerald-200"
+              : expired ? "bg-red-50 border-red-200"
+                : "bg-zinc-100 border-zinc-200"
+              }`}>
               <Tag size={14} className={
                 isOn && !expired ? "text-emerald-600"
-                : expired        ? "text-red-400"
-                :                  "text-zinc-400"
+                  : expired ? "text-red-400"
+                    : "text-zinc-400"
               } />
             </div>
             <div className="min-w-0">
@@ -119,11 +117,10 @@ const DiscountCard: React.FC<{
 
           {/* Status badges */}
           <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
-            <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-              isOn ? "text-emerald-700 bg-emerald-50 border-emerald-200"
-                   : "text-zinc-500 bg-zinc-100 border-zinc-200"
-            }`}>{discount.status}</span>
-            {expired  && <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold border text-red-600   bg-red-50   border-red-200">EXPIRED</span>}
+            <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isOn ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+              : "text-zinc-500 bg-zinc-100 border-zinc-200"
+              }`}>{discount.status}</span>
+            {expired && <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold border text-red-600   bg-red-50   border-red-200">EXPIRED</span>}
             {notYet && !expired && <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold border text-amber-600 bg-amber-50 border-amber-200">UPCOMING</span>}
           </div>
         </div>
@@ -150,10 +147,9 @@ const DiscountCard: React.FC<{
 
         {/* Date range */}
         {(discount.starts_at || discount.ends_at) && (
-          <div className={`flex items-center gap-1.5 text-[10px] font-medium mb-3 px-2.5 py-1.5 rounded-lg border ${
-            expired ? "text-red-500 bg-red-50 border-red-100"
-                    : "text-zinc-500 bg-zinc-50 border-zinc-100"
-          }`}>
+          <div className={`flex items-center gap-1.5 text-[10px] font-medium mb-3 px-2.5 py-1.5 rounded-lg border ${expired ? "text-red-500 bg-red-50 border-red-100"
+            : "text-zinc-500 bg-zinc-50 border-zinc-100"
+            }`}>
             <Calendar size={9} className="shrink-0" />
             <span>{formatDate(discount.starts_at) ?? "Now"}</span>
             <span className="text-zinc-300 mx-0.5">→</span>
@@ -177,16 +173,15 @@ const DiscountCard: React.FC<{
           <button
             onClick={() => onToggle(discount)}
             disabled={toggling}
-            className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all disabled:opacity-50 ${
-              isOn ? "text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100"
-                   : "text-zinc-500 bg-zinc-50 border-zinc-200 hover:bg-zinc-100"
-            }`}
+            className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-all disabled:opacity-50 ${isOn ? "text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100"
+              : "text-zinc-500 bg-zinc-50 border-zinc-200 hover:bg-zinc-100"
+              }`}
           >
             {toggling
               ? <RefreshCw size={11} className="animate-spin" />
               : isOn
                 ? <ToggleRight size={13} />
-                : <ToggleLeft  size={13} />}
+                : <ToggleLeft size={13} />}
             {isOn ? "Turn OFF" : "Turn ON"}
           </button>
         </div>
@@ -197,22 +192,22 @@ const DiscountCard: React.FC<{
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const BM_PromosDiscounts: React.FC = () => {
-  const [discounts,  setDiscounts]  = useState<Discount[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState("");
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const res  = await fetch("/api/discounts", { headers: authHeaders() });
+      const res = await fetch("/api/discounts", { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error("Failed to load discounts.");
       const toArray = (v: unknown): unknown[] =>
         Array.isArray(v) ? v : ((v as Record<string, unknown>)?.data ?? []) as unknown[];
       setDiscounts(toArray(data) as Discount[]);
     } catch { setError("Failed to load discounts."); }
-    finally  { setLoading(false); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
@@ -220,35 +215,19 @@ const BM_PromosDiscounts: React.FC = () => {
   const handleToggle = async (discount: Discount) => {
     setTogglingId(discount.id);
     try {
-      const res  = await fetch(`/api/discounts/${discount.id}/toggle`, { method: "PUT", headers: authHeaders() });
+      const res = await fetch(`/api/discounts/${discount.id}/toggle`, { method: "PUT", headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error();
       setDiscounts(prev => prev.map(d => d.id === discount.id ? data : d));
     } catch { setError("Failed to update status."); }
-    finally  { setTogglingId(null); }
+    finally { setTogglingId(null); }
   };
 
   const activeCount = discounts.filter(d => d.status === "ON").length;
-  const totalUsed   = discounts.reduce((s, d) => s + d.used_count, 0);
+  const totalUsed = discounts.reduce((s, d) => s + d.used_count, 0);
 
   return (
     <div className="p-6 md:p-8 fade-in">
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Promotions & Discounts</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">View and toggle active discounts for this branch</p>
-        </div>
-        <button
-          onClick={fetchAll}
-          disabled={loading}
-          className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 active:scale-[0.98]"
-        >
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-        </button>
-      </div>
-
       {error && (
         <div className="flex items-center gap-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <AlertCircle size={14} className="text-red-500 shrink-0" />
@@ -264,10 +243,10 @@ const BM_PromosDiscounts: React.FC = () => {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<Tag         size={16} />} label="Total Discounts" value={loading ? "—" : discounts.length}                color="violet"  />
-        <StatCard icon={<CheckCircle size={16} />} label="Active"          value={loading ? "—" : activeCount}                    color="emerald" />
-        <StatCard icon={<XCircle     size={16} />} label="Inactive"        value={loading ? "—" : discounts.length - activeCount} color="red"     />
-        <StatCard icon={<RefreshCw   size={16} />} label="Total Uses"      value={loading ? "—" : totalUsed.toLocaleString()}     color="amber"   />
+        <StatCard icon={<Tag size={16} />} label="Total Discounts" value={loading ? "—" : discounts.length} color="violet" />
+        <StatCard icon={<CheckCircle size={16} />} label="Active" value={loading ? "—" : activeCount} color="emerald" />
+        <StatCard icon={<XCircle size={16} />} label="Inactive" value={loading ? "—" : discounts.length - activeCount} color="red" />
+        <StatCard icon={<RefreshCw size={16} />} label="Total Uses" value={loading ? "—" : totalUsed.toLocaleString()} color="amber" />
       </div>
 
       {/* Skeleton */}
