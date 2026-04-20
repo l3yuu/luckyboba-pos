@@ -518,6 +518,10 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             expanded={inventoryOpen} onToggle={() => setInventoryExp(v => !v)} onNavigate={go} />
 
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Floor Ops</p>
+          <button onClick={() => go('online-orders')} className={`bm-item ${currentTab === 'online-orders' ? 'active' : ''}`}>
+            <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === 'online-orders' ? '#3b2063' : '#a1a1aa' }}><ShoppingBag size={14} /></span>
+            Online Orders
+          </button>
           <button onClick={() => go('void-logs')} className={`bm-item ${currentTab === 'void-logs' ? 'active' : ''}`}>
             <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === 'void-logs' ? '#3b2063' : '#a1a1aa' }}><Trash2 size={14} /></span>
             Void Logs
@@ -650,6 +654,10 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
                 expanded={mInventoryOpen} onToggle={() => setMInventoryExp(v => !v)} onNavigate={go} />
 
               <div className="bm-sec">Floor Ops</div>
+              <button onClick={() => go('online-orders')} className={`bm-m-item ${currentTab === 'online-orders' ? 'active' : ''}`}>
+                <span className="bm-m-icon" style={{ color: currentTab === 'online-orders' ? '#3b2063' : '#71717a' }}><ShoppingBag size={18} /></span>
+                Online Orders
+              </button>
               <button onClick={() => go('void-logs')} className={`bm-m-item ${currentTab === 'void-logs' ? 'active' : ''}`}>
                 <span className="bm-m-icon" style={{ color: currentTab === 'void-logs' ? '#3b2063' : '#71717a' }}><Trash2 size={18} /></span>
                 Void Logs

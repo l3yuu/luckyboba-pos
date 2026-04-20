@@ -165,7 +165,6 @@ const salesReportItems: MenuItem[] = [
     { id: 'inventory-raw-materials', label: 'Raw Materials' },
     { id: 'inventory-usage', label: 'Usage Report' },
     { id: 'inventory-recipes', label: 'Recipes' },
-    { id: 'inventory-list', label: 'Inventory List' },
     { id: 'supplier', label: 'Supplier' },
     { id: 'item-checker', label: 'Item Checker' },
     { id: 'purchase-order', label: 'Purchase Order' },

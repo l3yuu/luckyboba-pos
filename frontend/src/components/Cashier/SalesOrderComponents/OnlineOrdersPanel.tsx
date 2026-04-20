@@ -55,9 +55,8 @@ type Status = 'pending' | 'preparing' | 'completed';
 
 const itemQty = (item: SaleItem) => item.qty ?? item.quantity ?? 1;
 const itemPrice = (item: SaleItem) => item.unit_price ?? item.price ?? 0;
-const orderInvoice = (o: OnlineOrder) => o.invoice_number ?? o.si_number ?? '—';
+const orderInvoice = (o: OnlineOrder) => o.invoice_number ?? o.si_number ?? '';
 const orderTotal = (o: OnlineOrder) => o.total_amount ?? o.total ?? 0;
-const todayKey = () => new Date().toDateString();
 
 const STATUS_META: Record<Status, {
   label: string; color: string; bg: string; border: string;
@@ -116,16 +115,16 @@ const mapOrderToCart = (order: OnlineOrder): CartItem[] => {
 
 interface OrderCardProps {
   order: OnlineOrder;
-  seqNumber: string;
   onMove: (id: number, status: Status) => void;
-  onPrint: (order: OnlineOrder, seqNumber: string) => void;
+  onPrint: (order: OnlineOrder) => void;
   updating: boolean;
 }
 
-const OrderCard = ({ order, seqNumber, onMove, onPrint, updating }: OrderCardProps) => {
+const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
   const [showQr, setShowQr] = useState(false);
   const meta = STATUS_META[order.status as Status];
   const invoice = orderInvoice(order);
+  const seqNumber = order.customer_code || '???';
 
   const nextStatus: Record<Status, Status | null> = {
     pending: 'preparing',
@@ -184,7 +183,7 @@ const OrderCard = ({ order, seqNumber, onMove, onPrint, updating }: OrderCardPro
             {/* Reprint receipt — completed only */}
             {order.status === 'completed' && (
               <button
-                onClick={() => onPrint(order, seqNumber)}
+                onClick={() => onPrint(order)}
                 className="flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors"
                 title="Reprint Receipt"
               >
@@ -286,12 +285,11 @@ interface ColumnProps {
   status: Status;
   orders: OnlineOrder[];
   onMove: (id: number, status: Status) => void;
-  onPrint: (order: OnlineOrder, seqNumber: string) => void;
+  onPrint: (order: OnlineOrder) => void;
   updatingId: number | null;
-  orderSequenceMap: Map<number, string>;
 }
 
-const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId, orderSequenceMap }: ColumnProps) => {
+const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId }: ColumnProps) => {
   const meta = STATUS_META[status];
   const COLUMN_LABELS: Record<Status, string> = {
     pending: 'New Orders',
@@ -323,7 +321,6 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId, orderSequen
             <OrderCard
               key={order.id}
               order={order}
-              seqNumber={orderSequenceMap.get(order.id) ?? '???'}
               onMove={onMove}
               onPrint={onPrint}
               updating={updatingId === order.id}
@@ -381,7 +378,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     }).catch(console.error);
 
     api.get(`/branches/${user.branch_id}/payment-settings`).then(res => {
-      const data = res.data;
+      const data = res.data.data ?? res.data;
       setPosFooter(data);
       setGeneralSettings({
         business_name: data.business_name ?? '',
@@ -392,7 +389,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     }).catch(console.error);
   }, [user?.branch_id]);
 
-  const [confirmOrder, setConfirmOrder] = useState<{ id: number; status: Status; invoice: string } | null>(null);
+  const [confirmOrder, setConfirmOrder] = useState<{ id: number; status: Status; invoice: string; customer_code?: string } | null>(null);
 
   // New Workflow States
   const [activePaymentOrder, setActivePaymentOrder] = useState<OnlineOrder | null>(null);
@@ -409,30 +406,6 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Stable sequence registry ──────────────────────────────────────────────
-  const seqRef = useRef<{ date: string; map: Map<number, string>; counter: number }>({
-    date: todayKey(), map: new Map(), counter: 0,
-  });
-  const [orderSequenceMap, setOrderSequenceMap] = useState<Map<number, string>>(new Map());
-
-  const assignSeqNumbers = useCallback((incomingOrders: OnlineOrder[]): boolean => {
-    const today = todayKey();
-    if (seqRef.current.date !== today) {
-      seqRef.current = { date: today, map: new Map(), counter: 0 };
-    }
-    const sorted = [...incomingOrders].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
-    let changed = false;
-    for (const order of sorted) {
-      if (new Date(order.created_at).toDateString() !== today) continue;
-      if (seqRef.current.map.has(order.id)) continue;
-      seqRef.current.counter += 1;
-      seqRef.current.map.set(order.id, String(seqRef.current.counter).padStart(3, '0'));
-      changed = true;
-    }
-    return changed;
-  }, []);
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   const fetchOrders = useCallback(async (showRefresh = false) => {
@@ -444,8 +417,6 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         const inv = (o.invoice_number ?? o.si_number ?? '');
         return inv.startsWith('APP-') || inv.startsWith('KSK-') || o.source === 'kiosk';
       });
-      const changed = assignSeqNumbers(appOrders);
-      if (changed) setOrderSequenceMap(new Map(seqRef.current.map));
       setOrders(appOrders);
       setError(null);
       setLastRefresh(new Date());
@@ -455,7 +426,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [assignSeqNumbers]);
+  }, []);
 
   useEffect(() => {
     void fetchOrders();
@@ -463,16 +434,6 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [fetchOrders]);
 
-  // Midnight watcher
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (seqRef.current.date !== todayKey()) {
-        seqRef.current = { date: todayKey(), map: new Map(), counter: 0 };
-        void fetchOrders();
-      }
-    }, 60_000);
-    return () => clearInterval(timer);
-  }, [fetchOrders]);
 
   // ── Generic print trigger ─────────────────────────────────────────────────
   const triggerPrint = useCallback((
@@ -545,7 +506,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         invoice_number: invoice_number,
       };
       setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
-      const seqNumber = seqRef.current.map.get(order.id) ?? '001';
+      const seqNumber = updatedOrder.customer_code || '001';
       
       setActiveSuccessOrder({
         order: updatedOrder,
@@ -562,14 +523,19 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   };
 
   // ── Reprint receipt (completed card button) ───────────────────────────────
-  const handleReprintReceipt = useCallback((order: OnlineOrder, seqNumber: string) => {
-    triggerPrint('receipt', order, seqNumber);
+  const handleReprintReceipt = useCallback((order: OnlineOrder) => {
+    triggerPrint('receipt', order, order.customer_code || '001');
   }, [triggerPrint]);
 
   // ── Confirmation modal ────────────────────────────────────────────────────
   const handleConfirm = (id: number, status: Status) => {
     const order = orders.find(o => o.id === id);
-    setConfirmOrder({ id, status, invoice: orderInvoice(order!) });
+    setConfirmOrder({ 
+      id, 
+      status, 
+      invoice: orderInvoice(order!), 
+      customer_code: order?.customer_code 
+    });
   };
 
   // ── Move order ────────────────────────────────────────────────────────────
@@ -585,11 +551,9 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       const updatedOrder = order ? { ...order, status } : null;
       setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
 
-      const seqNumber = seqRef.current.map.get(id) ?? '001';
-
       if (status === 'preparing') {
         // Print kitchen ticket
-        if (updatedOrder) triggerPrint('kitchen', updatedOrder as OnlineOrder, seqNumber);
+        if (updatedOrder) triggerPrint('kitchen', updatedOrder as OnlineOrder, updatedOrder.customer_code || '001');
       }
 
       if (status === 'completed') {
@@ -615,7 +579,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     const term = searchTerm.toLowerCase();
     return orders.filter(o => {
       const inv = orderInvoice(o).toLowerCase();
-      const seq = orderSequenceMap.get(o.id)?.toLowerCase() ?? '';
+      const seq = (o.customer_code || '').toLowerCase();
       return inv.includes(term) || seq.includes(term);
     });
   };
@@ -766,7 +730,6 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
               onMove={handleConfirm}
               onPrint={handleReprintReceipt}
               updatingId={updatingId}
-              orderSequenceMap={orderSequenceMap}
             />
           ))}
         </div>
@@ -796,7 +759,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
                     {confirmOrder.status === 'preparing' ? 'Start Preparing?' : 'Mark as Done?'}
                   </h2>
                   <p className="text-white/70 text-[11px] font-bold mt-0.5 font-mono">
-                    #{seqRef.current.map.get(confirmOrder.id) ?? '—'} · {confirmOrder.invoice}
+                    #{confirmOrder.customer_code || '—'} · {confirmOrder.invoice}
                   </p>
                 </div>
               </div>

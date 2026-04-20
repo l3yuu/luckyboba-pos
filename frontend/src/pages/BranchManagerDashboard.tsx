@@ -37,6 +37,7 @@ import BM_MenuManagement from '../components/BranchManager/SalesReport/BM_MenuMa
 import BMVoidLogsPanel from '../components/BranchManager/FloorOps/BMVoidLogs';
 import BM_PromosDiscounts from '../components/BranchManager/Settings/BM_PromosDiscounts';
 import BM_ExpensesTab from '../components/BranchManager/Expenses/BM_ExpensesTab';
+import BM_OnlineOrders from '../components/BranchManager/FloorOps/BM_OnlineOrders';
 
 import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
 import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
@@ -98,6 +99,7 @@ const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   'menu-list':          { label: 'Menu List',            desc: 'All products & pricing' },
   'category-list':      { label: 'Categories',           desc: 'Top-level menu groupings' },
   'sub-category-list':  { label: 'Sub-Categories',       desc: 'Nested category structure' },
+  'online-orders':      { label: 'Online Orders',        desc: 'Live tracking of digital and kiosk orders' },
   'inventory-dashboard':{ label: 'Overview',             desc: 'Stock summary for your branch' },
   'inventory-alert-center': { label: 'Alert Center',     desc: 'Low stock alerts and restock actions' },
   'inventory-list':     { label: 'Raw Materials',        desc: 'Current stock levels (view and adjust)' },
@@ -209,6 +211,7 @@ const BranchManagerDashboard = () => {
       case 'stock-transfer':     return <BM_InventoryStockTransfer branchId={authUser?.branch_id ?? null} />;
       case 'inventory-report':   return <BM_InventoryReports />;
       case 'audit-logs':         return <BranchManagerAuditLogsTab />;
+      case 'online-orders':      return <BM_OnlineOrders />;
       case 'void-logs':          return <BMVoidLogsPanel branchId={authUser?.branch_id ?? null} />;
       case 'promos-discounts':   return <BM_PromosDiscounts />;
       case 'settings':           return <BM_Settings />;

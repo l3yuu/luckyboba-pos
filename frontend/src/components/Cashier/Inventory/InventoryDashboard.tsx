@@ -33,7 +33,7 @@ interface RawMaterial {
 interface StockMovement { id: number; raw_material_id: number; type: 'add' | 'subtract' | 'set'; quantity: number; reason: string | null; created_at: string; }
 interface ReportRow { material: RawMaterial; beginning: number; delivered: number; cooked: number; out: number; spoilage: number; ending: number; incoming: number; usage: number; sold: number; variance: number; movements: StockMovement[]; }
 interface Toast { id: number; message: string; type: 'success' | 'error'; }
-interface MenuItem { id: number; name: string; category_id: number; category?: string | null; price: number; size: string; type: string; }
+interface MenuItem { id: number; name: string; category_id: number; category?: string | { id: number; name: string } | null; price: number; size: string; type: string; }
 interface RecipeItem { id: number; recipe_id: number; raw_material_id: number; quantity: number; unit: string; notes: string | null; raw_material?: RawMaterial; }
 interface Recipe { id: number; menu_item_id: number; menu_item: MenuItem; size: string | null; is_active: boolean; notes: string | null; items: RecipeItem[]; }
 
@@ -484,7 +484,14 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
   }), [reportRows]);
 
   const usageCategories = useMemo(() => ['All', ...[...new Set(materials.map(m => m.category))].sort()], [materials]);
-  const recipeCategoryList = useMemo(() => ['All', ...[...new Set(recipes.map(r => r.menu_item.category || 'General'))].sort()], [recipes]);
+  const recipeCategoryList = useMemo(() => {
+    const cats = recipes.map(r => {
+      const cat = r.menu_item.category;
+      if (typeof cat === 'object' && cat !== null) return (cat as { name: string }).name;
+      return (cat as string) || 'General';
+    });
+    return ['All', ...[...new Set(cats)].sort() as string[]];
+  }, [recipes]);
   const lowStockCount = useMemo(() => materials.filter(m => parseNum(m.current_stock) < parseNum(m.reorder_level) && parseNum(m.reorder_level) > 0).length, [materials]);
 
   const displayUsageRows = useMemo(() => {
@@ -517,7 +524,13 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
     let data = [...recipeRows];
     if (recipeFilterStatus === 'with') data = data.filter(r => r.hasRecipe);
     if (recipeFilterStatus === 'without') data = data.filter(r => !r.hasRecipe);
-    if (recipeCategoryFilter !== 'All') data = data.filter(r => (r.menuItem.category || 'General') === recipeCategoryFilter);
+    if (recipeCategoryFilter !== 'All') {
+      data = data.filter(r => {
+        const cat = r.menuItem.category;
+        const catName = (typeof cat === 'object' && cat !== null) ? (cat as { name: string }).name : (cat || 'General');
+        return catName === recipeCategoryFilter;
+      });
+    }
     if (recipeSearch) { const q = recipeSearch.toLowerCase(); data = data.filter(r => r.menuItem.name.toLowerCase().includes(q)); }
     return recipeEntriesLimit === -1 ? data : data.slice(0, recipeEntriesLimit);
   }, [recipeRows, recipeFilterStatus, recipeCategoryFilter, recipeSearch, recipeEntriesLimit]);

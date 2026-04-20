@@ -27,6 +27,7 @@ interface MenuItem {
   category: string;
   sellingPrice: number;
   image: string | null;
+  size?: string;
 }
 
 interface Branch {
@@ -97,6 +98,7 @@ const KioskPage = () => {
   const [printData, setPrintData] = useState<{
     invoice: string;
     cart: CartItem[];
+    queueNumber?: string;
   } | null>(null);
   const [branchId, setBranchId] = useState<number | null>(null);
   const [confirmCountdown, setConfirmCountdown] = useState<number>(30);
@@ -125,6 +127,7 @@ const KioskPage = () => {
     return stored ? JSON.parse(stored) : [];
   });
   const [expoCategoryFilter, setExpoCategoryFilter] = useState('');
+  const [expoSearchQuery, setExpoSearchQuery] = useState('');
 
   // Order Status State
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -363,11 +366,15 @@ const KioskPage = () => {
       setLoading(true);
       
       let seq = 1;
+      let nextQueue = 1;
       try {
         const { data } = await api.get('/receipts/next-sequence');
         const serverSeq = parseInt(data.next_sequence, 10);
+        const serverQueue = parseInt(data.next_queue, 10);
+        
         if (!isNaN(serverSeq)) {
           seq = serverSeq;
+          nextQueue = !isNaN(serverQueue) ? serverQueue : 1;
           const seqKey = `last_or_sequence_${branchId}`;
           localStorage.setItem(seqKey, String(seq));
         } else {
@@ -380,7 +387,6 @@ const KioskPage = () => {
       }
       
       const siNumber = generateORNumber(seq);
-      const timestamp = Math.floor(Date.now() / 1000).toString();
 
       const total = calculateTotal();
       const vatableSales = total / 1.12;
@@ -408,13 +414,19 @@ const KioskPage = () => {
             name: ao.name,
             price: ao.price
           })),
-          size: 'Standard',
+          size: item.size || 'Standard',
         }))
       };
 
       await api.post('/kiosk-sales', payload);
-      setOrderNumber(timestamp.slice(-4));
-      setPrintData({ invoice: siNumber, cart: [...cart] });
+      
+      const formattedQueue = String(nextQueue).padStart(3, '0');
+      setOrderNumber(formattedQueue);
+      setPrintData({ 
+        invoice: siNumber, 
+        cart: [...cart],
+        queueNumber: formattedQueue
+      });
       setStep('confirm');
       setConfirmCountdown(30);
 
@@ -694,8 +706,11 @@ const KioskPage = () => {
                               </div>
                             )}
                           </div>
-                          <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1">
-                            {item.name.toLowerCase()}
+                          <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1 flex flex-col justify-center">
+                            <span>
+                              {item.name.toLowerCase()}
+                              {item.size && <span className="font-bold text-violet-400 capitalize ml-1">({item.size.toLowerCase()})</span>}
+                            </span>
                           </h3>
 
                           <div className="w-full flex items-center justify-between mt-auto pt-2 px-1 text-xs">
@@ -738,7 +753,12 @@ const KioskPage = () => {
                           </div>
                         )}
                       </div>
-                      <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1">{item.name.toLowerCase()}</h3>
+                      <h3 className="font-bold text-zinc-800 leading-tight mb-2 h-12 overflow-hidden line-clamp-2 capitalize text-base tracking-tight px-1 flex flex-col justify-center">
+                        <span>
+                          {item.name.toLowerCase()}
+                          {item.size && <span className="font-bold text-violet-400 capitalize ml-1">({item.size.toLowerCase()})</span>}
+                        </span>
+                      </h3>
                       <div className="w-full flex items-center justify-between mt-auto pt-2 px-1">
                         <div className="text-[#3b2063] font-black text-2xl">₱{Number(item.sellingPrice).toFixed(2)}</div>
                         <button className="bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm"><Plus size={20} strokeWidth={3} /></button>
@@ -783,7 +803,10 @@ const KioskPage = () => {
                     {item.image && <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-black text-zinc-800 uppercase text-xs mb-1 truncate">{item.name}</h4>
+                    <h4 className="font-black text-zinc-800 uppercase text-xs mb-1 truncate">
+                      {item.name}
+                      {item.size && <span className="text-[8px] font-bold text-violet-400 ml-1">({item.size})</span>}
+                    </h4>
                     <div className="flex flex-wrap gap-1 mb-2">
                       {item.selectedSugarLevel && (
                         <span className="text-[8px] px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded-md font-bold uppercase tracking-tight">
@@ -1150,7 +1173,7 @@ const KioskPage = () => {
           cart={printData.cart}
           branchName={branchName}
           orNumber={printData.invoice}
-          queueNumber={printData.invoice.slice(-4)}
+          queueNumber={printData.queueNumber || printData.invoice.slice(-4)}
           formattedDate={new Date().toLocaleDateString()}
           formattedTime={new Date().toLocaleTimeString()}
           totalAmount={printData.cart.reduce((s: number, i: CartItem) => s + (Number(i.sellingPrice) * i.qty), 0)}
@@ -1346,24 +1369,36 @@ const KioskPage = () => {
                   <h3 className="font-bold text-violet-900 uppercase">Select Expo Items</h3>
                   <p className="text-xs text-zinc-500 font-medium mb-4">Click to toggle items for the Expo.</p>
                   
-                  {/* Category Filter */}
+                  {/* Search and Category Filter */}
                   {items.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-4 mb-2">
-                      <button
-                        onClick={() => setExpoCategoryFilter('')}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
-                      >
-                        All
-                      </button>
-                      {Array.from(new Set(items.map(i => i.category))).filter(Boolean).map(cat => (
+                    <div className="flex flex-col gap-3 mb-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                        <input
+                          type="text"
+                          placeholder="Search items to add to Expo..."
+                          value={expoSearchQuery}
+                          onChange={(e) => setExpoSearchQuery(e.target.value)}
+                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-sm font-medium placeholder:text-zinc-400 focus:ring-2 focus:ring-violet-500 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-2">
                         <button
-                          key={cat}
-                          onClick={() => setExpoCategoryFilter(cat)}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === cat ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
+                          onClick={() => setExpoCategoryFilter('')}
+                          className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
                         >
-                          {cat}
+                          All
                         </button>
-                      ))}
+                        {Array.from(new Set(items.map(i => i.category))).filter(Boolean).map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setExpoCategoryFilter(cat)}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === cat ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -1371,7 +1406,11 @@ const KioskPage = () => {
                      <p className="text-xs text-zinc-400 italic">No items loaded for this branch.</p>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto p-1 pr-2">
-                      {items.filter(item => !expoCategoryFilter || item.category === expoCategoryFilter).map(item => {
+                      {items.filter(item => {
+                         const matchesSearch = !expoSearchQuery || item.name.toLowerCase().includes(expoSearchQuery.toLowerCase());
+                         const matchesCategory = !expoCategoryFilter || item.category === expoCategoryFilter;
+                         return matchesSearch && matchesCategory;
+                      }).map(item => {
                          const isSelected = expoItemIds.includes(item.id);
                          return (
                            <button
@@ -1393,7 +1432,10 @@ const KioskPage = () => {
                              }}
                              className={`p-4 rounded-xl border-2 text-left flex items-center justify-between group transition-colors ${isSelected ? 'border-violet-600 bg-violet-50 text-violet-900' : 'border-zinc-100 bg-white hover:border-violet-200 text-zinc-500'}`}
                            >
-                              <span className={`text-xs font-bold leading-tight capitalize`}>{item.name.toLowerCase()}</span>
+                              <span className={`text-xs font-bold leading-tight capitalize`}>
+                                {item.name.toLowerCase()}
+                                {item.size && <span className="font-bold text-violet-400 capitalize ml-1">({item.size.toLowerCase()})</span>}
+                              </span>
                               <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-300'}`}>
                                 {isSelected ? <CheckCircle2 size={14} strokeWidth={4} /> : <div className="w-2 h-2 bg-current rounded-full" />}
                               </div>

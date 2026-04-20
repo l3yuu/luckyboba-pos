@@ -47,6 +47,7 @@ Route::get('/cards/image/{path}', [CardController::class, 'image'])
     ->middleware('throttle:120,1');
 Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/addons',           [AddOnController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');
 Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:60,1');
 
@@ -78,7 +79,8 @@ if ($branchId) {
             'menu_items.status',
             'categories.name as category',
             'menu_items.price as sellingPrice',
-            'menu_items.image'
+            'menu_items.image',
+            'menu_items.size'
         )
         ->where('menu_items.status', 'active') // globally inactive = always hidden
         ->get()
@@ -282,6 +284,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/branches/today-sales',       [BranchController::class, 'todaySales']);
         
         Route::get('/branches/{id}',           [BranchController::class, 'show']);
+        Route::get('/branches/{id}/details',   [BranchController::class, 'show']);
+        Route::get('/branches/{id}/payment-settings', [BranchSettingsController::class, 'getPaymentSettings']);
         
         Route::get('/menu',                    [MenuController::class, 'index']);
         Route::get('/bundles',                 [BundleController::class, 'index']);

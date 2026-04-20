@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sale;
+use App\Models\ZReading;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -357,12 +358,29 @@ class OnlineOrderController extends Controller
 
     private function formatOrder($sale): array
     {
-        $code = str_replace(['APP-', 'KSK-', 'SI-'], '', $sale->invoice_number);
+        // Calculate daily queue number (synchronized with Cashier logic)
+        $lastZReading = ZReading::where('branch_id', $sale->branch_id)
+            ->where('is_closed', true)
+            ->where('closed_at', '<', $sale->created_at)
+            ->latest('closed_at')
+            ->first();
+
+        $queueQuery = Sale::where('branch_id', $sale->branch_id)
+            ->where('id', '<=', $sale->id);
+
+        if ($lastZReading) {
+            $queueQuery->where('created_at', '>', $lastZReading->closed_at);
+        } else {
+            $queueQuery->whereDate('created_at', $sale->created_at->toDateString());
+        }
+
+        $dailyNo = $queueQuery->count();
+        $code = str_pad($dailyNo, 3, '0', STR_PAD_LEFT);
 
         return [
             'id'             => $sale->id,
             'invoice_number' => $sale->invoice_number,
-            'customer_name'  => $sale->user ? $sale->user->name : 'App Customer',
+            'customer_name'  => $sale->user ? $sale->user->name : ($sale->customer_name ?: 'System Order'),
             'customer_code'  => $code,
             'qr_code'        => $code,
             'branch_name'    => $sale->branch?->name ?? null,

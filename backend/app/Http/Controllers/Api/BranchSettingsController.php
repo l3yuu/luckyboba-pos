@@ -27,12 +27,19 @@ class BranchSettingsController extends Controller
         }
 
         $branch = Branch::findOrFail($branchId);
+        $settings = \App\Models\Setting::pluck('value', 'key');
 
         return response()->json([
             'success' => true,
             'data' => [
                 'branch_id'    => $branch->id,
                 'branch_name'  => $branch->name,
+                // POS Footer / Brand info
+                'business_name'  => $branch->brand ?: ($settings['business_name'] ?? 'Lucky Boba'),
+                'contact_email'  => $settings['contact_email'] ?? 'admin@luckyboba.com',
+                'contact_phone'  => $settings['contact_phone'] ?? '',
+                'address'        => $branch->store_address ?: ($settings['address'] ?? ''),
+
                 'gcash_name'   => $branch->gcash_name,
                 'gcash_number' => $branch->gcash_number,
                 'gcash_qr'     => $branch->gcash_qr,
