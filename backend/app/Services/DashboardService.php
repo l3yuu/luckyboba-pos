@@ -147,8 +147,8 @@ class DashboardService
 
     public function getWeeklySalesData()
     {
-        $currentWeekStart = Carbon::now()->startOfWeek(Carbon::MONDAY);
-        $currentWeekEnd = Carbon::now()->endOfWeek(Carbon::SUNDAY);
+        $currentWeekStart = Carbon::now()->startOfWeek(1); // 1 = Monday
+        $currentWeekEnd = Carbon::now()->endOfWeek(0);   // 0 = Sunday
 
         $startDate = $currentWeekStart->copy();
         $endDate = $currentWeekEnd->copy();
