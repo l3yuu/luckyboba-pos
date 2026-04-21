@@ -80,6 +80,8 @@ if ($branchId) {
             'menu_items.quantity',
             'menu_items.status',
             'categories.name as category',
+            'categories.category_type',
+            'categories.id as category_id',
             'menu_items.price as sellingPrice',
             'menu_items.image',
             'menu_items.size'

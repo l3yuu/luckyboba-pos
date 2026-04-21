@@ -27,6 +27,8 @@ interface MenuItem {
   id: number;
   name: string;
   category: string;
+  category_type?: string;
+  category_id?: number;
   sellingPrice: number;
   image: string | null;
   size?: string;
@@ -56,6 +58,8 @@ interface CartItem extends MenuItem {
   uniqueId: string;
   selectedAddOns?: AddOnOption[];
   selectedSugarLevel?: string;
+  selectedOptions?: string[];
+  remarks?: string;
   itemTotal: number;
 }
 
@@ -97,6 +101,17 @@ const KioskPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  
+  // --- Mix and Match State ---
+  const [isMixMatchViewOpen, setIsMixMatchViewOpen] = useState(false);
+  const [pendingMixMatchItem, setPendingMixMatchItem] = useState<MenuItem | null>(null);
+  const [mixMatchDrinkPool, setMixMatchDrinkPool] = useState<MenuItem[]>([]);
+  const [mixMatchStep, setMixMatchStep] = useState<'select_drink' | 'customize_drink'>('select_drink');
+  const [selectedMixMatchDrink, setSelectedMixMatchDrink] = useState<MenuItem | null>(null);
+  const [mixMatchSugar, setMixMatchSugar] = useState('100%');
+  const [mixMatchOptions, setMixMatchOptions] = useState<string[]>([]);
+  const [mixMatchAddOns, setMixMatchAddOns] = useState<AddOnOption[]>([]);
+
   const [printData, setPrintData] = useState<{
     invoice: string;
     cart: CartItem[];
@@ -380,7 +395,89 @@ const KioskPage = () => {
     });
   };
 
+  const fetchMixMatchPool = async (categoryId: number) => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/category-drinks?category_id=${categoryId}`);
+      interface DrinkPoolItem { menu_item_id: number; name: string; size: string; price: number }
+      const pool: DrinkPoolItem[] = res.data.data ?? [];
+      const transformedPool: MenuItem[] = pool.map(d => ({
+        id: d.menu_item_id,
+        name: d.name,
+        sellingPrice: Number(d.price),
+        size: d.size,
+        category: "Mix & Match Drink",
+        image: null,
+      }));
+      setMixMatchDrinkPool(transformedPool);
+    } catch (err) {
+      console.error("Failed to fetch mix and match drinks", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmMixAndMatch = () => {
+    if (!pendingMixMatchItem || !selectedMixMatchDrink) return;
+
+    const addonsTotal = mixMatchAddOns.reduce((sum, a) => sum + a.price, 0);
+    const drinkDetails = [
+      `Drink: ${selectedMixMatchDrink.name}${selectedMixMatchDrink.size ? ` (${selectedMixMatchDrink.size})` : ''}`,
+      `Sugar: ${mixMatchSugar}`,
+      ...mixMatchOptions,
+      ...mixMatchAddOns.map(a => `+${a.name}`),
+    ].join(' | ');
+
+    const finalItem: CartItem = {
+      ...pendingMixMatchItem,
+      qty: 1,
+      uniqueId: Math.random().toString(36).substr(2, 9),
+      remarks: `[${drinkDetails}]`,
+      itemTotal: Number(pendingMixMatchItem.sellingPrice) + addonsTotal,
+      selectedAddOns: mixMatchAddOns,
+      selectedSugarLevel: mixMatchSugar,
+      selectedOptions: mixMatchOptions,
+    };
+
+    setCart(prev => [...prev, finalItem]);
+    setIsMixMatchViewOpen(false);
+    setPendingMixMatchItem(null);
+    setSelectedMixMatchDrink(null);
+    setMixMatchDrinkPool([]);
+    setMixMatchStep('select_drink');
+  };
+
+  const mixMatchToggleOption = (opt: string) => {
+    setMixMatchOptions(prev => {
+      const iceOpts = ['NO ICE', '-ICE', '+ICE', 'WARM'];
+      const pearlOpts = ['NO PRL', 'W/ PRL'];
+      if (iceOpts.includes(opt)) {
+        const rest = prev.filter(o => !iceOpts.includes(o));
+        return prev.includes(opt) ? rest : [...rest, opt];
+      }
+      if (pearlOpts.includes(opt)) {
+        const rest = prev.filter(o => !pearlOpts.includes(o));
+        return prev.includes(opt) ? rest : [...rest, opt];
+      }
+      return prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt];
+    });
+  };
+
   const handleItemClick = (item: MenuItem) => {
+    if (item.category_type === 'mix_and_match') {
+      setPendingMixMatchItem(item);
+      setMixMatchStep('select_drink');
+      setSelectedMixMatchDrink(null);
+      setMixMatchOptions([]);
+      setMixMatchAddOns([]);
+      setMixMatchSugar('100%');
+      setIsMixMatchViewOpen(true);
+      if (item.category_id) {
+        fetchMixMatchPool(item.category_id);
+      }
+      return;
+    }
+
     const cat = item.category?.toLowerCase() || '';
     const needsCustomization = cat.includes('milk tea') || cat.includes('milktea') ||
       cat.includes('coffee') || cat.includes('yakult') ||
@@ -489,6 +586,7 @@ const KioskPage = () => {
           unit_price: Number(item.sellingPrice),
           total_price: item.itemTotal * item.qty,
           sugar_level: item.selectedSugarLevel || '100%',
+          remarks: item.remarks || '',
           add_ons: (item.selectedAddOns || []).map(ao => ({
             name: ao.name,
             price: ao.price
@@ -1125,6 +1223,217 @@ const KioskPage = () => {
             <span className="w-px h-4 bg-white/30" />
             <span>₱{calculateTotal().toFixed(0)}</span>
           </button>
+        )}
+
+        {/* Mix and Match Overlay */}
+        {isMixMatchViewOpen && pendingMixMatchItem && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/60">
+            <div className="absolute inset-0" onClick={() => setIsMixMatchViewOpen(false)} />
+            <div className="relative bg-[#fdf8ff] w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300 border border-purple-100">
+              
+              {/* Header */}
+              <div className="p-8 border-b border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl flex items-center justify-center shadow-inner">
+                    <ShoppingBag size={32} className="text-[#7c14d4]" />
+                  </div>
+                  <div>
+                    <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      {mixMatchStep === 'select_drink' ? 'Choose Your Drink' : 'Customize Drink'}
+                    </h3>
+                    <p className="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em]">
+                      {mixMatchStep === 'select_drink' ? pendingMixMatchItem.name : selectedMixMatchDrink?.name}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  {mixMatchStep === 'customize_drink' && (
+                    <button
+                      onClick={() => setMixMatchStep('select_drink')}
+                      className="px-6 py-3 bg-white border border-purple-200 text-[#7c14d4] rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
+                    >
+                      <ChevronRight className="rotate-180" size={16} />
+                      Back to Selection
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsMixMatchViewOpen(false)}
+                    className="w-14 h-14 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                  >
+                    <X size={28} strokeWidth={3} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-10 scrollbar-hide">
+                {mixMatchStep === 'select_drink' ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {loading ? (
+                      <div className="col-span-full py-20 flex flex-col items-center justify-center gap-4">
+                        <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+                        <p className="font-bold text-zinc-400 uppercase tracking-widest text-xs">Loading collection...</p>
+                      </div>
+                    ) : mixMatchDrinkPool.length === 0 ? (
+                      <div className="col-span-full py-20 text-center">
+                        <p className="text-zinc-400 font-bold">No drinks available for this bundle.</p>
+                      </div>
+                    ) : (
+                      mixMatchDrinkPool.map((drink) => (
+                        <div
+                          key={drink.id}
+                          onClick={() => {
+                            setSelectedMixMatchDrink(drink);
+                            setMixMatchStep('customize_drink');
+                          }}
+                          className="bg-white p-5 rounded-3xl border-2 border-purple-50 shadow-sm hover:border-purple-300 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center text-center gap-4"
+                        >
+                          <div className="w-full aspect-square bg-gradient-to-br from-purple-50 to-orange-50 rounded-2xl flex items-center justify-center overflow-hidden">
+                             <ShoppingBag size={48} className="text-purple-200 group-hover:scale-110 transition-transform duration-500" />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-zinc-800 uppercase text-sm tracking-tight leading-tight mb-1">{drink.name}</h4>
+                            {drink.size && <span className="text-[10px] font-black bg-purple-50 text-[#7c14d4] px-2 py-0.5 rounded-full">{drink.size}</span>}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-10 max-w-2xl mx-auto">
+                    {/* Sugar Level */}
+                    <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-[#7c14d4] text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">1</span>
+                        Select Sugar Level
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {sugarLevels.map((sl) => (
+                          <button
+                            key={sl.id}
+                            onClick={() => setMixMatchSugar(sl.value)}
+                            className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchSugar === sl.value
+                              ? 'bg-[#7c14d4] border-[#7c14d4] text-white shadow-lg shadow-purple-200'
+                              : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
+                            }`}
+                          >
+                            {sl.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Options (Ice/Pearl) */}
+                    <div className="bg-white p-8 rounded-[2rem] border border-orange-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm shadow-md shadow-orange-200">2</span>
+                        Drink Options
+                      </h4>
+                      <div className="space-y-8">
+                         <div>
+                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Ice Level</p>
+                            <div className="grid grid-cols-4 gap-3">
+                              {['NO ICE', '-ICE', '+ICE', 'WARM'].map(opt => (
+                                <button
+                                  key={opt}
+                                  onClick={() => mixMatchToggleOption(opt)}
+                                  className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchOptions.includes(opt)
+                                    ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
+                                    : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
+                                  }`}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                         </div>
+                         <div>
+                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Pearl Preference</p>
+                            <div className="grid grid-cols-2 gap-4">
+                              {['NO PRL', 'W/ PRL'].map(opt => (
+                                <button
+                                  key={opt}
+                                  onClick={() => mixMatchToggleOption(opt)}
+                                  className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchOptions.includes(opt)
+                                    ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
+                                    : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
+                                  }`}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                         </div>
+                      </div>
+                    </div>
+
+                    {/* Add-ons */}
+                    <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">3</span>
+                        Extra Toppings
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {allAddOns
+                          .filter(ao => ao.category === 'drink' || ao.category === 'Toppings')
+                          .map((ao) => {
+                            const isSelected = mixMatchAddOns.some(a => a.id === ao.id);
+                            return (
+                              <button
+                                key={ao.id}
+                                onClick={() => {
+                                  setMixMatchAddOns(prev =>
+                                    isSelected ? prev.filter(p => p.id !== ao.id) : [...prev, ao]
+                                  );
+                                }}
+                                className={`p-4 rounded-2xl border-2 flex flex-col gap-1 transition-all ${isSelected
+                                  ? 'border-purple-500 bg-purple-50 shadow-md'
+                                  : 'border-zinc-100 bg-white hover:border-purple-200'
+                                }`}
+                              >
+                                <div className="flex justify-between items-center w-full">
+                                  <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-zinc-400'}`}>+₱{ao.price}</span>
+                                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'bg-purple-500 border-purple-500 text-white' : 'bg-white border-zinc-200'}`}>
+                                    {isSelected && <Check size={10} strokeWidth={4} />}
+                                  </div>
+                                </div>
+                                <span className={`font-bold text-xs uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-600'}`}>{ao.name}</span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-8 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
+                <div className="flex items-center gap-8">
+                   <div className="bg-zinc-50 px-6 py-4 rounded-2xl border border-zinc-100">
+                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Bundle Total</p>
+                      <p className="text-3xl font-black text-zinc-900 tracking-tighter">₱{pendingMixMatchItem.sellingPrice}</p>
+                   </div>
+                   {mixMatchStep === 'customize_drink' && mixMatchAddOns.reduce((s, a) => s + a.price, 0) > 0 && (
+                     <div className="text-orange-600 font-bold">
+                        <p className="text-[10px] uppercase tracking-widest mb-1">Add-ons</p>
+                        <p className="text-xl">+₱{mixMatchAddOns.reduce((s, a) => s + a.price, 0)}</p>
+                     </div>
+                   )}
+                </div>
+                
+                {mixMatchStep === 'customize_drink' && (
+                  <button
+                    onClick={confirmMixAndMatch}
+                    className="bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
+                  >
+                    Add to Tray
+                    <Plus size={24} strokeWidth={3} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Customization Modal */}
