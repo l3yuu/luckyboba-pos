@@ -1747,95 +1747,156 @@ const KioskPage = () => {
 
     return (
       <div
-        className="flex-1 flex flex-col p-10 overflow-hidden relative"
+        className="flex-1 flex flex-col p-12 overflow-hidden relative"
         style={{
           background: 'linear-gradient(145deg, #faf7ff 0%, #f2ecff 45%, #fff4fb 78%, #fff8ec 100%)'
         }}
       >
-        <div className="absolute top-0 right-0 w-[420px] h-[420px] bg-violet-500/12 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
-        <div className="absolute bottom-[-10%] left-[-6%] w-[420px] h-[420px] bg-fuchsia-400/12 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="absolute top-[35%] left-[45%] w-[300px] h-[300px] bg-amber-300/10 rounded-full blur-[120px] pointer-events-none"></div>
+        {/* Premium Background Orbs (Consistent with Splash) */}
+        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-violet-500/12 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-[-15%] left-[-8%] w-[500px] h-[500px] bg-fuchsia-400/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[400px] h-[400px] bg-amber-300/10 rounded-full blur-[140px] pointer-events-none" />
 
-        <div className="max-w-4xl mx-auto w-full flex flex-col h-full relative z-10">
-          <div className="flex flex-col items-center mb-10 shrink-0">
-            <img src={logo} alt="Lucky Boba" className="w-32 h-auto mb-6 drop-shadow-sm" />
-            <h1 className="text-4xl font-black text-zinc-900 tracking-tight">{t.kioskSetup}</h1>
-            <p className="text-zinc-500 font-semibold text-sm mt-2 uppercase tracking-[0.12em]">{t.selectBranchDevice}</p>
+        <div className="max-w-5xl mx-auto w-full flex flex-col h-full relative z-10">
+          {/* Header Section */}
+          <div className="flex flex-col items-center mb-12 shrink-0 animate-in fade-in slide-in-from-top-6 duration-1000">
+            <img src={logo} alt="Lucky Boba" className="w-28 h-auto mb-8 drop-shadow-md hover:scale-105 transition-transform duration-500" />
+            <h1 className="text-5xl font-black text-zinc-900 tracking-tighter text-center" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              Kiosk <span className="text-[#7c14d4] italic">Setup</span>
+            </h1>
+            <p className="text-zinc-500 font-bold text-xs mt-4 uppercase tracking-[0.3em] opacity-60">
+              {t.selectBranchDevice}
+            </p>
           </div>
 
-          <div className="mb-8 shrink-0 w-full max-w-xl mx-auto">
-            <div className="flex items-center gap-3 bg-white/95 border border-violet-200 rounded-2xl px-5 py-4 shadow-lg group focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-100 transition-all backdrop-blur-sm">
-              <Search size={20} className="text-zinc-400 group-focus-within:text-violet-500 transition-colors" />
+          {/* Search Section */}
+          <div className="mb-12 shrink-0 w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-top-4 duration-1000 delay-200">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                <Search size={22} className="text-zinc-300 group-focus-within:text-[#7c14d4] transition-colors duration-300" />
+              </div>
               <input
                 value={branchSearch}
                 onChange={e => setBranchSearch(e.target.value)}
-                className="flex-1 bg-transparent text-base font-semibold text-zinc-900 outline-none placeholder:text-zinc-400"
+                className="w-full bg-white/60 backdrop-blur-xl border border-white/80 rounded-[2rem] py-5 pl-16 pr-14 text-lg font-semibold text-zinc-800 placeholder:text-zinc-300 focus:bg-white/90 focus:ring-4 focus:ring-violet-100 focus:border-violet-300 transition-all outline-none shadow-[0_15px_40px_rgba(88,28,135,0.06)] group-hover:shadow-[0_20px_50px_rgba(88,28,135,0.1)]"
                 placeholder={t.searchBranchPlaceholder}
               />
               {branchSearch && (
-                <button onClick={() => setBranchSearch("")} className="text-zinc-400 hover:text-zinc-600 transition-colors bg-zinc-100 hover:bg-zinc-200 p-1 rounded-full flex items-center justify-center">
-                  <X size={14} />
+                <button 
+                  onClick={() => setBranchSearch("")} 
+                  className="absolute inset-y-0 right-5 flex items-center justify-center w-10 h-10 my-auto text-zinc-300 hover:text-zinc-600 transition-colors bg-zinc-100/50 hover:bg-zinc-200/50 rounded-full"
+                >
+                  <X size={18} />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">
+          {/* Branch Grid */}
+          <div className="flex-1 overflow-y-auto pr-4 -mr-4 scrollbar-hide grid grid-cols-1 md:grid-cols-2 gap-6 pb-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-400">
             {filtered.map(branch => (
               <button
                 key={branch.id}
                 onClick={() => handleSelectBranch(branch)}
-                className={`p-6 rounded-2xl shadow-md border flex flex-col items-start text-left transition-all group active:scale-[0.98] backdrop-blur-sm ${selectedBranchToConfirm?.id === branch.id
-                  ? 'bg-white border-violet-500 ring-4 ring-violet-100 shadow-xl -translate-y-[2px]'
-                  : 'bg-white/95 border-zinc-200/80 hover:border-violet-300 hover:shadow-xl hover:-translate-y-[2px]'
-                  }`}
+                className={`p-10 rounded-[2.5rem] border-2 flex flex-col items-start text-left transition-all duration-500 group active:scale-[0.97] backdrop-blur-xl group relative ${
+                  selectedBranchToConfirm?.id === branch.id
+                    ? 'bg-white border-[#7c14d4] shadow-[0_25px_60px_rgba(124,20,212,0.15)] -translate-y-2'
+                    : 'bg-white/40 border-white/60 hover:bg-white/80 hover:border-violet-200 hover:shadow-[0_30px_70px_rgba(88,28,135,0.12)] hover:-translate-y-1.5 shadow-sm'
+                }`}
               >
-                <div className="flex items-center gap-4 w-full mb-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors border ${selectedBranchToConfirm?.id === branch.id
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500 border-violet-500 text-white'
-                    : 'bg-zinc-50 border-zinc-100 text-zinc-600 group-hover:bg-gradient-to-r group-hover:from-violet-600 group-hover:to-fuchsia-500 group-hover:border-violet-600 group-hover:text-white'
-                    }`}>
-                    <ShoppingBag size={22} />
+                {/* Visual Accent */}
+                <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-violet-500/10 to-transparent rounded-bl-[4rem] transition-opacity duration-500 ${selectedBranchToConfirm?.id === branch.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+
+                <div className="flex items-center gap-6 w-full mb-6 relative z-10">
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 border ${
+                    selectedBranchToConfirm?.id === branch.id
+                      ? 'bg-gradient-to-br from-[#7c14d4] to-fuchsia-600 border-[#7c14d4] text-white shadow-lg shadow-purple-200 scale-110'
+                      : 'bg-white border-zinc-100 text-zinc-400 group-hover:bg-gradient-to-br group-hover:from-[#7c14d4] group-hover:to-fuchsia-600 group-hover:border-[#7c14d4] group-hover:text-white group-hover:scale-110'
+                  }`}>
+                    <ShoppingBag size={28} />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-black text-zinc-900 line-clamp-1 capitalize">{branch.name.toLowerCase()}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase tracking-wider">{t.active}</span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-2xl font-black text-zinc-900 capitalize mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      {branch.name.toLowerCase()}
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100/50">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">{t.active}</span>
+                      </div>
                       {selectedBranchToConfirm?.id === branch.id && (
-                        <span className="text-[10px] font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 px-2 py-0.5 rounded uppercase tracking-wider">{t.selected}</span>
+                        <div className="px-3 py-1 bg-gradient-to-br from-[#7c14d4] to-fuchsia-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
+                          {t.selected}
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 w-full mt-1">
-                  <div className="flex items-start gap-2 text-zinc-500">
-                    <MapPin size={14} className="shrink-0 mt-0.5 text-zinc-400" />
-                    <p className="text-sm font-medium line-clamp-2">{branch.address || t.noAddressProvided}</p>
+                <div className="space-y-3 w-full relative z-10 transition-transform duration-500 group-hover:translate-x-1">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center shrink-0">
+                      <MapPin size={16} className="text-zinc-400" />
+                    </div>
+                    <p className="text-sm font-semibold text-zinc-500 leading-relaxed pt-1.5">
+                      {branch.address || t.noAddressProvided}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <Clock size={14} className="shrink-0" />
-                    <p className="text-xs font-medium">09:00 AM - 09:00 PM</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center shrink-0">
+                      <Clock size={16} className="text-zinc-400" />
+                    </div>
+                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                       09:00 AM - 09:00 PM
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between w-full">
-                  <div className={`flex items-center gap-1 text-xs font-semibold transition-all duration-300 ${selectedBranchToConfirm?.id === branch.id
-                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 opacity-100 translate-x-0'
-                    : 'text-violet-600 opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0'
-                    }`}>
+                <div className="mt-8 pt-6 border-t border-zinc-100/50 w-full flex items-center justify-between relative z-10">
+                  <div className={`flex items-center gap-2 font-black uppercase text-[10px] tracking-[0.2em] transition-all duration-500 ${
+                    selectedBranchToConfirm?.id === branch.id
+                      ? 'text-[#7c14d4] translate-x-1'
+                      : 'text-zinc-300 group-hover:text-[#7c14d4] group-hover:translate-x-1'
+                  }`}>
                     <span>{t.selectBranch}</span>
-                    <ChevronRight size={16} />
+                    <ChevronRight size={14} strokeWidth={3} />
                   </div>
                 </div>
               </button>
             ))}
+
             {filtered.length === 0 && (
-              <div className="col-span-full py-20 flex flex-col items-center justify-center text-zinc-400">
-                <Search size={40} className="mb-4 opacity-30 text-zinc-300" />
-                <p className="font-semibold tracking-wide text-sm">{t.noBranchesFound}</p>
+              <div className="col-span-full py-28 flex flex-col items-center justify-center gap-6 animate-in fade-in zoom-in duration-700">
+                <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100">
+                  <Search size={40} className="text-zinc-200" />
+                </div>
+                <div className="text-center">
+                  <p className="font-black text-zinc-900 text-xl tracking-tight mb-2">{t.noBranchesFound}</p>
+                  <p className="text-zinc-400 font-bold text-sm uppercase tracking-widest">Try adjusting your search terms</p>
+                </div>
               </div>
             )}
+          </div>
+
+          {/* Fixed Confirm Button (Appears when branch is selected) */}
+          <div className="shrink-0 flex justify-center pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+             <button
+                disabled={!selectedBranchToConfirm}
+                onClick={confirmBranchSelection}
+                className={`group relative overflow-hidden px-16 py-5 rounded-full font-black uppercase text-lg tracking-[0.2em] transition-all duration-500 shadow-2xl flex items-center gap-6 ${
+                  selectedBranchToConfirm
+                    ? 'bg-[#7c14d4] text-white hover:scale-105 active:scale-95 shadow-purple-200'
+                    : 'bg-zinc-100 text-zinc-300 cursor-not-allowed grayscale'
+                }`}
+             >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                <span className="relative z-10">{t.confirmBranch || 'Confirm Branch'}</span>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 relative z-10 ${
+                  selectedBranchToConfirm ? 'bg-white text-[#7c14d4]' : 'bg-zinc-200 text-zinc-300'
+                }`}>
+                  <CheckCircle2 size={24} strokeWidth={3} />
+                </div>
+             </button>
           </div>
         </div>
       </div>
