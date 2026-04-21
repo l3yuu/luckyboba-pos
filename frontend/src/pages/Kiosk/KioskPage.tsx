@@ -101,7 +101,7 @@ const KioskPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
-  
+
   // --- Mix and Match State ---
   const [isMixMatchViewOpen, setIsMixMatchViewOpen] = useState(false);
   const [pendingMixMatchItem, setPendingMixMatchItem] = useState<MenuItem | null>(null);
@@ -680,10 +680,10 @@ const KioskPage = () => {
             </p>
           </div>
 
-          <button className="group relative overflow-hidden bg-[#7c3aed] text-white pl-10 pr-6 py-5 rounded-[2rem] font-bold text-xl tracking-[0.15em] uppercase shadow-[0_15px_40px_rgba(124,58,237,0.3)] flex items-center gap-6 transition-all hover:scale-[1.02] active:scale-95">
+          <button className="group relative overflow-hidden bg-[#7c3aed] text-white pl-8 pr-4 py-3.5 rounded-[1.5rem] font-bold text-lg tracking-[0.12em] uppercase shadow-[0_15px_40px_rgba(124,58,237,0.3)] flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95">
             <span className="relative z-10">Tap to Start</span>
-            <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
-              <ChevronRight size={24} strokeWidth={4} />
+            <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
+              <ChevronRight size={20} strokeWidth={4} />
             </div>
             <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           </button>
@@ -978,13 +978,6 @@ const KioskPage = () => {
                       The perfect blend of flavor and joy, crafted just for your afternoon boost.
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full border border-purple-100 shadow-sm">
-                    <div className="flex gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#7c14d4]" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-purple-200" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-purple-200" />
-                    </div>
-                  </div>
                 </div>
 
                 {/* Featured Cards */}
@@ -1230,7 +1223,7 @@ const KioskPage = () => {
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/60">
             <div className="absolute inset-0" onClick={() => setIsMixMatchViewOpen(false)} />
             <div className="relative bg-[#fdf8ff] w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300 border border-purple-100">
-              
+
               {/* Header */}
               <div className="p-8 border-b border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-6">
@@ -1289,7 +1282,7 @@ const KioskPage = () => {
                           className="bg-white p-5 rounded-3xl border-2 border-purple-50 shadow-sm hover:border-purple-300 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center text-center gap-4"
                         >
                           <div className="w-full aspect-square bg-gradient-to-br from-purple-50 to-orange-50 rounded-2xl flex items-center justify-center overflow-hidden">
-                             <ShoppingBag size={48} className="text-purple-200 group-hover:scale-110 transition-transform duration-500" />
+                            <ShoppingBag size={48} className="text-purple-200 group-hover:scale-110 transition-transform duration-500" />
                           </div>
                           <div>
                             <h4 className="font-black text-zinc-800 uppercase text-sm tracking-tight leading-tight mb-1">{drink.name}</h4>
@@ -1315,7 +1308,7 @@ const KioskPage = () => {
                             className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchSugar === sl.value
                               ? 'bg-[#7c14d4] border-[#7c14d4] text-white shadow-lg shadow-purple-200'
                               : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
-                            }`}
+                              }`}
                           >
                             {sl.label}
                           </button>
@@ -1330,40 +1323,40 @@ const KioskPage = () => {
                         Drink Options
                       </h4>
                       <div className="space-y-8">
-                         <div>
-                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Ice Level</p>
-                            <div className="grid grid-cols-4 gap-3">
-                              {['NO ICE', '-ICE', '+ICE', 'WARM'].map(opt => (
-                                <button
-                                  key={opt}
-                                  onClick={() => mixMatchToggleOption(opt)}
-                                  className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchOptions.includes(opt)
-                                    ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
-                                    : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
+                        <div>
+                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Ice Level</p>
+                          <div className="grid grid-cols-4 gap-3">
+                            {['NO ICE', '-ICE', '+ICE', 'WARM'].map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => mixMatchToggleOption(opt)}
+                                className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchOptions.includes(opt)
+                                  ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
+                                  : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
                                   }`}
-                                >
-                                  {opt}
-                                </button>
-                              ))}
-                            </div>
-                         </div>
-                         <div>
-                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Pearl Preference</p>
-                            <div className="grid grid-cols-2 gap-4">
-                              {['NO PRL', 'W/ PRL'].map(opt => (
-                                <button
-                                  key={opt}
-                                  onClick={() => mixMatchToggleOption(opt)}
-                                  className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchOptions.includes(opt)
-                                    ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
-                                    : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Pearl Preference</p>
+                          <div className="grid grid-cols-2 gap-4">
+                            {['NO PRL', 'W/ PRL'].map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => mixMatchToggleOption(opt)}
+                                className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchOptions.includes(opt)
+                                  ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
+                                  : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
                                   }`}
-                                >
-                                  {opt}
-                                </button>
-                              ))}
-                            </div>
-                         </div>
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -1389,7 +1382,7 @@ const KioskPage = () => {
                                 className={`p-4 rounded-2xl border-2 flex flex-col gap-1 transition-all ${isSelected
                                   ? 'border-purple-500 bg-purple-50 shadow-md'
                                   : 'border-zinc-100 bg-white hover:border-purple-200'
-                                }`}
+                                  }`}
                               >
                                 <div className="flex justify-between items-center w-full">
                                   <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-zinc-400'}`}>+₱{ao.price}</span>
@@ -1410,18 +1403,18 @@ const KioskPage = () => {
               {/* Footer */}
               <div className="p-8 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
                 <div className="flex items-center gap-8">
-                   <div className="bg-zinc-50 px-6 py-4 rounded-2xl border border-zinc-100">
-                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Bundle Total</p>
-                      <p className="text-3xl font-black text-zinc-900 tracking-tighter">₱{pendingMixMatchItem.sellingPrice}</p>
-                   </div>
-                   {mixMatchStep === 'customize_drink' && mixMatchAddOns.reduce((s, a) => s + a.price, 0) > 0 && (
-                     <div className="text-orange-600 font-bold">
-                        <p className="text-[10px] uppercase tracking-widest mb-1">Add-ons</p>
-                        <p className="text-xl">+₱{mixMatchAddOns.reduce((s, a) => s + a.price, 0)}</p>
-                     </div>
-                   )}
+                  <div className="bg-zinc-50 px-6 py-4 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Bundle Total</p>
+                    <p className="text-3xl font-black text-zinc-900 tracking-tighter">₱{pendingMixMatchItem.sellingPrice}</p>
+                  </div>
+                  {mixMatchStep === 'customize_drink' && mixMatchAddOns.reduce((s, a) => s + a.price, 0) > 0 && (
+                    <div className="text-orange-600 font-bold">
+                      <p className="text-[10px] uppercase tracking-widest mb-1">Add-ons</p>
+                      <p className="text-xl">+₱{mixMatchAddOns.reduce((s, a) => s + a.price, 0)}</p>
+                    </div>
+                  )}
                 </div>
-                
+
                 {mixMatchStep === 'customize_drink' && (
                   <button
                     onClick={confirmMixAndMatch}
@@ -1599,7 +1592,7 @@ const KioskPage = () => {
 
         <div className="bg-white p-10 rounded-[3rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
           <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-5">Your Ticket Number</p>
-          
+
           <div className="bg-purple-50/50 px-12 py-8 rounded-[2.5rem] mb-10 border border-purple-100/50 shadow-inner w-full text-center">
             <h3 className="text-7xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
               #{orderNumber}
