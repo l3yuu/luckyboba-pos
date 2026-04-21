@@ -473,7 +473,7 @@ const KioskPage = () => {
   };
 
   const handleItemClick = (item: MenuItem) => {
-    if (item.category_type === 'mix_and_match' || item.category_type === 'combo') {
+    if (item.category_type === 'mix_and_match' || item.category_type === 'combo' || item.category_type === 'bundle') {
       setPendingMixMatchItem(item);
       setMixMatchStep('select_drink');
       setSelectedMixMatchDrink(null);
@@ -1316,25 +1316,25 @@ const KioskPage = () => {
         {isMixMatchViewOpen && pendingMixMatchItem && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/60">
             <div className="absolute inset-0" onClick={() => setIsMixMatchViewOpen(false)} />
-            <div className="relative bg-[#fdf8ff] w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300 border border-purple-100">
+            <div className="relative bg-[#fdf8ff] w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300 border border-purple-100">
 
               {/* Header */}
-              <div className="p-8 border-b border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
+              <div className="p-10 border-b border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl flex items-center justify-center shadow-inner">
-                    <ShoppingBag size={32} className="text-[#7c14d4]" />
+                  <div className="w-20 h-20 bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl flex items-center justify-center shadow-inner">
+                    <ShoppingBag size={40} className="text-[#7c14d4]" />
                   </div>
                   <div>
                     <div className="relative">
                       {/* Invisible English sizers for Mix & Match headers */}
-                      <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      <h3 className="text-4xl font-black text-zinc-900 tracking-tight uppercase invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                         {mixMatchStep === 'select_drink'
-                          ? (pendingMixMatchItem.category_type === 'combo' ? "Customize Your Combo" : "Choose Your Drink")
+                          ? (pendingMixMatchItem.category_type === 'combo' ? "Customize Your Combo" : (pendingMixMatchItem.category_type === 'bundle' ? "Customize Your Bundle" : "Choose Your Drink"))
                           : "Customize Drink"}
                       </h3>
-                      <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif", wordBreak: 'keep-all' }}>
+                      <h3 className="text-4xl font-black text-zinc-900 tracking-tight uppercase absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif", wordBreak: 'keep-all' }}>
                         {mixMatchStep === 'select_drink'
-                          ? (pendingMixMatchItem.category_type === 'combo' ? t.customizeYourCombo : t.chooseYourDrink)
+                          ? (pendingMixMatchItem.category_type === 'combo' ? t.customizeYourCombo : (pendingMixMatchItem.category_type === 'bundle' ? t.bundleConfigTitle : t.chooseYourDrink))
                           : t.customizeDrink}
                       </h3>
                     </div>
@@ -1505,7 +1505,7 @@ const KioskPage = () => {
               </div>
 
               {/* Footer */}
-              <div className="p-8 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
+              <div className="p-10 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
                 <div className="flex items-center gap-8">
                   <div className="bg-zinc-50 px-6 py-4 rounded-2xl border border-zinc-100">
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
@@ -1537,51 +1537,52 @@ const KioskPage = () => {
 
         {/* Customization Modal */}
         {showCustomizer && customizingItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-zinc-900/55">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/60">
             <div className="absolute inset-0" onClick={() => setShowCustomizer(false)} />
-            <div className="relative bg-gradient-to-br from-orange-50 to-purple-50 w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-orange-100/70">
+            <div className="relative bg-[#fdf8ff] w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200 border border-purple-100">
 
-              <div className="p-8 border-b border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
+              {/* Header */}
+              <div className="p-10 border-b border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-6">
-                  <div className="w-24 h-24 bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl overflow-hidden border border-orange-100 flex items-center justify-center shadow-inner">
+                  <div className="w-20 h-20 bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl overflow-hidden border border-purple-100 flex items-center justify-center shadow-inner">
                     {customizingItem.image ? (
                       <img src={getImageUrl(customizingItem.image)} className="w-full h-full object-cover" />
                     ) : (
-                      <ShoppingBag size={32} className="text-orange-300" />
+                      <ShoppingBag size={40} className="text-[#7c14d4]" />
                     )}
                   </div>
                   <div>
-                    <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase line-clamp-1">{customizingItem.name}</h3>
-                    <div className="inline-block px-3 py-1 bg-purple-50 border border-purple-200 text-[#7c14d4] rounded-lg text-sm font-bold uppercase tracking-widest mt-2">{customizingItem.category}</div>
+                    <h3 className="text-4xl font-black text-zinc-900 tracking-tight uppercase line-clamp-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{customizingItem.name}</h3>
+                    <div className="inline-block px-3 py-1 bg-purple-50 border border-purple-200 text-[#7c14d4] rounded-lg text-xs font-black uppercase tracking-widest mt-2">{customizingItem.category}</div>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCustomizer(false)}
-                  className="w-14 h-14 bg-white border border-zinc-200 text-zinc-500 rounded-full flex items-center justify-center hover:bg-zinc-50 hover:text-zinc-900 transition-colors shrink-0 shadow-sm"
+                  className="w-14 h-14 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
                 >
                   <X size={28} strokeWidth={3} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
+              <div className="flex-1 overflow-y-auto p-10 space-y-10 scrollbar-hide">
                 {(customizingItem.category?.toLowerCase().includes('milk tea') ||
                   customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
-                    <div className="bg-white/95 p-8 rounded-3xl border border-purple-100 shadow-sm">
+                    <div className="bg-white/95 p-8 rounded-[2rem] border border-purple-50 shadow-sm">
                       <div className="flex items-center gap-4 mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0">1</div>
+                        <div className="w-10 h-10 bg-[#7c14d4] text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 shadow-md shadow-purple-200">1</div>
                         <div className="relative flex-1 h-8">
                           <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase invisible" aria-hidden="true">Select Sugar</h4>
                           <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.selectSugar}</h4>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         {sugarLevels.map((sl) => (
                           <button
                             key={sl.id}
                             onClick={() => setSelectedSugarLevel(sl.value)}
-                            className={`py-5 rounded-2xl font-bold text-lg transition-all border-4 ${selectedSugarLevel === sl.value
-                              ? 'bg-gradient-to-r from-[#7c14d4] to-purple-500 border-[#7c14d4] text-white scale-105 shadow-[0_12px_25px_rgba(124,20,212,0.3)]'
-                              : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300'
+                            className={`py-5 rounded-2xl font-black text-sm transition-all border-2 ${selectedSugarLevel === sl.value
+                              ? 'bg-[#7c14d4] border-[#7c14d4] text-white shadow-lg shadow-purple-200'
+                              : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
                               }`}
                           >
                             {sl.label}
@@ -1591,9 +1592,9 @@ const KioskPage = () => {
                     </div>
                   )}
 
-                <div className="bg-white/95 p-8 rounded-3xl border border-orange-100 shadow-sm">
+                <div className="bg-white/95 p-8 rounded-[2rem] border border-purple-50 shadow-sm">
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 border border-orange-300/50">
+                    <div className="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 shadow-md shadow-purple-100">
                       {((customizingItem.category?.toLowerCase().includes('milk') || customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0) ? '2' : '1'}
                     </div>
                     <div className="relative flex-1 h-8">
@@ -1601,7 +1602,7 @@ const KioskPage = () => {
                       <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.addToppings}</h4>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {allAddOns
                       .filter(ao => {
                         const itemCat = customizingItem.category?.toLowerCase() || '';
@@ -1620,20 +1621,20 @@ const KioskPage = () => {
                                   : [...prev, ao]
                               );
                             }}
-                            className={`p-5 rounded-2xl border-4 flex flex-col transition-all text-left ${isSelected
-                              ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 scale-[1.02] shadow-md'
-                              : 'border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300'
+                            className={`p-4 rounded-2xl border-2 flex flex-col transition-all text-left ${isSelected
+                              ? 'border-purple-500 bg-purple-50 shadow-md'
+                              : 'border-zinc-100 bg-white hover:border-purple-200'
                               }`}
                           >
-                            <div className="flex justify-between items-start mb-2 w-full">
-                              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-orange-500 bg-gradient-to-r from-orange-500 to-amber-500 text-white' : 'border-zinc-300 bg-zinc-50'}`}>
-                                {isSelected && <CheckCircle2 size={20} strokeWidth={3} />}
-                              </div>
-                              <span className={`font-black text-xl ${isSelected ? 'text-orange-600' : 'text-zinc-500'}`}>
+                            <div className="flex justify-between items-center mb-1 w-full">
+                              <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-zinc-400'}`}>
                                 +₱{Number(ao.price).toFixed(0)}
                               </span>
+                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'bg-purple-500 border-purple-500 text-white' : 'bg-white border-zinc-200'}`}>
+                                {isSelected && <Check size={10} strokeWidth={4} />}
+                              </div>
                             </div>
-                            <span className={`font-bold text-lg leading-tight uppercase ${isSelected ? 'text-orange-900' : 'text-zinc-700'}`}>
+                            <span className={`font-bold text-xs uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-600'}`}>
                               {ao.name}
                             </span>
                           </button>
@@ -1643,19 +1644,27 @@ const KioskPage = () => {
                 </div>
               </div>
 
-              <div className="p-8 border-t border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgb(0,0,0,0.03)] z-10">
-                <div>
-                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-1">{t.total}</p>
-                  <div className="text-4xl font-black text-orange-600 tracking-tighter">
-                    ₱{(
-                      Number(customizingItem.sellingPrice) +
-                      selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
-                    ).toFixed(0)}
+              <div className="p-10 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
+                <div className="flex items-center gap-8">
+                  <div className="bg-zinc-50 px-6 py-4 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">{t.total}</p>
+                    <p className="text-3xl font-black text-zinc-900 tracking-tighter">
+                      ₱{(
+                        Number(customizingItem.sellingPrice) +
+                        selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
+                      ).toFixed(0)}
+                    </p>
                   </div>
+                  {selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0) > 0 && (
+                    <div className="text-orange-600 font-bold">
+                      <p className="text-[10px] uppercase tracking-widest mb-1">{t.addOns}</p>
+                      <p className="text-xl">+₱{selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0).toFixed(0)}</p>
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={confirmCustomization}
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-12 py-6 rounded-2xl font-black uppercase tracking-wider text-xl flex items-center gap-3 hover:from-orange-600 hover:to-amber-600 transition-all shadow-[0_8px_20px_rgba(234,88,12,0.3)] hover:shadow-[0_12px_25px_rgba(234,88,12,0.4)] hover:-translate-y-[1px] active:scale-95"
+                  className="bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
                 >
                   <span>{t.addToTray}</span>
                   <Plus size={24} strokeWidth={3} />
@@ -1800,8 +1809,8 @@ const KioskPage = () => {
                 key={branch.id}
                 onClick={() => handleSelectBranch(branch)}
                 className={`p-10 rounded-[2.5rem] border-2 flex flex-col items-start text-left transition-all duration-500 group active:scale-[0.97] backdrop-blur-xl group relative ${selectedBranchToConfirm?.id === branch.id
-                    ? 'bg-white border-[#7c14d4] shadow-[0_25px_60px_rgba(124,20,212,0.15)] -translate-y-2'
-                    : 'bg-white/40 border-white/60 hover:bg-white/80 hover:border-violet-200 hover:shadow-[0_30px_70px_rgba(88,28,135,0.12)] hover:-translate-y-1.5 shadow-sm'
+                  ? 'bg-white border-[#7c14d4] shadow-[0_25px_60px_rgba(124,20,212,0.15)] -translate-y-2'
+                  : 'bg-white/40 border-white/60 hover:bg-white/80 hover:border-violet-200 hover:shadow-[0_30px_70px_rgba(88,28,135,0.12)] hover:-translate-y-1.5 shadow-sm'
                   }`}
               >
                 {/* Visual Accent */}
@@ -1809,8 +1818,8 @@ const KioskPage = () => {
 
                 <div className="flex items-center gap-6 w-full mb-6 relative z-10">
                   <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 border ${selectedBranchToConfirm?.id === branch.id
-                      ? 'bg-gradient-to-br from-[#7c14d4] to-fuchsia-600 border-[#7c14d4] text-white shadow-lg shadow-purple-200 scale-110'
-                      : 'bg-white border-zinc-100 text-zinc-400 group-hover:bg-gradient-to-br group-hover:from-[#7c14d4] group-hover:to-fuchsia-600 group-hover:border-[#7c14d4] group-hover:text-white group-hover:scale-110'
+                    ? 'bg-gradient-to-br from-[#7c14d4] to-fuchsia-600 border-[#7c14d4] text-white shadow-lg shadow-purple-200 scale-110'
+                    : 'bg-white border-zinc-100 text-zinc-400 group-hover:bg-gradient-to-br group-hover:from-[#7c14d4] group-hover:to-fuchsia-600 group-hover:border-[#7c14d4] group-hover:text-white group-hover:scale-110'
                     }`}>
                     <ShoppingBag size={28} />
                   </div>
@@ -1853,8 +1862,8 @@ const KioskPage = () => {
 
                 <div className="mt-8 pt-6 border-t border-zinc-100/50 w-full flex items-center justify-between relative z-10">
                   <div className={`flex items-center gap-2 font-black uppercase text-[10px] tracking-[0.2em] transition-all duration-500 ${selectedBranchToConfirm?.id === branch.id
-                      ? 'text-[#7c14d4] translate-x-1'
-                      : 'text-zinc-300 group-hover:text-[#7c14d4] group-hover:translate-x-1'
+                    ? 'text-[#7c14d4] translate-x-1'
+                    : 'text-zinc-300 group-hover:text-[#7c14d4] group-hover:translate-x-1'
                     }`}>
                     <span>{t.selectBranch}</span>
                     <ChevronRight size={14} strokeWidth={3} />
