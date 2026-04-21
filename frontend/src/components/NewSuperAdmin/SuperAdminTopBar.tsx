@@ -60,6 +60,7 @@ export interface SuperAdminTopBarProps {
 const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   overview: { label: "Dashboard Overview", desc: "Real-time summary across all branches" },
   branches: { label: "Branch Management", desc: "Full control over all branches" },
+  app_branches: { label: "App Branches", desc: "Manage visual representations and coordinates for the mobile app" },
   users: { label: "User Management", desc: "Staff accounts, roles & permissions" },
   devices: { label: "Device Management", desc: "POS terminals & connected devices" },
 
