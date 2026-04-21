@@ -89,6 +89,15 @@ interface CartItem extends MenuItem {
   itemTotal: number;
 }
 
+interface BundleSelection {
+  name: string;
+  sugarLevel: string;
+  options: string[];
+  addOns: AddOnOption[];
+  quantity: number;
+  price: number;
+}
+
 // --- Hooks ---
 
 const IDLE_TIMEOUT = 120000; // 2 minutes
@@ -144,7 +153,7 @@ const KioskPage = () => {
   const [bundlesData, setBundlesData] = useState<Bundle[]>([]);
   const [isBundleViewOpen, setIsBundleViewOpen] = useState(false);
   const [activeBundleItem, setActiveBundleItem] = useState<Bundle | null>(null);
-  const [bundleSelections, setBundleSelections] = useState<any[]>([]);
+  const [bundleSelections, setBundleSelections] = useState<BundleSelection[]>([]);
   const [flattenedBundleItems, setFlattenedBundleItems] = useState<BundleItem[]>([]);
   const [currentBundleItemIndex, setCurrentBundleItemIndex] = useState(0);
   const [bundleCustomizingStep, setBundleCustomizingStep] = useState<'select_drink' | 'customize_drink'>('select_drink');
@@ -555,10 +564,10 @@ const KioskPage = () => {
       // Finalize Bundle
       const remarks = newSelections.map((s, i) => {
         const sugarDisplay = s.sugarLevel && s.sugarLevel !== '100%' ? s.sugarLevel : '';
-        return `[${i + 1}] ${s.name}${sugarDisplay ? `: ${sugarDisplay}` : ''}${s.options.length ? ` | ${s.options.join(', ')}` : ''}${s.addOns.length ? ` | +${s.addOns.map((a: any) => a.name).join(', ')}` : ''}`;
+        return `[${i + 1}] ${s.name}${sugarDisplay ? `: ${sugarDisplay}` : ''}${s.options.length ? ` | ${s.options.join(', ')}` : ''}${s.addOns.length ? ` | +${s.addOns.map((a: AddOnOption) => a.name).join(', ')}` : ''}`;
       }).join(' || ');
 
-      const addonsTotal = newSelections.reduce((sum, s) => sum + s.addOns.reduce((as: number, a: any) => as + a.price, 0), 0);
+      const addonsTotal = newSelections.reduce((sum, s) => sum + s.addOns.reduce((as: number, a: AddOnOption) => as + a.price, 0), 0);
 
       const finalItem: CartItem = {
         id: activeBundleItem.id,
