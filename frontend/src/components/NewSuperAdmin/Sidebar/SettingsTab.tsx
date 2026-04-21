@@ -1,4 +1,4 @@
-// CI/CD Trigger
+// CI/CD Trigger: Syncing development to main to fix production white screen
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {

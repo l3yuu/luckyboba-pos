@@ -461,10 +461,10 @@ const KioskPage = () => {
     try {
       setLoading(true);
       const res = await api.get(`/category-drinks?category_id=${categoryId}`);
-      interface DrinkPoolItem { 
-        menu_item_id: number; 
-        name: string; 
-        size: string; 
+      interface DrinkPoolItem {
+        menu_item_id: number;
+        name: string;
+        size: string;
         price: number;
         has_ice?: boolean;
         has_pearl?: boolean;
@@ -528,9 +528,9 @@ const KioskPage = () => {
     if (!activeBundleItem) return;
 
     const currentItem = flattenedBundleItems[currentBundleItemIndex];
-    const isDrink = (currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) || 
-                    (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink'));
-    
+    const isDrink = (currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) ||
+      (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink'));
+
     const hasIce = selectedBundleDrink ? selectedBundleDrink.has_ice : currentItem.has_ice;
     const hasPearl = selectedBundleDrink ? selectedBundleDrink.has_pearl : currentItem.has_pearl;
 
@@ -544,7 +544,7 @@ const KioskPage = () => {
       options: finalOptions,
       addOns: bundleAddOns,
       quantity: 1, // Individual customization, so quantity is 1
-      price: isDrink ? (selectedBundleDrink?.sellingPrice || 0) : 0, 
+      price: isDrink ? (selectedBundleDrink?.sellingPrice || 0) : 0,
     };
 
     const newSelections = [...bundleSelections, selection];
@@ -593,7 +593,7 @@ const KioskPage = () => {
     setBundleOptions(prev => {
       const iceOpts = ['NO ICE', '-ICE', '+ICE'];
       const pearlOpts = ['NO PRL', 'W/ PRL'];
-      
+
       if (iceOpts.includes(opt)) {
         setBundleIce(prevIce => prevIce === opt ? 'NORMAL ICE' : opt);
         return prev; // handled by bundleIce state
@@ -645,10 +645,10 @@ const KioskPage = () => {
       const bundle = bundlesData.find(b => b.barcode === item.barcode);
       if (bundle) {
         // Flatten items: if quantity is 2, create 2 separate slots for customization
-        const flattened = (bundle.items || []).flatMap(bi => 
+        const flattened = (bundle.items || []).flatMap(bi =>
           Array.from({ length: bi.quantity || 1 }, () => ({ ...bi, quantity: 1 }))
         );
-        
+
         setActiveBundleItem(bundle);
         setFlattenedBundleItems(flattened);
         setCurrentBundleItemIndex(0);
@@ -1428,7 +1428,7 @@ const KioskPage = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-zinc-900 tracking-tight uppercase leading-none">
-                      {mixMatchStep === 'select_drink' 
+                      {mixMatchStep === 'select_drink'
                         ? (pendingMixMatchItem.category_type === 'combo' ? 'Customize Your Combo' : 'Choose Your Drink')
                         : 'Customize Drink'}
                     </h3>
@@ -1545,8 +1545,8 @@ const KioskPage = () => {
                           )}
                           {selectedMixMatchDrink?.has_pearl && (
                             <div>
-                               <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Pearl Preference</p>
-                               <div className="grid grid-cols-2 gap-2">
+                              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Pearl Preference</p>
+                              <div className="grid grid-cols-2 gap-2">
                                 {['NO PRL', 'W/ PRL'].map(opt => (
                                   <button
                                     key={opt}
@@ -1559,7 +1559,7 @@ const KioskPage = () => {
                                     {opt}
                                   </button>
                                 ))}
-                               </div>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1672,7 +1672,7 @@ const KioskPage = () => {
 
               {/* Progress Bar */}
               <div className="h-1 w-full bg-zinc-100 shrink-0">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-[#7c14d4] to-purple-500 transition-all duration-500"
                   style={{ width: `${((currentBundleItemIndex + 1) / flattenedBundleItems.length) * 100}%` }}
                 />
@@ -1692,8 +1692,8 @@ const KioskPage = () => {
                 {(() => {
                   const currentItem = flattenedBundleItems[currentBundleItemIndex];
                   if (!currentItem) return null;
-                  const isDrinkStep = (currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) || 
-                                     (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink'));
+                  const isDrinkStep = (currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) ||
+                    (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink'));
 
                   if (isDrinkStep && bundleCustomizingStep === 'select_drink') {
                     return (
@@ -1852,22 +1852,22 @@ const KioskPage = () => {
                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Bundle Total</p>
                   <p className="text-xl font-black text-zinc-900 tracking-tighter">₱{(Number(activeBundleItem.price) + bundleAddOns.reduce((sum, a) => sum + a.price, 0)).toFixed(0)}</p>
                 </div>
-                {(bundleCustomizingStep === 'customize_drink' || 
+                {(bundleCustomizingStep === 'customize_drink' ||
                   (() => {
                     const currentItem = flattenedBundleItems[currentBundleItemIndex];
                     if (!currentItem) return true;
-                    return !((currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) || 
-                             (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink')));
+                    return !((currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) ||
+                      (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink')));
                   })()
                 ) && (
-                  <button
-                    onClick={confirmBundleStep}
-                    className="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white px-8 py-3.5 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-purple-100"
-                  >
-                    {currentBundleItemIndex < flattenedBundleItems.length - 1 ? 'Next Step' : 'Confirm Bundle'}
-                    <Plus size={16} strokeWidth={4} />
-                  </button>
-                )}
+                    <button
+                      onClick={confirmBundleStep}
+                      className="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white px-8 py-3.5 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-purple-100"
+                    >
+                      {currentBundleItemIndex < flattenedBundleItems.length - 1 ? 'Next Step' : 'Confirm Bundle'}
+                      <Plus size={16} strokeWidth={4} />
+                    </button>
+                  )}
               </div>
             </div>
           </div>
@@ -1993,48 +1993,48 @@ const KioskPage = () => {
                           </div>
                           <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">Add Toppings <span className="text-[9px] font-bold text-zinc-400 ml-2 normal-case">(optional)</span></h4>
                         </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                    {allAddOns
-                      .filter(ao => {
-                        const itemCat = customizingItem.category?.toLowerCase() || '';
-                        if (itemCat.includes('waffle')) return ao.category === 'waffle';
-                        return ao.category === 'drink' || ao.category === 'Toppings';
-                      })
-                      .map((ao) => {
-                        const isSelected = selectedAddOns.some(a => a.id === ao.id);
-                        return (
-                          <button
-                            key={ao.id}
-                            onClick={() => {
-                              setSelectedAddOns(prev =>
-                                isSelected
-                                  ? prev.filter(p => p.id !== ao.id)
-                                  : [...prev, ao]
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                          {allAddOns
+                            .filter(ao => {
+                              const itemCat = customizingItem.category?.toLowerCase() || '';
+                              if (itemCat.includes('waffle')) return ao.category === 'waffle';
+                              return ao.category === 'drink' || ao.category === 'Toppings';
+                            })
+                            .map((ao) => {
+                              const isSelected = selectedAddOns.some(a => a.id === ao.id);
+                              return (
+                                <button
+                                  key={ao.id}
+                                  onClick={() => {
+                                    setSelectedAddOns(prev =>
+                                      isSelected
+                                        ? prev.filter(p => p.id !== ao.id)
+                                        : [...prev, ao]
+                                    );
+                                  }}
+                                  className={`p-3 rounded-xl border-2 flex flex-col transition-all text-left ${isSelected
+                                    ? 'border-[#7c3aed] bg-purple-50 scale-[1.02] shadow-sm'
+                                    : 'border-zinc-100 bg-white hover:border-purple-100'
+                                    }`}
+                                >
+                                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-[#7c3aed] bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white' : 'border-zinc-300 bg-zinc-50'}`}>
+                                    {isSelected && <CheckCircle2 size={12} strokeWidth={3} />}
+                                  </div>
+                                  <span className={`font-black text-[12px] ${isSelected ? 'text-[#7c3aed]' : 'text-zinc-500'}`}>
+                                    +₱{Number(ao.price).toFixed(0)}
+                                  </span>
+                                  <span className={`font-bold text-[13px] leading-tight uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-700'}`}>
+                                    {ao.name?.toLowerCase()}
+                                  </span>
+                                </button>
                               );
-                            }}
-                            className={`p-3 rounded-xl border-2 flex flex-col transition-all text-left ${isSelected
-                               ? 'border-[#7c3aed] bg-purple-50 scale-[1.02] shadow-sm'
-                               : 'border-zinc-100 bg-white hover:border-purple-100'
-                               }`}
-                          >
-                              <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-[#7c3aed] bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white' : 'border-zinc-300 bg-zinc-50'}`}>
-                                {isSelected && <CheckCircle2 size={12} strokeWidth={3} />}
-                              </div>
-                              <span className={`font-black text-[12px] ${isSelected ? 'text-[#7c3aed]' : 'text-zinc-500'}`}>
-                                +₱{Number(ao.price).toFixed(0)}
-                              </span>
-                            <span className={`font-bold text-[13px] leading-tight uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-700'}`}>
-                              {ao.name?.toLowerCase()}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </>
-              )
-            })()}
-            </div>
+                            })}
+                        </div>
+                      </div>
+                    </>
+                  )
+                })()}
+              </div>
 
               <div className="p-5 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
                 <div className="bg-zinc-50 px-4 py-2 rounded-xl border border-zinc-100">
