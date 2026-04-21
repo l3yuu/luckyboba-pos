@@ -26,6 +26,7 @@ interface ReceiptPrintProps {
   generalAddress?: string;
   orNumber: string;
   queueNumber: string;
+  terminalNumber?: string;
   cashierName: string;
   formattedDate: string;
   formattedTime: string;
@@ -75,7 +76,7 @@ interface ReceiptPrintProps {
 
 export const ReceiptPrint = ({
   cart, branchName, brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber, ownerName,
-  orNumber, queueNumber, cashierName,
+  orNumber, queueNumber, terminalNumber, cashierName,
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, vatExemptSales = 0, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
@@ -188,6 +189,7 @@ export const ReceiptPrint = ({
           {minNumber && <p className="text-xs mt-0.5">MIN: {minNumber}</p>}
           {serialNumber && <p className="text-xs mt-0.5">SN: {serialNumber}</p>}
           <h2 className="text-sm mt-2">{orNumber}</h2>
+          {terminalNumber && <p className="text-[10px] uppercase font-bold text-zinc-500">Terminal: {terminalNumber}</p>}
           <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
         </div>
 
@@ -278,21 +280,26 @@ export const ReceiptPrint = ({
 
                   {/* Sugar / options / remarks - only on first group per item */}
                   {isFirstGroupForItem && (
-                    <>
-                      {item.size === 'none' && item.sugarLevel != null ? (
-                        <>
-                          <div className="pl-2 text-[10px]">• Classic Pearl</div>
-                          <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
-                          {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
-                        </>
-                      ) : (
-                        <>
-                          {item.sugarLevel != null && item.sugarLevel !== '' && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
-                          {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
-                          {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
-                        </>
+                    <div className="space-y-0.5 mt-0.5">
+                      {item.sugarLevel != null && item.sugarLevel !== '' && (
+                        <div className="pl-2 text-[10px] flex items-center gap-1">
+                          <span className="text-gray-400">•</span>
+                          <span>Sugar {item.sugarLevel}</span>
+                        </div>
                       )}
-                    </>
+                      {item.options?.map(o => (
+                        <div key={o} className="pl-2 text-[10px] flex items-center gap-1">
+                          <span className="text-gray-400">•</span>
+                          <span>{o}</span>
+                        </div>
+                      ))}
+                      {item.remarks && (
+                        <div className="pl-2 text-[10px] italic flex items-center gap-1">
+                          <span className="text-gray-400">•</span>
+                          <span>{item.remarks}</span>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Add-ons as separate line items - only once per original item */}

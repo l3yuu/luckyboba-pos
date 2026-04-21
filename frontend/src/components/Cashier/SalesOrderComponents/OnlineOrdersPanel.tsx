@@ -15,6 +15,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { CustomerNameModal, SuccessModal } from './modals';
 import { OnlineOrderPaymentModal } from './OnlineOrderPaymentModals';
 import { ReceiptPrint, KitchenPrint, StickerPrint } from './print';
+import { generateTerminalNumber } from './shared';
 import type { CartItem } from '../../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -28,7 +29,11 @@ interface SaleItem {
   unit_price?: number;
   total_price?: number;
   cup_size?: string;
+  cup_size_label?: string;
+  sugar_level?: string;
+  options?: string[];
   add_ons?: (string | { name?: string; addon_name?: string })[];
+  remarks?: string;
 }
 
 interface OnlineOrder {
@@ -40,8 +45,12 @@ interface OnlineOrder {
   qr_code?: string;
   branch_name?: string;
   payment_method?: string;
+  subtotal?: number;
   total_amount?: number;
-  total?: number;
+  vatable_sales?: number;
+  vat_amount?: number;
+  vat_exempt_sales?: number;
+  discount_amount?: number;
   order_type?: string;
   status: 'pending' | 'preparing' | 'completed' | 'cancelled';
   source?: string;
@@ -56,7 +65,7 @@ type Status = 'pending' | 'preparing' | 'completed';
 const itemQty = (item: SaleItem) => item.qty ?? item.quantity ?? 1;
 const itemPrice = (item: SaleItem) => item.unit_price ?? item.price ?? 0;
 const orderInvoice = (o: OnlineOrder) => o.invoice_number ?? o.si_number ?? '';
-const orderTotal = (o: OnlineOrder) => o.total_amount ?? o.total ?? 0;
+const orderTotal = (o: OnlineOrder) => o.total_amount ?? 0;
 
 const STATUS_META: Record<Status, {
   label: string; color: string; bg: string; border: string;
@@ -100,15 +109,28 @@ const elapsed = (dateStr: string) => {
 // ─── Print Mappers ────────────────────────────────────────────────────────────
 
 const mapOrderToCart = (order: OnlineOrder): CartItem[] => {
-  return order.items.map(item => ({
-    name: item.name,
-    qty: itemQty(item),
-    price: itemPrice(item),
-    cupSizeLabel: item.cup_size && item.cup_size !== 'none' ? item.cup_size.toUpperCase() : '',
-    size: item.cup_size || 'none',
-    addOns: Array.isArray(item.add_ons) ? item.add_ons.map((a: string | Record<string, string>) => typeof a === 'string' ? a : (a.name || a.addon_name || '')) : [],
-    options: []
-  })) as unknown as CartItem[];
+  return order.items.map(item => {
+    // Filter out 'none'/'NONE' — matches SalesOrder which sets cupSizeLabel=undefined for non-drinks
+    const rawLabel = item.cup_size_label || (item.cup_size && item.cup_size !== 'none' ? item.cup_size.toUpperCase() : '');
+    const cupSizeLabel = rawLabel && rawLabel.toUpperCase() !== 'NONE' ? rawLabel : undefined;
+
+    // Only show sugarLevel for drinks (items with a real cup_size) — matches SalesOrder: `isDrink ? sugarLevel : undefined`
+    const hasCupSize = item.cup_size && item.cup_size !== 'none';
+    const sugarLevel = hasCupSize && item.sugar_level && item.sugar_level !== 'none' ? item.sugar_level : undefined;
+
+    return {
+      name: item.name,
+      qty: itemQty(item),
+      price: item.unit_price ?? itemPrice(item),
+      cupSizeLabel,
+      size: (item.cup_size && item.cup_size !== 'none') ? item.cup_size : 'none',
+      sugarLevel,
+      remarks: item.remarks || '',
+      options: Array.isArray(item.options) ? item.options : [],
+      addOns: Array.isArray(item.add_ons) ? item.add_ons.map((a: string | Record<string, string>) => typeof a === 'string' ? a : (a.name || a.addon_name || '')) : [],
+      finalPrice: itemPrice(item),
+    };
+  }) as unknown as CartItem[];
 };
 
 // ─── Order Card ───────────────────────────────────────────────────────────────
@@ -389,6 +411,8 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     }).catch(console.error);
   }, [user?.branch_id]);
 
+  const terminalNumber = generateTerminalNumber(user?.branch_id || 0);
+
   const [confirmOrder, setConfirmOrder] = useState<{ id: number; status: Status; invoice: string; customer_code?: string } | null>(null);
 
   // New Workflow States
@@ -442,28 +466,9 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     seqNumber: string,
   ) => {
     setPrintJob({ type, order, seqNumber });
-
     setTimeout(() => {
-      const style = document.createElement('style');
-      style.id = '__receipt-print-style__';
-      style.innerHTML = `
-        @media print {
-          body * { visibility: hidden !important; }
-          .printable-receipt-container,
-          .printable-receipt-container * { visibility: visible !important; }
-          .printable-receipt-container {
-            position: fixed !important;
-            top: 0 !important; left: 0 !important;
-            width: 100% !important;
-            z-index: 9999 !important;
-            background: white !important;
-          }
-        }
-      `;
-      document.head.appendChild(style);
       window.print();
       setTimeout(() => {
-        document.getElementById('__receipt-print-style__')?.remove();
         setPrintJob(null);
       }, 1000);
     }, 150);
@@ -597,75 +602,9 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   );
 
   return (
-    <div className={`flex flex-col bg-[#f4f2fb] ${isPage ? 'h-screen' : 'h-full'}`}>
-
-      {/* Hidden print area — swaps between kitchen ticket and receipt */}
-      {printJob?.type === 'kitchen' && (
-        <KitchenPrint 
-          cart={mapOrderToCart(printJob.order)} 
-          branchName={printJob.order.branch_name ?? '—'}
-          orNumber={orderInvoice(printJob.order)}
-          queueNumber={printJob.seqNumber}
-          customerName={printJob.order.customer_name ?? 'App Customer'}
-          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
-          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
-          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
-        />
-      )}
-      {printJob?.type === 'receipt' && (
-        <ReceiptPrint 
-          cart={mapOrderToCart(printJob.order)}
-          branchName={printJob.order.branch_name ?? '—'}
-          brand={branchDetails.brand || "LUCKY BOBA MILKTEA"}
-          {...branchDetails}
-          businessName={generalSettings.business_name}
-          contactEmail={generalSettings.contact_email}
-          contactPhone={generalSettings.contact_phone}
-          generalAddress={generalSettings.address}
-          ownerName={branchDetails.owner_name}
-          vatType={vatType}
-          addOnsData={addOnsData}
-          orNumber={orderInvoice(printJob.order)}
-          queueNumber={printJob.seqNumber}
-          cashierName="Customer App"
-          orderCharge={null}
-          totalCount={printJob.order.items.reduce((acc, i) => acc + itemQty(i), 0)}
-          subtotal={orderTotal(printJob.order)}
-          amtDue={orderTotal(printJob.order)}
-          vatableSales={orderTotal(printJob.order) / 1.12}
-          vatAmount={orderTotal(printJob.order) - (orderTotal(printJob.order) / 1.12)}
-          vatExemptSales={0}
-          change={0}
-          cashTendered={orderTotal(printJob.order)}
-          referenceNumber=""
-          paymentMethod={(printJob.order.payment_method ?? 'online').toUpperCase()}
-          selectedDiscount={null}
-          selectedDiscounts={[]}
-          totalDiscountDisplay={0}
-          itemDiscountTotal={0}
-          promoDiscount={0}
-          itemPaxAssignments={{}}
-          customerName={printJob.order.customer_name ?? 'App Customer'}
-          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
-          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
-          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
-          isReprint={false}
-          showDoubleQueueStub={printJob.order.order_type === 'take-out'}
-          posFooter={posFooter}
-        />
-      )}
-      {printJob?.type === 'stickers' && (
-        <StickerPrint 
-          cart={mapOrderToCart(printJob.order)}
-          branchName={printJob.order.branch_name ?? '—'}
-          orNumber={orderInvoice(printJob.order)}
-          queueNumber={printJob.seqNumber}
-          customerName={printJob.order.customer_name ?? 'App Customer'}
-          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
-          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
-          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
-        />
-      )}
+    <>
+      {/* Main UI — hidden during print (matches SalesOrder pattern) */}
+      <div className={`flex flex-col bg-[#f4f2fb] print:hidden ${isPage ? 'h-screen' : 'h-full'}`}>
 
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-[#e9d5ff] shrink-0 shadow-sm">
@@ -847,7 +786,78 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         />
       )}
 
+
     </div>
+
+      {/* Print area — rendered outside print:hidden div, matching SalesOrder pattern */}
+      {printJob?.type === 'kitchen' && (
+        <KitchenPrint 
+          cart={mapOrderToCart(printJob.order)} 
+          branchName={printJob.order.branch_name ?? '—'}
+          orNumber={orderInvoice(printJob.order)}
+          queueNumber={printJob.seqNumber}
+          customerName={printJob.order.customer_name ?? 'App Customer'}
+          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
+          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+        />
+      )}
+      {printJob?.type === 'receipt' && (
+        <ReceiptPrint 
+          cart={mapOrderToCart(printJob.order)}
+          branchName={printJob.order.branch_name ?? '—'}
+          brand={branchDetails.brand || "LUCKY BOBA MILKTEA"}
+          {...branchDetails}
+          businessName={generalSettings.business_name}
+          contactEmail={generalSettings.contact_email}
+          contactPhone={generalSettings.contact_phone}
+          generalAddress={generalSettings.address}
+          ownerName={branchDetails.owner_name}
+          vatType={vatType}
+          addOnsData={addOnsData}
+          orNumber={orderInvoice(printJob.order)}
+          queueNumber={printJob.seqNumber}
+          terminalNumber={terminalNumber}
+          cashierName="Customer App"
+          orderCharge={null}
+          totalCount={printJob.order.items.reduce((acc, i) => acc + itemQty(i), 0)}
+          subtotal={printJob.order.subtotal || orderTotal(printJob.order)}
+          amtDue={printJob.order.total_amount ?? orderTotal(printJob.order)}
+          vatableSales={printJob.order.vatable_sales ?? (orderTotal(printJob.order) / 1.12)}
+          vatAmount={printJob.order.vat_amount ?? (orderTotal(printJob.order) - (orderTotal(printJob.order) / 1.12))}
+          vatExemptSales={printJob.order.vat_exempt_sales ?? 0}
+          change={0}
+          cashTendered={printJob.order.total_amount ?? orderTotal(printJob.order)}
+          referenceNumber=""
+          paymentMethod={(printJob.order.payment_method ?? 'online').toUpperCase()}
+          selectedDiscount={null}
+          selectedDiscounts={[]}
+          totalDiscountDisplay={printJob.order.discount_amount ?? 0}
+          itemDiscountTotal={0}
+          promoDiscount={printJob.order.discount_amount ?? 0}
+          itemPaxAssignments={{}}
+          customerName={printJob.order.customer_name ?? 'App Customer'}
+          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
+          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          isReprint={false}
+          showDoubleQueueStub={printJob.order.order_type === 'take-out'}
+          posFooter={posFooter}
+        />
+      )}
+      {printJob?.type === 'stickers' && (
+        <StickerPrint 
+          cart={mapOrderToCart(printJob.order)}
+          branchName={printJob.order.branch_name ?? '—'}
+          orNumber={orderInvoice(printJob.order)}
+          queueNumber={printJob.seqNumber}
+          customerName={printJob.order.customer_name ?? 'App Customer'}
+          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
+          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+        />
+      )}
+    </>
   );
 };
 
