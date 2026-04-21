@@ -532,7 +532,7 @@ const KioskPage = () => {
       const todayKey = new Date().toISOString().split('T')[0];
 
       try {
-        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}`);
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&t=${Date.now()}`);
         const serverSeq = parseInt(data.next_sequence, 10);
         const serverQueue = parseInt(data.next_queue, 10);
 
@@ -1679,7 +1679,7 @@ const KioskPage = () => {
 
 
   const ConfirmView = () => (
-    <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fdf8ff]">
+    <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fdf8ff] scrollbar-hide">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-100/30 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-50/40 rounded-full blur-[100px] translate-y-1/4 -translate-x-1/4 pointer-events-none" />
@@ -1687,8 +1687,8 @@ const KioskPage = () => {
       {/* Top Bar (Unified) */}
       <div className="h-20 px-12 flex items-center justify-between shrink-0 relative z-50">
         <div className="flex items-center gap-4">
-          <img src={logo} alt="Lucky Boba" className="h-12 w-auto drop-shadow-sm" />
-          <span className="text-2xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
+          <img src={logo} alt="Lucky Boba" className="h-14 w-auto drop-shadow-sm" />
+          <span className="text-3xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
         </div>
         <div className="flex items-center gap-6">
           <div className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
@@ -1698,49 +1698,48 @@ const KioskPage = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-10 px-12 relative z-10 py-12">
-        <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_15px_40px_rgba(16,185,129,0.3)] animate-bounce relative shrink-0">
-          <div className="absolute inset-0 border-4 border-emerald-400 rounded-full animate-ping opacity-50"></div>
-          <CheckCircle2 size={48} strokeWidth={3} className="relative z-10" />
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-4 px-8 sm:px-12 relative z-10 py-2 sm:py-4 w-full">
+        <div className="w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_10px_25px_rgba(16,185,129,0.2)] animate-bounce relative shrink-0">
+          <Check size={32} strokeWidth={4} />
         </div>
 
-        <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="relative">
-            <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-              Order <span className="italic text-[#7c3aed]">Received</span>
+            <h2 className="text-4xl sm:text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              ORDER <span className="italic text-[#7c3aed]">RECEIVED</span>
             </h2>
-            <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+            <h2 className="text-4xl sm:text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
               {t.confirmTitle1} <span className="text-[#7c3aed] italic">{t.confirmTitle2}</span>
             </h2>
           </div>
-          <div className="relative h-5">
-            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em] invisible" aria-hidden="true">Please proceed to counter to pay</p>
-            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em] absolute inset-0 text-center">{t.proceedToCounter}</p>
+          <div className="relative h-4">
+            <p className="text-[10px] sm:text-xs font-semibold text-emerald-600 uppercase tracking-[0.2em] invisible" aria-hidden="true">Please proceed to counter to pay</p>
+            <p className="text-[10px] sm:text-xs font-semibold text-emerald-600 uppercase tracking-[0.2em] absolute inset-0 text-center">{t.proceedToCounter}</p>
           </div>
         </div>
 
-        <div className="bg-white p-10 rounded-[3rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
-          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-5">{t.yourTicketNumber}</p>
+        <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] w-full max-w-lg shadow-[0_30px_80px_rgba(0,0,0,0.04)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
+          <p className="text-zinc-400 font-bold uppercase tracking-[0.3em] text-[9px] mb-4">{t.yourTicketNumber}</p>
 
-          <div className="bg-purple-50/50 px-12 py-8 rounded-[2.5rem] mb-10 border border-purple-100/50 shadow-inner w-full text-center">
-            <h3 className="text-7xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
-              #{orderNumber}
+          <div className="bg-purple-50/20 px-10 py-6 rounded-[2rem] mb-6 border border-purple-100/20 shadow-inner w-full text-center">
+            <h3 className="text-5xl sm:text-6xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <span className="text-[#7c3aed]/40 font-medium mr-1">#</span>{orderNumber}
             </h3>
           </div>
 
-          <div className="w-full flex items-center justify-between pt-8 border-t border-dashed border-purple-100">
-            <span className="text-zinc-400 font-bold uppercase text-xs tracking-widest">{t.totalDue}</span>
+          <div className="w-full flex items-center justify-between pt-6 border-t border-dashed border-purple-100/60">
+            <span className="text-zinc-400 font-bold uppercase text-[9px] tracking-[0.2em]">{t.totalDue}</span>
             <span className="text-4xl font-bold text-[#3b0764] tracking-tighter">₱{calculateTotal().toFixed(0)}</span>
           </div>
         </div>
 
         <button
           onClick={handleReset}
-          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-12 pr-8 py-5 rounded-full font-bold text-xl tracking-[0.15em] uppercase shadow-[0_25px_60px_rgba(124,58,237,0.35)] flex items-center gap-8 transition-all hover:scale-[1.02] active:scale-95 mt-4"
+          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-7 pr-3 py-2.5 rounded-[1.25rem] font-bold text-sm tracking-[0.12em] uppercase shadow-[0_12px_30px_rgba(124,58,237,0.25)] flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95 mt-4"
         >
           <span className="relative z-10">{t.newOrder}</span>
-          <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
-            <ChevronRight size={24} strokeWidth={4} />
+          <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
+            <ChevronRight size={16} strokeWidth={4} />
           </div>
         </button>
       </div>
