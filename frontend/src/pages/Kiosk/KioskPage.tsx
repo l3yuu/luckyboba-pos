@@ -32,6 +32,26 @@ interface MenuItem {
   sellingPrice: number;
   image: string | null;
   size?: string;
+  barcode?: string;
+}
+
+interface BundleItem {
+  id: number;
+  custom_name: string;
+  display_name?: string;
+  quantity: number;
+  size: string;
+}
+
+interface Bundle {
+  id: number;
+  name: string;
+  display_name?: string;
+  category: string;
+  category_id: number;
+  price: number;
+  barcode: string;
+  items: BundleItem[];
 }
 
 interface Branch {
@@ -111,6 +131,18 @@ const KioskPage = () => {
   const [mixMatchSugar, setMixMatchSugar] = useState('100%');
   const [mixMatchOptions, setMixMatchOptions] = useState<string[]>([]);
   const [mixMatchAddOns, setMixMatchAddOns] = useState<AddOnOption[]>([]);
+
+  // --- Bundle State ---
+  const [bundlesData, setBundlesData] = useState<Bundle[]>([]);
+  const [isBundleViewOpen, setIsBundleViewOpen] = useState(false);
+  const [activeBundleItem, setActiveBundleItem] = useState<Bundle | null>(null);
+  const [bundleSelections, setBundleSelections] = useState<any[]>([]);
+  const [currentBundleItemIndex, setCurrentBundleItemIndex] = useState(0);
+  const [bundleCustomizingStep, setBundleCustomizingStep] = useState<'select_drink' | 'customize_drink'>('select_drink');
+  const [selectedBundleDrink, setSelectedBundleDrink] = useState<MenuItem | null>(null);
+  const [bundleSugar, setBundleSugar] = useState('100%');
+  const [bundleOptions, setBundleOptions] = useState<string[]>([]);
+  const [bundleAddOns, setBundleAddOns] = useState<AddOnOption[]>([]);
 
   const [printData, setPrintData] = useState<{
     invoice: string;
@@ -222,6 +254,11 @@ const KioskPage = () => {
           const cats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
           setCategories(cats);
           if (cats.length > 0) setActiveCategory(cats[0]);
+
+          // Fetch Bundles
+          api.get('/bundles').then(res => {
+            setBundlesData(Array.isArray(res.data) ? res.data : []);
+          }).catch(err => console.error('Failed to fetch bundles', err));
 
           // Set customization options
           setAllAddOns(aoRes.data);
@@ -447,8 +484,80 @@ const KioskPage = () => {
     setMixMatchStep('select_drink');
   };
 
+  const confirmBundleStep = () => {
+    if (!activeBundleItem) return;
+
+    const currentItem = activeBundleItem.items[currentBundleItemIndex];
+    const isDrink = currentItem.custom_name.toLowerCase().includes('drink') || 
+                    (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink'));
+
+    // Capture current step selection
+    const selection = {
+      name: isDrink ? (selectedBundleDrink?.name || currentItem.display_name || currentItem.custom_name) : (currentItem.display_name || currentItem.custom_name),
+      sugarLevel: bundleSugar,
+      options: bundleOptions,
+      addOns: bundleAddOns,
+      quantity: currentItem.quantity,
+      price: isDrink ? (selectedBundleDrink?.sellingPrice || 0) : 0, // Base price is usually in bundle price
+    };
+
+    const newSelections = [...bundleSelections, selection];
+
+    if (currentBundleItemIndex < activeBundleItem.items.length - 1) {
+      // Advance to next item
+      setBundleSelections(newSelections);
+      setCurrentBundleItemIndex(prev => prev + 1);
+      setBundleCustomizingStep('select_drink');
+      setSelectedBundleDrink(null);
+      setBundleSugar('100%');
+      setBundleOptions([]);
+      setBundleAddOns([]);
+    } else {
+      // Finalize Bundle
+      const remarks = newSelections.map((s, i) => 
+        `[${i + 1}] ${s.name}: ${s.sugarLevel}${s.options.length ? ` | ${s.options.join(', ')}` : ''}${s.addOns.length ? ` | +${s.addOns.map((a: any) => a.name).join(', ')}` : ''}`
+      ).join(' || ');
+
+      const addonsTotal = newSelections.reduce((sum, s) => sum + s.addOns.reduce((as: number, a: any) => as + a.price, 0), 0);
+
+      const finalItem: CartItem = {
+        id: activeBundleItem.id,
+        name: activeBundleItem.display_name || activeBundleItem.name,
+        category: 'Bundle',
+        sellingPrice: Number(activeBundleItem.price),
+        itemTotal: Number(activeBundleItem.price) + addonsTotal,
+        qty: 1,
+        uniqueId: Math.random().toString(36).substr(2, 9),
+        remarks: remarks,
+        image: activeBundleItem.name.toLowerCase().includes('classic') ? '/images/slideshow/lucky_classic.png' : null,
+      };
+
+      setCart(prev => [...prev, finalItem]);
+      setIsBundleViewOpen(false);
+      setActiveBundleItem(null);
+      setBundleSelections([]);
+      setCurrentBundleItemIndex(0);
+    }
+  };
+
   const mixMatchToggleOption = (opt: string) => {
     setMixMatchOptions(prev => {
+      const iceOpts = ['NO ICE', '-ICE', '+ICE', 'WARM'];
+      const pearlOpts = ['NO PRL', 'W/ PRL'];
+      if (iceOpts.includes(opt)) {
+        const rest = prev.filter(o => !iceOpts.includes(o));
+        return prev.includes(opt) ? rest : [...rest, opt];
+      }
+      if (pearlOpts.includes(opt)) {
+        const rest = prev.filter(o => !pearlOpts.includes(o));
+        return prev.includes(opt) ? rest : [...rest, opt];
+      }
+      return prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt];
+    });
+  };
+
+  const bundleToggleOption = (opt: string) => {
+    setBundleOptions(prev => {
       const iceOpts = ['NO ICE', '-ICE', '+ICE', 'WARM'];
       const pearlOpts = ['NO PRL', 'W/ PRL'];
       if (iceOpts.includes(opt)) {
@@ -476,6 +585,25 @@ const KioskPage = () => {
         fetchMixMatchPool(item.category_id);
       }
       return;
+    }
+
+    if (item.category_type === 'bundle') {
+      const bundle = bundlesData.find(b => b.barcode === item.barcode);
+      if (bundle) {
+        setActiveBundleItem(bundle);
+        setCurrentBundleItemIndex(0);
+        setBundleSelections([]);
+        setBundleCustomizingStep('select_drink');
+        setSelectedBundleDrink(null);
+        setBundleSugar('100%');
+        setBundleOptions([]);
+        setBundleAddOns([]);
+        setIsBundleViewOpen(true);
+        if (bundle.category_id) {
+          fetchMixMatchPool(bundle.category_id); // Bundles use the same drink pool as their category
+        }
+        return;
+      }
     }
 
     const cat = item.category?.toLowerCase() || '';
@@ -680,10 +808,10 @@ const KioskPage = () => {
             </p>
           </div>
 
-          <button className="group relative overflow-hidden bg-[#7c3aed] text-white pl-8 pr-4 py-3.5 rounded-[1.5rem] font-bold text-lg tracking-[0.12em] uppercase shadow-[0_15px_40px_rgba(124,58,237,0.3)] flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95">
+          <button className="group relative overflow-hidden bg-[#7c3aed] text-white pl-6 pr-3 py-2.5 rounded-full font-bold text-sm tracking-[0.12em] uppercase shadow-[0_10px_30px_rgba(124,58,237,0.3)] flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95">
             <span className="relative z-10">Tap to Start</span>
-            <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
-              <ChevronRight size={20} strokeWidth={4} />
+            <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
+              <ChevronRight size={16} strokeWidth={4} />
             </div>
             <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           </button>
@@ -905,7 +1033,7 @@ const KioskPage = () => {
                   : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#7c14d4]'
                   }`}
               >
-                <span className="text-sm truncate capitalize">{cat}</span>
+                <span className="text-sm truncate capitalize">{cat.toLowerCase()}</span>
               </button>
             ))}
           </div>
@@ -1055,7 +1183,7 @@ const KioskPage = () => {
                   className="text-xl font-bold text-zinc-800 mb-4"
                   style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                 >
-                  {searchQuery ? 'Search Results' : activeCategory ? activeCategory : 'Recommended for You'}
+                  {searchQuery ? 'Search Results' : activeCategory ? <span className="capitalize">{activeCategory.toLowerCase()}</span> : 'Recommended for You'}
                 </h2>
                 <div className="grid grid-cols-3 xl:grid-cols-4 gap-4">
                   {displayItems.map((item: MenuItem) => {
@@ -1433,6 +1561,229 @@ const KioskPage = () => {
           </div>
         )}
 
+        {/* Bundle Configurator Overlay */}
+        {isBundleViewOpen && activeBundleItem && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/60">
+            <div className="absolute inset-0" onClick={() => setIsBundleViewOpen(false)} />
+            <div className="relative bg-[#fdf8ff] w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300 border border-purple-100">
+
+              {/* Header */}
+              <div className="p-8 border-b border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl flex items-center justify-center shadow-inner">
+                    <ShoppingBag size={32} className="text-[#7c14d4]" />
+                  </div>
+                  <div>
+                    <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      Configure Bundle
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em]">
+                        {activeBundleItem.display_name || activeBundleItem.name}
+                      </p>
+                      <span className="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-black">
+                        ITEM {currentBundleItemIndex + 1} OF {activeBundleItem.items.length}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  {bundleCustomizingStep === 'customize_drink' && (
+                    <button
+                      onClick={() => setBundleCustomizingStep('select_drink')}
+                      className="px-6 py-3 bg-white border border-purple-200 text-[#7c14d4] rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
+                    >
+                      <ChevronRight className="rotate-180" size={16} />
+                      Back to Selection
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsBundleViewOpen(false)}
+                    className="w-14 h-14 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                  >
+                    <X size={28} strokeWidth={3} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="h-1.5 w-full bg-zinc-100 shrink-0">
+                <div 
+                  className="h-full bg-gradient-to-r from-[#7c14d4] to-purple-500 transition-all duration-500"
+                  style={{ width: `${((currentBundleItemIndex + 1) / activeBundleItem.items.length) * 100}%` }}
+                />
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-10 scrollbar-hide">
+                <div className="mb-10 text-center">
+                  <h4 className="text-2xl font-black text-zinc-800 uppercase tracking-tight">
+                    {activeBundleItem.items[currentBundleItemIndex].display_name || activeBundleItem.items[currentBundleItemIndex].custom_name}
+                  </h4>
+                  <p className="text-zinc-400 font-bold text-sm mt-1 uppercase tracking-widest">
+                    Component Configuration
+                  </p>
+                </div>
+
+                {bundleCustomizingStep === 'select_drink' ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {mixMatchDrinkPool.length === 0 ? (
+                      <div className="col-span-full py-20 text-center">
+                        {(() => {
+                           const currentItem = activeBundleItem.items[currentBundleItemIndex];
+                           const isDrink = currentItem.custom_name.toLowerCase().includes('drink') || 
+                                           (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink'));
+                           if (isDrink) {
+                             return <p className="text-zinc-400 font-bold">No drinks available for this selection.</p>;
+                           } else {
+                             // If it's a fixed food item, skip the selection grid and go to customization or confirm
+                             setTimeout(() => setBundleCustomizingStep('customize_drink'), 100);
+                             return <p className="text-zinc-400 font-bold">Loading component options...</p>;
+                           }
+                        })()}
+                      </div>
+                    ) : (
+                      mixMatchDrinkPool.map((drink) => (
+                        <div
+                          key={drink.id}
+                          onClick={() => {
+                            setSelectedBundleDrink(drink);
+                            setBundleCustomizingStep('customize_drink');
+                          }}
+                          className="bg-white p-5 rounded-3xl border-2 border-purple-50 shadow-sm hover:border-purple-300 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center text-center gap-4"
+                        >
+                          <div className="w-full aspect-square bg-gradient-to-br from-purple-50 to-orange-50 rounded-2xl flex items-center justify-center overflow-hidden">
+                            <ShoppingBag size={48} className="text-purple-200 group-hover:scale-110 transition-transform duration-500" />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-zinc-800 uppercase text-sm tracking-tight leading-tight mb-1">{drink.name}</h4>
+                            {drink.size && <span className="text-[10px] font-black bg-purple-50 text-[#7c14d4] px-2 py-0.5 rounded-full">{drink.size}</span>}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-10 max-w-2xl mx-auto">
+                    {/* Sugar Level (Only for drinks) */}
+                    {(activeBundleItem.items[currentBundleItemIndex].custom_name.toLowerCase().includes('drink') || 
+                      (activeBundleItem.items[currentBundleItemIndex].display_name && activeBundleItem.items[currentBundleItemIndex].display_name.toLowerCase().includes('drink'))) && (
+                      <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
+                        <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                          <span className="w-8 h-8 rounded-full bg-[#7c14d4] text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">1</span>
+                          Select Sugar Level
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                          {sugarLevels.map((sl) => (
+                            <button
+                              key={sl.id}
+                              onClick={() => setBundleSugar(sl.value)}
+                              className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${bundleSugar === sl.value
+                                ? 'bg-[#7c14d4] border-[#7c14d4] text-white shadow-lg shadow-purple-200'
+                                : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
+                                }`}
+                            >
+                              {sl.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Options (Ice/Pearl) */}
+                    <div className="bg-white p-8 rounded-[2rem] border border-orange-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm shadow-md shadow-orange-200">2</span>
+                        Drink Options
+                      </h4>
+                      <div className="space-y-8">
+                        <div>
+                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Ice Level</p>
+                          <div className="grid grid-cols-4 gap-3">
+                            {['NO ICE', '-ICE', '+ICE', 'WARM'].map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => bundleToggleOption(opt)}
+                                className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${bundleOptions.includes(opt)
+                                  ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
+                                  : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
+                                  }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Pearl Preference</p>
+                          <div className="grid grid-cols-2 gap-4">
+                            {['NO PRL', 'W/ PRL'].map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => bundleToggleOption(opt)}
+                                className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${bundleOptions.includes(opt)
+                                  ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
+                                  : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
+                                  }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Add-ons */}
+                    <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">3</span>
+                        Extra Toppings
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {allAddOns.map((addon) => (
+                          <button
+                            key={addon.id}
+                            onClick={() => {
+                              setBundleAddOns(prev => prev.some(a => a.id === addon.id) ? prev.filter(a => a.id !== addon.id) : [...prev, addon]);
+                            }}
+                            className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${bundleAddOns.some(a => a.id === addon.id)
+                              ? 'bg-purple-500 border-purple-500 text-white shadow-lg shadow-purple-200'
+                              : 'bg-white border-purple-50 text-zinc-400 hover:border-purple-200'
+                              }`}
+                          >
+                            <span className="font-black text-xs uppercase tracking-tighter text-center leading-tight">{addon.name}</span>
+                            <span className={`text-[10px] font-bold ${bundleAddOns.some(a => a.id === addon.id) ? 'text-white/80' : 'text-purple-600'}`}>+₱{addon.price.toFixed(0)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-8 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-lg z-10">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Bundle Total</span>
+                  <span className="text-3xl font-black text-orange-600 tracking-tighter">
+                    ₱{(Number(activeBundleItem.price) + bundleAddOns.reduce((sum, a) => sum + a.price, 0)).toFixed(0)}
+                  </span>
+                </div>
+                {(bundleCustomizingStep === 'customize_drink' || (activeBundleItem.items[currentBundleItemIndex].custom_name && !activeBundleItem.items[currentBundleItemIndex].custom_name.toLowerCase().includes('drink'))) && (
+                  <button
+                    onClick={confirmBundleStep}
+                    className="bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
+                  >
+                    {currentBundleItemIndex < activeBundleItem.items.length - 1 ? 'Next Component' : 'Add to Tray'}
+                    <Plus size={24} strokeWidth={3} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Customization Modal */}
         {showCustomizer && customizingItem && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-zinc-900/55">
@@ -1449,8 +1800,8 @@ const KioskPage = () => {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase line-clamp-1">{customizingItem.name}</h3>
-                    <div className="inline-block px-3 py-1 bg-purple-50 border border-purple-200 text-[#7c14d4] rounded-lg text-sm font-bold uppercase tracking-widest mt-2">{customizingItem.category}</div>
+                    <h3 className="text-2xl font-black text-zinc-900 tracking-tight capitalize line-clamp-1">{customizingItem.name?.toLowerCase()}</h3>
+                    <div className="inline-block px-3 py-1 bg-purple-50 border border-purple-200 text-[#7c14d4] rounded-lg text-xs font-bold capitalize tracking-widest mt-2">{customizingItem.category?.toLowerCase()}</div>
                   </div>
                 </div>
                 <button
@@ -1466,15 +1817,15 @@ const KioskPage = () => {
                   customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
                     <div className="bg-white/95 p-8 rounded-3xl border border-purple-100 shadow-sm">
                       <div className="flex items-center gap-4 mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0">1</div>
-                        <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase">Select Sugar</h4>
+                        <div className="w-10 h-10 bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white rounded-full flex items-center justify-center font-black text-base shrink-0">1</div>
+                        <h4 className="font-black text-zinc-900 text-xl tracking-tight capitalize">Select Sugar</h4>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         {sugarLevels.map((sl) => (
                           <button
                             key={sl.id}
                             onClick={() => setSelectedSugarLevel(sl.value)}
-                            className={`py-5 rounded-2xl font-bold text-lg transition-all border-4 ${selectedSugarLevel === sl.value
+                            className={`py-4 rounded-2xl font-bold text-base transition-all border-4 ${selectedSugarLevel === sl.value
                               ? 'bg-gradient-to-r from-[#7c14d4] to-purple-500 border-[#7c14d4] text-white scale-105 shadow-[0_12px_25px_rgba(124,20,212,0.3)]'
                               : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300'
                               }`}
@@ -1488,10 +1839,10 @@ const KioskPage = () => {
 
                 <div className="bg-white/95 p-8 rounded-3xl border border-orange-100 shadow-sm">
                   <div className="flex items-center gap-4 mb-6">
-                    <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 border border-orange-300/50">
+                    <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full flex items-center justify-center font-black text-base shrink-0 border border-orange-300/50">
                       {((customizingItem.category?.toLowerCase().includes('milk') || customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0) ? '2' : '1'}
                     </div>
-                    <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase">Add Toppings</h4>
+                    <h4 className="font-black text-zinc-900 text-xl tracking-tight capitalize">Add Toppings <span className="text-sm font-bold text-zinc-400 ml-2 normal-case">(optional)</span></h4>
                   </div>
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                     {allAddOns
@@ -1518,15 +1869,15 @@ const KioskPage = () => {
                               }`}
                           >
                             <div className="flex justify-between items-start mb-2 w-full">
-                              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-orange-500 bg-gradient-to-r from-orange-500 to-amber-500 text-white' : 'border-zinc-300 bg-zinc-50'}`}>
-                                {isSelected && <CheckCircle2 size={20} strokeWidth={3} />}
+                              <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-orange-500 bg-gradient-to-r from-orange-500 to-amber-500 text-white' : 'border-zinc-300 bg-zinc-50'}`}>
+                                {isSelected && <CheckCircle2 size={16} strokeWidth={3} />}
                               </div>
-                              <span className={`font-black text-xl ${isSelected ? 'text-orange-600' : 'text-zinc-500'}`}>
+                              <span className={`font-black text-lg ${isSelected ? 'text-orange-600' : 'text-zinc-500'}`}>
                                 +₱{Number(ao.price).toFixed(0)}
                               </span>
                             </div>
-                            <span className={`font-bold text-lg leading-tight uppercase ${isSelected ? 'text-orange-900' : 'text-zinc-700'}`}>
-                              {ao.name}
+                            <span className={`font-bold text-base leading-tight capitalize ${isSelected ? 'text-orange-900' : 'text-zinc-700'}`}>
+                              {ao.name?.toLowerCase()}
                             </span>
                           </button>
                         );
@@ -1537,8 +1888,8 @@ const KioskPage = () => {
 
               <div className="p-8 border-t border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgb(0,0,0,0.03)] z-10">
                 <div>
-                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-1">Total</p>
-                  <div className="text-4xl font-black text-orange-600 tracking-tighter">
+                  <p className="text-xs font-bold text-zinc-500 capitalize tracking-widest mb-1">Total</p>
+                  <div className="text-3xl font-black text-orange-600 tracking-tighter">
                     ₱{(
                       Number(customizingItem.sellingPrice) +
                       selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
@@ -1547,7 +1898,7 @@ const KioskPage = () => {
                 </div>
                 <button
                   onClick={confirmCustomization}
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-12 py-6 rounded-2xl font-black uppercase tracking-wider text-xl flex items-center gap-3 hover:from-orange-600 hover:to-amber-600 transition-all shadow-[0_8px_20px_rgba(234,88,12,0.3)] hover:shadow-[0_12px_25px_rgba(234,88,12,0.4)] hover:-translate-y-[1px] active:scale-95"
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-10 py-5 rounded-2xl font-black capitalize tracking-wider text-lg flex items-center gap-3 hover:from-orange-600 hover:to-amber-600 transition-all shadow-[0_8px_20px_rgba(234,88,12,0.3)] hover:shadow-[0_12px_25px_rgba(234,88,12,0.4)] hover:-translate-y-[1px] active:scale-95"
                 >
                   <span>Add to Tray</span>
                   <Plus size={24} strokeWidth={3} />
@@ -1562,59 +1913,59 @@ const KioskPage = () => {
 
 
   const ConfirmView = () => (
-    <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fdf8ff]">
+    <div className="flex-1 flex flex-col relative overflow-y-auto bg-[#fdf8ff] scrollbar-hide">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-100/30 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-50/40 rounded-full blur-[100px] translate-y-1/4 -translate-x-1/4 pointer-events-none" />
 
       {/* Top Bar (Unified) */}
-      <div className="h-20 px-12 flex items-center justify-between shrink-0 relative z-50">
-        <div className="flex items-center gap-4">
-          <img src={logo} alt="Lucky Boba" className="h-12 w-auto drop-shadow-sm" />
-          <span className="text-2xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
+      <div className="h-16 px-8 flex items-center justify-between shrink-0 relative z-50">
+        <div className="flex items-center gap-3">
+          <img src={logo} alt="Lucky Boba" className="h-10 w-auto drop-shadow-sm" />
+          <span className="text-xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
         </div>
         <div className="flex items-center gap-6">
-          <div className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
+          <div className="w-8 h-8 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
             <HelpCircle size={20} />
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-10 px-12 relative z-10 py-12">
-        <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_15px_40px_rgba(16,185,129,0.3)] animate-bounce relative shrink-0">
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 relative z-10 py-4">
+        <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_15px_40px_rgba(16,185,129,0.3)] animate-bounce relative shrink-0">
           <div className="absolute inset-0 border-4 border-emerald-400 rounded-full animate-ping opacity-50"></div>
-          <CheckCircle2 size={48} strokeWidth={3} className="relative z-10" />
+          <CheckCircle2 size={40} strokeWidth={3} className="relative z-10" />
         </div>
 
-        <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
-          <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+        <div className="text-center space-y-2 animate-in fade-in slide-in-from-top-4 duration-700 shrink-0">
+          <h2 className="text-4xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
             Order <span className="text-[#7c3aed] italic">Received</span>
           </h2>
-          <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em]">Please proceed to counter to pay</p>
+          <p className="text-xs font-semibold text-emerald-600 uppercase tracking-[0.2em]">Please proceed to counter to pay</p>
         </div>
 
-        <div className="bg-white p-10 rounded-[3rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
-          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-5">Your Ticket Number</p>
+        <div className="bg-white p-6 rounded-[2rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300 shrink-0">
+          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-3">Your Ticket Number</p>
 
-          <div className="bg-purple-50/50 px-12 py-8 rounded-[2.5rem] mb-10 border border-purple-100/50 shadow-inner w-full text-center">
-            <h3 className="text-7xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <div className="bg-purple-50/50 px-8 py-6 rounded-3xl mb-6 border border-purple-100/50 shadow-inner w-full text-center">
+            <h3 className="text-6xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
               #{orderNumber}
             </h3>
           </div>
 
-          <div className="w-full flex items-center justify-between pt-8 border-t border-dashed border-purple-100">
-            <span className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Total Due</span>
-            <span className="text-4xl font-bold text-[#3b0764] tracking-tighter">₱{calculateTotal().toFixed(0)}</span>
+          <div className="w-full flex items-center justify-between pt-6 border-t border-dashed border-purple-100">
+            <span className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">Total Due</span>
+            <span className="text-3xl font-bold text-[#3b0764] tracking-tighter">₱{calculateTotal().toFixed(0)}</span>
           </div>
         </div>
 
         <button
           onClick={handleReset}
-          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-12 pr-8 py-5 rounded-full font-bold text-xl tracking-[0.15em] uppercase shadow-[0_25px_60px_rgba(124,58,237,0.35)] flex items-center gap-8 transition-all hover:scale-[1.02] active:scale-95 mt-4"
+          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-10 pr-6 py-4 rounded-full font-bold text-lg tracking-[0.15em] uppercase shadow-[0_25px_60px_rgba(124,58,237,0.35)] flex items-center gap-6 transition-all hover:scale-[1.02] active:scale-95 mt-2 shrink-0"
         >
           <span className="relative z-10">New Order</span>
-          <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
             <ChevronRight size={24} strokeWidth={4} />
           </div>
         </button>
