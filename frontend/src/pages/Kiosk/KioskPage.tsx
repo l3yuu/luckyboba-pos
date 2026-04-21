@@ -13,6 +13,9 @@ import {
   MapPin,
   Clock,
   Lock,
+  Globe,
+  HelpCircle,
+  Check,
 } from 'lucide-react';
 import { KioskTicketPrint } from '../../components/Cashier/SalesOrderComponents/print';
 import { getImageUrl } from '../../utils/imageUtils';
@@ -24,9 +27,37 @@ interface MenuItem {
   id: number;
   name: string;
   category: string;
+  category_type?: string;
+  category_id?: number;
   sellingPrice: number;
   image: string | null;
   size?: string;
+  barcode?: string;
+  has_ice?: boolean;
+  has_pearl?: boolean;
+  has_sugar?: boolean;
+}
+
+interface BundleItem {
+  id: number;
+  custom_name: string;
+  display_name?: string;
+  quantity: number;
+  size: string;
+  has_ice?: boolean;
+  has_pearl?: boolean;
+  has_sugar?: boolean;
+}
+
+interface Bundle {
+  id: number;
+  name: string;
+  display_name?: string;
+  category: string;
+  category_id: number;
+  price: number;
+  barcode: string;
+  items: BundleItem[];
 }
 
 interface Branch {
@@ -53,7 +84,18 @@ interface CartItem extends MenuItem {
   uniqueId: string;
   selectedAddOns?: AddOnOption[];
   selectedSugarLevel?: string;
+  selectedOptions?: string[];
+  remarks?: string;
   itemTotal: number;
+}
+
+interface BundleSelection {
+  name: string;
+  sugarLevel: string;
+  options: string[];
+  addOns: AddOnOption[];
+  quantity: number;
+  price: number;
 }
 
 // --- Hooks ---
@@ -94,6 +136,34 @@ const KioskPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+
+  // --- Mix and Match State ---
+  const [isMixMatchViewOpen, setIsMixMatchViewOpen] = useState(false);
+  const [pendingMixMatchItem, setPendingMixMatchItem] = useState<MenuItem | null>(null);
+  const [mixMatchDrinkPool, setMixMatchDrinkPool] = useState<MenuItem[]>([]);
+  const [mixMatchStep, setMixMatchStep] = useState<'select_drink' | 'customize_drink'>('select_drink');
+  const [selectedMixMatchDrink, setSelectedMixMatchDrink] = useState<MenuItem | null>(null);
+  const [mixMatchSugar, setMixMatchSugar] = useState('100%');
+  const [mixMatchIce, setMixMatchIce] = useState('NORMAL ICE');
+  const [mixMatchPearl, setMixMatchPearl] = useState('W/ PRL');
+  const [mixMatchOptions, setMixMatchOptions] = useState<string[]>([]);
+  const [mixMatchAddOns, setMixMatchAddOns] = useState<AddOnOption[]>([]);
+
+  // --- Bundle State ---
+  const [bundlesData, setBundlesData] = useState<Bundle[]>([]);
+  const [isBundleViewOpen, setIsBundleViewOpen] = useState(false);
+  const [activeBundleItem, setActiveBundleItem] = useState<Bundle | null>(null);
+  const [bundleSelections, setBundleSelections] = useState<BundleSelection[]>([]);
+  const [flattenedBundleItems, setFlattenedBundleItems] = useState<BundleItem[]>([]);
+  const [currentBundleItemIndex, setCurrentBundleItemIndex] = useState(0);
+  const [bundleCustomizingStep, setBundleCustomizingStep] = useState<'select_drink' | 'customize_drink'>('select_drink');
+  const [selectedBundleDrink, setSelectedBundleDrink] = useState<MenuItem | null>(null);
+  const [bundleSugar, setBundleSugar] = useState('100%');
+  const [bundleIce, setBundleIce] = useState('NORMAL ICE');
+  const [bundlePearl, setBundlePearl] = useState('W/ PRL');
+  const [bundleOptions, setBundleOptions] = useState<string[]>([]);
+  const [bundleAddOns, setBundleAddOns] = useState<AddOnOption[]>([]);
+
   const [printData, setPrintData] = useState<{
     invoice: string;
     cart: CartItem[];
@@ -113,6 +183,8 @@ const KioskPage = () => {
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnOption[]>([]);
   const [selectedSugarLevel, setSelectedSugarLevel] = useState<string>('100%');
+  const [selectedIce, setSelectedIce] = useState<string>('NORMAL ICE');
+  const [selectedPearl, setSelectedPearl] = useState<string>('W/ PRL');
 
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinInput, setPinInput] = useState('');
@@ -131,6 +203,30 @@ const KioskPage = () => {
   // Order Status State
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Cart Drawer State (floating overlay)
+  const [showCartDrawer, setShowCartDrawer] = useState(false);
+
+  // Slideshow State for Landing Page
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const splashSlides = [
+    '/images/slideshow/lucky_classic.png',
+    '/images/slideshow/hot_drinks.png',
+    '/images/slideshow/iced_coffee.png',
+    '/images/slideshow/fruit_juices.png',
+    '/images/slideshow/frappe.png',
+    '/images/slideshow/classicjr.png',
+    '/images/slideshow/pudding.png',
+  ];
+
+  useEffect(() => {
+    if (step === 'splash') {
+      const timer = setInterval(() => {
+        setCurrentSlide(prev => (prev + 1) % splashSlides.length);
+      }, 5000);
+      return () => clearInterval(timer);
+    }
+  }, [step, splashSlides.length]);
 
   // Auto-reset helper
   const handleReset = useCallback(() => {
@@ -180,6 +276,11 @@ const KioskPage = () => {
           const cats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
           setCategories(cats);
           if (cats.length > 0) setActiveCategory(cats[0]);
+
+          // Fetch Bundles
+          api.get('/bundles').then(res => {
+            setBundlesData(Array.isArray(res.data) ? res.data : []);
+          }).catch(err => console.error('Failed to fetch bundles', err));
 
           // Set customization options
           setAllAddOns(aoRes.data);
@@ -245,7 +346,7 @@ const KioskPage = () => {
 
         const rawItems: MenuItem[] = res.data;
         setItems(rawItems);
-        
+
         const isExpo = localStorage.getItem('kiosk_expo_mode') === 'true';
         let eIds: number[] = [];
         const stored = localStorage.getItem('kiosk_expo_items');
@@ -317,15 +418,16 @@ const KioskPage = () => {
     }
   };
 
-  const addToCart = (item: MenuItem, addons: AddOnOption[] = [], sugar: string = '100%') => {
+  const addToCart = (item: MenuItem, addons: AddOnOption[] = [], sugar: string = '100%', options: string[] = []) => {
     setCart((prev: CartItem[]) => {
       // We calculate a unique key for grouping same items with same customizations
       const addonIds = addons.map(a => a.id).sort().join(',');
-      // groupKey REMOVED to fix lint warning (manually comparing below)
+      const optStr = options.sort().join(',');
 
       const existing = prev.find((i: CartItem) => {
         const iAddonIds = (i.selectedAddOns || []).map(a => a.id).sort().join(',');
-        return i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds;
+        const iOpts = (i.selectedOptions || []).sort().join(',');
+        return i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds && iOpts === optStr;
       });
 
       const addonsTotal = addons.reduce((sum, a) => sum + a.price, 0);
@@ -335,7 +437,8 @@ const KioskPage = () => {
       if (existing) {
         return prev.map((i: CartItem) => {
           const iAddonIds = (i.selectedAddOns || []).map(a => a.id).sort().join(',');
-          if (i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds) {
+          const iOpts = (i.selectedOptions || []).sort().join(',');
+          if (i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds && iOpts === optStr) {
             return { ...i, qty: i.qty + 1 };
           }
           return i;
@@ -348,14 +451,225 @@ const KioskPage = () => {
         uniqueId: Math.random().toString(36).substr(2, 9),
         selectedAddOns: addons,
         selectedSugarLevel: sugar,
+        selectedOptions: options,
         itemTotal: itemTotal
       }];
     });
   };
 
+  const fetchMixMatchPool = async (categoryId: number) => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/category-drinks?category_id=${categoryId}`);
+      interface DrinkPoolItem { 
+        menu_item_id: number; 
+        name: string; 
+        size: string; 
+        price: number;
+        has_ice?: boolean;
+        has_pearl?: boolean;
+        has_sugar?: boolean;
+      }
+      const pool: DrinkPoolItem[] = res.data.data ?? [];
+      const transformedPool: MenuItem[] = pool.map(d => ({
+        id: d.menu_item_id,
+        name: d.name,
+        sellingPrice: Number(d.price),
+        size: d.size,
+        category: "Mix & Match Drink",
+        image: null,
+        has_ice: d.has_ice,
+        has_pearl: d.has_pearl,
+        has_sugar: d.has_sugar,
+      }));
+      setMixMatchDrinkPool(transformedPool);
+    } catch (err) {
+      console.error("Failed to fetch mix and match drinks", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmMixAndMatch = () => {
+    if (!pendingMixMatchItem || !selectedMixMatchDrink) return;
+
+    const addonsTotal = mixMatchAddOns.reduce((sum, a) => sum + a.price, 0);
+    const finalOptions = [...mixMatchOptions];
+    if (selectedMixMatchDrink.has_ice && mixMatchIce !== 'NORMAL ICE') finalOptions.push(mixMatchIce);
+    if (selectedMixMatchDrink.has_pearl) finalOptions.push(mixMatchPearl);
+
+    const drinkDetails = [
+      `Drink: ${selectedMixMatchDrink.name}${selectedMixMatchDrink.size ? ` (${selectedMixMatchDrink.size})` : ''}`,
+      selectedMixMatchDrink.has_sugar ? `Sugar: ${mixMatchSugar}` : null,
+      ...finalOptions,
+      ...mixMatchAddOns.map(a => `+${a.name}`),
+    ].filter(Boolean).join(' | ');
+
+    const finalItem: CartItem = {
+      ...pendingMixMatchItem,
+      qty: 1,
+      uniqueId: Math.random().toString(36).substr(2, 9),
+      remarks: `[${drinkDetails}]`,
+      itemTotal: Number(pendingMixMatchItem.sellingPrice) + addonsTotal,
+      selectedAddOns: mixMatchAddOns,
+      selectedSugarLevel: mixMatchSugar,
+      selectedOptions: finalOptions,
+    };
+
+    setCart(prev => [...prev, finalItem]);
+    setIsMixMatchViewOpen(false);
+    setPendingMixMatchItem(null);
+    setSelectedMixMatchDrink(null);
+    setMixMatchDrinkPool([]);
+    setMixMatchStep('select_drink');
+  };
+
+  const confirmBundleStep = () => {
+    if (!activeBundleItem) return;
+
+    const currentItem = flattenedBundleItems[currentBundleItemIndex];
+    const isDrink = (currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) || 
+                    (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink'));
+    
+    const hasIce = selectedBundleDrink ? selectedBundleDrink.has_ice : currentItem.has_ice;
+    const hasPearl = selectedBundleDrink ? selectedBundleDrink.has_pearl : currentItem.has_pearl;
+
+    const finalOptions = [...bundleOptions];
+    if (hasIce && bundleIce !== 'NORMAL ICE') finalOptions.push(bundleIce);
+    if (hasPearl) finalOptions.push(bundlePearl);
+
+    const selection = {
+      name: isDrink ? (selectedBundleDrink?.name || currentItem.display_name || currentItem.custom_name) : (currentItem.display_name || currentItem.custom_name),
+      sugarLevel: bundleSugar,
+      options: finalOptions,
+      addOns: bundleAddOns,
+      quantity: 1, // Individual customization, so quantity is 1
+      price: isDrink ? (selectedBundleDrink?.sellingPrice || 0) : 0, 
+    };
+
+    const newSelections = [...bundleSelections, selection];
+
+    if (currentBundleItemIndex < flattenedBundleItems.length - 1) {
+      // Advance to next item
+      setBundleSelections(newSelections);
+      setCurrentBundleItemIndex(prev => prev + 1);
+      setBundleCustomizingStep('select_drink');
+      setSelectedBundleDrink(null);
+      setBundleSugar('100%');
+      setBundleIce('NORMAL ICE');
+      setBundlePearl('W/ PRL');
+      setBundleOptions([]);
+      setBundleAddOns([]);
+    } else {
+      // Finalize Bundle
+      const remarks = newSelections.map((s, i) => {
+        const sugarDisplay = s.sugarLevel && s.sugarLevel !== '100%' ? s.sugarLevel : '';
+        return `[${i + 1}] ${s.name}${sugarDisplay ? `: ${sugarDisplay}` : ''}${s.options.length ? ` | ${s.options.join(', ')}` : ''}${s.addOns.length ? ` | +${s.addOns.map((a: AddOnOption) => a.name).join(', ')}` : ''}`;
+      }).join(' || ');
+
+      const addonsTotal = newSelections.reduce((sum, s) => sum + s.addOns.reduce((as: number, a: AddOnOption) => as + a.price, 0), 0);
+
+      const finalItem: CartItem = {
+        id: activeBundleItem.id,
+        name: activeBundleItem.display_name || activeBundleItem.name,
+        category: 'Bundle',
+        sellingPrice: Number(activeBundleItem.price),
+        itemTotal: Number(activeBundleItem.price) + addonsTotal,
+        qty: 1,
+        uniqueId: Math.random().toString(36).substr(2, 9),
+        remarks: remarks,
+        image: activeBundleItem.name.toLowerCase().includes('classic') ? '/images/slideshow/lucky_classic.png' : null,
+      };
+
+      setCart(prev => [...prev, finalItem]);
+      setIsBundleViewOpen(false);
+      setActiveBundleItem(null);
+      setBundleSelections([]);
+      setCurrentBundleItemIndex(0);
+    }
+  };
+
+  const bundleToggleOption = (opt: string) => {
+    setBundleOptions(prev => {
+      const iceOpts = ['NO ICE', '-ICE', '+ICE'];
+      const pearlOpts = ['NO PRL', 'W/ PRL'];
+      
+      if (iceOpts.includes(opt)) {
+        setBundleIce(prevIce => prevIce === opt ? 'NORMAL ICE' : opt);
+        return prev; // handled by bundleIce state
+      }
+      if (pearlOpts.includes(opt)) {
+        setBundlePearl(opt);
+        return prev; // handled by bundlePearl state
+      }
+      return prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt];
+    });
+  };
+
+  const mixMatchToggleOption = (opt: string) => {
+    setMixMatchOptions(prev => {
+      const iceOpts = ['NO ICE', '-ICE', '+ICE'];
+      const pearlOpts = ['NO PRL', 'W/ PRL'];
+      if (iceOpts.includes(opt)) {
+        setMixMatchIce(prevIce => prevIce === opt ? 'NORMAL ICE' : opt);
+        return prev;
+      }
+      if (pearlOpts.includes(opt)) {
+        setMixMatchPearl(opt);
+        return prev;
+      }
+      return prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt];
+    });
+  };
+
+
+
   const handleItemClick = (item: MenuItem) => {
+    if (item.category_type === 'mix_and_match' || item.category_type === 'combo') {
+      setPendingMixMatchItem(item);
+      setMixMatchStep('select_drink');
+      setSelectedMixMatchDrink(null);
+      setMixMatchSugar('100%');
+      setMixMatchIce('NORMAL ICE');
+      setMixMatchPearl('W/ PRL');
+      setMixMatchOptions([]);
+      setMixMatchAddOns([]);
+      setIsMixMatchViewOpen(true);
+      if (item.category_id) {
+        fetchMixMatchPool(item.category_id);
+      }
+      return;
+    }
+
+    if (item.category_type === 'bundle') {
+      const bundle = bundlesData.find(b => b.barcode === item.barcode);
+      if (bundle) {
+        // Flatten items: if quantity is 2, create 2 separate slots for customization
+        const flattened = (bundle.items || []).flatMap(bi => 
+          Array.from({ length: bi.quantity || 1 }, () => ({ ...bi, quantity: 1 }))
+        );
+        
+        setActiveBundleItem(bundle);
+        setFlattenedBundleItems(flattened);
+        setCurrentBundleItemIndex(0);
+        setBundleSelections([]);
+        setBundleCustomizingStep('select_drink');
+        setSelectedBundleDrink(null);
+        setBundleSugar('100%');
+        setBundleIce('NORMAL ICE');
+        setBundlePearl('W/ PRL');
+        setBundleOptions([]);
+        setBundleAddOns([]);
+        setIsBundleViewOpen(true);
+        if (bundle.category_id) {
+          fetchMixMatchPool(bundle.category_id); // Bundles use the same drink pool as their category
+        }
+        return;
+      }
+    }
+
     const cat = item.category?.toLowerCase() || '';
-    const needsCustomization = cat.includes('milk tea') || cat.includes('milktea') ||
+    const needsCustomization = item.has_ice || item.has_pearl || item.has_sugar || cat.includes('milk tea') || cat.includes('milktea') ||
       cat.includes('coffee') || cat.includes('yakult') ||
       cat.includes('fruit') || cat.includes('yogurt') ||
       cat.includes('waffle') || cat.includes('frappe') ||
@@ -365,6 +679,8 @@ const KioskPage = () => {
       setCustomizingItem(item);
       setSelectedAddOns([]);
       setSelectedSugarLevel('100%');
+      setSelectedIce('NORMAL ICE');
+      setSelectedPearl('W/ PRL');
       setShowCustomizer(true);
     } else {
       addToCart(item);
@@ -373,7 +689,11 @@ const KioskPage = () => {
 
   const confirmCustomization = () => {
     if (customizingItem) {
-      addToCart(customizingItem, selectedAddOns, selectedSugarLevel);
+      const opts: string[] = [];
+      if (customizingItem.has_ice && selectedIce !== 'NORMAL ICE') opts.push(selectedIce);
+      if (customizingItem.has_pearl) opts.push(selectedPearl);
+
+      addToCart(customizingItem, selectedAddOns, selectedSugarLevel, opts);
       setShowCustomizer(false);
       setCustomizingItem(null);
     }
@@ -393,25 +713,25 @@ const KioskPage = () => {
     if (cart.length === 0 || !branchId) return;
     try {
       setLoading(true);
-      
+
       let seq = 1;
       let nextQueue = 1;
       const todayKey = new Date().toISOString().split('T')[0];
-      
+
       try {
         const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}`);
         const serverSeq = parseInt(data.next_sequence, 10);
         const serverQueue = parseInt(data.next_queue, 10);
-        
+
         if (!isNaN(serverSeq)) {
           seq = serverSeq;
           nextQueue = !isNaN(serverQueue) ? serverQueue : 1;
-          
+
           // Sync local storage as well
           const seqKey = `last_or_sequence_${branchId}`;
           const queueKey = `last_queue_number_${branchId}`;
           const dateKey = `last_queue_date_${branchId}`;
-          
+
           localStorage.setItem(seqKey, String(seq));
           localStorage.setItem(queueKey, String(nextQueue));
           localStorage.setItem(dateKey, todayKey);
@@ -422,7 +742,7 @@ const KioskPage = () => {
         const seqKey = `last_or_sequence_${branchId}`;
         const queueKey = `last_queue_number_${branchId}`;
         const dateKey = `last_queue_date_${branchId}`;
-        
+
         // Handle SI Sequence fallback
         seq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1;
         localStorage.setItem(seqKey, String(seq));
@@ -437,7 +757,7 @@ const KioskPage = () => {
         localStorage.setItem(queueKey, String(nextQueue));
         localStorage.setItem(dateKey, todayKey);
       }
-      
+
       const siNumber = generateORNumber(seq);
 
       const total = calculateTotal();
@@ -462,6 +782,7 @@ const KioskPage = () => {
           unit_price: Number(item.sellingPrice),
           total_price: item.itemTotal * item.qty,
           sugar_level: item.selectedSugarLevel || '100%',
+          remarks: item.remarks || '',
           add_ons: (item.selectedAddOns || []).map(ao => ({
             name: ao.name,
             price: ao.price
@@ -471,11 +792,11 @@ const KioskPage = () => {
       };
 
       await api.post('/kiosk-sales', payload);
-      
+
       const formattedQueue = String(nextQueue).padStart(3, '0');
       setOrderNumber(formattedQueue);
-      setPrintData({ 
-        invoice: siNumber, 
+      setPrintData({
+        invoice: siNumber,
         cart: [...cart],
         queueNumber: formattedQueue
       });
@@ -517,472 +838,1162 @@ const KioskPage = () => {
     };
   }, [step, confirmCountdown]);
 
-   // --- Views ---
+  // --- Views ---
 
-   const SplashView = () => (
+  const SplashView = () => (
     <div
-      className="flex-1 flex flex-col items-center justify-between p-12 cursor-pointer relative overflow-hidden bg-white kiosk-splash-shell kiosk-splash-gradient"
+      className="flex-1 flex flex-col bg-[#fdf8ff] cursor-pointer relative overflow-hidden"
       onClick={() => setStep('order_type')}
     >
-      {/* Background Orbs */}
-      <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[100px] animate-float-slow opacity-60"></div>
-      <div className="absolute bottom-[-5%] left-[-5%] w-[450px] h-[450px] bg-amber-400/10 rounded-full blur-[80px] animate-float opacity-50"></div>
-      
-      {/* Floating Boba Icons (Decorative) */}
-      <div className="absolute top-[20%] left-[15%] opacity-20 animate-float pointer-events-none">
-        <div className="w-16 h-16 bg-violet-200 rounded-full flex items-center justify-center">
-          <ShoppingBag size={32} className="text-violet-600" />
+      {/* Top Navigation Bar */}
+      <div className="absolute top-0 left-0 right-0 h-20 px-12 flex items-center justify-between z-50">
+        <div className="flex items-center gap-4">
+          <img src={logo} alt="Lucky Boba" className="h-14 w-auto drop-shadow-sm" />
+          <span className="text-3xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
         </div>
-      </div>
-      <div className="absolute bottom-[30%] right-[12%] opacity-20 animate-float-slow pointer-events-none" style={{ animationDelay: '1s' }}>
-        <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
-          <CheckCircle2 size={40} className="text-amber-500" />
-        </div>
-      </div>
-
-      <div className="w-full flex justify-center pt-4 relative z-10 pointer-events-none shrink-0">
-        <div className="glass px-6 py-2 rounded-full border border-zinc-200/50 shadow-sm">
-          <p className="text-xs text-zinc-500 font-semibold tracking-[0.16em] uppercase flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            {branchName}
-          </p>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 text-zinc-600 font-medium text-sm bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-full border border-white shadow-sm">
+            <Globe size={18} className="text-[#7c3aed]" />
+            <span>English</span>
+          </div>
+          <div className="w-12 h-12 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+            <HelpCircle size={24} />
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col items-center justify-center flex-1 relative z-10 w-full gap-8 animate-scale-in">
-        <div className="relative group">
-          <div className="absolute -inset-4 bg-violet-600/5 rounded-full blur-2xl group-hover:bg-violet-600/10 transition-all duration-500"></div>
-          <img src={logo} alt="Lucky Boba" className="w-[280px] h-auto object-contain drop-shadow-2xl relative animate-float-slow" />
+      <div className="flex-1 flex items-center px-12 pt-20 pb-20 gap-12 relative z-10">
+        {/* Left Content */}
+        <div className="flex-[0.5] flex flex-col items-start gap-8 pl-6 animate-in fade-in slide-in-from-left-8 duration-1000">
+          <div className="space-y-4">
+            <h1 className="text-[4.8rem] font-bold text-[#2e0a4e] leading-[0.82] tracking-tighter uppercase whitespace-pre-line">
+              Freshly<br />
+              <span className="text-[#7c3aed] italic">Brewed</span><br />
+              Happiness.
+            </h1>
+            <p className="text-lg text-zinc-400 font-medium uppercase tracking-[0.18em] max-w-md mt-6 leading-relaxed">
+              Experience the ultimate boba journey
+            </p>
+          </div>
+
+          <button className="group relative overflow-hidden bg-[#7c3aed] text-white pl-6 pr-3 py-2.5 rounded-full font-bold text-sm tracking-[0.12em] uppercase shadow-[0_10px_30px_rgba(124,58,237,0.3)] flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95">
+            <span className="relative z-10">Tap to Start</span>
+            <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
+              <ChevronRight size={16} strokeWidth={4} />
+            </div>
+            <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          </button>
         </div>
 
-        <div className="flex flex-col items-center gap-4 text-center">
-          <h1 className="text-5xl font-extrabold text-zinc-900 tracking-[-0.02em] uppercase leading-[0.95]">
-            Freshly Brewed<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500">Happiness.</span>
-          </h1>
-          <p className="text-lg text-zinc-400 font-medium uppercase tracking-[0.12em] max-w-lg">
-            Experience the ultimate boba journey
-          </p>
+        {/* Right Slideshow */}
+        <div className="flex-[3] h-full relative flex items-center justify-center animate-in fade-in zoom-in duration-1000 delay-300">
+          <div className="relative w-full aspect-[4/5] max-w-[1000px] overflow-hidden shadow-[0_60px_150px_rgba(88,28,135,0.18)] z-20">
+            {splashSlides.map((slide, index) => (
+              <div
+                key={slide}
+                className={`absolute inset-0 transition-all duration-1000 ease-in-out transform ${index === currentSlide ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-110 z-0'}`}
+              >
+                <img src={slide} alt="Slideshow" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+
+          {/* Background Decorations */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-purple-200/20 rounded-full blur-[120px] -z-10" />
         </div>
       </div>
 
-      <div className="w-full flex flex-col items-center gap-6 pb-12 relative z-10 shrink-0">
-        <button className="group relative overflow-hidden animate-pulse-glow bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white px-12 py-5 rounded-full font-extrabold text-2xl tracking-[0.08em] uppercase shadow-[0_12px_35px_rgba(124,58,237,0.35)] flex items-center gap-4 transition-all hover:from-violet-500 hover:to-fuchsia-500 hover:-translate-y-[1px] active:scale-95">
-          <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500" />
-          <span className="relative z-10">Tap to Start</span>
-          <ChevronRight size={28} strokeWidth={4} className="relative z-10 transition-transform group-hover:translate-x-1" />
-        </button>
-        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-[0.22em]">
-          © 2026 LUCKY BOBA • PREMIUM SERIES
-        </p>
+      {/* Bottom Status Bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-24 px-12 flex items-center justify-between z-50 border-t border-purple-50 bg-white/40 backdrop-blur-xl">
+        <div className="flex gap-20">
+          <div className="space-y-1.5">
+            <p className="text-4xl font-bold text-[#3b0764] tracking-tighter">50+</p>
+            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">Signature Flavors</p>
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-4xl font-bold text-[#581c87] tracking-tighter">100%</p>
+            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">Organic Tea Base</p>
+          </div>
+        </div>
+        <div className="text-right space-y-2">
+          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">Ordering hours: 10:00 AM - 10:00 PM</p>
+          <div className="flex items-center justify-end gap-2 text-[#7c3aed]">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+            <p className="text-2xl font-bold uppercase tracking-tighter text-[#3b0764]">{branchName}</p>
+          </div>
+        </div>
       </div>
     </div>
   );
 
-    const OrderTypeView = () => (
+  const OrderTypeView = () => (
     <div
-      className="flex-1 flex flex-col p-8 animate-scale-in relative overflow-hidden kiosk-menu-shell"
-      style={{
-        background: 'linear-gradient(145deg, #faf7ff 0%, #f2ecff 40%, #fff4fb 72%, #fff8ec 100%)'
-      }}
+      className="flex-1 flex flex-col relative overflow-hidden bg-[#fdf8ff]"
     >
-      {/* Decorative BG */}
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-600/10 rounded-full blur-[110px] translate-x-1/4 -translate-y-1/4 pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] left-[-8%] w-[420px] h-[420px] bg-fuchsia-400/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute top-[30%] left-[46%] w-[280px] h-[280px] bg-amber-300/10 rounded-full blur-[120px] pointer-events-none"></div>
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-100/30 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-50/40 rounded-full blur-[100px] translate-y-1/4 -translate-x-1/4 pointer-events-none" />
 
-      <div className="w-full flex shrink-0 relative z-10">
-         <button className="glass px-4 py-2 rounded-full flex items-center gap-2 text-zinc-500 font-black uppercase text-xs hover:bg-white transition-all shadow-sm active:scale-95" onClick={() => setStep('splash')}>
-           <ChevronRight className="rotate-180" size={16} strokeWidth={3} />
-           <span>Restart</span>
-         </button>
+      {/* Top Bar (Unified with Splash) */}
+      <div className="h-20 px-12 flex items-center justify-between shrink-0 relative z-50">
+        <div className="flex items-center gap-4">
+          <img src={logo} alt="Lucky Boba" className="h-14 w-auto drop-shadow-sm" />
+          <span className="text-3xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => setStep('splash')}
+            className="flex items-center gap-2 text-zinc-500 font-medium text-sm bg-white/70 backdrop-blur-md px-6 py-2.5 rounded-full border border-white shadow-sm hover:bg-white transition-all active:scale-95"
+          >
+            <ChevronRight size={18} className="rotate-180 text-zinc-400" />
+            <span>Restart</span>
+          </button>
+          <div className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
+            <HelpCircle size={20} />
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-10 w-full max-w-4xl mx-auto relative z-10">
-        <div className="text-center space-y-2">
-           <h2 className="text-4xl font-black text-zinc-900 tracking-tighter uppercase">How will you enjoy your Boba?</h2>
-           <p className="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em]">Select your dining preference</p>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-10 px-12 relative z-10 pt-4">
+        <div className="text-center space-y-4 max-w-2xl animate-in fade-in slide-in-from-top-4 duration-700">
+          <h2 className="text-4xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+            How will you enjoy<br />
+            your <span className="text-[#7c3aed] italic">Boba?</span>
+          </h2>
+          <p className="text-xs font-medium text-zinc-400 uppercase tracking-[0.3em]">Select your dining preference</p>
         </div>
 
-        <div className="flex gap-8 w-full justify-center">
+        <div className="flex gap-12 w-full justify-center max-w-6xl">
           {[
-            { id: 'dine_in', label: 'Eat Here', icon: (
-              <svg viewBox="0 0 24 24" className="w-14 h-14" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
-              </svg>
-            )},
-            { id: 'take_out', label: 'Take Out', icon: (
-              <svg viewBox="0 0 24 24" className="w-14 h-14" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" />
-              </svg>
-            )}
-          ].map((type) => (
+            {
+              id: 'dine_in', label: 'Eat Here', icon: (
+                <svg viewBox="0 0 24 24" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+                </svg>
+              )
+            },
+            {
+              id: 'take_out', label: 'Take Out', icon: <ShoppingBag size={52} strokeWidth={1.5} />
+            }
+          ].map((type, index) => (
             <button
               key={type.id}
-              onClick={() => setOrderType(type.id as 'dine_in' | 'take_out')}
-              className={`group w-[280px] aspect-[4/5] rounded-[2.5rem] shadow-xl border-2 flex flex-col items-center justify-center gap-6 transition-all duration-500 active:scale-95 relative overflow-hidden ${
-                orderType === type.id
-                  ? 'bg-white border-violet-500 -translate-y-2 shadow-2xl ring-4 ring-violet-100'
-                  : 'bg-white/90 border-zinc-100 hover:border-violet-400 hover:-translate-y-2 hover:shadow-2xl'
-              }`}
+              onClick={() => {
+                setOrderType(type.id as 'dine_in' | 'take_out');
+                setTimeout(() => setStep('menu'), 400);
+              }}
+              className={`group relative flex flex-col items-center justify-center gap-8 p-10 w-[290px] aspect-[4/5] rounded-[3rem] transition-all duration-500 animate-in fade-in zoom-in-95 duration-700`}
+              style={{ animationDelay: `${index * 150}ms` }}
             >
-              <div className={`absolute inset-0 bg-gradient-to-br transition-opacity ${
-                orderType === type.id
-                  ? 'from-violet-600/10 via-fuchsia-400/5 to-amber-300/10 opacity-100'
-                  : 'from-violet-600/5 via-transparent to-transparent opacity-0 group-hover:opacity-100'
-              }`} />
-              <div className={`w-24 h-24 rounded-3xl flex items-center justify-center transition-all duration-500 shadow-inner ${
-                orderType === type.id
-                  ? 'bg-gradient-to-br from-violet-600 to-fuchsia-500 text-white rotate-3'
-                  : 'bg-zinc-50 text-zinc-500 group-hover:bg-gradient-to-br group-hover:from-violet-600 group-hover:to-fuchsia-500 group-hover:text-white group-hover:rotate-3'
-              }`}>
+              {/* Card Base */}
+              <div className={`absolute inset-0 rounded-[3rem] transition-all duration-500 ${orderType === type.id
+                ? 'bg-white shadow-[0_40px_100px_rgba(124,58,237,0.15)] ring-2 ring-[#7c3aed]/20'
+                : 'bg-white/60 backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.03)] group-hover:bg-white group-hover:shadow-[0_40px_80px_rgba(0,0,0,0.06)]'
+                }`} />
+
+              {/* Icon Container */}
+              <div className={`relative z-10 w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 ${orderType === type.id
+                ? 'bg-[#7c3aed] text-white shadow-[0_15px_30px_rgba(124,58,237,0.3)] scale-110'
+                : 'bg-purple-50 text-zinc-400 group-hover:bg-purple-100 group-hover:text-[#7c3aed] group-hover:scale-105'
+                }`}>
                 {type.icon}
               </div>
-              <span className="text-2xl font-black text-zinc-900 uppercase tracking-tight">{type.label}</span>
-              <div className={`flex gap-1.5 transition-all transform ${
-                orderType === type.id
-                  ? 'text-violet-700 opacity-100 translate-y-0'
-                  : 'text-violet-600 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'
-              }`}>
-                <span className="text-[10px] font-black uppercase tracking-widest">
-                  {orderType === type.id ? 'Selected' : 'Tap to Select'}
+
+              {/* Label */}
+              <div className="relative z-10 text-center space-y-2">
+                <span className={`block text-2xl font-bold tracking-tight uppercase transition-colors duration-300 ${orderType === type.id ? 'text-[#3b0764]' : 'text-zinc-600 group-hover:text-zinc-900'
+                  }`}>
+                  {type.label}
                 </span>
-                <ChevronRight size={14} strokeWidth={3} />
+                <div className={`h-1.5 w-8 mx-auto rounded-full transition-all duration-500 ${orderType === type.id ? 'bg-[#7c3aed] w-12' : 'bg-transparent'
+                  }`} />
+              </div>
+
+              {/* Selected Indicator */}
+              <div className={`absolute top-8 right-8 w-10 h-10 rounded-full bg-[#7c3aed] text-white flex items-center justify-center transition-all duration-500 ${orderType === type.id ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-50 rotate-45'
+                }`}>
+                <Check size={20} strokeWidth={4} />
               </div>
             </button>
           ))}
         </div>
 
-        {orderType ? (
-          <div className="flex flex-col items-center gap-3 animate-fade-up">
-            <button
-              onClick={() => setStep('menu')}
-              className="group px-14 py-4 rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 text-white font-black text-lg uppercase tracking-[0.08em] shadow-[0_12px_35px_rgba(124,58,237,0.35)] flex items-center gap-2.5 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 hover:-translate-y-[1px] transition-all active:scale-95"
-            >
-              Continue
-              <ChevronRight size={20} strokeWidth={3} className="transition-transform group-hover:translate-x-1" />
-            </button>
-            <p className="text-xs uppercase tracking-[0.16em] text-zinc-500 font-bold">
-              Selected: {orderType === 'dine_in' ? 'Eat Here' : 'Take Out'}
-            </p>
-          </div>
-        ) : (
-          <p className="text-xs uppercase tracking-[0.16em] text-zinc-400 font-bold">
-            Tap a card to continue
-          </p>
-        )}
       </div>
     </div>
   );
 
+  const MenuView = () => {
+    const displayItems = items.filter((item: MenuItem) => {
+      if (isExpoMode && !expoItemIds.includes(item.id)) return false;
+      const matchesSearch = searchQuery === '' || item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = activeCategory === '' || item.category === activeCategory || (!item.category && activeCategory === 'Others');
+      return matchesSearch && matchesCategory;
+    });
 
-        const MenuView = () => {
+    const featuredItems = items.filter((item: MenuItem) => {
+      if (isExpoMode && !expoItemIds.includes(item.id)) return false;
+      return true;
+    }).slice(0, 2);
+
+    const cartCount = cart.reduce((s: number, i: CartItem) => s + i.qty, 0);
+
+    // Category icons map
+    const getSizeLabel = (item: MenuItem) => {
+      const s = item.size?.toLowerCase();
+      const cat = item.category?.toLowerCase() || '';
+      const isJunior = cat.includes('jr') || cat.includes('junior');
+      let displaySize: string | null = null;
+      if (isJunior && (!s || s === 'none')) displaySize = 'JR';
+      else if (s === 'l') displaySize = 'SL';
+      else if (s === 'm') displaySize = 'SM';
+      else if (s && !['none'].includes(s)) displaySize = s.toUpperCase();
+      const allowed = ['SL', 'SM', 'PCM', 'PCL', 'UL', 'UM', 'JR'];
+      return displaySize && allowed.includes(displaySize) ? displaySize : null;
+    };
+
     return (
       <div
         className="flex-1 flex overflow-hidden relative"
-        style={{
-          background: 'linear-gradient(145deg, #faf7ff 0%, #f2ecff 40%, #fff4fb 72%, #fff8ec 100%)'
-        }}
+        style={{ background: 'linear-gradient(145deg, #fef9f3 0%, #faf5ff 35%, #fff5ee 65%, #fef7f0 100%)' }}
       >
-        <div className="absolute top-[-8%] right-[-6%] w-[360px] h-[360px] bg-violet-500/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] left-[28%] w-[300px] h-[300px] bg-fuchsia-400/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute top-[32%] left-[48%] w-[220px] h-[220px] bg-amber-300/10 rounded-full blur-[90px] pointer-events-none" />
-        {/* Sidebar — fixed at 220px for 1024-wide screens */}
-        <div className="w-[220px] bg-zinc-50 border-r border-zinc-200 flex flex-col overflow-y-auto scrollbar-hide z-20 shrink-0">
-          <div className="p-4 pb-4 flex flex-col items-center bg-zinc-50/50 border-b border-zinc-200/60">
+        {/* Decorative BG Orbs */}
+        <div className="absolute top-[-8%] right-[-6%] w-[400px] h-[400px] bg-orange-300/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] left-[30%] w-[350px] h-[350px] bg-purple-400/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-[40%] right-[20%] w-[250px] h-[250px] bg-amber-200/10 rounded-full blur-[100px] pointer-events-none" />
+
+        {/* ─── Left Sidebar ──────────────────────────────── */}
+        <div className="w-[160px] bg-white/80 backdrop-blur-md border-r border-purple-100/60 flex flex-col z-20 shrink-0">
+          {/* Logo */}
+          <div className="p-4 pb-3 flex flex-col items-center border-b border-purple-50">
             <img
               src={logo}
               alt="Lucky Boba"
-              className="w-20 h-auto cursor-pointer hover:opacity-80 transition-opacity drop-shadow-md"
+              className="w-16 h-auto cursor-pointer hover:opacity-80 transition-opacity drop-shadow-sm"
               onClick={handleLogoClick}
             />
           </div>
-          
-          <div className="flex-1 p-2 space-y-1">
+
+          {/* Category Header */}
+          <div className="px-5 pt-5 pb-2">
+            <h3 className="text-base font-black text-[#7c14d4] tracking-tight">Categories</h3>
+            <p className="text-[10px] font-semibold text-zinc-400 tracking-wide">Pick your vibe</p>
+          </div>
+
+          {/* Category List */}
+          <div className="flex-1 px-3 pb-3 space-y-1 overflow-y-auto scrollbar-hide">
             <button
-              onClick={() => {
-                setActiveCategory('');
-                setSearchQuery('');
-              }}
-              className="w-full transition-all group"
+              onClick={() => { setActiveCategory(''); setSearchQuery(''); }}
+              className={`w-full px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5 ${activeCategory === '' && searchQuery === ''
+                ? 'bg-[#7c14d4] text-white font-bold shadow-lg shadow-purple-200'
+                : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#7c14d4]'
+                }`}
             >
-              <div className={`w-full px-4 py-3 rounded-xl text-left transition-all flex items-center justify-between ${activeCategory === '' && searchQuery === ''
-                  ? 'bg-white font-bold shadow-sm border border-zinc-200'
-                  : 'text-zinc-500 font-semibold hover:bg-zinc-100/50 hover:text-zinc-900 border border-transparent'
-                }`}>
-                <span className={`text-sm tracking-tight ${activeCategory === '' && searchQuery === ''
-                  ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500'
-                  : 'text-zinc-500'
-                }`}>
-                  All Menu
-                </span>
-              </div>
+              <span className="text-sm truncate">All Menu</span>
             </button>
-            
+
             {categories.map((cat: string) => (
               <button
                 key={cat}
-                onClick={() => {
-                  setActiveCategory(cat);
-                  setSearchQuery('');
-                }}
-                className="w-full transition-all group"
+                onClick={() => { setActiveCategory(cat); setSearchQuery(''); }}
+                className={`w-full px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5 ${activeCategory === cat
+                  ? 'bg-[#7c14d4] text-white font-bold shadow-lg shadow-purple-200'
+                  : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#7c14d4]'
+                  }`}
               >
-                <div className={`w-full px-4 py-3 rounded-xl text-left transition-all flex items-center justify-between ${activeCategory === cat
-                    ? 'bg-white font-bold shadow-sm border border-zinc-200'
-                    : 'text-zinc-500 font-semibold hover:bg-zinc-100/50 hover:text-zinc-900 border border-transparent'
-                  }`}>
-                  <span className={`text-sm tracking-tight capitalize truncate pr-2 ${activeCategory === cat
-                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500'
-                    : 'text-zinc-500'
-                  }`}>
-                    {cat}
-                  </span>
-                </div>
+                <span className="text-sm truncate capitalize">{cat.toLowerCase()}</span>
               </button>
             ))}
           </div>
-          
-          <button onClick={() => setStep('splash')} className="m-3 mt-auto py-3 bg-zinc-200/50 border border-zinc-200/50 rounded-xl text-zinc-500 font-bold text-sm hover:bg-zinc-200 hover:text-zinc-800 transition-all flex items-center justify-center gap-1.5">
-            <ChevronRight className="rotate-180" size={18} />
+
+          {/* Cancel Order */}
+          <button
+            onClick={() => setStep('splash')}
+            className="m-3 py-2.5 bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-500 font-bold text-xs hover:bg-zinc-200 hover:text-zinc-800 transition-all flex items-center justify-center gap-1.5"
+          >
+            <ChevronRight className="rotate-180" size={16} />
             Cancel Order
           </button>
         </div>
 
-        {/* Main Products Area */}
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-transparent">
-          {/* Header Banners */}
-          <div className="h-16 px-4 border-b border-zinc-200 flex items-center justify-between bg-white shrink-0 shadow-sm z-10 gap-3">
-            <h2 className="text-xl font-black text-zinc-900 tracking-tight capitalize shrink-0">
-              {searchQuery ? 'Search Results' : (activeCategory || 'All Menu')}
-            </h2>
-            <div className="relative flex-1 max-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+        {/* ─── Main Content ──────────────────────────────── */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+          {/* Top Nav */}
+          <div className="h-[60px] px-5 flex items-center justify-between bg-white/70 backdrop-blur-md border-b border-purple-100/40 shrink-0 z-10">
+
+            {/* Search */}
+            <div className="relative flex-1 max-w-[320px] mx-4">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400" size={18} />
               <input
                 type="text"
-                placeholder="Find a drink..."
+                placeholder="Search beverages..."
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (activeCategory) setActiveCategory('');
-                }}
-                className="w-full bg-zinc-50 border border-zinc-200 rounded-full py-2.5 pl-9 pr-4 text-sm font-bold placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-violet-100 focus:border-violet-300 transition-all outline-none text-zinc-900"
+                onChange={(e) => { setSearchQuery(e.target.value); if (activeCategory) setActiveCategory(''); }}
+                className="w-full bg-white/80 border border-purple-100 rounded-full py-2.5 pl-11 pr-4 text-sm font-semibold placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-orange-200 focus:border-orange-300 transition-all outline-none text-zinc-800 shadow-sm"
               />
+            </div>
+
+            {/* Right icons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCartDrawer(!showCartDrawer)}
+                className="relative w-10 h-10 bg-white border border-purple-100 rounded-full flex items-center justify-center hover:bg-purple-50 transition-colors shadow-sm"
+              >
+                <ShoppingBag size={18} className="text-[#7c14d4]" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-sm">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 scroll-smooth">
-            <div className="grid grid-cols-3 gap-3">
-              {items
-                .filter((item: MenuItem) => {
-                  if (isExpoMode && !expoItemIds.includes(item.id)) return false;
-                  const matchesSearch = searchQuery === '' || item.name.toLowerCase().includes(searchQuery.toLowerCase());
-                  const matchesCategory = activeCategory === '' || item.category === activeCategory || (!item.category && activeCategory === 'Others');
-                  return matchesSearch && matchesCategory;
-                })
-                .map((item: MenuItem) => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleItemClick(item)}
-                    className="bg-white rounded-2xl shadow-sm border border-zinc-200/60 overflow-hidden flex flex-col active:scale-95 transition-all cursor-pointer group hover:shadow-md relative"
-                  >
-                    <div className="w-full aspect-[4/3] bg-zinc-50 relative flex items-center justify-center">
-                      {item.image ? (
-                        <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                      ) : (
-                        <ShoppingBag size={32} className="text-zinc-200" />
-                      )}
-                    </div>
-                    <div className="p-3 flex flex-col flex-1">
-                      <h3 className="font-bold text-xs text-zinc-900 leading-tight mb-1 h-8 overflow-hidden line-clamp-2 uppercase">
-                        {item.name}
-                        {(() => {
-                          const s = item.size?.toLowerCase();
-                          const cat = item.category?.toLowerCase() || '';
-                          const isJunior = cat.includes('jr') || cat.includes('junior');
-                          
-                          let displaySize = null;
-                          if (isJunior && (!s || s === 'none')) displaySize = 'jr';
-                          else if (s === 'l') displaySize = 'sl';
-                          else if (s === 'm') displaySize = 'sm';
-                          else if (s && !['none'].includes(s)) displaySize = s;
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto scroll-smooth">
+            <div className="p-5 pb-32 space-y-6">
 
-                          const allowed = ['sl', 'sm', 'pcm', 'pcl', 'ul', 'um', 'jr'];
-                          if (displaySize && allowed.includes(displaySize)) {
-                            return <span className="text-violet-400 ml-1">({displaySize})</span>;
-                          }
-                          return null;
-                        })()}
-                      </h3>
-                      
-                      <div className="flex items-center justify-between mt-auto pt-1">
-                        <div className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 font-black text-base tracking-tight">
-                          ₱{Number(item.sellingPrice).toFixed(0)}
+              {/* ── Hero Section ──────────────────────── */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h1
+                      className="text-4xl font-bold text-zinc-800 leading-[1.1]"
+                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                    >
+                      Pick Your<br />
+                      <span
+                        className="italic text-[#7c14d4]"
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                      >
+                        Happiness
+                      </span>
+                    </h1>
+                    <p className="text-sm text-zinc-400 font-medium mt-2 max-w-[300px]">
+                      The perfect blend of flavor and joy, crafted just for your afternoon boost.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Featured Cards */}
+                {featuredItems.length >= 2 && !searchQuery && !activeCategory && (
+                  <div className="grid grid-cols-[2fr_1fr] gap-4">
+                    {/* Main Featured */}
+                    <div
+                      className="relative rounded-3xl overflow-hidden h-[280px] cursor-pointer group shadow-xl"
+                      onClick={() => handleItemClick(featuredItems[0])}
+                    >
+                      {featuredItems[0].image ? (
+                        <img
+                          src={getImageUrl(featuredItems[0].image)}
+                          alt={featuredItems[0].name}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                          <ShoppingBag size={64} className="text-orange-300" />
                         </div>
-                        <div className="w-7 h-7 bg-zinc-100 text-zinc-600 group-hover:bg-violet-600 group-hover:text-white rounded-full flex items-center justify-center transition-colors">
-                          <Plus size={14} strokeWidth={3} />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 p-6">
+                        <div className="flex gap-2 mb-2">
+                          <span className="px-3 py-1 bg-[#7c14d4] text-white text-[9px] font-black uppercase tracking-widest rounded-lg">Bestseller</span>
+                          <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{featuredItems[0].category}</span>
                         </div>
+                        <h3
+                          className="text-2xl font-bold text-white mb-1"
+                          style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                        >
+                          {featuredItems[0].name}
+                        </h3>
+                        <p className="text-white/60 text-xs font-medium mb-3">Freshly crafted with premium ingredients.</p>
+                        <button className="px-5 py-2.5 bg-white text-orange-600 rounded-full font-bold text-sm hover:bg-orange-50 transition-colors shadow-lg flex items-center gap-2 active:scale-95">
+                          Quick Add – ₱{Number(featuredItems[0].sellingPrice).toFixed(0)}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Side Featured */}
+                    <div
+                      className="relative rounded-3xl overflow-hidden h-[280px] cursor-pointer group shadow-lg"
+                      onClick={() => handleItemClick(featuredItems[1])}
+                    >
+                      {featuredItems[1].image ? (
+                        <img
+                          src={getImageUrl(featuredItems[1].image)}
+                          alt={featuredItems[1].name}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-100 to-fuchsia-100 flex items-center justify-center">
+                          <ShoppingBag size={48} className="text-purple-300" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                      <div className="absolute bottom-0 left-0 p-5">
+                        <h3
+                          className="text-xl font-bold text-white mb-1"
+                          style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                        >
+                          {featuredItems[1].name}
+                        </h3>
+                        <p className="text-white/60 text-xs font-medium">₱{Number(featuredItems[1].sellingPrice).toFixed(0)}</p>
                       </div>
                     </div>
                   </div>
-                ))}
-            </div>
-
-            {items.length === 0 && !loading && (
-              <div className="h-full flex flex-col items-center justify-center py-20 opacity-40">
-                <Search size={64} className="mb-6 text-zinc-300" />
-                <p className="font-bold tracking-wide text-2xl text-center text-zinc-500">No items found</p>
+                )}
               </div>
-            )}
+
+              {/* ── Product Grid ──────────────────────── */}
+              <div>
+                <h2
+                  className="text-lg font-bold text-zinc-800 mb-3"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                >
+                  {searchQuery ? 'Search Results' : activeCategory ? <span className="capitalize">{activeCategory.toLowerCase()}</span> : 'Recommended for You'}
+                </h2>
+                <div className="grid grid-cols-4 2xl:grid-cols-5 gap-3">
+                  {displayItems.map((item: MenuItem) => {
+                    const sizeLabel = getSizeLabel(item);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleItemClick(item)}
+                        className="bg-white rounded-2xl shadow-sm border border-orange-100/40 overflow-hidden flex flex-col cursor-pointer group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 active:scale-[0.97]"
+                      >
+                        <div className="w-full aspect-[4/3] bg-gradient-to-br from-orange-50 to-amber-50 relative flex items-center justify-center overflow-hidden">
+                          {item.image ? (
+                            <img
+                              src={getImageUrl(item.image)}
+                              alt={item.name}
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            />
+                          ) : (
+                            <ShoppingBag size={32} className="text-orange-200" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <div className="p-3 flex flex-col flex-1">
+                          <h3 className="font-bold text-xs text-zinc-800 leading-tight mb-1 h-8 overflow-hidden line-clamp-2">
+                            {item.name}
+                            {sizeLabel && <span className="text-[#7c14d4] ml-1 font-bold">({sizeLabel})</span>}
+                          </h3>
+                          <div className="flex items-center justify-between mt-auto pt-1.5">
+                            <span className="text-orange-600 font-black text-base tracking-tight">
+                              ₱{Number(item.sellingPrice).toFixed(0)}
+                            </span>
+                            <div className="w-7 h-7 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                              <Plus size={14} strokeWidth={3} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {displayItems.length === 0 && !loading && (
+                  <div className="py-20 flex flex-col items-center justify-center opacity-40">
+                    <Search size={64} className="mb-6 text-zinc-300" />
+                    <p className="font-bold tracking-wide text-xl text-center text-zinc-500">No items found</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Cart — fixed 260px wide to stay compact */}
-        <div className="w-[260px] bg-white flex flex-col shadow-xl z-20 border-l border-zinc-200 shrink-0">
-          <div className="h-16 px-4 border-b border-zinc-100 flex items-center justify-between bg-white relative z-20 shrink-0 shadow-sm">
-            <h2 className="text-base font-black text-zinc-900 tracking-tight uppercase">Your Tray</h2>
-            <div className="bg-violet-50 border border-violet-100 text-violet-700 px-3 py-1.5 rounded-lg font-black text-sm flex items-center gap-1.5 shadow-sm">
-              <ShoppingBag size={14} strokeWidth={2.5}/>
-              <span>{cart.reduce((s: number, i: CartItem) => s + i.qty, 0)}</span>
+        {/* ─── Floating Cart Drawer ──────────────────────── */}
+        {showCartDrawer && (
+          <div className="fixed inset-0 z-[90] pointer-events-none">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/20 backdrop-blur-[2px] pointer-events-auto transition-opacity"
+              onClick={() => setShowCartDrawer(false)}
+            />
+
+            {/* Drawer */}
+            <div className="absolute bottom-4 right-4 w-[340px] max-h-[75vh] bg-white rounded-2xl shadow-2xl border border-purple-100/50 flex flex-col pointer-events-auto overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-white shrink-0">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag size={18} className="text-[#7c14d4]" />
+                  <h2 className="text-base font-black text-zinc-900">My Order ({cartCount})</h2>
+                </div>
+                <button
+                  onClick={() => setShowCartDrawer(false)}
+                  className="w-7 h-7 bg-zinc-100 rounded-full flex items-center justify-center hover:bg-zinc-200 transition-colors"
+                >
+                  <X size={14} strokeWidth={3} className="text-zinc-500" />
+                </button>
+              </div>
+
+              {/* Cart Items */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
+                {cart.length === 0 ? (
+                  <div className="py-12 flex flex-col items-center justify-center opacity-40">
+                    <ShoppingBag size={40} className="mb-3 text-zinc-300" />
+                    <p className="font-bold uppercase tracking-widest text-xs text-zinc-500">Your tray is empty</p>
+                  </div>
+                ) : (
+                  cart.map((item: CartItem) => {
+                    const sizeLabel = getSizeLabel(item);
+                    return (
+                      <div key={item.uniqueId} className="flex gap-3 p-3 bg-zinc-50/80 border border-zinc-100 rounded-xl relative group/item">
+                        <button
+                          onClick={() => removeFromCart(item.uniqueId)}
+                          className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-white border border-zinc-200 text-red-400 rounded-full flex items-center justify-center shadow-md hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all active:scale-95 z-20"
+                        >
+                          <X size={12} strokeWidth={4} />
+                        </button>
+                        <div className="w-12 h-12 bg-white rounded-lg overflow-hidden shrink-0 border border-zinc-100 shadow-sm flex items-center justify-center">
+                          {item.image ? <img src={getImageUrl(item.image)} className="w-full h-full object-cover" /> : <ShoppingBag size={14} className="text-zinc-200" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-zinc-800 text-xs leading-tight line-clamp-1">
+                            {item.name}
+                            {sizeLabel && <span className="text-[#7c14d4] ml-1">({sizeLabel})</span>}
+                          </h4>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {item.selectedSugarLevel && <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} Sugar</span>}
+                            {item.selectedAddOns && item.selectedAddOns.length > 0 && <span className="text-[8px] font-bold text-zinc-400">{item.selectedAddOns.map(a => a.name).join(' · ')}</span>}
+                          </div>
+                          <div className="flex items-center justify-between mt-1.5">
+                            <div className="flex items-center bg-white rounded-full border border-zinc-200 shadow-sm">
+                              <button onClick={() => updateQty(item.uniqueId, -1)} className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 rounded-l-full"><Minus size={10} strokeWidth={3} /></button>
+                              <span className="w-5 text-center font-black text-[11px] text-zinc-800">{item.qty}</span>
+                              <button onClick={() => updateQty(item.uniqueId, 1)} className="w-6 h-6 flex items-center justify-center text-white bg-gradient-to-r from-orange-400 to-amber-500 rounded-full"><Plus size={10} strokeWidth={3} /></button>
+                            </div>
+                            <span className="font-black text-orange-600 text-sm">₱{(item.itemTotal * item.qty).toFixed(0)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              {cart.length > 0 && (
+                <div className="p-4 border-t border-zinc-100 bg-white space-y-3 shrink-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-500 font-bold text-sm">Total Amount</span>
+                    <span className="text-2xl font-black text-orange-600 tracking-tight">₱{calculateTotal().toFixed(0)}</span>
+                  </div>
+                  <button
+                    onClick={() => { setShowCartDrawer(false); handleSubmit(); }}
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black uppercase text-sm tracking-wider shadow-lg shadow-orange-200 hover:from-orange-600 hover:to-amber-600 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? 'Processing...' : 'Checkout'}
+                    {!loading && <ChevronRight size={18} strokeWidth={3} />}
+                  </button>
+                  <button
+                    onClick={() => { setCart([]); setShowCartDrawer(false); }}
+                    className="w-full py-2 text-center font-bold text-zinc-400 text-[10px] uppercase tracking-widest hover:text-red-500 transition-colors"
+                  >
+                    Clear Order
+                  </button>
+                </div>
+              )}
             </div>
           </div>
+        )}
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-hide">
-            {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center opacity-40">
-                <ShoppingBag size={40} className="mb-3 text-zinc-300" />
-                <p className="font-bold uppercase tracking-widest text-xs text-zinc-500">Tray is empty</p>
-              </div>
-            ) : (
-              cart.map((item: CartItem) => (
-                <div key={item.uniqueId} className="flex gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-xl relative shadow-sm">
-                  <button onClick={() => removeFromCart(item.uniqueId)} className="absolute -top-2 -right-2 w-6 h-6 bg-white border border-zinc-200 text-zinc-500 rounded-full flex items-center justify-center shadow-sm hover:bg-zinc-100 hover:text-red-500 transition-colors">
-                     <X size={12} strokeWidth={3} />
-                  </button>
-                  <div className="w-14 h-14 bg-white rounded-lg overflow-hidden shrink-0 border border-zinc-100 shadow-sm flex items-center justify-center">
-                    {item.image ? <img src={getImageUrl(item.image)} className="w-full h-full object-cover" /> : <ShoppingBag size={16} className="text-zinc-200" />}
+        {/* ─── Floating Cart Pill (when drawer is closed & has items) ─── */}
+        {!showCartDrawer && cartCount > 0 && (
+          <button
+            onClick={() => setShowCartDrawer(true)}
+            className="fixed bottom-6 right-6 z-[80] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-3.5 rounded-full font-black text-sm uppercase tracking-wider shadow-xl shadow-orange-300/40 hover:from-orange-600 hover:to-amber-600 transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-300"
+          >
+            <ShoppingBag size={18} strokeWidth={2.5} />
+            <span>{cartCount} {cartCount === 1 ? 'item' : 'items'}</span>
+            <span className="w-px h-4 bg-white/30" />
+            <span>₱{calculateTotal().toFixed(0)}</span>
+          </button>
+        )}
+
+        {/* Mix and Match Overlay */}
+        {isMixMatchViewOpen && pendingMixMatchItem && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-zinc-900/55">
+            <div className="absolute inset-0" onClick={() => setIsMixMatchViewOpen(false)} />
+            <div className="relative bg-gradient-to-br from-white to-purple-50/30 w-full max-w-2xl rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-purple-100/50">
+
+              {/* Header */}
+              <div className="p-4 border-b border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-[#7c3aed] shadow-inner border border-purple-100">
+                    <ShoppingBag size={24} strokeWidth={2.5} />
                   </div>
-                  <div className="flex-1 min-w-0 flex flex-col">
-                    <h4 className="font-bold text-zinc-900 text-[11px] leading-tight uppercase line-clamp-2">
-                      {item.name}
-                      {(() => {
-                        const s = item.size?.toLowerCase();
-                        const cat = item.category?.toLowerCase() || '';
-                        const isJunior = cat.includes('jr') || cat.includes('junior');
-                        
-                        let displaySize = null;
-                        if (isJunior && (!s || s === 'none')) displaySize = 'jr';
-                        else if (s === 'l') displaySize = 'sl';
-                        else if (s === 'm') displaySize = 'sm';
-                        else if (s && !['none'].includes(s)) displaySize = s;
+                  <div>
+                    <h3 className="text-lg font-black text-zinc-900 tracking-tight uppercase leading-none">
+                      {mixMatchStep === 'select_drink' 
+                        ? (pendingMixMatchItem.category_type === 'combo' ? 'Customize Your Combo' : 'Choose Your Drink')
+                        : 'Customize Drink'}
+                    </h3>
+                    <p className="text-[10px] font-bold text-[#7c3aed] uppercase tracking-[0.2em] mt-1">
+                      {mixMatchStep === 'select_drink' ? pendingMixMatchItem.name : selectedMixMatchDrink?.name}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {mixMatchStep === 'customize_drink' && (
+                    <button
+                      onClick={() => setMixMatchStep('select_drink')}
+                      className="px-4 py-2 bg-white border border-purple-200 text-[#7c3aed] rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
+                    >
+                      <ChevronRight className="rotate-180" size={14} />
+                      Back
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsMixMatchViewOpen(false)}
+                    className="w-10 h-10 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                  >
+                    <X size={20} strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
 
-                        const allowed = ['sl', 'sm', 'pcm', 'pcl', 'ul', 'um', 'jr'];
-                        if (displaySize && allowed.includes(displaySize)) {
-                          return <span className="text-violet-400 ml-1">({displaySize})</span>;
-                        }
-                        return null;
-                      })()}
-                    </h4>
-                    <div className="flex flex-col gap-0.5 mt-0.5 mb-1">
-                       {item.selectedSugarLevel && <p className="text-[9px] font-bold text-violet-600 uppercase">Sugar: {item.selectedSugarLevel}</p>}
-                       {item.selectedAddOns && item.selectedAddOns.length > 0 && <p className="text-[9px] font-bold text-zinc-500 uppercase truncate">+{item.selectedAddOns.map(a=>a.name).join(', ')}</p>}
-                    </div>
-                    <div className="flex items-center justify-between mt-auto">
-                      <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 text-sm tracking-tight">₱{(item.itemTotal * item.qty).toFixed(0)}</span>
-                      <div className="flex items-center bg-white rounded-full border border-zinc-200 shadow-sm">
-                        <button onClick={() => updateQty(item.uniqueId, -1)} className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 rounded-l-full"><Minus size={10} strokeWidth={3}/></button>
-                        <span className="w-5 text-center font-black text-xs text-zinc-900">{item.qty}</span>
-                        <button onClick={() => updateQty(item.uniqueId, 1)} className="w-6 h-6 flex items-center justify-center text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-500 rounded-full transition-all"><Plus size={10} strokeWidth={3}/></button>
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-5 scrollbar-hide">
+                {mixMatchStep === 'select_drink' ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {loading ? (
+                      <div className="col-span-full py-20 flex flex-col items-center justify-center gap-4">
+                        <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+                        <p className="font-bold text-zinc-400 uppercase tracking-widest text-xs">Loading collection...</p>
                       </div>
+                    ) : mixMatchDrinkPool.length === 0 ? (
+                      <div className="col-span-full py-20 text-center">
+                        <p className="text-zinc-400 font-bold">No drinks available for this bundle.</p>
+                      </div>
+                    ) : (
+                      mixMatchDrinkPool.map((drink) => (
+                        <div
+                          key={drink.id}
+                          onClick={() => {
+                            setSelectedMixMatchDrink(drink);
+                            setMixMatchStep('customize_drink');
+                          }}
+                          className="bg-white p-5 rounded-3xl border-2 border-purple-50 shadow-sm hover:border-purple-300 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center text-center gap-4"
+                        >
+                          <div className="w-full aspect-square bg-gradient-to-br from-purple-50 to-orange-50 rounded-2xl flex items-center justify-center overflow-hidden">
+                            <ShoppingBag size={48} className="text-purple-200 group-hover:scale-110 transition-transform duration-500" />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-zinc-800 uppercase text-sm tracking-tight leading-tight mb-1">{drink.name}</h4>
+                            {drink.size && <span className="text-[10px] font-black bg-purple-50 text-[#7c14d4] px-2 py-0.5 rounded-full">{drink.size}</span>}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-10 max-w-2xl mx-auto">
+                    {/* Sugar Level */}
+                    {sugarLevels.length > 0 && (
+                      <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
+                        <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">1</span>
+                          Select Sugar Level
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                          {sugarLevels.map((sl) => (
+                            <button
+                              key={sl.id}
+                              onClick={() => setMixMatchSugar(sl.value)}
+                              className={`py-2 rounded-xl font-black text-xs transition-all border-2 ${mixMatchSugar === sl.value
+                                ? 'bg-[#7c14d4] border-[#7c14d4] text-white shadow-lg shadow-purple-200'
+                                : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
+                                }`}
+                            >
+                              {sl.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Options (Ice/Pearl) */}
+                    {(selectedMixMatchDrink?.has_ice || selectedMixMatchDrink?.has_pearl) && (
+                      <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
+                        <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">2</span>
+                          Drink Options
+                        </h4>
+                        <div className="space-y-6">
+                          {selectedMixMatchDrink?.has_ice && (
+                            <div>
+                              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Ice Level</p>
+                              <div className="grid grid-cols-3 gap-2">
+                                {['NO ICE', '-ICE', '+ICE'].map(opt => (
+                                  <button
+                                    key={opt}
+                                    onClick={() => mixMatchToggleOption(opt)}
+                                    className={`py-2 rounded-xl font-black text-[10px] transition-all border-2 ${mixMatchIce === opt
+                                      ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-lg shadow-purple-100'
+                                      : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200'
+                                      }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {selectedMixMatchDrink?.has_pearl && (
+                            <div>
+                               <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Pearl Preference</p>
+                               <div className="grid grid-cols-2 gap-2">
+                                {['NO PRL', 'W/ PRL'].map(opt => (
+                                  <button
+                                    key={opt}
+                                    onClick={() => mixMatchToggleOption(opt)}
+                                    className={`py-2 rounded-xl font-black text-[10px] transition-all border-2 ${mixMatchPearl === opt
+                                      ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-md'
+                                      : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200'
+                                      }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                               </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Toppings Section */}
+                    <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">3</span>
+                        Add Toppings <span className="text-[8px] font-bold text-zinc-400 ml-1 normal-case">(optional)</span>
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {allAddOns
+                          .filter(ao => ao.category === 'drink' || ao.category === 'Toppings')
+                          .map((ao) => {
+                            const isSelected = mixMatchAddOns.some(a => a.id === ao.id);
+                            return (
+                              <button
+                                key={ao.id}
+                                onClick={() => {
+                                  setMixMatchAddOns(prev =>
+                                    isSelected
+                                      ? prev.filter(p => p.id !== ao.id)
+                                      : [...prev, ao]
+                                  );
+                                }}
+                                className={`p-3 rounded-xl border-2 flex items-center justify-between transition-all ${isSelected
+                                  ? 'border-[#7c3aed] bg-purple-50 text-[#7c3aed]'
+                                  : 'border-zinc-100 bg-white text-zinc-600 hover:border-purple-200'
+                                  }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-[#7c3aed] bg-[#7c3aed] text-white' : 'border-zinc-300'}`}>
+                                    {isSelected && <CheckCircle2 size={10} strokeWidth={4} />}
+                                  </div>
+                                  <span className="font-black text-[10px] uppercase tracking-wider">{ao.name}</span>
+                                </div>
+                                <span className="font-black text-[10px]">₱{ao.price}</span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Footer */}
+              <div className="p-5 bg-white border-t border-zinc-100 shrink-0 flex items-center justify-between z-10">
+                <div className="bg-zinc-50 px-4 py-2 rounded-xl border border-zinc-100">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Total Amount</p>
+                  <p className="text-xl font-black text-zinc-900 tracking-tighter">₱{Number(pendingMixMatchItem?.sellingPrice || 0) + mixMatchAddOns.reduce((sum, a) => sum + a.price, 0)}</p>
+                </div>
+                <button
+                  onClick={confirmMixAndMatch}
+                  className="px-8 py-3.5 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-xl font-black text-xs shadow-lg shadow-purple-100 hover:shadow-xl transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest"
+                >
+                  Confirm Selection <Plus size={16} strokeWidth={4} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bundle Configurator Overlay */}
+        {isBundleViewOpen && activeBundleItem && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/60">
+            <div className="absolute inset-0" onClick={() => setIsBundleViewOpen(false)} />
+            <div className="relative bg-gradient-to-br from-white to-purple-50/30 w-full max-w-2xl rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300 border border-purple-100/50">
+
+              {/* Header */}
+              <div className="p-4 border-b border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-[#7c3aed] shadow-inner border border-purple-100">
+                    <ShoppingBag size={24} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-zinc-900 tracking-tight uppercase leading-none">
+                      Configure Bundle
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-[10px] font-bold text-[#7c3aed] uppercase tracking-[0.2em]">
+                        {activeBundleItem.display_name || activeBundleItem.name}
+                      </p>
+                      <span className="text-[9px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-black">
+                        {currentBundleItemIndex + 1} / {flattenedBundleItems.length}
+                      </span>
                     </div>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+                <div className="flex gap-2">
+                  {bundleCustomizingStep === 'customize_drink' && (
+                    <button
+                      onClick={() => setBundleCustomizingStep('select_drink')}
+                      className="px-4 py-2 bg-white border border-purple-200 text-[#7c3aed] rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
+                    >
+                      <ChevronRight className="rotate-180" size={14} />
+                      Back
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsBundleViewOpen(false)}
+                    className="w-10 h-10 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                  >
+                    <X size={20} strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
 
-          <div className="p-4 border-t border-zinc-200 bg-white space-y-3 relative z-20 shrink-0 shadow-[0_-4px_20px_rgb(0,0,0,0.02)]">
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-500 font-bold uppercase tracking-wider text-xs">Amount Due</span>
-              <div className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-700 to-fuchsia-500 tracking-tighter">₱{calculateTotal().toFixed(0)}</div>
+              {/* Progress Bar */}
+              <div className="h-1 w-full bg-zinc-100 shrink-0">
+                <div 
+                  className="h-full bg-gradient-to-r from-[#7c14d4] to-purple-500 transition-all duration-500"
+                  style={{ width: `${((currentBundleItemIndex + 1) / flattenedBundleItems.length) * 100}%` }}
+                />
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+                <div className="mb-6 text-center">
+                  <h4 className="text-lg font-black text-zinc-800 uppercase tracking-tight">
+                    {flattenedBundleItems[currentBundleItemIndex]?.display_name || flattenedBundleItems[currentBundleItemIndex]?.custom_name}
+                  </h4>
+                  <p className="text-zinc-400 font-bold text-[10px] mt-1 uppercase tracking-widest">
+                    Component Configuration
+                  </p>
+                </div>
+
+                {(() => {
+                  const currentItem = flattenedBundleItems[currentBundleItemIndex];
+                  if (!currentItem) return null;
+                  const isDrinkStep = (currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) || 
+                                     (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink'));
+
+                  if (isDrinkStep && bundleCustomizingStep === 'select_drink') {
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {mixMatchDrinkPool.length === 0 ? (
+                          <div className="col-span-full py-10 text-center">
+                            <p className="text-zinc-400 font-bold text-xs uppercase tracking-widest">No drinks available in this category.</p>
+                          </div>
+                        ) : (
+                          mixMatchDrinkPool.map((drink) => (
+                            <div
+                              key={drink.id}
+                              onClick={() => {
+                                setSelectedBundleDrink(drink);
+                                setBundleCustomizingStep('customize_drink');
+                              }}
+                              className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm hover:border-[#7c3aed] hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center text-center gap-3"
+                            >
+                              <div className="w-full aspect-square bg-purple-50/50 rounded-xl flex items-center justify-center overflow-hidden">
+                                {drink.image ? (
+                                  <img src={getImageUrl(drink.image)} alt={drink.name} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" />
+                                ) : (
+                                  <ShoppingBag size={32} className="text-[#7c3aed]/20 group-hover:scale-110 group-hover:text-[#7c3aed]/40 transition-all duration-500" />
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="font-black text-zinc-800 uppercase text-[11px] tracking-tight leading-tight mb-1">{drink.name}</h4>
+                                {drink.size && <span className="text-[9px] font-black bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">{drink.size}</span>}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Customize Step (Drink was selected or it's a non-drink item)
+                  const targetItem = selectedBundleDrink || currentItem;
+                  const canHaveSugar = targetItem.has_sugar;
+                  const canHaveIce = targetItem.has_ice;
+                  const canHavePearl = targetItem.has_pearl;
+
+                  return (
+                    <div className="space-y-6 max-w-xl mx-auto">
+                      {/* Sugar Level */}
+                      {canHaveSugar && (
+                        <div className="bg-white p-4 rounded-2xl border border-purple-50 shadow-sm">
+                          <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-3 flex items-center gap-3">
+                            <span className="w-5 h-5 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">1</span>
+                            Select Sugar Level
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                            {sugarLevels.map((sl) => (
+                              <button
+                                key={sl.id}
+                                onClick={() => setBundleSugar(sl.value)}
+                                className={`py-2 rounded-xl font-black text-[10px] transition-all border-2 ${bundleSugar === sl.value
+                                  ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-md'
+                                  : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-[#7c3aed]'
+                                  }`}
+                              >
+                                {sl.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Options (Ice/Pearl) */}
+                      {(canHaveIce || canHavePearl) && (
+                        <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
+                          <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-3">
+                            <span className="w-5 h-5 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">2</span>
+                            Drink Options
+                          </h4>
+                          <div className="space-y-4">
+                            {canHaveIce && (
+                              <div>
+                                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Ice Level</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {['NO ICE', '-ICE', '+ICE'].map(opt => (
+                                    <button
+                                      key={opt}
+                                      onClick={() => bundleToggleOption(opt)}
+                                      className={`py-2 rounded-xl font-black text-[10px] transition-all border-2 ${bundleIce === opt
+                                        ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-md shadow-purple-100'
+                                        : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200'
+                                        }`}
+                                    >
+                                      {opt}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {canHavePearl && (
+                              <div>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Pearl Preference</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {['NO PRL', 'W/ PRL'].map(opt => (
+                                    <button
+                                      key={opt}
+                                      onClick={() => bundleToggleOption(opt)}
+                                      className={`py-2 rounded-xl font-black text-xs transition-all border-2 ${bundlePearl === opt
+                                        ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-md'
+                                        : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200'
+                                        }`}
+                                    >
+                                      {opt}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Add-ons */}
+                      <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
+                        <h4 className="font-black text-zinc-900 text-base tracking-tight uppercase mb-4 flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-xs shadow-md shadow-purple-100">3</span>
+                          Extra Toppings <span className="text-[10px] font-bold text-zinc-400 ml-2 normal-case">(optional)</span>
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {allAddOns.map((addon) => (
+                            <button
+                              key={addon.id}
+                              onClick={() => {
+                                setBundleAddOns(prev => prev.some(a => a.id === addon.id) ? prev.filter(a => a.id !== addon.id) : [...prev, addon]);
+                              }}
+                              className={`p-2 rounded-xl border-2 transition-all flex items-center justify-between px-3 ${bundleAddOns.some(a => a.id === addon.id)
+                                ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-md'
+                                : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200'
+                                }`}
+                            >
+                              <div className="flex flex-col items-start">
+                                <span className="font-black text-[10px] uppercase tracking-tight leading-tight">{addon.name}</span>
+                                <span className={`text-[9px] font-bold ${bundleAddOns.some(a => a.id === addon.id) ? 'text-white/80' : 'text-[#7c3aed]'}`}>+₱{addon.price.toFixed(0)}</span>
+                              </div>
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${bundleAddOns.some(a => a.id === addon.id) ? 'bg-white text-[#7c3aed]' : 'bg-zinc-50'}`}>
+                                {bundleAddOns.some(a => a.id === addon.id) && <Plus size={8} strokeWidth={5} />}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Footer */}
+              <div className="p-5 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
+                <div className="bg-zinc-50 px-4 py-2 rounded-xl border border-zinc-100">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Bundle Total</p>
+                  <p className="text-xl font-black text-zinc-900 tracking-tighter">₱{(Number(activeBundleItem.price) + bundleAddOns.reduce((sum, a) => sum + a.price, 0)).toFixed(0)}</p>
+                </div>
+                {(bundleCustomizingStep === 'customize_drink' || 
+                  (() => {
+                    const currentItem = flattenedBundleItems[currentBundleItemIndex];
+                    if (!currentItem) return true;
+                    return !((currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) || 
+                             (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink')));
+                  })()
+                ) && (
+                  <button
+                    onClick={confirmBundleStep}
+                    className="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white px-8 py-3.5 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-purple-100"
+                  >
+                    {currentBundleItemIndex < flattenedBundleItems.length - 1 ? 'Next Step' : 'Confirm Bundle'}
+                    <Plus size={16} strokeWidth={4} />
+                  </button>
+                )}
+              </div>
             </div>
-            
-            <button
-               onClick={handleSubmit}
-               disabled={cart.length === 0 || loading}
-               className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white font-black uppercase text-base tracking-wide shadow-[0_10px_30px_rgba(124,58,237,0.35)] active:scale-95 hover:from-violet-500 hover:to-fuchsia-500 hover:-translate-y-[1px] transition-all disabled:opacity-50 disabled:bg-zinc-300 disabled:bg-none disabled:shadow-none disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-               {loading ? 'Processing...' : 'Checkout'}
-               {!loading && <ChevronRight size={20} strokeWidth={4}/>}
-            </button>
-
-            <button onClick={handleReset} disabled={cart.length === 0} className="w-full py-2 text-center font-bold text-zinc-400 uppercase tracking-widest text-[10px] hover:text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors disabled:opacity-0 active:scale-95">
-              Clear Order
-            </button>
           </div>
-        </div>
+        )}
 
         {/* Customization Modal */}
         {showCustomizer && customizingItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-zinc-900/55">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-zinc-900/55">
             <div className="absolute inset-0" onClick={() => setShowCustomizer(false)} />
-            <div className="relative bg-gradient-to-br from-violet-50 to-fuchsia-50 w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-violet-100/70">
-              
-              <div className="p-8 border-b border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
-                <div className="flex items-center gap-6">
-                  <div className="w-24 h-24 bg-zinc-50 rounded-2xl overflow-hidden border border-zinc-100 flex items-center justify-center shadow-inner">
+            <div className="relative bg-gradient-to-br from-white to-purple-50/30 w-full max-w-xl rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-purple-100/50">
+
+              <div className="p-4 border-b border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-50 rounded-xl overflow-hidden border border-purple-100 flex items-center justify-center shadow-inner">
                     {customizingItem.image ? (
                       <img src={getImageUrl(customizingItem.image)} className="w-full h-full object-cover" />
                     ) : (
-                      <ShoppingBag size={32} className="text-zinc-300" />
+                      <ShoppingBag size={24} className="text-[#7c3aed]" />
                     )}
                   </div>
                   <div>
-                    <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase line-clamp-1">{customizingItem.name}</h3>
-                    <div className="inline-block px-3 py-1 bg-white/80 border border-violet-200 text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 rounded-lg text-sm font-bold uppercase tracking-widest mt-2">{customizingItem.category}</div>
+                    <h3 className="text-lg font-black text-zinc-900 tracking-tight uppercase leading-none">{customizingItem.name?.toLowerCase()}</h3>
+                    <div className="inline-block px-2 py-0.5 bg-purple-100 text-purple-600 rounded-lg text-[9px] font-black uppercase tracking-widest mt-1.5">{customizingItem.category?.toLowerCase()}</div>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCustomizer(false)}
-                  className="w-14 h-14 bg-white border border-zinc-200 text-zinc-500 rounded-full flex items-center justify-center hover:bg-zinc-50 hover:text-zinc-900 transition-colors shrink-0 shadow-sm"
+                  className="w-10 h-10 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
                 >
-                  <X size={28} strokeWidth={3}/>
+                  <X size={20} strokeWidth={2.5} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
-                {(customizingItem.category?.toLowerCase().includes('milk tea') ||
-                  customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
-                    <div className="bg-white/95 p-8 rounded-3xl border border-violet-100 shadow-sm">
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0">1</div>
-                        <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase">Select Sugar</h4>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        {sugarLevels.map((sl) => (
-                          <button
-                            key={sl.id}
-                            onClick={() => setSelectedSugarLevel(sl.value)}
-                            className={`py-5 rounded-2xl font-bold text-lg transition-all border-4 ${selectedSugarLevel === sl.value
-                                ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500 border-violet-600 text-white scale-105 shadow-[0_12px_25px_rgba(124,58,237,0.35)]'
-                                : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300'
-                              }`}
-                          >
-                            {sl.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-hide">
+                {(() => {
+                  const steps = [];
+                  if (sugarLevels.length > 0) steps.push('sugar');
+                  if (customizingItem.has_ice) steps.push('ice');
+                  if (customizingItem.has_pearl) steps.push('pearl');
+                  steps.push('addons');
 
-                <div className="bg-white/95 p-8 rounded-3xl border border-violet-100 shadow-sm">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-10 h-10 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 border border-violet-300/50">
-                      {((customizingItem.category?.toLowerCase().includes('milk') || customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0) ? '2' : '1'}
-                    </div>
-                    <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase">Add Toppings</h4>
-                  </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  return (
+                    <>
+                      {steps.includes('sugar') && (
+                        <div className="bg-white/95 p-4 rounded-2xl border border-purple-100 shadow-sm">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-6 h-6 bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0">
+                              {steps.indexOf('sugar') + 1}
+                            </div>
+                            <h4 className="font-black text-zinc-900 text-sm tracking-tight capitalize">Select Sugar</h4>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                            {sugarLevels.map((sl) => (
+                              <button
+                                key={sl.id}
+                                onClick={() => setSelectedSugarLevel(sl.value)}
+                                className={`py-2 rounded-xl font-bold text-[11px] transition-all border-2 ${selectedSugarLevel === sl.value
+                                  ? 'bg-gradient-to-r from-[#7c14d4] to-purple-500 border-[#7c14d4] text-white scale-105 shadow-lg shadow-purple-100'
+                                  : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300'
+                                  }`}
+                              >
+                                {sl.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {steps.includes('ice') && (
+                        <div className="bg-white/95 p-4 rounded-2xl border border-purple-50 shadow-sm">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-6 h-6 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0 shadow-md shadow-purple-100">
+                              {steps.indexOf('ice') + 1}
+                            </div>
+                            <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">Select Ice</h4>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {['NO ICE', '-ICE', '+ICE'].map((opt) => (
+                              <button
+                                key={opt}
+                                onClick={() => setSelectedIce(prev => prev === opt ? 'NORMAL ICE' : opt)}
+                                className={`py-2 rounded-xl font-bold text-[11px] transition-all border-2 ${selectedIce === opt
+                                  ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white scale-105 shadow-lg shadow-purple-100'
+                                  : 'bg-white border-zinc-200 text-zinc-600 hover:border-purple-200'
+                                  }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {steps.includes('pearl') && (
+                        <div className="bg-white/95 p-4 rounded-2xl border border-purple-50 shadow-sm">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-6 h-6 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0 shadow-md shadow-purple-100">
+                              {steps.indexOf('pearl') + 1}
+                            </div>
+                            <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">Pearl Option</h4>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {['NO PRL', 'W/ PRL'].map((opt) => (
+                              <button
+                                key={opt}
+                                onClick={() => setSelectedPearl(opt)}
+                                className={`py-2 rounded-xl font-bold text-[11px] transition-all border-2 ${selectedPearl === opt
+                                  ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white scale-105 shadow-lg shadow-purple-100'
+                                  : 'bg-white border-zinc-200 text-zinc-600 hover:border-purple-200'
+                                  }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="bg-white/95 p-4 rounded-2xl border border-purple-50 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-6 h-6 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0 border border-purple-300/50 shadow-md shadow-purple-100">
+                            {steps.indexOf('addons') + 1}
+                          </div>
+                          <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">Add Toppings <span className="text-[9px] font-bold text-zinc-400 ml-2 normal-case">(optional)</span></h4>
+                        </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                     {allAddOns
                       .filter(ao => {
                         const itemCat = customizingItem.category?.toLowerCase() || '';
@@ -1001,45 +2012,41 @@ const KioskPage = () => {
                                   : [...prev, ao]
                               );
                             }}
-                            className={`p-5 rounded-2xl border-4 flex flex-col transition-all text-left ${isSelected
-                                ? 'border-violet-600 bg-gradient-to-r from-violet-50 to-fuchsia-50 scale-[1.02] shadow-md'
-                                : 'border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300'
-                              }`}
+                            className={`p-3 rounded-xl border-2 flex flex-col transition-all text-left ${isSelected
+                               ? 'border-[#7c3aed] bg-purple-50 scale-[1.02] shadow-sm'
+                               : 'border-zinc-100 bg-white hover:border-purple-100'
+                               }`}
                           >
-                            <div className="flex justify-between items-start mb-2 w-full">
-                               <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-violet-600 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white' : 'border-zinc-300 bg-zinc-50'}`}>
-                                  {isSelected && <CheckCircle2 size={20} strokeWidth={3}/>}
-                               </div>
-                               <span className={`font-black text-xl ${isSelected ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500' : 'text-zinc-500'}`}>
-                                  +₱{Number(ao.price).toFixed(0)}
-                               </span>
-                            </div>
-                            <span className={`font-bold text-lg leading-tight uppercase ${isSelected ? 'text-violet-900' : 'text-zinc-700'}`}>
-                              {ao.name}
+                              <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-[#7c3aed] bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white' : 'border-zinc-300 bg-zinc-50'}`}>
+                                {isSelected && <CheckCircle2 size={12} strokeWidth={3} />}
+                              </div>
+                              <span className={`font-black text-[12px] ${isSelected ? 'text-[#7c3aed]' : 'text-zinc-500'}`}>
+                                +₱{Number(ao.price).toFixed(0)}
+                              </span>
+                            <span className={`font-bold text-[13px] leading-tight uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-700'}`}>
+                              {ao.name?.toLowerCase()}
                             </span>
                           </button>
                         );
                       })}
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )
+            })()}
+            </div>
 
-              <div className="p-8 border-t border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgb(0,0,0,0.03)] z-10">
-                <div>
-                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-1">Total</p>
-                  <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-700 to-fuchsia-500 tracking-tighter">
-                    ₱{(
-                      Number(customizingItem.sellingPrice) +
-                      selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
-                    ).toFixed(0)}
-                  </div>
+              <div className="p-5 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
+                <div className="bg-zinc-50 px-4 py-2 rounded-xl border border-zinc-100">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Total Amount</p>
+                  <p className="text-xl font-black text-zinc-900 tracking-tighter">₱{Number(customizingItem.sellingPrice) + selectedAddOns.reduce((sum, ao) => sum + Number(ao.price), 0)}</p>
                 </div>
                 <button
                   onClick={confirmCustomization}
-                  className="bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white px-12 py-6 rounded-2xl font-black uppercase tracking-wider text-xl flex items-center gap-3 hover:from-violet-500 hover:to-fuchsia-500 transition-all shadow-[0_8px_20px_rgba(124,58,237,0.35)] hover:shadow-[0_12px_25px_rgba(124,58,237,0.45)] hover:-translate-y-[1px] active:scale-95"
+                  className="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white px-8 py-3.5 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-purple-100"
                 >
                   <span>Add to Tray</span>
-                  <Plus size={24} strokeWidth={3}/>
+                  <Plus size={16} strokeWidth={4} />
                 </button>
               </div>
             </div>
@@ -1050,54 +2057,62 @@ const KioskPage = () => {
   };
 
 
-      const ConfirmView = () => (
-    <div
-      className="flex-1 flex flex-col p-12 animate-in fade-in zoom-in-95 duration-500 overflow-y-auto relative"
-      style={{
-        background: 'linear-gradient(145deg, #faf7ff 0%, #f2ecff 45%, #fff4fb 78%, #fff8ec 100%)'
-      }}
-    >
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[110px] translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
-      <div className="absolute bottom-[-8%] left-[-6%] w-[420px] h-[420px] bg-fuchsia-400/10 rounded-full blur-[115px] pointer-events-none"></div>
+  const ConfirmView = () => (
+    <div className="flex-1 flex flex-col relative overflow-y-auto bg-[#fdf8ff] scrollbar-hide">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-100/30 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-50/40 rounded-full blur-[100px] translate-y-1/4 -translate-x-1/4 pointer-events-none" />
 
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-12 max-w-2xl mx-auto w-full relative z-10">
-        
-        <div className="w-24 h-24 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_0_60px_rgba(16,185,129,0.4)] animate-bounce relative">
+      {/* Top Bar (Unified) */}
+      <div className="h-16 px-8 flex items-center justify-between shrink-0 relative z-50">
+        <div className="flex items-center gap-3">
+          <img src={logo} alt="Lucky Boba" className="h-10 w-auto drop-shadow-sm" />
+          <span className="text-xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="w-8 h-8 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
+            <HelpCircle size={20} />
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 relative z-10 py-4">
+        <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_15px_40px_rgba(16,185,129,0.3)] animate-bounce relative shrink-0">
           <div className="absolute inset-0 border-4 border-emerald-400 rounded-full animate-ping opacity-50"></div>
-          <CheckCircle2 size={56} strokeWidth={3} className="relative z-10" />
+          <CheckCircle2 size={40} strokeWidth={3} className="relative z-10" />
         </div>
 
-        <div className="text-center space-y-4">
-          <h2 className="text-5xl font-black text-zinc-900 tracking-tight uppercase">Order Received</h2>
-          <p className="text-xl text-emerald-600 font-bold uppercase tracking-widest text-center">Please proceed to counter to pay</p>
+        <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-4 duration-700 shrink-0">
+          <h2 className="text-2xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+            Order <span className="text-[#7c3aed] italic">Received</span>
+          </h2>
+          <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-[0.2em]">Please proceed to counter to pay</p>
         </div>
 
-        <div className="bg-white p-8 rounded-[2rem] w-full shadow-2xl relative overflow-hidden flex flex-col items-center border border-zinc-200">
-           {/* Receipt Zigzag */}
-           <div className="absolute -bottom-4 left-0 right-0 max-w-full overflow-hidden flex transform scale-y-50">
-             {[...Array(20)].map((_, i) => (
-                <div key={i} className="w-8 h-8 bg-zinc-50 rotate-45 shrink-0 -ml-4" />
-             ))}
-           </div>
-           
-           <p className="text-zinc-500 font-bold uppercase tracking-widest text-sm mb-2">Your Ticket Number</p>
-           <div className="bg-zinc-50 px-10 py-6 rounded-2xl mb-8 border border-zinc-200 shadow-inner">
-             <h3 className="text-7xl font-black text-violet-600 tracking-tighter" style={{ fontFamily: 'monospace' }}>
-               #{orderNumber}
-             </h3>
-           </div>
-           
-           <div className="w-full flex items-center justify-between pt-6 border-t border-dashed border-zinc-300">
-             <span className="text-zinc-500 font-bold uppercase">Total Due</span>
-             <span className="text-3xl font-black text-zinc-900 tracking-tight">₱{calculateTotal().toFixed(0)}</span>
-           </div>
+        <div className="bg-white p-6 rounded-[2rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300 shrink-0">
+          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-3">Your Ticket Number</p>
+
+          <div className="bg-purple-50/50 px-6 py-4 rounded-3xl mb-4 border border-purple-100/50 shadow-inner w-full text-center">
+            <h3 className="text-4xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
+              #{orderNumber}
+            </h3>
+          </div>
+
+          <div className="w-full flex items-center justify-between pt-6 border-t border-dashed border-purple-100">
+            <span className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">Total Due</span>
+            <span className="text-3xl font-bold text-[#3b0764] tracking-tighter">₱{calculateTotal().toFixed(0)}</span>
+          </div>
         </div>
 
         <button
           onClick={handleReset}
-          className="bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-500 text-white px-16 py-6 rounded-full font-black uppercase text-2xl tracking-wider transition-all shadow-[0_12px_40px_rgba(124,58,237,0.3)] hover:shadow-[0_16px_50px_rgba(124,58,237,0.4)] hover:-translate-y-1 active:scale-95"
+          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-8 pr-5 py-3 rounded-full font-bold text-base tracking-[0.12em] uppercase shadow-[0_20px_45px_rgba(124,58,237,0.3)] flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 mt-2 shrink-0"
         >
-          New Order
+          <span className="relative z-10">New Order</span>
+          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
+            <ChevronRight size={20} strokeWidth={4} />
+          </div>
         </button>
       </div>
     </div>
@@ -1151,18 +2166,16 @@ const KioskPage = () => {
               <button
                 key={branch.id}
                 onClick={() => handleSelectBranch(branch)}
-                className={`p-6 rounded-2xl shadow-md border flex flex-col items-start text-left transition-all group active:scale-[0.98] backdrop-blur-sm ${
-                  selectedBranchToConfirm?.id === branch.id
-                    ? 'bg-white border-violet-500 ring-4 ring-violet-100 shadow-xl -translate-y-[2px]'
-                    : 'bg-white/95 border-zinc-200/80 hover:border-violet-300 hover:shadow-xl hover:-translate-y-[2px]'
-                }`}
+                className={`p-6 rounded-2xl shadow-md border flex flex-col items-start text-left transition-all group active:scale-[0.98] backdrop-blur-sm ${selectedBranchToConfirm?.id === branch.id
+                  ? 'bg-white border-violet-500 ring-4 ring-violet-100 shadow-xl -translate-y-[2px]'
+                  : 'bg-white/95 border-zinc-200/80 hover:border-violet-300 hover:shadow-xl hover:-translate-y-[2px]'
+                  }`}
               >
                 <div className="flex items-center gap-4 w-full mb-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors border ${
-                    selectedBranchToConfirm?.id === branch.id
-                      ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500 border-violet-500 text-white'
-                      : 'bg-zinc-50 border-zinc-100 text-zinc-600 group-hover:bg-gradient-to-r group-hover:from-violet-600 group-hover:to-fuchsia-500 group-hover:border-violet-600 group-hover:text-white'
-                  }`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors border ${selectedBranchToConfirm?.id === branch.id
+                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500 border-violet-500 text-white'
+                    : 'bg-zinc-50 border-zinc-100 text-zinc-600 group-hover:bg-gradient-to-r group-hover:from-violet-600 group-hover:to-fuchsia-500 group-hover:border-violet-600 group-hover:text-white'
+                    }`}>
                     <ShoppingBag size={22} />
                   </div>
                   <div>
@@ -1188,11 +2201,10 @@ const KioskPage = () => {
                 </div>
 
                 <div className="mt-6 flex items-center justify-between w-full">
-                  <div className={`flex items-center gap-1 text-xs font-semibold transition-all duration-300 ${
-                    selectedBranchToConfirm?.id === branch.id
-                      ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 opacity-100 translate-x-0'
-                      : 'text-violet-600 opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0'
-                  }`}>
+                  <div className={`flex items-center gap-1 text-xs font-semibold transition-all duration-300 ${selectedBranchToConfirm?.id === branch.id
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 opacity-100 translate-x-0'
+                    : 'text-violet-600 opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0'
+                    }`}>
                     <span>Select Branch</span>
                     <ChevronRight size={16} />
                   </div>
@@ -1290,8 +2302,8 @@ const KioskPage = () => {
                 <div
                   key={i}
                   className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${pinInput.length > i
-                      ? 'bg-violet-600 scale-110'
-                      : 'bg-zinc-200'
+                    ? 'bg-violet-600 scale-110'
+                    : 'bg-zinc-200'
                     }`}
                 />
               ))}
@@ -1359,10 +2371,10 @@ const KioskPage = () => {
 
       {/* Admin Settings Modal */}
       {isAdminModalOpen && (
-        <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center print:hidden animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-10 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col items-center">
-            <h2 className="text-3xl font-black text-[#3b2063] uppercase italic mb-8 shrink-0">Admin Settings</h2>
-              
+        <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 text-center print:hidden animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] p-6 max-w-xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col items-center">
+            <h2 className="text-xl font-black text-[#3b2063] uppercase italic mb-6 shrink-0">Admin Settings</h2>
+
             <div className="w-full flex-1 overflow-y-auto pr-2 space-y-6 text-left shrink">
               {/* Expo Mode Toggle */}
               <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 flex items-center justify-between">
@@ -1370,16 +2382,16 @@ const KioskPage = () => {
                   <h3 className="font-bold text-zinc-900 uppercase">Expo Mode</h3>
                   <p className="text-xs text-zinc-500 font-medium">Limit the menu to specific items only.</p>
                 </div>
-                <button 
+                <button
                   onClick={() => {
-                      const newMode = !isExpoMode;
-                      setIsExpoMode(newMode);
-                      localStorage.setItem('kiosk_expo_mode', String(newMode));
-                      
-                      const displayItems = newMode ? items.filter(i => expoItemIds.includes(i.id)) : items;
-                      const newCats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
-                      setCategories(newCats);
-                      if (!newCats.includes(activeCategory)) setActiveCategory('');
+                    const newMode = !isExpoMode;
+                    setIsExpoMode(newMode);
+                    localStorage.setItem('kiosk_expo_mode', String(newMode));
+
+                    const displayItems = newMode ? items.filter(i => expoItemIds.includes(i.id)) : items;
+                    const newCats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
+                    setCategories(newCats);
+                    if (!newCats.includes(activeCategory)) setActiveCategory('');
                   }}
                   className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-colors w-32 shrink-0 ${isExpoMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-600' : 'bg-zinc-200 text-zinc-400 hover:bg-zinc-300'}`}
                 >
@@ -1392,7 +2404,7 @@ const KioskPage = () => {
                 <div className="bg-white p-6 rounded-2xl border border-violet-100">
                   <h3 className="font-bold text-violet-900 uppercase">Select Expo Items</h3>
                   <p className="text-xs text-zinc-500 font-medium mb-4">Click to toggle items for the Expo.</p>
-                  
+
                   {/* Search and Category Filter */}
                   {items.length > 0 && (
                     <div className="flex flex-col gap-3 mb-2">
@@ -1427,60 +2439,60 @@ const KioskPage = () => {
                   )}
 
                   {items.length === 0 ? (
-                     <p className="text-xs text-zinc-400 italic">No items loaded for this branch.</p>
+                    <p className="text-xs text-zinc-400 italic">No items loaded for this branch.</p>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto p-1 pr-2">
                       {items.filter(item => {
-                         const matchesSearch = !expoSearchQuery || item.name.toLowerCase().includes(expoSearchQuery.toLowerCase());
-                         const matchesCategory = !expoCategoryFilter || item.category === expoCategoryFilter;
-                         return matchesSearch && matchesCategory;
+                        const matchesSearch = !expoSearchQuery || item.name.toLowerCase().includes(expoSearchQuery.toLowerCase());
+                        const matchesCategory = !expoCategoryFilter || item.category === expoCategoryFilter;
+                        return matchesSearch && matchesCategory;
                       }).map(item => {
-                         const isSelected = expoItemIds.includes(item.id);
-                         return (
-                           <button
-                             key={item.id}
-                             onClick={() => {
-                               let newIds = [...expoItemIds];
-                               if (isSelected) {
-                                  newIds = newIds.filter(id => id !== item.id);
-                               } else {
-                                  newIds.push(item.id);
-                               }
-                               setExpoItemIds(newIds);
-                               localStorage.setItem('kiosk_expo_items', JSON.stringify(newIds));
-                               
-                               const displayItems = items.filter(i => newIds.includes(i.id));
-                               const newCats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
-                               setCategories(newCats);
-                               if (!newCats.includes(activeCategory)) setActiveCategory('');
-                             }}
-                             className={`p-4 rounded-xl border-2 text-left flex items-center justify-between group transition-colors ${isSelected ? 'border-violet-600 bg-violet-50 text-violet-900' : 'border-zinc-100 bg-white hover:border-violet-200 text-zinc-500'}`}
-                           >
-                              <span className={`text-xs font-bold leading-tight capitalize`}>
-                                {item.name.toLowerCase()}
-                                {(() => {
-                                  const s = item.size?.toLowerCase();
-                                  const cat = item.category?.toLowerCase() || '';
-                                  const isJunior = cat.includes('jr') || cat.includes('junior');
-                                  
-                                  let displaySize = null;
-                                  if (isJunior && (!s || s === 'none')) displaySize = 'jr';
-                                  else if (s === 'l') displaySize = 'sl';
-                                  else if (s === 'm') displaySize = 'sm';
-                                  else if (s && !['none'].includes(s)) displaySize = s;
+                        const isSelected = expoItemIds.includes(item.id);
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              let newIds = [...expoItemIds];
+                              if (isSelected) {
+                                newIds = newIds.filter(id => id !== item.id);
+                              } else {
+                                newIds.push(item.id);
+                              }
+                              setExpoItemIds(newIds);
+                              localStorage.setItem('kiosk_expo_items', JSON.stringify(newIds));
 
-                                  const allowed = ['sl', 'sm', 'pcm', 'pcl', 'ul', 'um', 'jr'];
-                                  if (displaySize && allowed.includes(displaySize)) {
-                                    return <span className="font-bold text-violet-400 capitalize ml-1">({displaySize})</span>;
-                                  }
-                                  return null;
-                                })()}
-                              </span>
-                              <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-300'}`}>
-                                {isSelected ? <CheckCircle2 size={14} strokeWidth={4} /> : <div className="w-2 h-2 bg-current rounded-full" />}
-                              </div>
-                           </button>
-                         )
+                              const displayItems = items.filter(i => newIds.includes(i.id));
+                              const newCats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
+                              setCategories(newCats);
+                              if (!newCats.includes(activeCategory)) setActiveCategory('');
+                            }}
+                            className={`p-4 rounded-xl border-2 text-left flex items-center justify-between group transition-colors ${isSelected ? 'border-violet-600 bg-violet-50 text-violet-900' : 'border-zinc-100 bg-white hover:border-violet-200 text-zinc-500'}`}
+                          >
+                            <span className={`text-xs font-bold leading-tight capitalize`}>
+                              {item.name.toLowerCase()}
+                              {(() => {
+                                const s = item.size?.toLowerCase();
+                                const cat = item.category?.toLowerCase() || '';
+                                const isJunior = cat.includes('jr') || cat.includes('junior');
+
+                                let displaySize = null;
+                                if (isJunior && (!s || s === 'none')) displaySize = 'jr';
+                                else if (s === 'l') displaySize = 'sl';
+                                else if (s === 'm') displaySize = 'sm';
+                                else if (s && !['none'].includes(s)) displaySize = s;
+
+                                const allowed = ['sl', 'sm', 'pcm', 'pcl', 'ul', 'um', 'jr'];
+                                if (displaySize && allowed.includes(displaySize)) {
+                                  return <span className="font-bold text-violet-400 capitalize ml-1">({displaySize})</span>;
+                                }
+                                return null;
+                              })()}
+                            </span>
+                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-300'}`}>
+                              {isSelected ? <CheckCircle2 size={14} strokeWidth={4} /> : <div className="w-2 h-2 bg-current rounded-full" />}
+                            </div>
+                          </button>
+                        )
                       })}
                     </div>
                   )}
@@ -1493,10 +2505,10 @@ const KioskPage = () => {
                   <h3 className="font-bold text-red-600 uppercase">Reset Location</h3>
                   <p className="text-xs text-red-400 font-medium">Unbind this device.</p>
                 </div>
-                <button 
+                <button
                   onClick={() => {
-                     localStorage.removeItem('kiosk_branch_id');
-                     window.location.reload();
+                    localStorage.removeItem('kiosk_branch_id');
+                    window.location.reload();
                   }}
                   className="px-6 py-4 bg-red-50 border border-red-100 text-red-600 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-red-600 hover:text-white transition-colors"
                 >
@@ -1505,9 +2517,9 @@ const KioskPage = () => {
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => setIsAdminModalOpen(false)}
-               className="mt-8 py-5 bg-[#3b2063] hover:bg-[#2d184d] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-[#3b2063]/20 w-full shrink-0"
+              className="mt-8 py-5 bg-[#3b2063] hover:bg-[#2d184d] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-[#3b2063]/20 w-full shrink-0"
             >
               Close Settings
             </button>

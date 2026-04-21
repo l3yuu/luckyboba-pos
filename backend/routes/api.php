@@ -50,6 +50,7 @@ Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('
 Route::get('/addons',           [AddOnController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');
 Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/bundles',          [BundleController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
 
 
@@ -71,6 +72,8 @@ if ($branchId) {
     }
 }
 
+    $options = DB::table('menu_item_options')->get()->groupBy('menu_item_id');
+
     $items = DB::table('menu_items')
         ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
         ->select(
@@ -80,6 +83,8 @@ if ($branchId) {
             'menu_items.quantity',
             'menu_items.status',
             'categories.name as category',
+            'categories.category_type',
+            'categories.id as category_id',
             'menu_items.price as sellingPrice',
             'menu_items.image',
             'menu_items.size'
@@ -97,11 +102,17 @@ if ($branchId) {
             return !is_null($item->category) && $item->category !== '';
         })
         ->values()
-        ->map(function ($item) {
+        ->map(function ($item) use ($options) {
             $item->image = $item->image
                 ? url('storage/' . $item->image)
                 : null;
             unset($item->status);
+            
+            $itemOpts = $options->get($item->id, collect());
+            $item->has_ice = $itemOpts->contains('option_type', 'ice');
+            $item->has_pearl = $itemOpts->contains('option_type', 'pearl');
+            $item->has_sugar = $itemOpts->contains('option_type', 'sugar');
+            
             return $item;
         });
 
@@ -289,7 +300,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/branches/{id}/payment-settings', [BranchSettingsController::class, 'getPaymentSettings']);
         
         Route::get('/menu',                    [MenuController::class, 'index']);
-        Route::get('/bundles',                 [BundleController::class, 'index']);
         Route::get('/notifications/summary',   [NotificationController::class, 'summary']);
 
         Route::prefix('sales')->group(function () {

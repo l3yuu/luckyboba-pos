@@ -587,7 +587,6 @@ export const KioskTicketPrint = ({
     <div className="printable-receipt-container hidden print:block" style={{ width: '80mm', maxWidth: '80mm' }}>
       <style>{`
         @page {
-          size: 80mm auto;
           margin: 0;
         }
         @media print {
@@ -598,69 +597,69 @@ export const KioskTicketPrint = ({
           .printable-receipt-container {
             display: block !important;
             width: 80mm !important;
-            padding: 4mm;
+            padding: 1mm;
             background: white;
           }
         }
       `}</style>
-      <div className="receipt-area bg-white text-black">
+      <div className="receipt-area bg-white text-black leading-none">
         {/* Store header */}
-        <div className="text-center mb-6 pt-2 pb-4 border-b-2 border-dashed border-black">
-          <img src={logo} alt="Lucky Boba Logo" className="w-32 h-auto mx-auto mb-2" style={{ filter: 'grayscale(100%)', maxWidth: '60mm' }} />
-          <h1 className="uppercase font-black text-xl tracking-tighter">LUCKY BOBA</h1>
-          <p className="text-[10px] uppercase font-bold tracking-widest">{branchName}</p>
+        <div className="text-center mb-1 pb-1 border-b border-dashed border-black">
+          <img src={logo} alt="Lucky Boba Logo" className="w-16 h-auto mx-auto mb-1" style={{ filter: 'grayscale(100%)', maxWidth: '30mm' }} />
+          <h1 className="uppercase font-black text-sm tracking-tighter">LUCKY BOBA</h1>
+          <p className="text-[8px] uppercase font-bold tracking-widest">{branchName}</p>
         </div>
 
         {/* Payment Instruction */}
-        <div className="bg-black text-white p-3 mb-6 text-center" style={{ width: '100%', boxSizing: 'border-box' }}>
-          <p className="text-[9px] font-bold uppercase tracking-widest mb-1">Status: PENDING</p>
-          <h2 className="text-lg font-black uppercase italic leading-none">PAY AT CASHIER</h2>
+        <div className="bg-black text-white p-1 mb-1 text-center" style={{ width: '100%', boxSizing: 'border-box' }}>
+          <p className="text-[7px] font-bold uppercase tracking-widest mb-0.5">Status: PENDING</p>
+          <h2 className="text-sm font-black uppercase italic">PAY AT CASHIER</h2>
         </div>
 
         {/* Queue Number */}
-        <div className="text-center mb-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Your Number Is:</p>
-          <h2 className="font-black tracking-tighter italic font-mono leading-none border-y-4 border-black py-4 my-2"
-            style={{ fontSize: '52pt', lineHeight: 1, maxWidth: '100%' }}>
+        <div className="text-center mb-1">
+          <p className="text-[8px] font-black uppercase tracking-widest text-gray-500">Your Number:</p>
+          <h2 className="font-black tracking-tighter italic font-mono border-y border-black py-0.5 my-0.5"
+            style={{ fontSize: '28pt', lineHeight: 1, maxWidth: '100%' }}>
             #{queueNumber}
           </h2>
         </div>
 
         {/* Items Table Header */}
-        <div className="flex justify-between text-[10px] font-black uppercase border-b border-black pb-1 mb-2">
+        <div className="flex justify-between text-[8px] font-black uppercase border-b border-black pb-0.5 mb-1">
           <span>Item / Qty</span>
           <span>Price</span>
         </div>
 
         {/* Items List */}
-        <div className="space-y-4 mb-6">
+        <div className="space-y-0.5 mb-1">
           {cart.map((item, i) => (
-            <div key={i} className="flex flex-col border-b border-gray-100 pb-2">
+            <div key={i} className="flex flex-col border-b border-gray-100 pb-0.5">
               <div className="flex justify-between items-start">
-                <div style={{ flex: 1, paddingRight: '4mm', minWidth: 0 }}>
-                  <div className="flex items-start gap-2">
-                    <span className="font-black text-sm shrink-0">{item.qty}x</span>
-                    <span className="uppercase font-bold text-sm leading-tight" style={{ wordBreak: 'break-word' }}>{item.name}</span>
+                <div style={{ flex: 1, paddingRight: '1mm', minWidth: 0 }}>
+                  <div className="flex items-start gap-1">
+                    <span className="font-black text-[10px] shrink-0">{item.qty}x</span>
+                    <span className="uppercase font-bold text-[10px]" style={{ wordBreak: 'break-word' }}>{item.name}</span>
                   </div>
-                  {item.cupSizeLabel && <div className="pl-6 text-[10px] font-bold uppercase text-gray-600 italic leading-none mt-1">{item.cupSizeLabel} SIZE</div>}
+                  {item.cupSizeLabel && <div className="pl-3 text-[7px] font-bold uppercase text-gray-600 italic mt-0.5">{item.cupSizeLabel} SIZE</div>}
                 </div>
-                <div className="font-black text-sm" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                <div className="font-black text-[10px]" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
                   ₱{((item.itemTotal || Number(item.sellingPrice || item.price || item.finalPrice)) * item.qty).toFixed(2)}
                 </div>
               </div>
 
               {/* Add-ons/Options */}
-              <div className="pl-6 space-y-0.5 mt-1">
+              <div className="pl-3 space-y-0 mt-0.5">
                 {(item.selectedSugarLevel || item.sugarLevel) && (
-                  <div className="text-[10px] font-medium text-gray-500">
+                  <div className="text-[7px] font-medium text-gray-500">
                     • Sugar {item.selectedSugarLevel || item.sugarLevel}
                   </div>
                 )}
                 {item.selectedAddOns?.map(ao => (
-                  <div key={ao.id} className="text-[10px] font-bold text-gray-600 uppercase italic leading-none">• {ao.name}</div>
+                  <div key={ao.id} className="text-[7px] font-bold text-gray-600 uppercase italic">• {ao.name}</div>
                 ))}
                 {item.options?.map((o: string) => (
-                  <div key={o} className="text-[10px] font-medium text-gray-500">• {o}</div>
+                  <div key={o} className="text-[7px] font-medium text-gray-500">• {o}</div>
                 ))}
               </div>
             </div>
@@ -668,32 +667,23 @@ export const KioskTicketPrint = ({
         </div>
 
         {/* Totals Section */}
-        <div className="border-t-4 border-double border-black pt-4 mb-8">
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">TOTAL AMOUNT DUE</span>
-            <div className="flex items-baseline gap-1 font-black" style={{ maxWidth: '100%' }}>
-              <span className="text-xl pt-1">₱</span>
-              <span className="tracking-tighter leading-none" style={{ fontSize: '36pt' }}>{totalAmount.toFixed(2)}</span>
+        <div className="border-t border-black pt-1 mb-1">
+          <div className="flex justify-between items-baseline">
+            <span className="text-[8px] font-black uppercase">TOTAL DUE</span>
+            <div className="flex items-baseline gap-1 font-black">
+              <span className="text-[10px]">₱</span>
+              <span className="tracking-tighter" style={{ fontSize: '14pt' }}>{totalAmount.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="text-center pt-4 border-t border-dashed border-gray-300">
-          <p className="text-[9px] font-black uppercase tracking-widest mb-2 leading-tight">
-            NOT AN OFFICIAL RECEIPT<br/>
-            PLEASE PRESENT TO THE COUNTER
+        <div className="text-center pt-1 border-t border-dashed border-gray-300">
+          <p className="text-[7px] font-black uppercase tracking-widest mb-1">
+            NOT AN OFFICIAL RECEIPT. PRESENT TO COUNTER
           </p>
-          <div className="bg-gray-100 p-2 text-[8px] font-mono uppercase tracking-tighter opacity-80" style={{ wordBreak: 'break-all' }}>
-            {orNumber}<br/>
-            {formattedDate} — {formattedTime}
-          </div>
-
-          <div className="mt-6 opacity-20 flex flex-col items-center">
-            <div className="w-20 h-20 border-2 border-black rounded-lg flex items-center justify-center">
-              <span className="text-[9px] font-black rotate-[-45deg] whitespace-nowrap">SCAN HERE</span>
-            </div>
-            <p className="text-[8px] mt-2 font-black uppercase tracking-widest">Lucky Boba Kiosk</p>
+          <div className="bg-gray-100 p-0.5 text-[6px] font-mono uppercase tracking-tighter opacity-80" style={{ wordBreak: 'break-all' }}>
+            {orNumber} | {formattedDate} {formattedTime}
           </div>
         </div>
       </div>
