@@ -22,7 +22,8 @@ class OnlineOrderController extends Controller
                   ->orWhere('invoice_number', 'like', 'KSK-%')
                   ->orWhere('source', 'kiosk');
             })
-            ->whereNotIn('status', ['cancelled']);
+            ->whereNotIn('status', ['cancelled'])
+            ->whereDate('created_at', now()->toDateString());
 
         if (!empty($user->branch_id)) {
             $query->where('branch_id', $user->branch_id);
