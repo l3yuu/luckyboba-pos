@@ -71,7 +71,8 @@ interface TranslationStrings {
   addOns: string;
 
   // Confirm
-  orderReceived: string;
+  confirmTitle1: string;
+  confirmTitle2: string;
   proceedToCounter: string;
   yourTicketNumber: string;
   totalDue: string;
@@ -196,7 +197,8 @@ export const translations: TranslationMap = {
     addOns: 'Add-ons',
 
     // Confirm
-    orderReceived: 'Received',
+    confirmTitle1: 'Order',
+    confirmTitle2: 'Received',
     proceedToCounter: 'Please proceed to counter to pay',
     yourTicketNumber: 'Your Ticket Number',
     totalDue: 'Total Due',
@@ -317,7 +319,8 @@ export const translations: TranslationMap = {
     addOns: 'Mga Add-on',
 
     // Confirm
-    orderReceived: 'Natanggap',
+    confirmTitle1: 'Order',
+    confirmTitle2: 'Natanggap',
     proceedToCounter: 'Pumunta sa counter para magbayad',
     yourTicketNumber: 'Ang Iyong Ticket Number',
     totalDue: 'Kabuuang Babayaran',
@@ -438,7 +441,8 @@ export const translations: TranslationMap = {
     addOns: '加料',
 
     // Confirm
-    orderReceived: '已接单',
+    confirmTitle1: '订单',
+    confirmTitle2: '已接单',
     proceedToCounter: '请前往柜台付款',
     yourTicketNumber: '您的取餐号码',
     totalDue: '应付金额',
@@ -559,7 +563,8 @@ export const translations: TranslationMap = {
     addOns: '추가 옵션',
 
     // Confirm
-    orderReceived: '접수됨',
+    confirmTitle1: '주문이',
+    confirmTitle2: '접수되었습니다',
     proceedToCounter: '카운터에서 결제해 주세요',
     yourTicketNumber: '주문 번호',
     totalDue: '결제 금액',

@@ -20,6 +20,8 @@ import {
 import { KioskTicketPrint } from '../../components/Cashier/SalesOrderComponents/print';
 import { getImageUrl } from '../../utils/imageUtils';
 import { generateORNumber } from '../../components/Cashier/SalesOrderComponents/shared';
+import { type KioskLanguage, getTranslations, translations } from './kioskTranslations';
+import { useMemo } from 'react';
 
 // --- Types ---
 
@@ -136,6 +138,23 @@ const KioskPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+
+  // --- I18n State ---
+  const [language, setLanguage] = useState<KioskLanguage>(() => {
+    const stored = localStorage.getItem('kiosk_language');
+    if (stored && (stored === 'English' || stored === 'Filipino' || stored === 'Chinese' || stored === 'Korean')) {
+      return stored as KioskLanguage;
+    }
+    return 'English';
+  });
+  const t = useMemo(() => getTranslations(language), [language]);
+  const [showLanguageSwitcher, setShowLanguageSwitcher] = useState(false);
+
+  const handleLanguageChange = (lang: KioskLanguage) => {
+    setLanguage(lang);
+    localStorage.setItem('kiosk_language', lang);
+    setShowLanguageSwitcher(false);
+  };
 
   // --- Mix and Match State ---
   const [isMixMatchViewOpen, setIsMixMatchViewOpen] = useState(false);
@@ -843,7 +862,9 @@ const KioskPage = () => {
   const SplashView = () => (
     <div
       className="flex-1 flex flex-col bg-[#fdf8ff] cursor-pointer relative overflow-hidden"
-      onClick={() => setStep('order_type')}
+      onClick={() => {
+        if (!showLanguageSwitcher) setStep('order_type');
+      }}
     >
       {/* Top Navigation Bar */}
       <div className="absolute top-0 left-0 right-0 h-20 px-12 flex items-center justify-between z-50">
@@ -852,9 +873,36 @@ const KioskPage = () => {
           <span className="text-3xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
         </div>
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 text-zinc-600 font-medium text-sm bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-full border border-white shadow-sm">
-            <Globe size={18} className="text-[#7c3aed]" />
-            <span>English</span>
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowLanguageSwitcher(!showLanguageSwitcher);
+              }}
+              className="flex items-center gap-2 text-zinc-600 font-bold text-sm bg-white border border-purple-100 shadow-sm px-5 py-2.5 rounded-full hover:bg-purple-50 transition-all active:scale-95"
+            >
+              <Globe size={18} className="text-[#7c3aed]" />
+              <span>{language}</span>
+              <ChevronRight className={`transition-transform duration-300 ${showLanguageSwitcher ? 'rotate-90' : 'rotate-0'}`} size={14} />
+            </button>
+
+            {showLanguageSwitcher && (
+              <div
+                className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-purple-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[100]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {(Object.keys(translations) as KioskLanguage[]).map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => handleLanguageChange(lang)}
+                    className={`w-full px-5 py-3.5 text-left text-sm font-bold transition-colors flex items-center justify-between ${language === lang ? 'bg-purple-50 text-[#7c3aed]' : 'text-zinc-600 hover:bg-zinc-50'}`}
+                  >
+                    {lang}
+                    {language === lang && <Check size={14} strokeWidth={3} />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="w-12 h-12 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
             <HelpCircle size={24} />
@@ -867,17 +915,17 @@ const KioskPage = () => {
         <div className="flex-[0.5] flex flex-col items-start gap-8 pl-6 animate-in fade-in slide-in-from-left-8 duration-1000">
           <div className="space-y-4">
             <h1 className="text-[4.8rem] font-bold text-[#2e0a4e] leading-[0.82] tracking-tighter uppercase whitespace-pre-line">
-              Freshly<br />
-              <span className="text-[#7c3aed] italic">Brewed</span><br />
-              Happiness.
+              {t.splashHeadline1}<br />
+              <span className="text-[#7c3aed] italic">{t.splashHeadline2}</span><br />
+              {t.splashHeadline3}
             </h1>
             <p className="text-lg text-zinc-400 font-medium uppercase tracking-[0.18em] max-w-md mt-6 leading-relaxed">
-              Experience the ultimate boba journey
+              {t.splashSubtitle}
             </p>
           </div>
 
           <button className="group relative overflow-hidden bg-[#7c3aed] text-white pl-6 pr-3 py-2.5 rounded-full font-bold text-sm tracking-[0.12em] uppercase shadow-[0_10px_30px_rgba(124,58,237,0.3)] flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95">
-            <span className="relative z-10">Tap to Start</span>
+            <span className="relative z-10">{t.splashCTA}</span>
             <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
               <ChevronRight size={16} strokeWidth={4} />
             </div>
@@ -908,15 +956,15 @@ const KioskPage = () => {
         <div className="flex gap-20">
           <div className="space-y-1.5">
             <p className="text-4xl font-bold text-[#3b0764] tracking-tighter">50+</p>
-            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">Signature Flavors</p>
+            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">{t.splashSignatureFlavors}</p>
           </div>
           <div className="space-y-1.5">
             <p className="text-4xl font-bold text-[#581c87] tracking-tighter">100%</p>
-            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">Organic Tea Base</p>
+            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">{t.splashOrganicTeaBase}</p>
           </div>
         </div>
         <div className="text-right space-y-2">
-          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">Ordering hours: 10:00 AM - 10:00 PM</p>
+          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">{t.splashOrderingHours}</p>
           <div className="flex items-center justify-end gap-2 text-[#7c3aed]">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
             <p className="text-2xl font-bold uppercase tracking-tighter text-[#3b0764]">{branchName}</p>
@@ -946,7 +994,7 @@ const KioskPage = () => {
             className="flex items-center gap-2 text-zinc-500 font-medium text-sm bg-white/70 backdrop-blur-md px-6 py-2.5 rounded-full border border-white shadow-sm hover:bg-white transition-all active:scale-95"
           >
             <ChevronRight size={18} className="rotate-180 text-zinc-400" />
-            <span>Restart</span>
+            <span>{t.restart}</span>
           </button>
           <div className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
             <HelpCircle size={20} />
@@ -958,10 +1006,10 @@ const KioskPage = () => {
       <div className="flex-1 flex flex-col items-center justify-center gap-10 px-12 relative z-10 pt-4">
         <div className="text-center space-y-4 max-w-2xl animate-in fade-in slide-in-from-top-4 duration-700">
           <h2 className="text-4xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-            How will you enjoy<br />
-            your <span className="text-[#7c3aed] italic">Boba?</span>
+            {t.orderTypeTitle1}<br />
+            {t.orderTypeTitle2.replace('your Boba?', '')} <span className="text-[#7c3aed] italic">Boba?</span>
           </h2>
-          <p className="text-xs font-medium text-zinc-400 uppercase tracking-[0.3em]">Select your dining preference</p>
+          <p className="text-xs font-medium text-zinc-400 uppercase tracking-[0.3em]">{t.orderTypeSubtitle}</p>
         </div>
 
         <div className="flex gap-12 w-full justify-center max-w-6xl">
@@ -1004,7 +1052,7 @@ const KioskPage = () => {
               <div className="relative z-10 text-center space-y-2">
                 <span className={`block text-2xl font-bold tracking-tight uppercase transition-colors duration-300 ${orderType === type.id ? 'text-[#3b0764]' : 'text-zinc-600 group-hover:text-zinc-900'
                   }`}>
-                  {type.label}
+                  {type.id === 'dine_in' ? t.eatHere : t.takeOut}
                 </span>
                 <div className={`h-1.5 w-8 mx-auto rounded-full transition-all duration-500 ${orderType === type.id ? 'bg-[#7c3aed] w-12' : 'bg-transparent'
                   }`} />
@@ -1076,8 +1124,8 @@ const KioskPage = () => {
 
           {/* Category Header */}
           <div className="px-5 pt-5 pb-2">
-            <h3 className="text-base font-black text-[#7c14d4] tracking-tight">Categories</h3>
-            <p className="text-[10px] font-semibold text-zinc-400 tracking-wide">Pick your vibe</p>
+            <h3 className="text-base font-black text-[#7c14d4] tracking-tight">{t.categories}</h3>
+            <p className="text-[10px] font-semibold text-zinc-400 tracking-wide">{t.pickYourVibe}</p>
           </div>
 
           {/* Category List */}
@@ -1089,7 +1137,7 @@ const KioskPage = () => {
                 : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#7c14d4]'
                 }`}
             >
-              <span className="text-sm truncate">All Menu</span>
+              <span className="text-sm truncate">{t.allMenu}</span>
             </button>
 
             {categories.map((cat: string) => (
@@ -1112,7 +1160,7 @@ const KioskPage = () => {
             className="m-3 py-2.5 bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-500 font-bold text-xs hover:bg-zinc-200 hover:text-zinc-800 transition-all flex items-center justify-center gap-1.5"
           >
             <ChevronRight className="rotate-180" size={16} />
-            Cancel Order
+            {t.cancelOrder}
           </button>
         </div>
 
@@ -1127,7 +1175,7 @@ const KioskPage = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400" size={18} />
               <input
                 type="text"
-                placeholder="Search beverages..."
+                placeholder={t.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); if (activeCategory) setActiveCategory(''); }}
                 className="w-full bg-white/80 border border-purple-100 rounded-full py-2.5 pl-11 pr-4 text-sm font-semibold placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-orange-200 focus:border-orange-300 transition-all outline-none text-zinc-800 shadow-sm"
@@ -1162,16 +1210,16 @@ const KioskPage = () => {
                       className="text-4xl font-bold text-zinc-800 leading-[1.1]"
                       style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                     >
-                      Pick Your<br />
+                      {t.pickYourHappiness1}<br />
                       <span
                         className="italic text-[#7c14d4]"
                         style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                       >
-                        Happiness
+                        {t.pickYourHappiness2}
                       </span>
                     </h1>
                     <p className="text-sm text-zinc-400 font-medium mt-2 max-w-[300px]">
-                      The perfect blend of flavor and joy, crafted just for your afternoon boost.
+                      {t.menuSubtitle}
                     </p>
                   </div>
                 </div>
@@ -1198,7 +1246,7 @@ const KioskPage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       <div className="absolute bottom-0 left-0 p-6">
                         <div className="flex gap-2 mb-2">
-                          <span className="px-3 py-1 bg-[#7c14d4] text-white text-[9px] font-black uppercase tracking-widest rounded-lg">Bestseller</span>
+                          <span className="px-3 py-1 bg-[#7c14d4] text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{t.bestseller}</span>
                           <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{featuredItems[0].category}</span>
                         </div>
                         <h3
@@ -1207,9 +1255,9 @@ const KioskPage = () => {
                         >
                           {featuredItems[0].name}
                         </h3>
-                        <p className="text-white/60 text-xs font-medium mb-3">Freshly crafted with premium ingredients.</p>
+                        <p className="text-white/60 text-xs font-medium mb-3">{t.freshDescription}</p>
                         <button className="px-5 py-2.5 bg-white text-orange-600 rounded-full font-bold text-sm hover:bg-orange-50 transition-colors shadow-lg flex items-center gap-2 active:scale-95">
-                          Quick Add – ₱{Number(featuredItems[0].sellingPrice).toFixed(0)}
+                          {t.quickAdd} – ₱{Number(featuredItems[0].sellingPrice).toFixed(0)}
                         </button>
                       </div>
                     </div>
@@ -1251,7 +1299,7 @@ const KioskPage = () => {
                   className="text-lg font-bold text-zinc-800 mb-3"
                   style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                 >
-                  {searchQuery ? 'Search Results' : activeCategory ? <span className="capitalize">{activeCategory.toLowerCase()}</span> : 'Recommended for You'}
+                  {searchQuery ? t.searchResults : activeCategory ? <span className="capitalize">{activeCategory.toLowerCase()}</span> : t.recommendedForYou}
                 </h2>
                 <div className="grid grid-cols-4 2xl:grid-cols-5 gap-3">
                   {displayItems.map((item: MenuItem) => {
@@ -1296,7 +1344,7 @@ const KioskPage = () => {
                 {displayItems.length === 0 && !loading && (
                   <div className="py-20 flex flex-col items-center justify-center opacity-40">
                     <Search size={64} className="mb-6 text-zinc-300" />
-                    <p className="font-bold tracking-wide text-xl text-center text-zinc-500">No items found</p>
+                    <p className="font-bold tracking-wide text-xl text-center text-zinc-500">{t.noItemsFound}</p>
                   </div>
                 )}
               </div>
@@ -1319,7 +1367,7 @@ const KioskPage = () => {
               <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-2">
                   <ShoppingBag size={18} className="text-[#7c14d4]" />
-                  <h2 className="text-base font-black text-zinc-900">My Order ({cartCount})</h2>
+                  <h2 className="text-base font-black text-zinc-900">{t.myOrder} ({cartCount})</h2>
                 </div>
                 <button
                   onClick={() => setShowCartDrawer(false)}
@@ -1334,7 +1382,7 @@ const KioskPage = () => {
                 {cart.length === 0 ? (
                   <div className="py-12 flex flex-col items-center justify-center opacity-40">
                     <ShoppingBag size={40} className="mb-3 text-zinc-300" />
-                    <p className="font-bold uppercase tracking-widest text-xs text-zinc-500">Your tray is empty</p>
+                    <p className="font-bold uppercase tracking-widest text-xs text-zinc-500">{t.yourTrayEmpty}</p>
                   </div>
                 ) : (
                   cart.map((item: CartItem) => {
@@ -1356,7 +1404,7 @@ const KioskPage = () => {
                             {sizeLabel && <span className="text-[#7c14d4] ml-1">({sizeLabel})</span>}
                           </h4>
                           <div className="flex flex-wrap gap-1 mt-0.5">
-                            {item.selectedSugarLevel && <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} Sugar</span>}
+                            {item.selectedSugarLevel && <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} {t.sugar}</span>}
                             {item.selectedAddOns && item.selectedAddOns.length > 0 && <span className="text-[8px] font-bold text-zinc-400">{item.selectedAddOns.map(a => a.name).join(' · ')}</span>}
                           </div>
                           <div className="flex items-center justify-between mt-1.5">
@@ -1378,7 +1426,7 @@ const KioskPage = () => {
               {cart.length > 0 && (
                 <div className="p-4 border-t border-zinc-100 bg-white space-y-3 shrink-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-500 font-bold text-sm">Total Amount</span>
+                    <span className="text-zinc-500 font-bold text-sm">{t.totalAmount}</span>
                     <span className="text-2xl font-black text-orange-600 tracking-tight">₱{calculateTotal().toFixed(0)}</span>
                   </div>
                   <button
@@ -1386,14 +1434,14 @@ const KioskPage = () => {
                     disabled={loading}
                     className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black uppercase text-sm tracking-wider shadow-lg shadow-orange-200 hover:from-orange-600 hover:to-amber-600 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {loading ? 'Processing...' : 'Checkout'}
+                    {loading ? t.processing : t.checkout}
                     {!loading && <ChevronRight size={18} strokeWidth={3} />}
                   </button>
                   <button
                     onClick={() => { setCart([]); setShowCartDrawer(false); }}
                     className="w-full py-2 text-center font-bold text-zinc-400 text-[10px] uppercase tracking-widest hover:text-red-500 transition-colors"
                   >
-                    Clear Order
+                    {t.clearOrder}
                   </button>
                 </div>
               )}
@@ -1408,7 +1456,7 @@ const KioskPage = () => {
             className="fixed bottom-6 right-6 z-[80] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-3.5 rounded-full font-black text-sm uppercase tracking-wider shadow-xl shadow-orange-300/40 hover:from-orange-600 hover:to-amber-600 transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-300"
           >
             <ShoppingBag size={18} strokeWidth={2.5} />
-            <span>{cartCount} {cartCount === 1 ? 'item' : 'items'}</span>
+            <span>{cartCount} {cartCount === 1 ? t.item : t.items}</span>
             <span className="w-px h-4 bg-white/30" />
             <span>₱{calculateTotal().toFixed(0)}</span>
           </button>
@@ -1429,8 +1477,8 @@ const KioskPage = () => {
                   <div>
                     <h3 className="text-lg font-black text-zinc-900 tracking-tight uppercase leading-none">
                       {mixMatchStep === 'select_drink'
-                        ? (pendingMixMatchItem.category_type === 'combo' ? 'Customize Your Combo' : 'Choose Your Drink')
-                        : 'Customize Drink'}
+                        ? (pendingMixMatchItem.category_type === 'combo' ? t.customizeYourCombo : t.chooseYourDrink)
+                        : t.customizeDrink}
                     </h3>
                     <p className="text-[10px] font-bold text-[#7c3aed] uppercase tracking-[0.2em] mt-1">
                       {mixMatchStep === 'select_drink' ? pendingMixMatchItem.name : selectedMixMatchDrink?.name}
@@ -1444,7 +1492,7 @@ const KioskPage = () => {
                       className="px-4 py-2 bg-white border border-purple-200 text-[#7c3aed] rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
                     >
                       <ChevronRight className="rotate-180" size={14} />
-                      Back
+                      {t.backToSelection}
                     </button>
                   )}
                   <button
@@ -1463,11 +1511,11 @@ const KioskPage = () => {
                     {loading ? (
                       <div className="col-span-full py-20 flex flex-col items-center justify-center gap-4">
                         <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
-                        <p className="font-bold text-zinc-400 uppercase tracking-widest text-xs">Loading collection...</p>
+                        <p className="font-bold text-zinc-400 uppercase tracking-widest text-xs">{t.loadingCollection}</p>
                       </div>
                     ) : mixMatchDrinkPool.length === 0 ? (
                       <div className="col-span-full py-20 text-center">
-                        <p className="text-zinc-400 font-bold">No drinks available for this bundle.</p>
+                        <p className="text-zinc-400 font-bold">{t.noDrinksAvailable}</p>
                       </div>
                     ) : (
                       mixMatchDrinkPool.map((drink) => (
@@ -1497,7 +1545,7 @@ const KioskPage = () => {
                       <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
                         <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-3">
                           <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">1</span>
-                          Select Sugar Level
+                          {t.selectSugarLevel}
                         </h4>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                           {sugarLevels.map((sl) => (
@@ -1521,12 +1569,12 @@ const KioskPage = () => {
                       <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
                         <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-3">
                           <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">2</span>
-                          Drink Options
+                          {t.drinkOptions}
                         </h4>
                         <div className="space-y-6">
                           {selectedMixMatchDrink?.has_ice && (
                             <div>
-                              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Ice Level</p>
+                              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">{t.iceLevel}</p>
                               <div className="grid grid-cols-3 gap-2">
                                 {['NO ICE', '-ICE', '+ICE'].map(opt => (
                                   <button
@@ -1545,7 +1593,7 @@ const KioskPage = () => {
                           )}
                           {selectedMixMatchDrink?.has_pearl && (
                             <div>
-                              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Pearl Preference</p>
+                              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">{t.pearlPreference}</p>
                               <div className="grid grid-cols-2 gap-2">
                                 {['NO PRL', 'W/ PRL'].map(opt => (
                                   <button
@@ -1570,7 +1618,7 @@ const KioskPage = () => {
                     <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
                       <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-2">
                         <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">3</span>
-                        Add Toppings <span className="text-[8px] font-bold text-zinc-400 ml-1 normal-case">(optional)</span>
+                        {t.extraToppings} <span className="text-[8px] font-bold text-zinc-400 ml-1 normal-case">(optional)</span>
                       </h4>
                       <div className="grid grid-cols-2 gap-2">
                         {allAddOns
@@ -1611,14 +1659,14 @@ const KioskPage = () => {
               {/* Bottom Footer */}
               <div className="p-5 bg-white border-t border-zinc-100 shrink-0 flex items-center justify-between z-10">
                 <div className="bg-zinc-50 px-4 py-2 rounded-xl border border-zinc-100">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Total Amount</p>
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">{t.comboTotal}</p>
                   <p className="text-xl font-black text-zinc-900 tracking-tighter">₱{Number(pendingMixMatchItem?.sellingPrice || 0) + mixMatchAddOns.reduce((sum, a) => sum + a.price, 0)}</p>
                 </div>
                 <button
                   onClick={confirmMixAndMatch}
                   className="px-8 py-3.5 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-xl font-black text-xs shadow-lg shadow-purple-100 hover:shadow-xl transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest"
                 >
-                  Confirm Selection <Plus size={16} strokeWidth={4} />
+                  {t.confirm} <Plus size={16} strokeWidth={4} />
                 </button>
               </div>
             </div>
@@ -1767,12 +1815,12 @@ const KioskPage = () => {
                         <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
                           <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-3">
                             <span className="w-5 h-5 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">2</span>
-                            Drink Options
+                            {t.drinkOptions}
                           </h4>
                           <div className="space-y-4">
                             {canHaveIce && (
                               <div>
-                                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Ice Level</p>
+                              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">{t.iceLevel}</p>
                                 <div className="grid grid-cols-3 gap-2">
                                   {['NO ICE', '-ICE', '+ICE'].map(opt => (
                                     <button
@@ -1791,7 +1839,7 @@ const KioskPage = () => {
                             )}
                             {canHavePearl && (
                               <div>
-                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">Pearl Preference</p>
+                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">{t.pearlPreference}</p>
                                 <div className="grid grid-cols-2 gap-2">
                                   {['NO PRL', 'W/ PRL'].map(opt => (
                                     <button
@@ -1816,7 +1864,7 @@ const KioskPage = () => {
                       <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
                         <h4 className="font-black text-zinc-900 text-base tracking-tight uppercase mb-4 flex items-center gap-3">
                           <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-xs shadow-md shadow-purple-100">3</span>
-                          Extra Toppings <span className="text-[10px] font-bold text-zinc-400 ml-2 normal-case">(optional)</span>
+                          {t.extraToppings} <span className="text-[10px] font-bold text-zinc-400 ml-2 normal-case">(optional)</span>
                         </h4>
                         <div className="grid grid-cols-2 gap-2">
                           {allAddOns.map((addon) => (
@@ -1849,7 +1897,7 @@ const KioskPage = () => {
               {/* Footer */}
               <div className="p-5 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
                 <div className="bg-zinc-50 px-4 py-2 rounded-xl border border-zinc-100">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Bundle Total</p>
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">{t.bundleTotal}</p>
                   <p className="text-xl font-black text-zinc-900 tracking-tighter">₱{(Number(activeBundleItem.price) + bundleAddOns.reduce((sum, a) => sum + a.price, 0)).toFixed(0)}</p>
                 </div>
                 {(bundleCustomizingStep === 'customize_drink' ||
@@ -1864,7 +1912,7 @@ const KioskPage = () => {
                       onClick={confirmBundleStep}
                       className="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white px-8 py-3.5 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-purple-100"
                     >
-                      {currentBundleItemIndex < flattenedBundleItems.length - 1 ? 'Next Step' : 'Confirm Bundle'}
+                      {currentBundleItemIndex < flattenedBundleItems.length - 1 ? t.nextItem : t.confirmBundle}
                       <Plus size={16} strokeWidth={4} />
                     </button>
                   )}
@@ -1917,7 +1965,7 @@ const KioskPage = () => {
                             <div className="w-6 h-6 bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0">
                               {steps.indexOf('sugar') + 1}
                             </div>
-                            <h4 className="font-black text-zinc-900 text-sm tracking-tight capitalize">Select Sugar</h4>
+                            <h4 className="font-black text-zinc-900 text-sm tracking-tight capitalize">{t.selectSugar}</h4>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                             {sugarLevels.map((sl) => (
@@ -1942,7 +1990,7 @@ const KioskPage = () => {
                             <div className="w-6 h-6 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0 shadow-md shadow-purple-100">
                               {steps.indexOf('ice') + 1}
                             </div>
-                            <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">Select Ice</h4>
+                            <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">{t.iceLevel}</h4>
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                             {['NO ICE', '-ICE', '+ICE'].map((opt) => (
@@ -1967,7 +2015,7 @@ const KioskPage = () => {
                             <div className="w-6 h-6 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0 shadow-md shadow-purple-100">
                               {steps.indexOf('pearl') + 1}
                             </div>
-                            <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">Pearl Option</h4>
+                            <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">{t.pearlPreference}</h4>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             {['NO PRL', 'W/ PRL'].map((opt) => (
@@ -1991,7 +2039,7 @@ const KioskPage = () => {
                           <div className="w-6 h-6 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0 border border-purple-300/50 shadow-md shadow-purple-100">
                             {steps.indexOf('addons') + 1}
                           </div>
-                          <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">Add Toppings <span className="text-[9px] font-bold text-zinc-400 ml-2 normal-case">(optional)</span></h4>
+                          <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">{t.addToppings} <span className="text-[9px] font-bold text-zinc-400 ml-2 normal-case">(optional)</span></h4>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                           {allAddOns
@@ -2038,14 +2086,14 @@ const KioskPage = () => {
 
               <div className="p-5 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
                 <div className="bg-zinc-50 px-4 py-2 rounded-xl border border-zinc-100">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Total Amount</p>
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">{t.totalAmount}</p>
                   <p className="text-xl font-black text-zinc-900 tracking-tighter">₱{Number(customizingItem.sellingPrice) + selectedAddOns.reduce((sum, ao) => sum + Number(ao.price), 0)}</p>
                 </div>
                 <button
                   onClick={confirmCustomization}
                   className="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white px-8 py-3.5 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-purple-100"
                 >
-                  <span>Add to Tray</span>
+                  <span>{t.addToTray}</span>
                   <Plus size={16} strokeWidth={4} />
                 </button>
               </div>
@@ -2085,13 +2133,13 @@ const KioskPage = () => {
 
         <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-4 duration-700 shrink-0">
           <h2 className="text-2xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-            Order <span className="text-[#7c3aed] italic">Received</span>
+            {t.confirmTitle1} <span className="text-[#7c3aed] italic">{t.confirmTitle2}</span>
           </h2>
-          <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-[0.2em]">Please proceed to counter to pay</p>
+          <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-[0.2em]">{t.proceedToCounter}</p>
         </div>
 
         <div className="bg-white p-6 rounded-[2rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300 shrink-0">
-          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-3">Your Ticket Number</p>
+          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-3">{t.yourTicketNumber}</p>
 
           <div className="bg-purple-50/50 px-6 py-4 rounded-3xl mb-4 border border-purple-100/50 shadow-inner w-full text-center">
             <h3 className="text-4xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -2100,7 +2148,7 @@ const KioskPage = () => {
           </div>
 
           <div className="w-full flex items-center justify-between pt-6 border-t border-dashed border-purple-100">
-            <span className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">Total Due</span>
+            <span className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">{t.totalDue}</span>
             <span className="text-3xl font-bold text-[#3b0764] tracking-tighter">₱{calculateTotal().toFixed(0)}</span>
           </div>
         </div>
@@ -2109,7 +2157,7 @@ const KioskPage = () => {
           onClick={handleReset}
           className="group relative overflow-hidden bg-[#7c3aed] text-white pl-8 pr-5 py-3 rounded-full font-bold text-base tracking-[0.12em] uppercase shadow-[0_20px_45px_rgba(124,58,237,0.3)] flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 mt-2 shrink-0"
         >
-          <span className="relative z-10">New Order</span>
+          <span className="relative z-10">{t.newOrder}</span>
           <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
             <ChevronRight size={20} strokeWidth={4} />
           </div>
@@ -2140,8 +2188,8 @@ const KioskPage = () => {
         <div className="max-w-4xl mx-auto w-full flex flex-col h-full relative z-10">
           <div className="flex flex-col items-center mb-10 shrink-0">
             <img src={logo} alt="Lucky Boba" className="w-32 h-auto mb-6 drop-shadow-sm" />
-            <h1 className="text-4xl font-black text-zinc-900 tracking-tight">Kiosk Setup</h1>
-            <p className="text-zinc-500 font-semibold text-sm mt-2 uppercase tracking-[0.12em]">Select the branch for this device</p>
+            <h1 className="text-4xl font-black text-zinc-900 tracking-tight">{t.kioskSetup}</h1>
+            <p className="text-zinc-500 font-semibold text-sm mt-2 uppercase tracking-[0.12em]">{t.selectBranchDevice}</p>
           </div>
 
           <div className="mb-8 shrink-0 w-full max-w-xl mx-auto">
@@ -2151,7 +2199,7 @@ const KioskPage = () => {
                 value={branchSearch}
                 onChange={e => setBranchSearch(e.target.value)}
                 className="flex-1 bg-transparent text-base font-semibold text-zinc-900 outline-none placeholder:text-zinc-400"
-                placeholder="Search by name or address..."
+                placeholder={t.searchBranchPlaceholder}
               />
               {branchSearch && (
                 <button onClick={() => setBranchSearch("")} className="text-zinc-400 hover:text-zinc-600 transition-colors bg-zinc-100 hover:bg-zinc-200 p-1 rounded-full flex items-center justify-center">
@@ -2181,9 +2229,9 @@ const KioskPage = () => {
                   <div>
                     <h3 className="text-lg font-black text-zinc-900 line-clamp-1 capitalize">{branch.name.toLowerCase()}</h3>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase tracking-wider">Active</span>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase tracking-wider">{t.active}</span>
                       {selectedBranchToConfirm?.id === branch.id && (
-                        <span className="text-[10px] font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 px-2 py-0.5 rounded uppercase tracking-wider">Selected</span>
+                        <span className="text-[10px] font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 px-2 py-0.5 rounded uppercase tracking-wider">{t.selected}</span>
                       )}
                     </div>
                   </div>
@@ -2192,7 +2240,7 @@ const KioskPage = () => {
                 <div className="flex flex-col gap-2 w-full mt-1">
                   <div className="flex items-start gap-2 text-zinc-500">
                     <MapPin size={14} className="shrink-0 mt-0.5 text-zinc-400" />
-                    <p className="text-sm font-medium line-clamp-2">{branch.address || 'No address provided'}</p>
+                    <p className="text-sm font-medium line-clamp-2">{branch.address || t.noAddressProvided}</p>
                   </div>
                   <div className="flex items-center gap-2 text-zinc-400">
                     <Clock size={14} className="shrink-0" />
@@ -2205,7 +2253,7 @@ const KioskPage = () => {
                     ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 opacity-100 translate-x-0'
                     : 'text-violet-600 opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0'
                     }`}>
-                    <span>Select Branch</span>
+                    <span>{t.selectBranch}</span>
                     <ChevronRight size={16} />
                   </div>
                 </div>
@@ -2214,7 +2262,7 @@ const KioskPage = () => {
             {filtered.length === 0 && (
               <div className="col-span-full py-20 flex flex-col items-center justify-center text-zinc-400">
                 <Search size={40} className="mb-4 opacity-30 text-zinc-300" />
-                <p className="font-semibold tracking-wide text-sm">No branches found matching your search</p>
+                <p className="font-semibold tracking-wide text-sm">{t.noBranchesFound}</p>
               </div>
             )}
           </div>
@@ -2250,7 +2298,7 @@ const KioskPage = () => {
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center print:hidden">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-            <span className="font-black text-violet-600 uppercase tracking-widest text-sm">Processing...</span>
+            <span className="font-black text-violet-600 uppercase tracking-widest text-sm">{t.processingLoader}</span>
           </div>
         </div>
       )}
@@ -2261,22 +2309,22 @@ const KioskPage = () => {
             <div className="w-14 h-14 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <MapPin size={28} />
             </div>
-            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Confirm Branch</h2>
+            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">{t.confirmBranch}</h2>
             <p className="text-zinc-500 text-sm text-center mb-6 font-medium">
-              Set this kiosk to <strong className="text-zinc-800">{selectedBranchToConfirm.name}</strong>? This will bind the device to this location.
+              Set this kiosk to <strong className="text-zinc-800">{selectedBranchToConfirm.name}</strong>? {t.confirmBranchMessage}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setSelectedBranchToConfirm(null)}
                 className="flex-1 py-3.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl font-semibold tracking-wide text-sm transition-colors"
               >
-                Cancel
+                {t.cancel}
               </button>
               <button
                 onClick={confirmBranchSelection}
                 className="flex-1 py-3.5 bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 text-white rounded-xl font-semibold tracking-wide text-sm shadow-[0_4px_14px_0_rgba(124,58,237,0.39)] hover:shadow-[0_6px_20px_rgba(124,58,237,0.3)] active:scale-[0.98] transition-all"
               >
-                Confirm
+                {t.confirm}
               </button>
             </div>
           </div>
@@ -2291,9 +2339,9 @@ const KioskPage = () => {
               <Lock size={32} />
             </div>
 
-            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Access Control</h2>
+            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">{t.accessControl}</h2>
             <p className="text-zinc-500 text-sm text-center mb-8 font-medium">
-              Enter Admin Security PIN to reset Kiosk settings.
+              {t.enterAdminPin}
             </p>
 
             {/* PIN Dots */}
@@ -2332,7 +2380,7 @@ const KioskPage = () => {
                 onClick={() => setPinInput('')}
                 className="h-14 rounded-xl bg-zinc-50 text-sm font-semibold text-zinc-500 hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all outline-none border border-zinc-100"
               >
-                Clear
+                {t.clear}
               </button>
               <button
                 onClick={() => {
@@ -2352,13 +2400,13 @@ const KioskPage = () => {
                 onClick={() => setIsPinModalOpen(false)}
                 className="h-14 rounded-xl bg-zinc-50 text-sm font-semibold text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 active:scale-95 transition-all outline-none border border-zinc-100"
               >
-                Exit
+                {t.exit}
               </button>
             </div>
 
             {pinError ? (
               <p className="text-red-500 text-sm font-semibold text-center tracking-wide animate-pulse h-5">
-                Incorrect PIN
+                {t.incorrectPin}
               </p>
             ) : (
               <div className="h-5" />
@@ -2373,14 +2421,14 @@ const KioskPage = () => {
       {isAdminModalOpen && (
         <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 text-center print:hidden animate-in fade-in duration-200">
           <div className="bg-white rounded-[2rem] p-6 max-w-xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col items-center">
-            <h2 className="text-xl font-black text-[#3b2063] uppercase italic mb-6 shrink-0">Admin Settings</h2>
+            <h2 className="text-xl font-black text-[#3b2063] uppercase italic mb-6 shrink-0">{t.adminSettings}</h2>
 
             <div className="w-full flex-1 overflow-y-auto pr-2 space-y-6 text-left shrink">
               {/* Expo Mode Toggle */}
               <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-zinc-900 uppercase">Expo Mode</h3>
-                  <p className="text-xs text-zinc-500 font-medium">Limit the menu to specific items only.</p>
+                  <h3 className="font-bold text-zinc-900 uppercase">{t.expoMode}</h3>
+                  <p className="text-xs text-zinc-500 font-medium">{t.expoModeDesc}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -2395,15 +2443,15 @@ const KioskPage = () => {
                   }}
                   className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-colors w-32 shrink-0 ${isExpoMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-600' : 'bg-zinc-200 text-zinc-400 hover:bg-zinc-300'}`}
                 >
-                  {isExpoMode ? 'Enabled' : 'Disabled'}
+                  {isExpoMode ? t.enabled : t.disabled}
                 </button>
               </div>
 
               {/* Expo Item Selection */}
               {isExpoMode && (
                 <div className="bg-white p-6 rounded-2xl border border-violet-100">
-                  <h3 className="font-bold text-violet-900 uppercase">Select Expo Items</h3>
-                  <p className="text-xs text-zinc-500 font-medium mb-4">Click to toggle items for the Expo.</p>
+                  <h3 className="font-bold text-violet-900 uppercase">{t.selectExpoItems}</h3>
+                  <p className="text-xs text-zinc-500 font-medium mb-4">{t.expoItemsDesc}</p>
 
                   {/* Search and Category Filter */}
                   {items.length > 0 && (
@@ -2412,7 +2460,7 @@ const KioskPage = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
                         <input
                           type="text"
-                          placeholder="Search items to add to Expo..."
+                          placeholder={t.searchExpoPlaceholder}
                           value={expoSearchQuery}
                           onChange={(e) => setExpoSearchQuery(e.target.value)}
                           className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-sm font-medium placeholder:text-zinc-400 focus:ring-2 focus:ring-violet-500 transition-all outline-none"
@@ -2423,7 +2471,7 @@ const KioskPage = () => {
                           onClick={() => setExpoCategoryFilter('')}
                           className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
                         >
-                          All
+                          {t.all}
                         </button>
                         {Array.from(new Set(items.map(i => i.category))).filter(Boolean).map(cat => (
                           <button
@@ -2439,7 +2487,7 @@ const KioskPage = () => {
                   )}
 
                   {items.length === 0 ? (
-                    <p className="text-xs text-zinc-400 italic">No items loaded for this branch.</p>
+                    <p className="text-xs text-zinc-400 italic">{t.noItemsLoaded}</p>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto p-1 pr-2">
                       {items.filter(item => {
@@ -2502,8 +2550,8 @@ const KioskPage = () => {
               {/* Reset Kiosk */}
               <div className="bg-white p-6 rounded-2xl border border-red-50 flex items-center justify-between mt-8">
                 <div>
-                  <h3 className="font-bold text-red-600 uppercase">Reset Location</h3>
-                  <p className="text-xs text-red-400 font-medium">Unbind this device.</p>
+                  <h3 className="font-bold text-red-600 uppercase">{t.resetLocation}</h3>
+                  <p className="text-xs text-red-400 font-medium">{t.unbindDevice}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -2512,7 +2560,7 @@ const KioskPage = () => {
                   }}
                   className="px-6 py-4 bg-red-50 border border-red-100 text-red-600 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-red-600 hover:text-white transition-colors"
                 >
-                  Reset Now
+                  {t.resetNow}
                 </button>
               </div>
             </div>
@@ -2521,7 +2569,7 @@ const KioskPage = () => {
               onClick={() => setIsAdminModalOpen(false)}
               className="mt-8 py-5 bg-[#3b2063] hover:bg-[#2d184d] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-[#3b2063]/20 w-full shrink-0"
             >
-              Close Settings
+              {t.closeSettings}
             </button>
           </div>
         </div>
@@ -2534,15 +2582,15 @@ const KioskPage = () => {
             <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <X size={32} strokeWidth={3} />
             </div>
-            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Order Failed</h2>
+            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">{t.orderFailed}</h2>
             <p className="text-zinc-500 text-sm text-center mb-8 font-medium leading-relaxed">
-              {errorMessage || 'Failed to place order. Please call staff for assistance.'}
+              {errorMessage || t.orderFailedMessage}
             </p>
             <button
               onClick={() => setShowErrorModal(false)}
               className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-semibold tracking-wide text-sm transition-all shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] active:scale-[0.98]"
             >
-              Try Again
+              {t.tryAgain}
             </button>
           </div>
         </div>
