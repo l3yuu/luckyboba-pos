@@ -1875,25 +1875,6 @@ const KioskPage = () => {
               </div>
             )}
           </div>
-
-          {/* Fixed Confirm Button (Appears when branch is selected) */}
-          <div className="shrink-0 flex justify-center pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <button
-              disabled={!selectedBranchToConfirm}
-              onClick={confirmBranchSelection}
-              className={`group relative overflow-hidden px-16 py-5 rounded-full font-black uppercase text-lg tracking-[0.2em] transition-all duration-500 shadow-2xl flex items-center gap-6 ${selectedBranchToConfirm
-                  ? 'bg-[#7c14d4] text-white hover:scale-105 active:scale-95 shadow-purple-200'
-                  : 'bg-zinc-100 text-zinc-300 cursor-not-allowed grayscale'
-                }`}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-              <span className="relative z-10">{t.confirmBranch || 'Confirm Branch'}</span>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 relative z-10 ${selectedBranchToConfirm ? 'bg-white text-[#7c14d4]' : 'bg-zinc-200 text-zinc-300'
-                }`}>
-                <CheckCircle2 size={24} strokeWidth={3} />
-              </div>
-            </button>
-          </div>
         </div>
       </div>
     );
