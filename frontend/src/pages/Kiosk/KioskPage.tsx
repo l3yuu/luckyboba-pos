@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import logo from '../../assets/logo.png';
 import api from '../../services/api';
+import { getTranslations } from './kioskTranslations';
+import type { KioskLanguage } from './kioskTranslations';
 import KioskLayout from '../../components/Kiosk/KioskLayout';
 import {
   ShoppingBag,
@@ -20,8 +22,6 @@ import {
 import { KioskTicketPrint } from '../../components/Cashier/SalesOrderComponents/print';
 import { getImageUrl } from '../../utils/imageUtils';
 import { generateORNumber } from '../../components/Cashier/SalesOrderComponents/shared';
-import { type KioskLanguage, getTranslations, translations } from './kioskTranslations';
-import { useMemo } from 'react';
 
 // --- Types ---
 
@@ -34,32 +34,6 @@ interface MenuItem {
   sellingPrice: number;
   image: string | null;
   size?: string;
-  barcode?: string;
-  has_ice?: boolean;
-  has_pearl?: boolean;
-  has_sugar?: boolean;
-}
-
-interface BundleItem {
-  id: number;
-  custom_name: string;
-  display_name?: string;
-  quantity: number;
-  size: string;
-  has_ice?: boolean;
-  has_pearl?: boolean;
-  has_sugar?: boolean;
-}
-
-interface Bundle {
-  id: number;
-  name: string;
-  display_name?: string;
-  category: string;
-  category_id: number;
-  price: number;
-  barcode: string;
-  items: BundleItem[];
 }
 
 interface Branch {
@@ -89,15 +63,6 @@ interface CartItem extends MenuItem {
   selectedOptions?: string[];
   remarks?: string;
   itemTotal: number;
-}
-
-interface BundleSelection {
-  name: string;
-  sugarLevel: string;
-  options: string[];
-  addOns: AddOnOption[];
-  quantity: number;
-  price: number;
 }
 
 // --- Hooks ---
@@ -139,23 +104,6 @@ const KioskPage = () => {
   const [loading, setLoading] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
 
-  // --- I18n State ---
-  const [language, setLanguage] = useState<KioskLanguage>(() => {
-    const stored = localStorage.getItem('kiosk_language');
-    if (stored && (stored === 'English' || stored === 'Filipino' || stored === 'Chinese' || stored === 'Korean')) {
-      return stored as KioskLanguage;
-    }
-    return 'English';
-  });
-  const t = useMemo(() => getTranslations(language), [language]);
-  const [showLanguageSwitcher, setShowLanguageSwitcher] = useState(false);
-
-  const handleLanguageChange = (lang: KioskLanguage) => {
-    setLanguage(lang);
-    localStorage.setItem('kiosk_language', lang);
-    setShowLanguageSwitcher(false);
-  };
-
   // --- Mix and Match State ---
   const [isMixMatchViewOpen, setIsMixMatchViewOpen] = useState(false);
   const [pendingMixMatchItem, setPendingMixMatchItem] = useState<MenuItem | null>(null);
@@ -163,25 +111,8 @@ const KioskPage = () => {
   const [mixMatchStep, setMixMatchStep] = useState<'select_drink' | 'customize_drink'>('select_drink');
   const [selectedMixMatchDrink, setSelectedMixMatchDrink] = useState<MenuItem | null>(null);
   const [mixMatchSugar, setMixMatchSugar] = useState('100%');
-  const [mixMatchIce, setMixMatchIce] = useState('NORMAL ICE');
-  const [mixMatchPearl, setMixMatchPearl] = useState('W/ PRL');
   const [mixMatchOptions, setMixMatchOptions] = useState<string[]>([]);
   const [mixMatchAddOns, setMixMatchAddOns] = useState<AddOnOption[]>([]);
-
-  // --- Bundle State ---
-  const [bundlesData, setBundlesData] = useState<Bundle[]>([]);
-  const [isBundleViewOpen, setIsBundleViewOpen] = useState(false);
-  const [activeBundleItem, setActiveBundleItem] = useState<Bundle | null>(null);
-  const [bundleSelections, setBundleSelections] = useState<BundleSelection[]>([]);
-  const [flattenedBundleItems, setFlattenedBundleItems] = useState<BundleItem[]>([]);
-  const [currentBundleItemIndex, setCurrentBundleItemIndex] = useState(0);
-  const [bundleCustomizingStep, setBundleCustomizingStep] = useState<'select_drink' | 'customize_drink'>('select_drink');
-  const [selectedBundleDrink, setSelectedBundleDrink] = useState<MenuItem | null>(null);
-  const [bundleSugar, setBundleSugar] = useState('100%');
-  const [bundleIce, setBundleIce] = useState('NORMAL ICE');
-  const [bundlePearl, setBundlePearl] = useState('W/ PRL');
-  const [bundleOptions, setBundleOptions] = useState<string[]>([]);
-  const [bundleAddOns, setBundleAddOns] = useState<AddOnOption[]>([]);
 
   const [printData, setPrintData] = useState<{
     invoice: string;
@@ -202,8 +133,6 @@ const KioskPage = () => {
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnOption[]>([]);
   const [selectedSugarLevel, setSelectedSugarLevel] = useState<string>('100%');
-  const [selectedIce, setSelectedIce] = useState<string>('NORMAL ICE');
-  const [selectedPearl, setSelectedPearl] = useState<string>('W/ PRL');
 
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinInput, setPinInput] = useState('');
@@ -225,6 +154,13 @@ const KioskPage = () => {
 
   // Cart Drawer State (floating overlay)
   const [showCartDrawer, setShowCartDrawer] = useState(false);
+
+  // Language State
+  const [language, setLanguage] = useState<KioskLanguage>('English');
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+
+  // Translation helper - memoized for performance
+  const t = useMemo(() => getTranslations(language), [language]);
 
   // Slideshow State for Landing Page
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -295,11 +231,6 @@ const KioskPage = () => {
           const cats = Array.from(new Set(displayItems.map(i => i.category))).filter(Boolean);
           setCategories(cats);
           if (cats.length > 0) setActiveCategory(cats[0]);
-
-          // Fetch Bundles
-          api.get('/bundles').then(res => {
-            setBundlesData(Array.isArray(res.data) ? res.data : []);
-          }).catch(err => console.error('Failed to fetch bundles', err));
 
           // Set customization options
           setAllAddOns(aoRes.data);
@@ -437,16 +368,15 @@ const KioskPage = () => {
     }
   };
 
-  const addToCart = (item: MenuItem, addons: AddOnOption[] = [], sugar: string = '100%', options: string[] = []) => {
+  const addToCart = (item: MenuItem, addons: AddOnOption[] = [], sugar: string = '100%') => {
     setCart((prev: CartItem[]) => {
       // We calculate a unique key for grouping same items with same customizations
       const addonIds = addons.map(a => a.id).sort().join(',');
-      const optStr = options.sort().join(',');
+      // groupKey REMOVED to fix lint warning (manually comparing below)
 
       const existing = prev.find((i: CartItem) => {
         const iAddonIds = (i.selectedAddOns || []).map(a => a.id).sort().join(',');
-        const iOpts = (i.selectedOptions || []).sort().join(',');
-        return i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds && iOpts === optStr;
+        return i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds;
       });
 
       const addonsTotal = addons.reduce((sum, a) => sum + a.price, 0);
@@ -456,8 +386,7 @@ const KioskPage = () => {
       if (existing) {
         return prev.map((i: CartItem) => {
           const iAddonIds = (i.selectedAddOns || []).map(a => a.id).sort().join(',');
-          const iOpts = (i.selectedOptions || []).sort().join(',');
-          if (i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds && iOpts === optStr) {
+          if (i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds) {
             return { ...i, qty: i.qty + 1 };
           }
           return i;
@@ -470,7 +399,6 @@ const KioskPage = () => {
         uniqueId: Math.random().toString(36).substr(2, 9),
         selectedAddOns: addons,
         selectedSugarLevel: sugar,
-        selectedOptions: options,
         itemTotal: itemTotal
       }];
     });
@@ -480,15 +408,7 @@ const KioskPage = () => {
     try {
       setLoading(true);
       const res = await api.get(`/category-drinks?category_id=${categoryId}`);
-      interface DrinkPoolItem {
-        menu_item_id: number;
-        name: string;
-        size: string;
-        price: number;
-        has_ice?: boolean;
-        has_pearl?: boolean;
-        has_sugar?: boolean;
-      }
+      interface DrinkPoolItem { menu_item_id: number; name: string; size: string; price: number }
       const pool: DrinkPoolItem[] = res.data.data ?? [];
       const transformedPool: MenuItem[] = pool.map(d => ({
         id: d.menu_item_id,
@@ -497,9 +417,6 @@ const KioskPage = () => {
         size: d.size,
         category: "Mix & Match Drink",
         image: null,
-        has_ice: d.has_ice,
-        has_pearl: d.has_pearl,
-        has_sugar: d.has_sugar,
       }));
       setMixMatchDrinkPool(transformedPool);
     } catch (err) {
@@ -513,16 +430,12 @@ const KioskPage = () => {
     if (!pendingMixMatchItem || !selectedMixMatchDrink) return;
 
     const addonsTotal = mixMatchAddOns.reduce((sum, a) => sum + a.price, 0);
-    const finalOptions = [...mixMatchOptions];
-    if (selectedMixMatchDrink.has_ice && mixMatchIce !== 'NORMAL ICE') finalOptions.push(mixMatchIce);
-    if (selectedMixMatchDrink.has_pearl) finalOptions.push(mixMatchPearl);
-
     const drinkDetails = [
       `Drink: ${selectedMixMatchDrink.name}${selectedMixMatchDrink.size ? ` (${selectedMixMatchDrink.size})` : ''}`,
-      selectedMixMatchDrink.has_sugar ? `Sugar: ${mixMatchSugar}` : null,
-      ...finalOptions,
+      `Sugar: ${mixMatchSugar}`,
+      ...mixMatchOptions,
       ...mixMatchAddOns.map(a => `+${a.name}`),
-    ].filter(Boolean).join(' | ');
+    ].join(' | ');
 
     const finalItem: CartItem = {
       ...pendingMixMatchItem,
@@ -532,7 +445,7 @@ const KioskPage = () => {
       itemTotal: Number(pendingMixMatchItem.sellingPrice) + addonsTotal,
       selectedAddOns: mixMatchAddOns,
       selectedSugarLevel: mixMatchSugar,
-      selectedOptions: finalOptions,
+      selectedOptions: mixMatchOptions,
     };
 
     setCart(prev => [...prev, finalItem]);
@@ -543,116 +456,30 @@ const KioskPage = () => {
     setMixMatchStep('select_drink');
   };
 
-  const confirmBundleStep = () => {
-    if (!activeBundleItem) return;
-
-    const currentItem = flattenedBundleItems[currentBundleItemIndex];
-    const isDrink = (currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) ||
-      (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink'));
-
-    const hasIce = selectedBundleDrink ? selectedBundleDrink.has_ice : currentItem.has_ice;
-    const hasPearl = selectedBundleDrink ? selectedBundleDrink.has_pearl : currentItem.has_pearl;
-
-    const finalOptions = [...bundleOptions];
-    if (hasIce && bundleIce !== 'NORMAL ICE') finalOptions.push(bundleIce);
-    if (hasPearl) finalOptions.push(bundlePearl);
-
-    const selection = {
-      name: isDrink ? (selectedBundleDrink?.name || currentItem.display_name || currentItem.custom_name) : (currentItem.display_name || currentItem.custom_name),
-      sugarLevel: bundleSugar,
-      options: finalOptions,
-      addOns: bundleAddOns,
-      quantity: 1, // Individual customization, so quantity is 1
-      price: isDrink ? (selectedBundleDrink?.sellingPrice || 0) : 0,
-    };
-
-    const newSelections = [...bundleSelections, selection];
-
-    if (currentBundleItemIndex < flattenedBundleItems.length - 1) {
-      // Advance to next item
-      setBundleSelections(newSelections);
-      setCurrentBundleItemIndex(prev => prev + 1);
-      setBundleCustomizingStep('select_drink');
-      setSelectedBundleDrink(null);
-      setBundleSugar('100%');
-      setBundleIce('NORMAL ICE');
-      setBundlePearl('W/ PRL');
-      setBundleOptions([]);
-      setBundleAddOns([]);
-    } else {
-      // Finalize Bundle
-      const remarks = newSelections.map((s, i) => {
-        const sugarDisplay = s.sugarLevel && s.sugarLevel !== '100%' ? s.sugarLevel : '';
-        return `[${i + 1}] ${s.name}${sugarDisplay ? `: ${sugarDisplay}` : ''}${s.options.length ? ` | ${s.options.join(', ')}` : ''}${s.addOns.length ? ` | +${s.addOns.map((a: AddOnOption) => a.name).join(', ')}` : ''}`;
-      }).join(' || ');
-
-      const addonsTotal = newSelections.reduce((sum, s) => sum + s.addOns.reduce((as: number, a: AddOnOption) => as + a.price, 0), 0);
-
-      const finalItem: CartItem = {
-        id: activeBundleItem.id,
-        name: activeBundleItem.display_name || activeBundleItem.name,
-        category: 'Bundle',
-        sellingPrice: Number(activeBundleItem.price),
-        itemTotal: Number(activeBundleItem.price) + addonsTotal,
-        qty: 1,
-        uniqueId: Math.random().toString(36).substr(2, 9),
-        remarks: remarks,
-        image: activeBundleItem.name.toLowerCase().includes('classic') ? '/images/slideshow/lucky_classic.png' : null,
-      };
-
-      setCart(prev => [...prev, finalItem]);
-      setIsBundleViewOpen(false);
-      setActiveBundleItem(null);
-      setBundleSelections([]);
-      setCurrentBundleItemIndex(0);
-    }
-  };
-
-  const bundleToggleOption = (opt: string) => {
-    setBundleOptions(prev => {
-      const iceOpts = ['NO ICE', '-ICE', '+ICE'];
-      const pearlOpts = ['NO PRL', 'W/ PRL'];
-
-      if (iceOpts.includes(opt)) {
-        setBundleIce(prevIce => prevIce === opt ? 'NORMAL ICE' : opt);
-        return prev; // handled by bundleIce state
-      }
-      if (pearlOpts.includes(opt)) {
-        setBundlePearl(opt);
-        return prev; // handled by bundlePearl state
-      }
-      return prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt];
-    });
-  };
-
   const mixMatchToggleOption = (opt: string) => {
     setMixMatchOptions(prev => {
-      const iceOpts = ['NO ICE', '-ICE', '+ICE'];
+      const iceOpts = ['NO ICE', '-ICE', '+ICE', 'WARM'];
       const pearlOpts = ['NO PRL', 'W/ PRL'];
       if (iceOpts.includes(opt)) {
-        setMixMatchIce(prevIce => prevIce === opt ? 'NORMAL ICE' : opt);
-        return prev;
+        const rest = prev.filter(o => !iceOpts.includes(o));
+        return prev.includes(opt) ? rest : [...rest, opt];
       }
       if (pearlOpts.includes(opt)) {
-        setMixMatchPearl(opt);
-        return prev;
+        const rest = prev.filter(o => !pearlOpts.includes(o));
+        return prev.includes(opt) ? rest : [...rest, opt];
       }
       return prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt];
     });
   };
-
-
 
   const handleItemClick = (item: MenuItem) => {
     if (item.category_type === 'mix_and_match' || item.category_type === 'combo') {
       setPendingMixMatchItem(item);
       setMixMatchStep('select_drink');
       setSelectedMixMatchDrink(null);
-      setMixMatchSugar('100%');
-      setMixMatchIce('NORMAL ICE');
-      setMixMatchPearl('W/ PRL');
       setMixMatchOptions([]);
       setMixMatchAddOns([]);
+      setMixMatchSugar('100%');
       setIsMixMatchViewOpen(true);
       if (item.category_id) {
         fetchMixMatchPool(item.category_id);
@@ -660,35 +487,8 @@ const KioskPage = () => {
       return;
     }
 
-    if (item.category_type === 'bundle') {
-      const bundle = bundlesData.find(b => b.barcode === item.barcode);
-      if (bundle) {
-        // Flatten items: if quantity is 2, create 2 separate slots for customization
-        const flattened = (bundle.items || []).flatMap(bi =>
-          Array.from({ length: bi.quantity || 1 }, () => ({ ...bi, quantity: 1 }))
-        );
-
-        setActiveBundleItem(bundle);
-        setFlattenedBundleItems(flattened);
-        setCurrentBundleItemIndex(0);
-        setBundleSelections([]);
-        setBundleCustomizingStep('select_drink');
-        setSelectedBundleDrink(null);
-        setBundleSugar('100%');
-        setBundleIce('NORMAL ICE');
-        setBundlePearl('W/ PRL');
-        setBundleOptions([]);
-        setBundleAddOns([]);
-        setIsBundleViewOpen(true);
-        if (bundle.category_id) {
-          fetchMixMatchPool(bundle.category_id); // Bundles use the same drink pool as their category
-        }
-        return;
-      }
-    }
-
     const cat = item.category?.toLowerCase() || '';
-    const needsCustomization = item.has_ice || item.has_pearl || item.has_sugar || cat.includes('milk tea') || cat.includes('milktea') ||
+    const needsCustomization = cat.includes('milk tea') || cat.includes('milktea') ||
       cat.includes('coffee') || cat.includes('yakult') ||
       cat.includes('fruit') || cat.includes('yogurt') ||
       cat.includes('waffle') || cat.includes('frappe') ||
@@ -698,8 +498,6 @@ const KioskPage = () => {
       setCustomizingItem(item);
       setSelectedAddOns([]);
       setSelectedSugarLevel('100%');
-      setSelectedIce('NORMAL ICE');
-      setSelectedPearl('W/ PRL');
       setShowCustomizer(true);
     } else {
       addToCart(item);
@@ -708,11 +506,7 @@ const KioskPage = () => {
 
   const confirmCustomization = () => {
     if (customizingItem) {
-      const opts: string[] = [];
-      if (customizingItem.has_ice && selectedIce !== 'NORMAL ICE') opts.push(selectedIce);
-      if (customizingItem.has_pearl) opts.push(selectedPearl);
-
-      addToCart(customizingItem, selectedAddOns, selectedSugarLevel, opts);
+      addToCart(customizingItem, selectedAddOns, selectedSugarLevel);
       setShowCustomizer(false);
       setCustomizingItem(null);
     }
@@ -863,7 +657,11 @@ const KioskPage = () => {
     <div
       className="flex-1 flex flex-col bg-[#fdf8ff] cursor-pointer relative overflow-hidden"
       onClick={() => {
-        if (!showLanguageSwitcher) setStep('order_type');
+        if (showLanguageDropdown) {
+          setShowLanguageDropdown(false);
+        } else {
+          setStep('order_type');
+        }
       }}
     >
       {/* Top Navigation Bar */}
@@ -871,35 +669,35 @@ const KioskPage = () => {
         <div className="flex items-center gap-4">
           <img src={logo} alt="Lucky Boba" className="h-14 w-auto drop-shadow-sm" />
           <span className="text-3xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
+
         </div>
         <div className="flex items-center gap-6">
           <div className="relative">
-            <button
+            <div
+              className="flex items-center gap-2 text-zinc-600 font-medium text-sm bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-full border border-white shadow-sm cursor-pointer hover:bg-white transition-all"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowLanguageSwitcher(!showLanguageSwitcher);
+                setShowLanguageDropdown(!showLanguageDropdown);
               }}
-              className="flex items-center gap-2 text-zinc-600 font-bold text-sm bg-white border border-purple-100 shadow-sm px-5 py-2.5 rounded-full hover:bg-purple-50 transition-all active:scale-95"
             >
               <Globe size={18} className="text-[#7c3aed]" />
               <span>{language}</span>
-              <ChevronRight className={`transition-transform duration-300 ${showLanguageSwitcher ? 'rotate-90' : 'rotate-0'}`} size={14} />
-            </button>
+            </div>
 
-            {showLanguageSwitcher && (
-              <div
-                className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-purple-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[100]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {(Object.keys(translations) as KioskLanguage[]).map((lang) => (
-                  <button
+            {showLanguageDropdown && (
+              <div className="absolute top-full mt-2 right-0 w-36 bg-white rounded-xl shadow-xl border border-zinc-100 overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                {['English', 'Filipino', 'Chinese', 'Korean'].map(lang => (
+                  <div
                     key={lang}
-                    onClick={() => handleLanguageChange(lang)}
-                    className={`w-full px-5 py-3.5 text-left text-sm font-bold transition-colors flex items-center justify-between ${language === lang ? 'bg-purple-50 text-[#7c3aed]' : 'text-zinc-600 hover:bg-zinc-50'}`}
+                    className={`px-4 py-3 text-sm cursor-pointer hover:bg-zinc-50 transition-colors ${language === lang ? 'text-[#7c3aed] font-bold bg-purple-50/50' : 'text-zinc-600 font-medium'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLanguage(lang as KioskLanguage);
+                      setShowLanguageDropdown(false);
+                    }}
                   >
                     {lang}
-                    {language === lang && <Check size={14} strokeWidth={3} />}
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -914,20 +712,29 @@ const KioskPage = () => {
         {/* Left Content */}
         <div className="flex-[0.5] flex flex-col items-start gap-8 pl-6 animate-in fade-in slide-in-from-left-8 duration-1000">
           <div className="space-y-4">
-            <h1 className="text-[4.8rem] font-bold text-[#2e0a4e] leading-[0.82] tracking-tighter uppercase whitespace-pre-line">
-              {t.splashHeadline1}<br />
-              <span className="text-[#7c3aed] italic">{t.splashHeadline2}</span><br />
-              {t.splashHeadline3}
-            </h1>
+            {/* Invisible English sizer — keeps the column at English dimensions regardless of language */}
+            <div className="relative">
+              <h1 className="text-[4.8rem] font-bold text-[#2e0a4e] leading-[0.82] tracking-tighter uppercase whitespace-pre-line invisible" aria-hidden="true">
+                Freshly<br />
+                <span className="italic">Brewed</span><br />
+                Happiness.
+              </h1>
+              {/* Visible translated headline — positioned over the sizer */}
+              <h1 className="text-[4.8rem] font-bold text-[#2e0a4e] leading-[0.82] tracking-tighter uppercase whitespace-pre-line absolute inset-0" style={{ wordBreak: 'keep-all' }}>
+                {t.splashHeadline1}<br />
+                <span className="text-[#7c3aed] italic">{t.splashHeadline2}</span><br />
+                {t.splashHeadline3}
+              </h1>
+            </div>
             <p className="text-lg text-zinc-400 font-medium uppercase tracking-[0.18em] max-w-md mt-6 leading-relaxed">
               {t.splashSubtitle}
             </p>
           </div>
 
-          <button className="group relative overflow-hidden bg-[#7c3aed] text-white pl-6 pr-3 py-2.5 rounded-full font-bold text-sm tracking-[0.12em] uppercase shadow-[0_10px_30px_rgba(124,58,237,0.3)] flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95">
+          <button className="group relative overflow-hidden bg-[#7c3aed] text-white pl-8 pr-4 py-3.5 rounded-[1.5rem] font-bold text-lg tracking-[0.12em] uppercase shadow-[0_15px_40px_rgba(124,58,237,0.3)] flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95">
             <span className="relative z-10">{t.splashCTA}</span>
-            <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
-              <ChevronRight size={16} strokeWidth={4} />
+            <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
+              <ChevronRight size={20} strokeWidth={4} />
             </div>
             <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           </button>
@@ -954,20 +761,29 @@ const KioskPage = () => {
       {/* Bottom Status Bar */}
       <div className="absolute bottom-0 left-0 right-0 h-24 px-12 flex items-center justify-between z-50 border-t border-purple-50 bg-white/40 backdrop-blur-xl">
         <div className="flex gap-20">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 w-[140px]">
             <p className="text-4xl font-bold text-[#3b0764] tracking-tighter">50+</p>
-            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">{t.splashSignatureFlavors}</p>
+            <div className="relative h-4">
+              <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest invisible" aria-hidden="true">Signature Flavors</p>
+              <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest absolute inset-0">{t.splashSignatureFlavors}</p>
+            </div>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 w-[150px]">
             <p className="text-4xl font-bold text-[#581c87] tracking-tighter">100%</p>
-            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">{t.splashOrganicTeaBase}</p>
+            <div className="relative h-4">
+              <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest invisible" aria-hidden="true">Organic Tea Base</p>
+              <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest absolute inset-0 text-nowrap">{t.splashOrganicTeaBase}</p>
+            </div>
           </div>
         </div>
         <div className="text-right space-y-2">
-          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">{t.splashOrderingHours}</p>
+          <div className="relative h-4">
+            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest invisible" aria-hidden="true">Ordering Hours: 10:00 AM - 10:00 PM</p>
+            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest absolute inset-0 whitespace-nowrap">{t.splashOrderingHours}</p>
+          </div>
           <div className="flex items-center justify-end gap-2 text-[#7c3aed]">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-            <p className="text-2xl font-bold uppercase tracking-tighter text-[#3b0764]">{branchName}</p>
+            <p className="text-2xl font-bold uppercase tracking-tighter text-[#3b0764] text-nowrap">{branchName}</p>
           </div>
         </div>
       </div>
@@ -1005,24 +821,35 @@ const KioskPage = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-10 px-12 relative z-10 pt-4">
         <div className="text-center space-y-4 max-w-2xl animate-in fade-in slide-in-from-top-4 duration-700">
-          <h2 className="text-4xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-            {t.orderTypeTitle1}<br />
-            {t.orderTypeTitle2.replace('your Boba?', '')} <span className="text-[#7c3aed] italic">Boba?</span>
-          </h2>
-          <p className="text-xs font-medium text-zinc-400 uppercase tracking-[0.3em]">{t.orderTypeSubtitle}</p>
+          <div className="relative">
+            {/* Invisible English sizer for layout stability */}
+            <h2 className="text-4xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              How will you enjoy<br />
+              <span className="italic">your Boba?</span>
+            </h2>
+            {/* Visible translated headline */}
+            <h2 className="text-4xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif", wordBreak: 'keep-all' }}>
+              {t.orderTypeTitle1}<br />
+              <span className="text-[#7c3aed] italic">{t.orderTypeTitle2}</span>
+            </h2>
+          </div>
+          <div className="relative h-4">
+            <p className="text-xs font-medium text-zinc-400 uppercase tracking-[0.3em] invisible" aria-hidden="true">Select your dining preference</p>
+            <p className="text-xs font-medium text-zinc-400 uppercase tracking-[0.3em] absolute inset-0 text-center">{t.orderTypeSubtitle}</p>
+          </div>
         </div>
 
         <div className="flex gap-12 w-full justify-center max-w-6xl">
           {[
             {
-              id: 'dine_in', label: 'Eat Here', icon: (
+              id: 'dine_in', label: t.eatHere, icon: (
                 <svg viewBox="0 0 24 24" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
                 </svg>
               )
             },
             {
-              id: 'take_out', label: 'Take Out', icon: <ShoppingBag size={52} strokeWidth={1.5} />
+              id: 'take_out', label: t.takeOut, icon: <ShoppingBag size={52} strokeWidth={1.5} />
             }
           ].map((type, index) => (
             <button
@@ -1052,7 +879,7 @@ const KioskPage = () => {
               <div className="relative z-10 text-center space-y-2">
                 <span className={`block text-2xl font-bold tracking-tight uppercase transition-colors duration-300 ${orderType === type.id ? 'text-[#3b0764]' : 'text-zinc-600 group-hover:text-zinc-900'
                   }`}>
-                  {type.id === 'dine_in' ? t.eatHere : t.takeOut}
+                  {type.label}
                 </span>
                 <div className={`h-1.5 w-8 mx-auto rounded-full transition-all duration-500 ${orderType === type.id ? 'bg-[#7c3aed] w-12' : 'bg-transparent'
                   }`} />
@@ -1111,7 +938,7 @@ const KioskPage = () => {
         <div className="absolute top-[40%] right-[20%] w-[250px] h-[250px] bg-amber-200/10 rounded-full blur-[100px] pointer-events-none" />
 
         {/* ─── Left Sidebar ──────────────────────────────── */}
-        <div className="w-[160px] bg-white/80 backdrop-blur-md border-r border-purple-100/60 flex flex-col z-20 shrink-0">
+        <div className="w-[190px] bg-white/80 backdrop-blur-md border-r border-purple-100/60 flex flex-col z-20 shrink-0">
           {/* Logo */}
           <div className="p-4 pb-3 flex flex-col items-center border-b border-purple-50">
             <img
@@ -1124,8 +951,14 @@ const KioskPage = () => {
 
           {/* Category Header */}
           <div className="px-5 pt-5 pb-2">
-            <h3 className="text-base font-black text-[#7c14d4] tracking-tight">{t.categories}</h3>
-            <p className="text-[10px] font-semibold text-zinc-400 tracking-wide">{t.pickYourVibe}</p>
+            <div className="relative h-6">
+              <h3 className="text-base font-black text-[#7c14d4] tracking-tight invisible" aria-hidden="true">Categories</h3>
+              <h3 className="text-base font-black text-[#7c14d4] tracking-tight absolute inset-0">{t.categories}</h3>
+            </div>
+            <div className="relative h-4 mt-0.5">
+              <p className="text-[10px] font-semibold text-zinc-400 tracking-wide invisible" aria-hidden="true">Pick your vibe</p>
+              <p className="text-[10px] font-semibold text-zinc-400 tracking-wide absolute inset-0">{t.pickYourVibe}</p>
+            </div>
           </div>
 
           {/* Category List */}
@@ -1149,7 +982,7 @@ const KioskPage = () => {
                   : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#7c14d4]'
                   }`}
               >
-                <span className="text-sm truncate capitalize">{cat.toLowerCase()}</span>
+                <span className="text-sm truncate capitalize">{cat}</span>
               </button>
             ))}
           </div>
@@ -1206,21 +1039,38 @@ const KioskPage = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h1
-                      className="text-4xl font-bold text-zinc-800 leading-[1.1]"
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                    >
-                      {t.pickYourHappiness1}<br />
-                      <span
-                        className="italic text-[#7c14d4]"
+                    <div className="relative">
+                      {/* Invisible English sizer for layout stability */}
+                      <h1
+                        className="text-4xl font-bold text-zinc-800 leading-[1.1] invisible"
+                        aria-hidden="true"
                         style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                       >
-                        {t.pickYourHappiness2}
-                      </span>
-                    </h1>
-                    <p className="text-sm text-zinc-400 font-medium mt-2 max-w-[300px]">
-                      {t.menuSubtitle}
-                    </p>
+                        Pick Your<br />
+                        <span className="italic">Happiness</span>
+                      </h1>
+                      {/* Visible translated headline */}
+                      <h1
+                        className="text-4xl font-bold text-zinc-800 leading-[1.1] absolute inset-0"
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif", wordBreak: 'keep-all' }}
+                      >
+                        {t.pickYourHappiness1}<br />
+                        <span
+                          className="italic text-[#7c14d4]"
+                          style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                        >
+                          {t.pickYourHappiness2}
+                        </span>
+                      </h1>
+                    </div>
+                    <div className="relative mt-2">
+                      <p className="text-sm text-zinc-400 font-medium max-w-[300px] invisible" aria-hidden="true">
+                        The perfect blend of flavor and joy, crafted just for your afternoon boost.
+                      </p>
+                      <p className="text-sm text-zinc-400 font-medium max-w-[300px] absolute inset-0">
+                        {t.menuSubtitle}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -1296,12 +1146,12 @@ const KioskPage = () => {
               {/* ── Product Grid ──────────────────────── */}
               <div>
                 <h2
-                  className="text-lg font-bold text-zinc-800 mb-3"
+                  className="text-xl font-bold text-zinc-800 mb-4"
                   style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                 >
-                  {searchQuery ? t.searchResults : activeCategory ? <span className="capitalize">{activeCategory.toLowerCase()}</span> : t.recommendedForYou}
+                  {searchQuery ? t.searchResults : activeCategory ? activeCategory : t.recommendedForYou}
                 </h2>
-                <div className="grid grid-cols-4 2xl:grid-cols-5 gap-3">
+                <div className="grid grid-cols-3 xl:grid-cols-4 gap-4">
                   {displayItems.map((item: MenuItem) => {
                     const sizeLabel = getSizeLabel(item);
                     return (
@@ -1464,50 +1314,58 @@ const KioskPage = () => {
 
         {/* Mix and Match Overlay */}
         {isMixMatchViewOpen && pendingMixMatchItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-zinc-900/55">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/60">
             <div className="absolute inset-0" onClick={() => setIsMixMatchViewOpen(false)} />
-            <div className="relative bg-gradient-to-br from-white to-purple-50/30 w-full max-w-2xl rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-purple-100/50">
+            <div className="relative bg-[#fdf8ff] w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300 border border-purple-100">
 
               {/* Header */}
-              <div className="p-4 border-b border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-[#7c3aed] shadow-inner border border-purple-100">
-                    <ShoppingBag size={24} strokeWidth={2.5} />
+              <div className="p-8 border-b border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl flex items-center justify-center shadow-inner">
+                    <ShoppingBag size={32} className="text-[#7c14d4]" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-zinc-900 tracking-tight uppercase leading-none">
-                      {mixMatchStep === 'select_drink'
-                        ? (pendingMixMatchItem.category_type === 'combo' ? t.customizeYourCombo : t.chooseYourDrink)
-                        : t.customizeDrink}
-                    </h3>
-                    <p className="text-[10px] font-bold text-[#7c3aed] uppercase tracking-[0.2em] mt-1">
+                    <div className="relative">
+                      {/* Invisible English sizers for Mix & Match headers */}
+                      <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                        {mixMatchStep === 'select_drink'
+                          ? (pendingMixMatchItem.category_type === 'combo' ? "Customize Your Combo" : "Choose Your Drink")
+                          : "Customize Drink"}
+                      </h3>
+                      <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif", wordBreak: 'keep-all' }}>
+                        {mixMatchStep === 'select_drink'
+                          ? (pendingMixMatchItem.category_type === 'combo' ? t.customizeYourCombo : t.chooseYourDrink)
+                          : t.customizeDrink}
+                      </h3>
+                    </div>
+                    <p className="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] line-clamp-1">
                       {mixMatchStep === 'select_drink' ? pendingMixMatchItem.name : selectedMixMatchDrink?.name}
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-4">
                   {mixMatchStep === 'customize_drink' && (
                     <button
                       onClick={() => setMixMatchStep('select_drink')}
-                      className="px-4 py-2 bg-white border border-purple-200 text-[#7c3aed] rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
+                      className="px-6 py-3 bg-white border border-purple-200 text-[#7c14d4] rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
                     >
-                      <ChevronRight className="rotate-180" size={14} />
+                      <ChevronRight className="rotate-180" size={16} />
                       {t.backToSelection}
                     </button>
                   )}
                   <button
                     onClick={() => setIsMixMatchViewOpen(false)}
-                    className="w-10 h-10 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                    className="w-14 h-14 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
                   >
-                    <X size={20} strokeWidth={2.5} />
+                    <X size={28} strokeWidth={3} />
                   </button>
                 </div>
               </div>
 
               {/* Body */}
-              <div className="flex-1 overflow-y-auto p-5 scrollbar-hide">
+              <div className="flex-1 overflow-y-auto p-10 scrollbar-hide">
                 {mixMatchStep === 'select_drink' ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {loading ? (
                       <div className="col-span-full py-20 flex flex-col items-center justify-center gap-4">
                         <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
@@ -1541,86 +1399,78 @@ const KioskPage = () => {
                 ) : (
                   <div className="space-y-10 max-w-2xl mx-auto">
                     {/* Sugar Level */}
-                    {sugarLevels.length > 0 && (
-                      <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
-                        <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">1</span>
-                          {t.selectSugarLevel}
-                        </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                          {sugarLevels.map((sl) => (
-                            <button
-                              key={sl.id}
-                              onClick={() => setMixMatchSugar(sl.value)}
-                              className={`py-2 rounded-xl font-black text-xs transition-all border-2 ${mixMatchSugar === sl.value
-                                ? 'bg-[#7c14d4] border-[#7c14d4] text-white shadow-lg shadow-purple-200'
-                                : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
-                                }`}
-                            >
-                              {sl.label}
-                            </button>
-                          ))}
-                        </div>
+                    <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-[#7c14d4] text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">1</span>
+                        {t.selectSugarLevel}
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {sugarLevels.map((sl) => (
+                          <button
+                            key={sl.id}
+                            onClick={() => setMixMatchSugar(sl.value)}
+                            className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchSugar === sl.value
+                              ? 'bg-[#7c14d4] border-[#7c14d4] text-white shadow-lg shadow-purple-200'
+                              : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
+                              }`}
+                          >
+                            {sl.label}
+                          </button>
+                        ))}
                       </div>
-                    )}
+                    </div>
 
                     {/* Options (Ice/Pearl) */}
-                    {(selectedMixMatchDrink?.has_ice || selectedMixMatchDrink?.has_pearl) && (
-                      <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
-                        <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">2</span>
-                          {t.drinkOptions}
-                        </h4>
-                        <div className="space-y-6">
-                          {selectedMixMatchDrink?.has_ice && (
-                            <div>
-                              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">{t.iceLevel}</p>
-                              <div className="grid grid-cols-3 gap-2">
-                                {['NO ICE', '-ICE', '+ICE'].map(opt => (
-                                  <button
-                                    key={opt}
-                                    onClick={() => mixMatchToggleOption(opt)}
-                                    className={`py-2 rounded-xl font-black text-[10px] transition-all border-2 ${mixMatchIce === opt
-                                      ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-lg shadow-purple-100'
-                                      : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200'
-                                      }`}
-                                  >
-                                    {opt}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {selectedMixMatchDrink?.has_pearl && (
-                            <div>
-                              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">{t.pearlPreference}</p>
-                              <div className="grid grid-cols-2 gap-2">
-                                {['NO PRL', 'W/ PRL'].map(opt => (
-                                  <button
-                                    key={opt}
-                                    onClick={() => mixMatchToggleOption(opt)}
-                                    className={`py-2 rounded-xl font-black text-[10px] transition-all border-2 ${mixMatchPearl === opt
-                                      ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-md'
-                                      : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200'
-                                      }`}
-                                  >
-                                    {opt}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                    <div className="bg-white p-8 rounded-[2rem] border border-orange-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm shadow-md shadow-orange-200">2</span>
+                        {t.drinkOptions}
+                      </h4>
+                      <div className="space-y-8">
+                        <div>
+                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">{t.iceLevel}</p>
+                          <div className="grid grid-cols-4 gap-3">
+                            {['NO ICE', '-ICE', '+ICE', 'WARM'].map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => mixMatchToggleOption(opt)}
+                                className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchOptions.includes(opt)
+                                  ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
+                                  : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
+                                  }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">{t.pearlPreference}</p>
+                          <div className="grid grid-cols-2 gap-4">
+                            {['NO PRL', 'W/ PRL'].map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => mixMatchToggleOption(opt)}
+                                className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchOptions.includes(opt)
+                                  ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
+                                  : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
+                                  }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    )}
+                    </div>
 
-                    {/* Toppings Section */}
-                    <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
-                      <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">3</span>
-                        {t.extraToppings} <span className="text-[8px] font-bold text-zinc-400 ml-1 normal-case">(optional)</span>
+                    {/* Add-ons */}
+                    <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">3</span>
+                        {t.extraToppings}
                       </h4>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {allAddOns
                           .filter(ao => ao.category === 'drink' || ao.category === 'Toppings')
                           .map((ao) => {
@@ -1630,23 +1480,21 @@ const KioskPage = () => {
                                 key={ao.id}
                                 onClick={() => {
                                   setMixMatchAddOns(prev =>
-                                    isSelected
-                                      ? prev.filter(p => p.id !== ao.id)
-                                      : [...prev, ao]
+                                    isSelected ? prev.filter(p => p.id !== ao.id) : [...prev, ao]
                                   );
                                 }}
-                                className={`p-3 rounded-xl border-2 flex items-center justify-between transition-all ${isSelected
-                                  ? 'border-[#7c3aed] bg-purple-50 text-[#7c3aed]'
-                                  : 'border-zinc-100 bg-white text-zinc-600 hover:border-purple-200'
+                                className={`p-4 rounded-2xl border-2 flex flex-col gap-1 transition-all ${isSelected
+                                  ? 'border-purple-500 bg-purple-50 shadow-md'
+                                  : 'border-zinc-100 bg-white hover:border-purple-200'
                                   }`}
                               >
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-[#7c3aed] bg-[#7c3aed] text-white' : 'border-zinc-300'}`}>
-                                    {isSelected && <CheckCircle2 size={10} strokeWidth={4} />}
+                                <div className="flex justify-between items-center w-full">
+                                  <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-zinc-400'}`}>+₱{ao.price}</span>
+                                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'bg-purple-500 border-purple-500 text-white' : 'bg-white border-zinc-200'}`}>
+                                    {isSelected && <Check size={10} strokeWidth={4} />}
                                   </div>
-                                  <span className="font-black text-[10px] uppercase tracking-wider">{ao.name}</span>
                                 </div>
-                                <span className="font-black text-[10px]">₱{ao.price}</span>
+                                <span className={`font-bold text-xs uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-600'}`}>{ao.name}</span>
                               </button>
                             );
                           })}
@@ -1656,266 +1504,32 @@ const KioskPage = () => {
                 )}
               </div>
 
-              {/* Bottom Footer */}
-              <div className="p-5 bg-white border-t border-zinc-100 shrink-0 flex items-center justify-between z-10">
-                <div className="bg-zinc-50 px-4 py-2 rounded-xl border border-zinc-100">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">{t.comboTotal}</p>
-                  <p className="text-xl font-black text-zinc-900 tracking-tighter">₱{Number(pendingMixMatchItem?.sellingPrice || 0) + mixMatchAddOns.reduce((sum, a) => sum + a.price, 0)}</p>
-                </div>
-                <button
-                  onClick={confirmMixAndMatch}
-                  className="px-8 py-3.5 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-xl font-black text-xs shadow-lg shadow-purple-100 hover:shadow-xl transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest"
-                >
-                  {t.confirm} <Plus size={16} strokeWidth={4} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Bundle Configurator Overlay */}
-        {isBundleViewOpen && activeBundleItem && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/60">
-            <div className="absolute inset-0" onClick={() => setIsBundleViewOpen(false)} />
-            <div className="relative bg-gradient-to-br from-white to-purple-50/30 w-full max-w-2xl rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300 border border-purple-100/50">
-
-              {/* Header */}
-              <div className="p-4 border-b border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-[#7c3aed] shadow-inner border border-purple-100">
-                    <ShoppingBag size={24} strokeWidth={2.5} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-zinc-900 tracking-tight uppercase leading-none">
-                      Configure Bundle
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="text-[10px] font-bold text-[#7c3aed] uppercase tracking-[0.2em]">
-                        {activeBundleItem.display_name || activeBundleItem.name}
-                      </p>
-                      <span className="text-[9px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-black">
-                        {currentBundleItemIndex + 1} / {flattenedBundleItems.length}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {bundleCustomizingStep === 'customize_drink' && (
-                    <button
-                      onClick={() => setBundleCustomizingStep('select_drink')}
-                      className="px-4 py-2 bg-white border border-purple-200 text-[#7c3aed] rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
-                    >
-                      <ChevronRight className="rotate-180" size={14} />
-                      Back
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setIsBundleViewOpen(false)}
-                    className="w-10 h-10 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
-                  >
-                    <X size={20} strokeWidth={2.5} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="h-1 w-full bg-zinc-100 shrink-0">
-                <div
-                  className="h-full bg-gradient-to-r from-[#7c14d4] to-purple-500 transition-all duration-500"
-                  style={{ width: `${((currentBundleItemIndex + 1) / flattenedBundleItems.length) * 100}%` }}
-                />
-              </div>
-
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-                <div className="mb-6 text-center">
-                  <h4 className="text-lg font-black text-zinc-800 uppercase tracking-tight">
-                    {flattenedBundleItems[currentBundleItemIndex]?.display_name || flattenedBundleItems[currentBundleItemIndex]?.custom_name}
-                  </h4>
-                  <p className="text-zinc-400 font-bold text-[10px] mt-1 uppercase tracking-widest">
-                    Component Configuration
-                  </p>
-                </div>
-
-                {(() => {
-                  const currentItem = flattenedBundleItems[currentBundleItemIndex];
-                  if (!currentItem) return null;
-                  const isDrinkStep = (currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) ||
-                    (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink'));
-
-                  if (isDrinkStep && bundleCustomizingStep === 'select_drink') {
-                    return (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {mixMatchDrinkPool.length === 0 ? (
-                          <div className="col-span-full py-10 text-center">
-                            <p className="text-zinc-400 font-bold text-xs uppercase tracking-widest">No drinks available in this category.</p>
-                          </div>
-                        ) : (
-                          mixMatchDrinkPool.map((drink) => (
-                            <div
-                              key={drink.id}
-                              onClick={() => {
-                                setSelectedBundleDrink(drink);
-                                setBundleCustomizingStep('customize_drink');
-                              }}
-                              className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm hover:border-[#7c3aed] hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center text-center gap-3"
-                            >
-                              <div className="w-full aspect-square bg-purple-50/50 rounded-xl flex items-center justify-center overflow-hidden">
-                                {drink.image ? (
-                                  <img src={getImageUrl(drink.image)} alt={drink.name} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" />
-                                ) : (
-                                  <ShoppingBag size={32} className="text-[#7c3aed]/20 group-hover:scale-110 group-hover:text-[#7c3aed]/40 transition-all duration-500" />
-                                )}
-                              </div>
-                              <div>
-                                <h4 className="font-black text-zinc-800 uppercase text-[11px] tracking-tight leading-tight mb-1">{drink.name}</h4>
-                                {drink.size && <span className="text-[9px] font-black bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">{drink.size}</span>}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // Customize Step (Drink was selected or it's a non-drink item)
-                  const targetItem = selectedBundleDrink || currentItem;
-                  const canHaveSugar = targetItem.has_sugar;
-                  const canHaveIce = targetItem.has_ice;
-                  const canHavePearl = targetItem.has_pearl;
-
-                  return (
-                    <div className="space-y-6 max-w-xl mx-auto">
-                      {/* Sugar Level */}
-                      {canHaveSugar && (
-                        <div className="bg-white p-4 rounded-2xl border border-purple-50 shadow-sm">
-                          <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-3 flex items-center gap-3">
-                            <span className="w-5 h-5 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">1</span>
-                            Select Sugar Level
-                          </h4>
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                            {sugarLevels.map((sl) => (
-                              <button
-                                key={sl.id}
-                                onClick={() => setBundleSugar(sl.value)}
-                                className={`py-2 rounded-xl font-black text-[10px] transition-all border-2 ${bundleSugar === sl.value
-                                  ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-md'
-                                  : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-[#7c3aed]'
-                                  }`}
-                              >
-                                {sl.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Options (Ice/Pearl) */}
-                      {(canHaveIce || canHavePearl) && (
-                        <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
-                          <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase mb-4 flex items-center gap-3">
-                            <span className="w-5 h-5 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-[10px] shadow-md shadow-purple-100">2</span>
-                            {t.drinkOptions}
-                          </h4>
-                          <div className="space-y-4">
-                            {canHaveIce && (
-                              <div>
-                              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">{t.iceLevel}</p>
-                                <div className="grid grid-cols-3 gap-2">
-                                  {['NO ICE', '-ICE', '+ICE'].map(opt => (
-                                    <button
-                                      key={opt}
-                                      onClick={() => bundleToggleOption(opt)}
-                                      className={`py-2 rounded-xl font-black text-[10px] transition-all border-2 ${bundleIce === opt
-                                        ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-md shadow-purple-100'
-                                        : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200'
-                                        }`}
-                                    >
-                                      {opt}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {canHavePearl && (
-                              <div>
-                                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2">{t.pearlPreference}</p>
-                                <div className="grid grid-cols-2 gap-2">
-                                  {['NO PRL', 'W/ PRL'].map(opt => (
-                                    <button
-                                      key={opt}
-                                      onClick={() => bundleToggleOption(opt)}
-                                      className={`py-2 rounded-xl font-black text-xs transition-all border-2 ${bundlePearl === opt
-                                        ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-md'
-                                        : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200'
-                                        }`}
-                                    >
-                                      {opt}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Add-ons */}
-                      <div className="bg-white p-5 rounded-2xl border border-purple-50 shadow-sm">
-                        <h4 className="font-black text-zinc-900 text-base tracking-tight uppercase mb-4 flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white flex items-center justify-center text-xs shadow-md shadow-purple-100">3</span>
-                          {t.extraToppings} <span className="text-[10px] font-bold text-zinc-400 ml-2 normal-case">(optional)</span>
-                        </h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {allAddOns.map((addon) => (
-                            <button
-                              key={addon.id}
-                              onClick={() => {
-                                setBundleAddOns(prev => prev.some(a => a.id === addon.id) ? prev.filter(a => a.id !== addon.id) : [...prev, addon]);
-                              }}
-                              className={`p-2 rounded-xl border-2 transition-all flex items-center justify-between px-3 ${bundleAddOns.some(a => a.id === addon.id)
-                                ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white shadow-md'
-                                : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200'
-                                }`}
-                            >
-                              <div className="flex flex-col items-start">
-                                <span className="font-black text-[10px] uppercase tracking-tight leading-tight">{addon.name}</span>
-                                <span className={`text-[9px] font-bold ${bundleAddOns.some(a => a.id === addon.id) ? 'text-white/80' : 'text-[#7c3aed]'}`}>+₱{addon.price.toFixed(0)}</span>
-                              </div>
-                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${bundleAddOns.some(a => a.id === addon.id) ? 'bg-white text-[#7c3aed]' : 'bg-zinc-50'}`}>
-                                {bundleAddOns.some(a => a.id === addon.id) && <Plus size={8} strokeWidth={5} />}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
               {/* Footer */}
-              <div className="p-5 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
-                <div className="bg-zinc-50 px-4 py-2 rounded-xl border border-zinc-100">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">{t.bundleTotal}</p>
-                  <p className="text-xl font-black text-zinc-900 tracking-tighter">₱{(Number(activeBundleItem.price) + bundleAddOns.reduce((sum, a) => sum + a.price, 0)).toFixed(0)}</p>
-                </div>
-                {(bundleCustomizingStep === 'customize_drink' ||
-                  (() => {
-                    const currentItem = flattenedBundleItems[currentBundleItemIndex];
-                    if (!currentItem) return true;
-                    return !((currentItem.custom_name && currentItem.custom_name.toLowerCase().includes('drink')) ||
-                      (currentItem.display_name && currentItem.display_name.toLowerCase().includes('drink')));
-                  })()
-                ) && (
-                    <button
-                      onClick={confirmBundleStep}
-                      className="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white px-8 py-3.5 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-purple-100"
-                    >
-                      {currentBundleItemIndex < flattenedBundleItems.length - 1 ? t.nextItem : t.confirmBundle}
-                      <Plus size={16} strokeWidth={4} />
-                    </button>
+              <div className="p-8 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
+                <div className="flex items-center gap-8">
+                  <div className="bg-zinc-50 px-6 py-4 rounded-2xl border border-zinc-100">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
+                      {pendingMixMatchItem.category_type === 'combo' ? t.comboTotal : t.bundleTotal}
+                    </p>
+                    <p className="text-3xl font-black text-zinc-900 tracking-tighter">₱{pendingMixMatchItem.sellingPrice}</p>
+                  </div>
+                  {mixMatchStep === 'customize_drink' && mixMatchAddOns.reduce((s, a) => s + a.price, 0) > 0 && (
+                    <div className="text-orange-600 font-bold">
+                      <p className="text-[10px] uppercase tracking-widest mb-1">{t.addOns}</p>
+                      <p className="text-xl">+₱{mixMatchAddOns.reduce((s, a) => s + a.price, 0)}</p>
+                    </div>
                   )}
+                </div>
+
+                {mixMatchStep === 'customize_drink' && (
+                  <button
+                    onClick={confirmMixAndMatch}
+                    className="bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
+                  >
+                    {t.addToTray}
+                    <Plus size={24} strokeWidth={3} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1923,178 +1537,128 @@ const KioskPage = () => {
 
         {/* Customization Modal */}
         {showCustomizer && customizingItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-zinc-900/55">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-zinc-900/55">
             <div className="absolute inset-0" onClick={() => setShowCustomizer(false)} />
-            <div className="relative bg-gradient-to-br from-white to-purple-50/30 w-full max-w-xl rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-purple-100/50">
+            <div className="relative bg-gradient-to-br from-orange-50 to-purple-50 w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-orange-100/70">
 
-              <div className="p-4 border-b border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-50 rounded-xl overflow-hidden border border-purple-100 flex items-center justify-center shadow-inner">
+              <div className="p-8 border-b border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
+                <div className="flex items-center gap-6">
+                  <div className="w-24 h-24 bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl overflow-hidden border border-orange-100 flex items-center justify-center shadow-inner">
                     {customizingItem.image ? (
                       <img src={getImageUrl(customizingItem.image)} className="w-full h-full object-cover" />
                     ) : (
-                      <ShoppingBag size={24} className="text-[#7c3aed]" />
+                      <ShoppingBag size={32} className="text-orange-300" />
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-zinc-900 tracking-tight uppercase leading-none">{customizingItem.name?.toLowerCase()}</h3>
-                    <div className="inline-block px-2 py-0.5 bg-purple-100 text-purple-600 rounded-lg text-[9px] font-black uppercase tracking-widest mt-1.5">{customizingItem.category?.toLowerCase()}</div>
+                    <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase line-clamp-1">{customizingItem.name}</h3>
+                    <div className="inline-block px-3 py-1 bg-purple-50 border border-purple-200 text-[#7c14d4] rounded-lg text-sm font-bold uppercase tracking-widest mt-2">{customizingItem.category}</div>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCustomizer(false)}
-                  className="w-10 h-10 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                  className="w-14 h-14 bg-white border border-zinc-200 text-zinc-500 rounded-full flex items-center justify-center hover:bg-zinc-50 hover:text-zinc-900 transition-colors shrink-0 shadow-sm"
                 >
-                  <X size={20} strokeWidth={2.5} />
+                  <X size={28} strokeWidth={3} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-hide">
-                {(() => {
-                  const steps = [];
-                  if (sugarLevels.length > 0) steps.push('sugar');
-                  if (customizingItem.has_ice) steps.push('ice');
-                  if (customizingItem.has_pearl) steps.push('pearl');
-                  steps.push('addons');
-
-                  return (
-                    <>
-                      {steps.includes('sugar') && (
-                        <div className="bg-white/95 p-4 rounded-2xl border border-purple-100 shadow-sm">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-6 h-6 bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0">
-                              {steps.indexOf('sugar') + 1}
-                            </div>
-                            <h4 className="font-black text-zinc-900 text-sm tracking-tight capitalize">{t.selectSugar}</h4>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                            {sugarLevels.map((sl) => (
-                              <button
-                                key={sl.id}
-                                onClick={() => setSelectedSugarLevel(sl.value)}
-                                className={`py-2 rounded-xl font-bold text-[11px] transition-all border-2 ${selectedSugarLevel === sl.value
-                                  ? 'bg-gradient-to-r from-[#7c14d4] to-purple-500 border-[#7c14d4] text-white scale-105 shadow-lg shadow-purple-100'
-                                  : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300'
-                                  }`}
-                              >
-                                {sl.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {steps.includes('ice') && (
-                        <div className="bg-white/95 p-4 rounded-2xl border border-purple-50 shadow-sm">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-6 h-6 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0 shadow-md shadow-purple-100">
-                              {steps.indexOf('ice') + 1}
-                            </div>
-                            <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">{t.iceLevel}</h4>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2">
-                            {['NO ICE', '-ICE', '+ICE'].map((opt) => (
-                              <button
-                                key={opt}
-                                onClick={() => setSelectedIce(prev => prev === opt ? 'NORMAL ICE' : opt)}
-                                className={`py-2 rounded-xl font-bold text-[11px] transition-all border-2 ${selectedIce === opt
-                                  ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white scale-105 shadow-lg shadow-purple-100'
-                                  : 'bg-white border-zinc-200 text-zinc-600 hover:border-purple-200'
-                                  }`}
-                              >
-                                {opt}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {steps.includes('pearl') && (
-                        <div className="bg-white/95 p-4 rounded-2xl border border-purple-50 shadow-sm">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-6 h-6 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0 shadow-md shadow-purple-100">
-                              {steps.indexOf('pearl') + 1}
-                            </div>
-                            <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">{t.pearlPreference}</h4>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {['NO PRL', 'W/ PRL'].map((opt) => (
-                              <button
-                                key={opt}
-                                onClick={() => setSelectedPearl(opt)}
-                                className={`py-2 rounded-xl font-bold text-[11px] transition-all border-2 ${selectedPearl === opt
-                                  ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] border-[#7c3aed] text-white scale-105 shadow-lg shadow-purple-100'
-                                  : 'bg-white border-zinc-200 text-zinc-600 hover:border-purple-200'
-                                  }`}
-                              >
-                                {opt}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="bg-white/95 p-4 rounded-2xl border border-purple-50 shadow-sm">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-6 h-6 bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-full flex items-center justify-center font-black text-[10px] shrink-0 border border-purple-300/50 shadow-md shadow-purple-100">
-                            {steps.indexOf('addons') + 1}
-                          </div>
-                          <h4 className="font-black text-zinc-900 text-sm tracking-tight uppercase">{t.addToppings} <span className="text-[9px] font-bold text-zinc-400 ml-2 normal-case">(optional)</span></h4>
-                        </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                          {allAddOns
-                            .filter(ao => {
-                              const itemCat = customizingItem.category?.toLowerCase() || '';
-                              if (itemCat.includes('waffle')) return ao.category === 'waffle';
-                              return ao.category === 'drink' || ao.category === 'Toppings';
-                            })
-                            .map((ao) => {
-                              const isSelected = selectedAddOns.some(a => a.id === ao.id);
-                              return (
-                                <button
-                                  key={ao.id}
-                                  onClick={() => {
-                                    setSelectedAddOns(prev =>
-                                      isSelected
-                                        ? prev.filter(p => p.id !== ao.id)
-                                        : [...prev, ao]
-                                    );
-                                  }}
-                                  className={`p-3 rounded-xl border-2 flex flex-col transition-all text-left ${isSelected
-                                    ? 'border-[#7c3aed] bg-purple-50 scale-[1.02] shadow-sm'
-                                    : 'border-zinc-100 bg-white hover:border-purple-100'
-                                    }`}
-                                >
-                                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-[#7c3aed] bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white' : 'border-zinc-300 bg-zinc-50'}`}>
-                                    {isSelected && <CheckCircle2 size={12} strokeWidth={3} />}
-                                  </div>
-                                  <span className={`font-black text-[12px] ${isSelected ? 'text-[#7c3aed]' : 'text-zinc-500'}`}>
-                                    +₱{Number(ao.price).toFixed(0)}
-                                  </span>
-                                  <span className={`font-bold text-[13px] leading-tight uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-700'}`}>
-                                    {ao.name?.toLowerCase()}
-                                  </span>
-                                </button>
-                              );
-                            })}
+              <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
+                {(customizingItem.category?.toLowerCase().includes('milk tea') ||
+                  customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
+                    <div className="bg-white/95 p-8 rounded-3xl border border-purple-100 shadow-sm">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="w-10 h-10 bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0">1</div>
+                        <div className="relative flex-1 h-8">
+                          <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase invisible" aria-hidden="true">Select Sugar</h4>
+                          <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.selectSugar}</h4>
                         </div>
                       </div>
-                    </>
-                  )
-                })()}
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        {sugarLevels.map((sl) => (
+                          <button
+                            key={sl.id}
+                            onClick={() => setSelectedSugarLevel(sl.value)}
+                            className={`py-5 rounded-2xl font-bold text-lg transition-all border-4 ${selectedSugarLevel === sl.value
+                              ? 'bg-gradient-to-r from-[#7c14d4] to-purple-500 border-[#7c14d4] text-white scale-105 shadow-[0_12px_25px_rgba(124,20,212,0.3)]'
+                              : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300'
+                              }`}
+                          >
+                            {sl.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                <div className="bg-white/95 p-8 rounded-3xl border border-orange-100 shadow-sm">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 border border-orange-300/50">
+                      {((customizingItem.category?.toLowerCase().includes('milk') || customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0) ? '2' : '1'}
+                    </div>
+                    <div className="relative flex-1 h-8">
+                      <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase invisible" aria-hidden="true">Add Toppings</h4>
+                      <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.addToppings}</h4>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allAddOns
+                      .filter(ao => {
+                        const itemCat = customizingItem.category?.toLowerCase() || '';
+                        if (itemCat.includes('waffle')) return ao.category === 'waffle';
+                        return ao.category === 'drink' || ao.category === 'Toppings';
+                      })
+                      .map((ao) => {
+                        const isSelected = selectedAddOns.some(a => a.id === ao.id);
+                        return (
+                          <button
+                            key={ao.id}
+                            onClick={() => {
+                              setSelectedAddOns(prev =>
+                                isSelected
+                                  ? prev.filter(p => p.id !== ao.id)
+                                  : [...prev, ao]
+                              );
+                            }}
+                            className={`p-5 rounded-2xl border-4 flex flex-col transition-all text-left ${isSelected
+                              ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 scale-[1.02] shadow-md'
+                              : 'border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300'
+                              }`}
+                          >
+                            <div className="flex justify-between items-start mb-2 w-full">
+                              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm transition-colors ${isSelected ? 'border-orange-500 bg-gradient-to-r from-orange-500 to-amber-500 text-white' : 'border-zinc-300 bg-zinc-50'}`}>
+                                {isSelected && <CheckCircle2 size={20} strokeWidth={3} />}
+                              </div>
+                              <span className={`font-black text-xl ${isSelected ? 'text-orange-600' : 'text-zinc-500'}`}>
+                                +₱{Number(ao.price).toFixed(0)}
+                              </span>
+                            </div>
+                            <span className={`font-bold text-lg leading-tight uppercase ${isSelected ? 'text-orange-900' : 'text-zinc-700'}`}>
+                              {ao.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
               </div>
 
-              <div className="p-5 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0 z-10">
-                <div className="bg-zinc-50 px-4 py-2 rounded-xl border border-zinc-100">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">{t.totalAmount}</p>
-                  <p className="text-xl font-black text-zinc-900 tracking-tighter">₱{Number(customizingItem.sellingPrice) + selectedAddOns.reduce((sum, ao) => sum + Number(ao.price), 0)}</p>
+              <div className="p-8 border-t border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgb(0,0,0,0.03)] z-10">
+                <div>
+                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-1">{t.total}</p>
+                  <div className="text-4xl font-black text-orange-600 tracking-tighter">
+                    ₱{(
+                      Number(customizingItem.sellingPrice) +
+                      selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
+                    ).toFixed(0)}
+                  </div>
                 </div>
                 <button
                   onClick={confirmCustomization}
-                  className="bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white px-8 py-3.5 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-purple-100"
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-12 py-6 rounded-2xl font-black uppercase tracking-wider text-xl flex items-center gap-3 hover:from-orange-600 hover:to-amber-600 transition-all shadow-[0_8px_20px_rgba(234,88,12,0.3)] hover:shadow-[0_12px_25px_rgba(234,88,12,0.4)] hover:-translate-y-[1px] active:scale-95"
                 >
                   <span>{t.addToTray}</span>
-                  <Plus size={16} strokeWidth={4} />
+                  <Plus size={24} strokeWidth={3} />
                 </button>
               </div>
             </div>
@@ -2106,60 +1670,68 @@ const KioskPage = () => {
 
 
   const ConfirmView = () => (
-    <div className="flex-1 flex flex-col relative overflow-y-auto bg-[#fdf8ff] scrollbar-hide">
+    <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fdf8ff]">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-100/30 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-50/40 rounded-full blur-[100px] translate-y-1/4 -translate-x-1/4 pointer-events-none" />
 
       {/* Top Bar (Unified) */}
-      <div className="h-16 px-8 flex items-center justify-between shrink-0 relative z-50">
-        <div className="flex items-center gap-3">
-          <img src={logo} alt="Lucky Boba" className="h-10 w-auto drop-shadow-sm" />
-          <span className="text-xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
+      <div className="h-20 px-12 flex items-center justify-between shrink-0 relative z-50">
+        <div className="flex items-center gap-4">
+          <img src={logo} alt="Lucky Boba" className="h-12 w-auto drop-shadow-sm" />
+          <span className="text-2xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
         </div>
         <div className="flex items-center gap-6">
-          <div className="w-8 h-8 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
+          <div className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
             <HelpCircle size={20} />
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 relative z-10 py-4">
-        <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_15px_40px_rgba(16,185,129,0.3)] animate-bounce relative shrink-0">
+      <div className="flex-1 flex flex-col items-center justify-center gap-10 px-12 relative z-10 py-12">
+        <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_15px_40px_rgba(16,185,129,0.3)] animate-bounce relative shrink-0">
           <div className="absolute inset-0 border-4 border-emerald-400 rounded-full animate-ping opacity-50"></div>
-          <CheckCircle2 size={40} strokeWidth={3} className="relative z-10" />
+          <CheckCircle2 size={48} strokeWidth={3} className="relative z-10" />
         </div>
 
-        <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-4 duration-700 shrink-0">
-          <h2 className="text-2xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-            {t.confirmTitle1} <span className="text-[#7c3aed] italic">{t.confirmTitle2}</span>
-          </h2>
-          <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-[0.2em]">{t.proceedToCounter}</p>
+        <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+          <div className="relative">
+            <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              Order <span className="italic text-[#7c3aed]">Received</span>
+            </h2>
+            <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              {t.confirmTitle1} <span className="text-[#7c3aed] italic">{t.confirmTitle2}</span>
+            </h2>
+          </div>
+          <div className="relative h-5">
+            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em] invisible" aria-hidden="true">Please proceed to counter to pay</p>
+            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em] absolute inset-0 text-center">{t.proceedToCounter}</p>
+          </div>
         </div>
 
-        <div className="bg-white p-6 rounded-[2rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300 shrink-0">
-          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-3">{t.yourTicketNumber}</p>
+        <div className="bg-white p-10 rounded-[3rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
+          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-5">{t.yourTicketNumber}</p>
 
-          <div className="bg-purple-50/50 px-6 py-4 rounded-3xl mb-4 border border-purple-100/50 shadow-inner w-full text-center">
-            <h3 className="text-4xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <div className="bg-purple-50/50 px-12 py-8 rounded-[2.5rem] mb-10 border border-purple-100/50 shadow-inner w-full text-center">
+            <h3 className="text-7xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
               #{orderNumber}
             </h3>
           </div>
 
-          <div className="w-full flex items-center justify-between pt-6 border-t border-dashed border-purple-100">
-            <span className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">{t.totalDue}</span>
-            <span className="text-3xl font-bold text-[#3b0764] tracking-tighter">₱{calculateTotal().toFixed(0)}</span>
+          <div className="w-full flex items-center justify-between pt-8 border-t border-dashed border-purple-100">
+            <span className="text-zinc-400 font-bold uppercase text-xs tracking-widest">{t.totalDue}</span>
+            <span className="text-4xl font-bold text-[#3b0764] tracking-tighter">₱{calculateTotal().toFixed(0)}</span>
           </div>
         </div>
 
         <button
           onClick={handleReset}
-          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-8 pr-5 py-3 rounded-full font-bold text-base tracking-[0.12em] uppercase shadow-[0_20px_45px_rgba(124,58,237,0.3)] flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95 mt-2 shrink-0"
+          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-12 pr-8 py-5 rounded-full font-bold text-xl tracking-[0.15em] uppercase shadow-[0_25px_60px_rgba(124,58,237,0.35)] flex items-center gap-8 transition-all hover:scale-[1.02] active:scale-95 mt-4"
         >
           <span className="relative z-10">{t.newOrder}</span>
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
-            <ChevronRight size={20} strokeWidth={4} />
+          <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
+            <ChevronRight size={24} strokeWidth={4} />
           </div>
         </button>
       </div>
@@ -2176,95 +1748,151 @@ const KioskPage = () => {
 
     return (
       <div
-        className="flex-1 flex flex-col p-10 overflow-hidden relative"
+        className="flex-1 flex flex-col p-12 overflow-hidden relative"
         style={{
           background: 'linear-gradient(145deg, #faf7ff 0%, #f2ecff 45%, #fff4fb 78%, #fff8ec 100%)'
         }}
       >
-        <div className="absolute top-0 right-0 w-[420px] h-[420px] bg-violet-500/12 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
-        <div className="absolute bottom-[-10%] left-[-6%] w-[420px] h-[420px] bg-fuchsia-400/12 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="absolute top-[35%] left-[45%] w-[300px] h-[300px] bg-amber-300/10 rounded-full blur-[120px] pointer-events-none"></div>
+        {/* Premium Background Orbs (Consistent with Splash) */}
+        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-violet-500/12 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-[-15%] left-[-8%] w-[500px] h-[500px] bg-fuchsia-400/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[400px] h-[400px] bg-amber-300/10 rounded-full blur-[140px] pointer-events-none" />
 
-        <div className="max-w-4xl mx-auto w-full flex flex-col h-full relative z-10">
-          <div className="flex flex-col items-center mb-10 shrink-0">
-            <img src={logo} alt="Lucky Boba" className="w-32 h-auto mb-6 drop-shadow-sm" />
-            <h1 className="text-4xl font-black text-zinc-900 tracking-tight">{t.kioskSetup}</h1>
-            <p className="text-zinc-500 font-semibold text-sm mt-2 uppercase tracking-[0.12em]">{t.selectBranchDevice}</p>
+        <div className="max-w-5xl mx-auto w-full flex flex-col h-full relative z-10">
+          {/* Header Section */}
+          <div className="flex flex-col items-center mb-12 shrink-0 animate-in fade-in slide-in-from-top-6 duration-1000">
+            <img src={logo} alt="Lucky Boba" className="w-28 h-auto mb-8 drop-shadow-md hover:scale-105 transition-transform duration-500" />
+            <h1 className="text-5xl font-black text-zinc-900 tracking-tighter text-center" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              Kiosk <span className="text-[#7c14d4] italic">Setup</span>
+            </h1>
+            <p className="text-zinc-500 font-bold text-xs mt-4 uppercase tracking-[0.3em] opacity-60">
+              {t.selectBranchDevice}
+            </p>
           </div>
 
-          <div className="mb-8 shrink-0 w-full max-w-xl mx-auto">
-            <div className="flex items-center gap-3 bg-white/95 border border-violet-200 rounded-2xl px-5 py-4 shadow-lg group focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-100 transition-all backdrop-blur-sm">
-              <Search size={20} className="text-zinc-400 group-focus-within:text-violet-500 transition-colors" />
+          {/* Search Section */}
+          <div className="mb-12 shrink-0 w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-top-4 duration-1000 delay-200">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                <Search size={22} className="text-zinc-300 group-focus-within:text-[#7c14d4] transition-colors duration-300" />
+              </div>
               <input
                 value={branchSearch}
                 onChange={e => setBranchSearch(e.target.value)}
-                className="flex-1 bg-transparent text-base font-semibold text-zinc-900 outline-none placeholder:text-zinc-400"
+                className="w-full bg-white/60 backdrop-blur-xl border border-white/80 rounded-[2rem] py-5 pl-16 pr-14 text-lg font-semibold text-zinc-800 placeholder:text-zinc-300 focus:bg-white/90 focus:ring-4 focus:ring-violet-100 focus:border-violet-300 transition-all outline-none shadow-[0_15px_40px_rgba(88,28,135,0.06)] group-hover:shadow-[0_20px_50px_rgba(88,28,135,0.1)]"
                 placeholder={t.searchBranchPlaceholder}
               />
               {branchSearch && (
-                <button onClick={() => setBranchSearch("")} className="text-zinc-400 hover:text-zinc-600 transition-colors bg-zinc-100 hover:bg-zinc-200 p-1 rounded-full flex items-center justify-center">
-                  <X size={14} />
+                <button
+                  onClick={() => setBranchSearch("")}
+                  className="absolute inset-y-0 right-5 flex items-center justify-center w-10 h-10 my-auto text-zinc-300 hover:text-zinc-600 transition-colors bg-zinc-100/50 hover:bg-zinc-200/50 rounded-full"
+                >
+                  <X size={18} />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">
+          {/* Branch Grid */}
+          <div className="flex-1 overflow-y-auto pr-4 -mr-4 scrollbar-hide grid grid-cols-1 md:grid-cols-2 gap-6 pb-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-400">
             {filtered.map(branch => (
               <button
                 key={branch.id}
                 onClick={() => handleSelectBranch(branch)}
-                className={`p-6 rounded-2xl shadow-md border flex flex-col items-start text-left transition-all group active:scale-[0.98] backdrop-blur-sm ${selectedBranchToConfirm?.id === branch.id
-                  ? 'bg-white border-violet-500 ring-4 ring-violet-100 shadow-xl -translate-y-[2px]'
-                  : 'bg-white/95 border-zinc-200/80 hover:border-violet-300 hover:shadow-xl hover:-translate-y-[2px]'
+                className={`p-10 rounded-[2.5rem] border-2 flex flex-col items-start text-left transition-all duration-500 group active:scale-[0.97] backdrop-blur-xl group relative ${selectedBranchToConfirm?.id === branch.id
+                    ? 'bg-white border-[#7c14d4] shadow-[0_25px_60px_rgba(124,20,212,0.15)] -translate-y-2'
+                    : 'bg-white/40 border-white/60 hover:bg-white/80 hover:border-violet-200 hover:shadow-[0_30px_70px_rgba(88,28,135,0.12)] hover:-translate-y-1.5 shadow-sm'
                   }`}
               >
-                <div className="flex items-center gap-4 w-full mb-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors border ${selectedBranchToConfirm?.id === branch.id
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500 border-violet-500 text-white'
-                    : 'bg-zinc-50 border-zinc-100 text-zinc-600 group-hover:bg-gradient-to-r group-hover:from-violet-600 group-hover:to-fuchsia-500 group-hover:border-violet-600 group-hover:text-white'
+                {/* Visual Accent */}
+                <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-violet-500/10 to-transparent rounded-bl-[4rem] transition-opacity duration-500 ${selectedBranchToConfirm?.id === branch.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+
+                <div className="flex items-center gap-6 w-full mb-6 relative z-10">
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 border ${selectedBranchToConfirm?.id === branch.id
+                      ? 'bg-gradient-to-br from-[#7c14d4] to-fuchsia-600 border-[#7c14d4] text-white shadow-lg shadow-purple-200 scale-110'
+                      : 'bg-white border-zinc-100 text-zinc-400 group-hover:bg-gradient-to-br group-hover:from-[#7c14d4] group-hover:to-fuchsia-600 group-hover:border-[#7c14d4] group-hover:text-white group-hover:scale-110'
                     }`}>
-                    <ShoppingBag size={22} />
+                    <ShoppingBag size={28} />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-black text-zinc-900 line-clamp-1 capitalize">{branch.name.toLowerCase()}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase tracking-wider">{t.active}</span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-2xl font-black text-zinc-900 capitalize mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      {branch.name.toLowerCase()}
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100/50">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">{t.active}</span>
+                      </div>
                       {selectedBranchToConfirm?.id === branch.id && (
-                        <span className="text-[10px] font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 px-2 py-0.5 rounded uppercase tracking-wider">{t.selected}</span>
+                        <div className="px-3 py-1 bg-gradient-to-br from-[#7c14d4] to-fuchsia-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
+                          {t.selected}
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 w-full mt-1">
-                  <div className="flex items-start gap-2 text-zinc-500">
-                    <MapPin size={14} className="shrink-0 mt-0.5 text-zinc-400" />
-                    <p className="text-sm font-medium line-clamp-2">{branch.address || t.noAddressProvided}</p>
+                <div className="space-y-3 w-full relative z-10 transition-transform duration-500 group-hover:translate-x-1">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center shrink-0">
+                      <MapPin size={16} className="text-zinc-400" />
+                    </div>
+                    <p className="text-sm font-semibold text-zinc-500 leading-relaxed pt-1.5">
+                      {branch.address || t.noAddressProvided}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <Clock size={14} className="shrink-0" />
-                    <p className="text-xs font-medium">09:00 AM - 09:00 PM</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center shrink-0">
+                      <Clock size={16} className="text-zinc-400" />
+                    </div>
+                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                      09:00 AM - 09:00 PM
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between w-full">
-                  <div className={`flex items-center gap-1 text-xs font-semibold transition-all duration-300 ${selectedBranchToConfirm?.id === branch.id
-                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 opacity-100 translate-x-0'
-                    : 'text-violet-600 opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0'
+                <div className="mt-8 pt-6 border-t border-zinc-100/50 w-full flex items-center justify-between relative z-10">
+                  <div className={`flex items-center gap-2 font-black uppercase text-[10px] tracking-[0.2em] transition-all duration-500 ${selectedBranchToConfirm?.id === branch.id
+                      ? 'text-[#7c14d4] translate-x-1'
+                      : 'text-zinc-300 group-hover:text-[#7c14d4] group-hover:translate-x-1'
                     }`}>
                     <span>{t.selectBranch}</span>
-                    <ChevronRight size={16} />
+                    <ChevronRight size={14} strokeWidth={3} />
                   </div>
                 </div>
               </button>
             ))}
+
             {filtered.length === 0 && (
-              <div className="col-span-full py-20 flex flex-col items-center justify-center text-zinc-400">
-                <Search size={40} className="mb-4 opacity-30 text-zinc-300" />
-                <p className="font-semibold tracking-wide text-sm">{t.noBranchesFound}</p>
+              <div className="col-span-full py-28 flex flex-col items-center justify-center gap-6 animate-in fade-in zoom-in duration-700">
+                <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100">
+                  <Search size={40} className="text-zinc-200" />
+                </div>
+                <div className="text-center">
+                  <p className="font-black text-zinc-900 text-xl tracking-tight mb-2">{t.noBranchesFound}</p>
+                  <p className="text-zinc-400 font-bold text-sm uppercase tracking-widest">Try adjusting your search terms</p>
+                </div>
               </div>
             )}
+          </div>
+
+          {/* Fixed Confirm Button (Appears when branch is selected) */}
+          <div className="shrink-0 flex justify-center pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <button
+              disabled={!selectedBranchToConfirm}
+              onClick={confirmBranchSelection}
+              className={`group relative overflow-hidden px-16 py-5 rounded-full font-black uppercase text-lg tracking-[0.2em] transition-all duration-500 shadow-2xl flex items-center gap-6 ${selectedBranchToConfirm
+                  ? 'bg-[#7c14d4] text-white hover:scale-105 active:scale-95 shadow-purple-200'
+                  : 'bg-zinc-100 text-zinc-300 cursor-not-allowed grayscale'
+                }`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              <span className="relative z-10">{t.confirmBranch || 'Confirm Branch'}</span>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 relative z-10 ${selectedBranchToConfirm ? 'bg-white text-[#7c14d4]' : 'bg-zinc-200 text-zinc-300'
+                }`}>
+                <CheckCircle2 size={24} strokeWidth={3} />
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -2419,9 +2047,9 @@ const KioskPage = () => {
 
       {/* Admin Settings Modal */}
       {isAdminModalOpen && (
-        <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 text-center print:hidden animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] p-6 max-w-xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col items-center">
-            <h2 className="text-xl font-black text-[#3b2063] uppercase italic mb-6 shrink-0">{t.adminSettings}</h2>
+        <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center print:hidden animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-10 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col items-center">
+            <h2 className="text-3xl font-black text-[#3b2063] uppercase italic mb-8 shrink-0">{t.adminSettings}</h2>
 
             <div className="w-full flex-1 overflow-y-auto pr-2 space-y-6 text-left shrink">
               {/* Expo Mode Toggle */}
