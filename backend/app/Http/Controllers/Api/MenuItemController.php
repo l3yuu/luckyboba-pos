@@ -38,11 +38,11 @@ class MenuItemController extends Controller
             'menu_items.sub_category_id as subcategory_id',
             'sub_categories.name as subcategory',
             'menu_items.price',
-            'menu_items.grab_price',    // ✅ add
-            'menu_items.panda_price',   // ✅ add
+            'menu_items.grab_price',
+            'menu_items.panda_price',
             'menu_items.barcode',
             'menu_items.size',
-            DB::raw("CASE WHEN menu_items.image IS NOT NULL THEN CONCAT('".url('storage')."/', menu_items.image) ELSE NULL END as image_path"),
+            DB::raw("CASE WHEN menu_items.image IS NOT NULL THEN CONCAT('" . url('storage') . "/', menu_items.image) ELSE NULL END as image_path"),
             DB::raw("CASE WHEN menu_items.status = 'active' THEN 1 ELSE 0 END as is_available"),
         ];
     }
@@ -50,7 +50,7 @@ class MenuItemController extends Controller
     private function baseQuery()
     {
         return DB::table('menu_items')
-            ->leftJoin('categories',     'menu_items.category_id',     '=', 'categories.id')
+            ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
             ->leftJoin('sub_categories', 'menu_items.sub_category_id', '=', 'sub_categories.id');
     }
 
@@ -67,43 +67,49 @@ class MenuItemController extends Controller
 
     public function store(Request $request)
     {
-        if ($deny = $this->denyIfSupervisor()) return $deny;
+        if ($deny = $this->denyIfSupervisor())
+            return $deny;
 
         $v = Validator::make($request->all(), [
-            'name'           => 'required|string|max:255',
-            'category_id'    => 'nullable|integer|exists:categories,id',
+            'name' => 'required|string|max:255',
+            'category_id' => 'nullable|integer|exists:categories,id',
             'subcategory_id' => 'nullable|integer|exists:sub_categories,id',
-            'price'          => 'required|numeric|min:0',
-            'grab_price'     => 'nullable|numeric|min:0',   // ✅ add
-            'panda_price'    => 'nullable|numeric|min:0',   // ✅ add
-            'barcode'        => 'nullable|string|unique:menu_items,barcode',
-            'is_available'   => 'boolean',
-            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'price' => 'required|numeric|min:0',
+            'grab_price' => 'nullable|numeric|min:0',
+            'panda_price' => 'nullable|numeric|min:0',
+            // FIX: barcode is truly nullable — only enforce unique when provided
+            'barcode' => 'nullable|string|max:255|unique:menu_items,barcode',
+            'is_available' => 'nullable|in:0,1,true,false',
+            // FIX: max:4096 (4MB) to give headroom; browser already limits to 2MB via JS
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         ]);
-        
+
         if ($v->fails()) {
+            Log::warning('MenuItemController::store validation failed', ['errors' => $v->errors()->toArray()]);
             return response()->json(['success' => false, 'errors' => $v->errors()], 422);
         }
 
-        // ✅ Handle Image Upload
+        // Handle Image Upload
         $imagePath = null;
-        if ($request->hasFile('image')) {
-            // Saves to storage/app/public/menu_images
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
             $imagePath = $request->file('image')->store('menu_images', 'public');
         }
 
+        // Resolve is_available: FormData sends strings "1"/"0"
+        $isAvailable = filter_var($request->input('is_available', true), FILTER_VALIDATE_BOOLEAN);
+
         $id = DB::table('menu_items')->insertGetId([
-            'name'            => $request->name,
-            'category_id'     => $request->category_id,
-            'sub_category_id' => $request->subcategory_id,
-            'price'           => $request->price,
-            'barcode'         => $request->barcode,
-            'image'           => $imagePath, // ✅ Save path to database
-            'status'          => $request->boolean('is_available', true) ? 'active' : 'inactive',
-            'created_at'      => now(),
-            'updated_at'      => now(),
-            'grab_price'  => $request->grab_price  ?? 0,   // ✅ add
-            'panda_price' => $request->panda_price ?? 0,   // ✅ add
+            'name' => $request->name,
+            'category_id' => $request->category_id ?: null,
+            'sub_category_id' => $request->subcategory_id ?: null,
+            'price' => (float) $request->price,
+            'grab_price' => (float) ($request->grab_price ?? 0),
+            'panda_price' => (float) ($request->panda_price ?? 0),
+            'barcode' => $request->barcode ?: null,
+            'image' => $imagePath,
+            'status' => $isAvailable ? 'active' : 'inactive',
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $item = $this->baseQuery()
@@ -119,46 +125,71 @@ class MenuItemController extends Controller
 
     public function update(Request $request, $id)
     {
-        if ($deny = $this->denyIfSupervisor()) return $deny;
+        if ($deny = $this->denyIfSupervisor())
+            return $deny;
+
+        // FIX: Ensure $id is cast to int to prevent type mismatch in unique rule
+        $id = (int) $id;
+
+        // Verify the item exists first
+        $existingItem = DB::table('menu_items')->where('id', $id)->first();
+        if (!$existingItem) {
+            return response()->json(['success' => false, 'message' => 'Menu item not found.'], 404);
+        }
 
         $v = Validator::make($request->all(), [
-            'name'           => 'sometimes|string|max:255',
-            'category_id'    => 'nullable|integer|exists:categories,id',
+            'name' => 'sometimes|string|max:255',
+            'category_id' => 'nullable|integer|exists:categories,id',
             'subcategory_id' => 'nullable|integer|exists:sub_categories,id',
-            'price'          => 'sometimes|numeric|min:0',
-            'grab_price'     => 'nullable|numeric|min:0',   // ✅ add
-            'panda_price'    => 'nullable|numeric|min:0',   // ✅ add
-            'barcode'        => 'nullable|string|unique:menu_items,barcode,' . $id,
-            'is_available'   => 'boolean',
-            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'price' => 'sometimes|numeric|min:0',
+            'grab_price' => 'nullable|numeric|min:0',
+            'panda_price' => 'nullable|numeric|min:0',
+            // FIX: Properly ignore the current item's own barcode in the unique check
+            'barcode' => 'nullable|string|max:255|unique:menu_items,barcode,' . $id . ',id',
+            'is_available' => 'nullable|in:0,1,true,false',
+            // FIX: max:4096 to match server limits; JS enforces 2MB on client side
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         ]);
-        
+
         if ($v->fails()) {
+            Log::warning('MenuItemController::update validation failed', [
+                'id' => $id,
+                'errors' => $v->errors()->toArray(),
+                'input' => $request->except('image'), // Don't log file data
+            ]);
             return response()->json(['success' => false, 'errors' => $v->errors()], 422);
         }
 
-        // Find the existing item so we can delete the old image if a new one is uploaded
-        $existingItem = DB::table('menu_items')->where('id', $id)->first();
-
-        // Build Payload
+        // Build payload — only include fields that were actually sent
         $payload = ['updated_at' => now()];
 
-        if ($request->has('name'))           $payload['name']            = $request->name;
-        if ($request->has('category_id'))    $payload['category_id']     = $request->category_id;
-        if ($request->has('subcategory_id')) $payload['sub_category_id'] = $request->subcategory_id;
-        if ($request->has('price'))          $payload['price']           = $request->price;
-        if ($request->has('barcode'))        $payload['barcode']         = $request->barcode;
-        if ($request->has('grab_price'))     $payload['grab_price']      = (float) $request->grab_price;
-        if ($request->has('panda_price'))    $payload['panda_price']     = (float) $request->panda_price;
-        if ($request->has('is_available'))   $payload['status']          = $request->boolean('is_available') ? 'active' : 'inactive';
+        if ($request->has('name'))
+            $payload['name'] = $request->name;
+        if ($request->has('category_id'))
+            $payload['category_id'] = $request->category_id ?: null;
+        if ($request->has('subcategory_id'))
+            $payload['sub_category_id'] = $request->subcategory_id ?: null;
+        if ($request->has('price'))
+            $payload['price'] = (float) $request->price;
+        if ($request->has('grab_price'))
+            $payload['grab_price'] = (float) $request->grab_price;
+        if ($request->has('panda_price'))
+            $payload['panda_price'] = (float) $request->panda_price;
+        if ($request->has('barcode'))
+            $payload['barcode'] = $request->barcode ?: null;
 
-        // ✅ Handle Image Update
-        if ($request->hasFile('image')) {
-            // Delete old image from storage if it exists
-            if ($existingItem && $existingItem->image) {
+        // FIX: is_available comes as string "1"/"0" from FormData — handle both
+        if ($request->has('is_available')) {
+            $payload['status'] = filter_var($request->input('is_available'), FILTER_VALIDATE_BOOLEAN)
+                ? 'active'
+                : 'inactive';
+        }
+
+        // Handle Image Upload — delete old image first
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
+            if ($existingItem->image) {
                 Storage::disk('public')->delete($existingItem->image);
             }
-            // Save new image
             $payload['image'] = $request->file('image')->store('menu_images', 'public');
         }
 
@@ -170,16 +201,16 @@ class MenuItemController extends Controller
             ->first();
 
         $this->clearMenuCache();
-        Log::info('MenuItemController::update', ['id' => $id]);
+        Log::info('MenuItemController::update', ['id' => $id, 'fields_updated' => array_keys($payload)]);
 
         return response()->json(['success' => true, 'data' => $item]);
     }
 
     public function destroy($id)
     {
-        if ($deny = $this->denyIfSupervisor()) return $deny;
+        if ($deny = $this->denyIfSupervisor())
+            return $deny;
 
-        // ✅ Delete image from server when item is deleted
         $existingItem = DB::table('menu_items')->where('id', $id)->first();
         if ($existingItem && $existingItem->image) {
             Storage::disk('public')->delete($existingItem->image);
@@ -202,10 +233,11 @@ class MenuItemController extends Controller
 
     public function import(Request $request)
     {
-        if ($deny = $this->denyIfSupervisor()) return $deny;
+        if ($deny = $this->denyIfSupervisor())
+            return $deny;
 
         $request->validate([
-            'file'         => 'required|mimes:xlsx,xls,csv|max:4096',
+            'file' => 'required|mimes:xlsx,xls,csv|max:4096',
         ]);
 
         try {
@@ -213,6 +245,7 @@ class MenuItemController extends Controller
             $this->clearMenuCache();
             return response()->json(['success' => true, 'message' => 'Items imported/updated successfully.']);
         } catch (\Exception $e) {
+            Log::error('MenuItemController::import failed', ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => 'Import failed: ' . $e->getMessage()], 500);
         }
     }
