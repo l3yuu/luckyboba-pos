@@ -50,6 +50,8 @@ Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('
 Route::get('/addons',           [AddOnController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');
 Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
+
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
 Route::get('/public-menu', function (Illuminate\Http\Request $request) {
@@ -277,7 +279,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/cash-transactions/status',[CashCountController::class, 'checkInitialCash']);
         
         Route::get('/payment-settings',        [SettingsController::class, 'index']);
-        Route::get('/receipts/next-sequence',  [ReceiptController::class, 'getNextSequence']);
         // ── Branch read routes (specfic routes must come before {id}) ──────────────
         Route::get('/branches/ownership-summary', [BranchController::class, 'ownershipSummary']);
         Route::get('/branches/performance',       [BranchController::class, 'performance']);
@@ -306,7 +307,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
 
         Route::get  ('/receipts/search',             [ReceiptController::class, 'search']);
-        Route::get  ('/receipts/next-sequence',      [ReceiptController::class, 'getNextSequence']);
         Route::post ('/receipts/{id}/void-request',  [ReceiptController::class, 'voidRequest']);
         Route::post ('/void-requests/{id}/approve',  [ReceiptController::class, 'approveVoid']);
         Route::get  ('/receipts/{id}/reprint',       [ReceiptController::class, 'reprint']);

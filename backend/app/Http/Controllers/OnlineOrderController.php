@@ -22,7 +22,8 @@ class OnlineOrderController extends Controller
                   ->orWhere('invoice_number', 'like', 'KSK-%')
                   ->orWhere('source', 'kiosk');
             })
-            ->whereNotIn('status', ['cancelled']);
+            ->whereNotIn('status', ['cancelled'])
+            ->whereDate('created_at', now()->toDateString());
 
         if (!empty($user->branch_id)) {
             $query->where('branch_id', $user->branch_id);
@@ -384,7 +385,13 @@ class OnlineOrderController extends Controller
             'customer_code'  => $code,
             'qr_code'        => $code,
             'branch_name'    => $sale->branch?->name ?? null,
+            'subtotal'       => (float) $sale->subtotal,
             'total_amount'   => (float) $sale->total_amount,
+            'vatable_sales'  => (float) $sale->vatable_sales,
+            'vat_amount'     => (float) $sale->vat_amount,
+            'vat_exempt_sales' => (float) $sale->vat_exempt_sales,
+            'discount_amount' => (float) $sale->discount_amount,
+            'payment_method' => $sale->payment_method ?? 'online',
             'status'         => $sale->status ?? 'pending',
             'created_at'     => $sale->created_at,
             'source'         => $sale->source ?? 'app',
@@ -397,12 +404,17 @@ class OnlineOrderController extends Controller
                 $finalAddons = is_array($rawAddons) ? $rawAddons : [];
 
                 return [
-                    'id'       => $item->id,
-                    'name'     => $item->product_name,
-                    'qty'      => (int) $item->quantity,
-                    'price'    => (float) $item->final_price,
-                    'cup_size' => $item->size ?? null,
-                    'add_ons'  => $finalAddons,
+                    'id'               => $item->id,
+                    'name'             => $item->product_name ?? $item->name,
+                    'qty'              => (int) $item->quantity,
+                    'unit_price'       => (float) $item->unit_price,
+                    'price'            => (float) $item->final_price,
+                    'cup_size'         => $item->size ?? null,
+                    'cup_size_label'   => $item->cup_size_label ?? (isset($item->size) ? strtoupper($item->size) : null),
+                    'sugar_level'      => $item->sugar_level ?? null,
+                    'options'          => $item->options ?? [],
+                    'add_ons'          => $finalAddons,
+                    'remarks'          => $item->remarks ?? null,
                 ];
             })->values()->toArray(),
         ];

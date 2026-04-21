@@ -19,7 +19,7 @@ class ReceiptController extends Controller
     // ─────────────────────────────────────────────────────────────
     public function getNextSequence(Request $request)
     {
-        $branchId = $request->user()?->branch_id;
+        $branchId = $request->user()?->branch_id ?? $request->query('branch_id');
 
         if (!$branchId) {
             return response()->json([
@@ -28,16 +28,24 @@ class ReceiptController extends Controller
             ]);
         }
 
-        // SI sequence logic
-        $latest = Sale::where('invoice_number', 'LIKE', 'SI-%')
+        // SI sequence logic - check both sales and receipts to prevent duplicates
+        $latestSale = Sale::where('invoice_number', 'LIKE', 'SI-%')
             ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
             ->where('branch_id', $branchId)
             ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
             ->first();
 
-        $nextSeq = $latest
-            ? ((int) substr($latest->invoice_number, 3)) + 1
-            : 1;
+        $latestReceipt = \DB::table('receipts')
+            ->where('si_number', 'LIKE', 'SI-%')
+            ->whereRaw("si_number REGEXP '^SI-[0-9]+$'")
+            ->where('branch_id', $branchId)
+            ->orderByRaw('CAST(SUBSTRING(si_number, 4) AS UNSIGNED) DESC')
+            ->first();
+
+        $saleSeq = $latestSale ? (int) substr($latestSale->invoice_number, 3) : 0;
+        $receiptSeq = $latestReceipt ? (int) substr($latestReceipt->si_number, 3) : 0;
+
+        $nextSeq = max($saleSeq, $receiptSeq) + 1;
 
         // Daily Queue logic — count sales since last closed Z-Reading
         $lastZReading = ZReading::where('branch_id', $branchId)

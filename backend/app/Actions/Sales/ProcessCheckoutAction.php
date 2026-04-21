@@ -124,6 +124,7 @@ class ProcessCheckoutAction
                     'sugar_level'        => $item['sugar_level'] ?? null,
                     'options'            => $item['options'] ?? null,
                     'add_ons'            => $item['add_ons'] ?? null,
+                    'remarks'            => $item['remarks'] ?? null,
                     'bundle_components'  => isset($item['bundle_components']) ? json_encode($item['bundle_components']) : null,
                     'charge_type'        => $hasCharge ? ($item['charges']['grab'] ? 'grab' : 'panda') : null,
                     'surcharge'          => $surcharge,
