@@ -464,7 +464,7 @@ const KioskPage = () => {
   };
 
   const handleItemClick = (item: MenuItem) => {
-    if (item.category_type === 'mix_and_match') {
+    if (item.category_type === 'mix_and_match' || item.category_type === 'combo') {
       setPendingMixMatchItem(item);
       setMixMatchStep('select_drink');
       setSelectedMixMatchDrink(null);
@@ -1232,7 +1232,9 @@ const KioskPage = () => {
                   </div>
                   <div>
                     <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      {mixMatchStep === 'select_drink' ? 'Choose Your Drink' : 'Customize Drink'}
+                      {mixMatchStep === 'select_drink' 
+                        ? (pendingMixMatchItem.category_type === 'combo' ? 'Customize Your Combo' : 'Choose Your Drink')
+                        : 'Customize Drink'}
                     </h3>
                     <p className="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em]">
                       {mixMatchStep === 'select_drink' ? pendingMixMatchItem.name : selectedMixMatchDrink?.name}
@@ -1404,7 +1406,9 @@ const KioskPage = () => {
               <div className="p-8 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
                 <div className="flex items-center gap-8">
                   <div className="bg-zinc-50 px-6 py-4 rounded-2xl border border-zinc-100">
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Bundle Total</p>
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
+                      {pendingMixMatchItem.category_type === 'combo' ? 'Combo Total' : 'Bundle Total'}
+                    </p>
                     <p className="text-3xl font-black text-zinc-900 tracking-tighter">₱{pendingMixMatchItem.sellingPrice}</p>
                   </div>
                   {mixMatchStep === 'customize_drink' && mixMatchAddOns.reduce((s, a) => s + a.price, 0) > 0 && (
