@@ -72,6 +72,8 @@ if ($branchId) {
     }
 }
 
+    $options = DB::table('menu_item_options')->get()->groupBy('menu_item_id');
+
     $items = DB::table('menu_items')
         ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
         ->select(
@@ -100,11 +102,17 @@ if ($branchId) {
             return !is_null($item->category) && $item->category !== '';
         })
         ->values()
-        ->map(function ($item) {
+        ->map(function ($item) use ($options) {
             $item->image = $item->image
                 ? url('storage/' . $item->image)
                 : null;
             unset($item->status);
+            
+            $itemOpts = $options->get($item->id, collect());
+            $item->has_ice = $itemOpts->contains('option_type', 'ice');
+            $item->has_pearl = $itemOpts->contains('option_type', 'pearl');
+            $item->has_sugar = $itemOpts->contains('option_type', 'sugar');
+            
             return $item;
         });
 

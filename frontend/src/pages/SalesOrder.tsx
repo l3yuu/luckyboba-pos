@@ -8,7 +8,7 @@ import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/Offli
 
 import {
   type MenuItem, type Category, type CartItem,
-  type Bundle, type BundleComponentCustomization,
+  type Bundle, type BundleComponent, type BundleComponentCustomization,
   SUGAR_LEVELS
 } from '../types/index';
 import { useToast } from '../hooks/useToast';
@@ -198,6 +198,7 @@ const SalesOrder = () => {
   })
   const [isBundleModalOpen, setIsBundleModalOpen] = useState(false)
   const [activeBundleItem, setActiveBundleItem] = useState<Bundle | null>(null)
+  const [flattenedBundleItems, setFlattenedBundleItems] = useState<BundleComponent[]>([])
   const [bundleComponentIndex, setBundleComponentIndex] = useState(0)
   const [bundleComponentCustomizations, setBundleComponentCustomizations] = useState<BundleComponentCustomization[]>([])
   const [bundleComponentSugar, setBundleComponentSugar] = useState('')
@@ -871,7 +872,13 @@ const SalesOrder = () => {
     if (catType === 'bundle') {
       const bundle = bundlesData.find(b => b.barcode === item.barcode)
       if (bundle) {
+        // Flatten items: if quantity is 2, create 2 separate slots for customization
+        const flattened = (bundle.items || []).flatMap(bi => 
+          Array.from({ length: bi.quantity || 1 }, () => ({ ...bi, quantity: 1 }))
+        ) as BundleComponent[];
+
         setActiveBundleItem(bundle)
+        setFlattenedBundleItems(flattened)
         setBundleComponentIndex(0)
         setBundleComponentCustomizations([])
         setBundleComponentSugar('')
@@ -1029,8 +1036,8 @@ const SalesOrder = () => {
   // ── Bundle component confirm ───────────────────────────────────────────────
 
   const confirmBundleComponent = () => {
-    if (!activeBundleItem) return
-    const component = activeBundleItem.items[bundleComponentIndex]
+    if (!activeBundleItem || !flattenedBundleItems[bundleComponentIndex]) return
+    const component = flattenedBundleItems[bundleComponentIndex]
     const displayName = component.display_name ?? component.custom_name ?? ''
     const isMilkTea = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea')
     const pearlOpts = ['NO PRL', 'W/ PRL']
@@ -1040,13 +1047,13 @@ const SalesOrder = () => {
     }
     const customization: BundleComponentCustomization = {
       name: displayName,
-      quantity: component.quantity,
+      quantity: 1, // Store as individual slot
       sugarLevel: bundleComponentSugar,
       options: bundleComponentOptions,
       addOns: bundleComponentAddOns,
     }
     const newCustomizations = [...bundleComponentCustomizations, customization]
-    if (bundleComponentIndex < activeBundleItem.items.length - 1) {
+    if (bundleComponentIndex < flattenedBundleItems.length - 1) {
       setBundleComponentCustomizations(newCustomizations)
       setBundleComponentIndex(i => i + 1)
       setBundleComponentSugar('')
@@ -1663,6 +1670,7 @@ const SalesOrder = () => {
             return (
               <BundleModal
                 activeBundleItem={activeBundleItem}
+                flattenedBundleItems={flattenedBundleItems}
                 bundleComponentIndex={bundleComponentIndex}
                 bundleComponentSugar={bundleComponentSugar}
                 bundleComponentOptions={bundleComponentOptions}

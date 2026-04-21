@@ -3,7 +3,7 @@
 
 import React from 'react';
 import {
-  type CartItem, type Bundle, type MenuItem,
+  type CartItem, type Bundle, type MenuItem, type BundleComponent,
   EXTRA_OPTIONS,
 } from '../../../types/index';
 import {
@@ -397,6 +397,7 @@ export const ItemSelectionModal = ({
 
 interface BundleModalProps {
   activeBundleItem: Bundle;
+  flattenedBundleItems: BundleComponent[];
   bundleComponentIndex: number;
   bundleComponentSugar: string;
   bundleComponentOptions: string[];
@@ -419,14 +420,14 @@ interface BundleModalProps {
 }
 
 export const BundleModal = ({
-  activeBundleItem, bundleComponentIndex, bundleComponentSugar, bundleComponentOptions,
+  activeBundleItem, flattenedBundleItems, bundleComponentIndex, bundleComponentSugar, bundleComponentOptions,
   bundleComponentAddOns, bundleGrabPrice, bundlePandaPrice, filteredAddOns,
   bundleComponentAddOnModalOpen, sugarLevels, onSugarChange, onToggleOption,
   onOpenAddOns, onCloseAddOns, onToggleAddOn, onConfirm, onClose, orderCharge, onToggleOrderCharge,
   orderType = 'take-out',
 }: BundleModalProps) => {
-  const component = activeBundleItem.items[bundleComponentIndex];
-  const totalSteps = activeBundleItem.items.length;
+  const component = flattenedBundleItems[bundleComponentIndex];
+  const totalSteps = flattenedBundleItems.length;
   const isLastStep = bundleComponentIndex === totalSteps - 1;
   const displayName = component.display_name ?? component.custom_name ?? '';
   const isMilkTea = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea');
@@ -441,8 +442,7 @@ export const BundleModal = ({
           <div className="bg-[#3b2063] p-5 text-white relative shrink-0">
             <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Bundle — {activeBundleItem.display_name ?? activeBundleItem.name}</div>
             <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
-              Drink {bundleComponentIndex + 1} of {totalSteps}: {displayName}
-              {component.quantity > 1 && <span className="ml-2 text-white/50 font-bold text-sm">×{component.quantity}</span>}
+              Item {bundleComponentIndex + 1} of {totalSteps}: {displayName}
             </h2>
             <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
               <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((bundleComponentIndex + 1) / totalSteps) * 100}%` }} />
@@ -511,7 +511,7 @@ export const BundleModal = ({
             )}
             <button onClick={onConfirm} disabled={!canNext}
               className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
-              {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
+              {!canNext ? 'Select Options' : isLastStep ? '✓ Add Bundle to Order' : `Next: Item ${bundleComponentIndex + 2} of ${totalSteps} →`}
             </button>
           </div>
         </div>
