@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import logo from '../../assets/logo.png';
 import api from '../../services/api';
+import { getTranslations } from './kioskTranslations';
+import type { KioskLanguage } from './kioskTranslations';
 import KioskLayout from '../../components/Kiosk/KioskLayout';
 import {
   ShoppingBag,
@@ -153,17 +155,24 @@ const KioskPage = () => {
   // Cart Drawer State (floating overlay)
   const [showCartDrawer, setShowCartDrawer] = useState(false);
 
+  // Language State
+  const [language, setLanguage] = useState<KioskLanguage>('English');
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+
+  // Translation helper - memoized for performance
+  const t = useMemo(() => getTranslations(language), [language]);
+
   // Slideshow State for Landing Page
   const [currentSlide, setCurrentSlide] = useState(0);
-  const splashSlides = [
-    '/images/slideshow/lucky_classic.png',
-    '/images/slideshow/hot_drinks.png',
-    '/images/slideshow/iced_coffee.png',
-    '/images/slideshow/fruit_juices.png',
-    '/images/slideshow/frappe.png',
-    '/images/slideshow/classicjr.png',
-    '/images/slideshow/pudding.png',
-  ];
+  const splashSlides = useMemo(() => [
+    getImageUrl('slideshow/lucky_classic.png'),
+    getImageUrl('slideshow/hot_drinks.png'),
+    getImageUrl('slideshow/iced_coffee.png'),
+    getImageUrl('slideshow/fruit_juices.png'),
+    getImageUrl('slideshow/frappe.png'),
+    getImageUrl('slideshow/classicjr.png'),
+    getImageUrl('slideshow/pudding.png'),
+  ], []);
 
   useEffect(() => {
     if (step === 'splash') {
@@ -464,7 +473,7 @@ const KioskPage = () => {
   };
 
   const handleItemClick = (item: MenuItem) => {
-    if (item.category_type === 'mix_and_match') {
+    if (item.category_type === 'mix_and_match' || item.category_type === 'combo') {
       setPendingMixMatchItem(item);
       setMixMatchStep('select_drink');
       setSelectedMixMatchDrink(null);
@@ -647,18 +656,51 @@ const KioskPage = () => {
   const SplashView = () => (
     <div
       className="flex-1 flex flex-col bg-[#fdf8ff] cursor-pointer relative overflow-hidden"
-      onClick={() => setStep('order_type')}
+      onClick={() => {
+        if (showLanguageDropdown) {
+          setShowLanguageDropdown(false);
+        } else {
+          setStep('order_type');
+        }
+      }}
     >
       {/* Top Navigation Bar */}
       <div className="absolute top-0 left-0 right-0 h-20 px-12 flex items-center justify-between z-50">
         <div className="flex items-center gap-4">
           <img src={logo} alt="Lucky Boba" className="h-14 w-auto drop-shadow-sm" />
           <span className="text-3xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
+
         </div>
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 text-zinc-600 font-medium text-sm bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-full border border-white shadow-sm">
-            <Globe size={18} className="text-[#7c3aed]" />
-            <span>English</span>
+          <div className="relative">
+            <div
+              className="flex items-center gap-2 text-zinc-600 font-medium text-sm bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-full border border-white shadow-sm cursor-pointer hover:bg-white transition-all"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowLanguageDropdown(!showLanguageDropdown);
+              }}
+            >
+              <Globe size={18} className="text-[#7c3aed]" />
+              <span>{language}</span>
+            </div>
+
+            {showLanguageDropdown && (
+              <div className="absolute top-full mt-2 right-0 w-36 bg-white rounded-xl shadow-xl border border-zinc-100 overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                {['English', 'Filipino', 'Chinese', 'Korean'].map(lang => (
+                  <div
+                    key={lang}
+                    className={`px-4 py-3 text-sm cursor-pointer hover:bg-zinc-50 transition-colors ${language === lang ? 'text-[#7c3aed] font-bold bg-purple-50/50' : 'text-zinc-600 font-medium'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLanguage(lang as KioskLanguage);
+                      setShowLanguageDropdown(false);
+                    }}
+                  >
+                    {lang}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="w-12 h-12 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
             <HelpCircle size={24} />
@@ -670,18 +712,27 @@ const KioskPage = () => {
         {/* Left Content */}
         <div className="flex-[0.5] flex flex-col items-start gap-8 pl-6 animate-in fade-in slide-in-from-left-8 duration-1000">
           <div className="space-y-4">
-            <h1 className="text-[4.8rem] font-bold text-[#2e0a4e] leading-[0.82] tracking-tighter uppercase whitespace-pre-line">
-              Freshly<br />
-              <span className="text-[#7c3aed] italic">Brewed</span><br />
-              Happiness.
-            </h1>
+            {/* Invisible English sizer — keeps the column at English dimensions regardless of language */}
+            <div className="relative">
+              <h1 className="text-[4.8rem] font-bold text-[#2e0a4e] leading-[0.82] tracking-tighter uppercase whitespace-pre-line invisible" aria-hidden="true">
+                Freshly<br />
+                <span className="italic">Brewed</span><br />
+                Happiness.
+              </h1>
+              {/* Visible translated headline — positioned over the sizer */}
+              <h1 className="text-[4.8rem] font-bold text-[#2e0a4e] leading-[0.82] tracking-tighter uppercase whitespace-pre-line absolute inset-0" style={{ wordBreak: 'keep-all' }}>
+                {t.splashHeadline1}<br />
+                <span className="text-[#7c3aed] italic">{t.splashHeadline2}</span><br />
+                {t.splashHeadline3}
+              </h1>
+            </div>
             <p className="text-lg text-zinc-400 font-medium uppercase tracking-[0.18em] max-w-md mt-6 leading-relaxed">
-              Experience the ultimate boba journey
+              {t.splashSubtitle}
             </p>
           </div>
 
           <button className="group relative overflow-hidden bg-[#7c3aed] text-white pl-8 pr-4 py-3.5 rounded-[1.5rem] font-bold text-lg tracking-[0.12em] uppercase shadow-[0_15px_40px_rgba(124,58,237,0.3)] flex items-center gap-4 transition-all hover:scale-[1.02] active:scale-95">
-            <span className="relative z-10">Tap to Start</span>
+            <span className="relative z-10">{t.splashCTA}</span>
             <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
               <ChevronRight size={20} strokeWidth={4} />
             </div>
@@ -710,20 +761,29 @@ const KioskPage = () => {
       {/* Bottom Status Bar */}
       <div className="absolute bottom-0 left-0 right-0 h-24 px-12 flex items-center justify-between z-50 border-t border-purple-50 bg-white/40 backdrop-blur-xl">
         <div className="flex gap-20">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 w-[140px]">
             <p className="text-4xl font-bold text-[#3b0764] tracking-tighter">50+</p>
-            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">Signature Flavors</p>
+            <div className="relative h-4">
+              <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest invisible" aria-hidden="true">Signature Flavors</p>
+              <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest absolute inset-0">{t.splashSignatureFlavors}</p>
+            </div>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 w-[150px]">
             <p className="text-4xl font-bold text-[#581c87] tracking-tighter">100%</p>
-            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">Organic Tea Base</p>
+            <div className="relative h-4">
+              <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest invisible" aria-hidden="true">Organic Tea Base</p>
+              <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest absolute inset-0 text-nowrap">{t.splashOrganicTeaBase}</p>
+            </div>
           </div>
         </div>
         <div className="text-right space-y-2">
-          <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest">Ordering hours: 10:00 AM - 10:00 PM</p>
+          <div className="relative h-4">
+            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest invisible" aria-hidden="true">Ordering Hours: 10:00 AM - 10:00 PM</p>
+            <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-widest absolute inset-0 whitespace-nowrap">{t.splashOrderingHours}</p>
+          </div>
           <div className="flex items-center justify-end gap-2 text-[#7c3aed]">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-            <p className="text-2xl font-bold uppercase tracking-tighter text-[#3b0764]">{branchName}</p>
+            <p className="text-2xl font-bold uppercase tracking-tighter text-[#3b0764] text-nowrap">{branchName}</p>
           </div>
         </div>
       </div>
@@ -750,7 +810,7 @@ const KioskPage = () => {
             className="flex items-center gap-2 text-zinc-500 font-medium text-sm bg-white/70 backdrop-blur-md px-6 py-2.5 rounded-full border border-white shadow-sm hover:bg-white transition-all active:scale-95"
           >
             <ChevronRight size={18} className="rotate-180 text-zinc-400" />
-            <span>Restart</span>
+            <span>{t.restart}</span>
           </button>
           <div className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
             <HelpCircle size={20} />
@@ -761,24 +821,35 @@ const KioskPage = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-10 px-12 relative z-10 pt-4">
         <div className="text-center space-y-4 max-w-2xl animate-in fade-in slide-in-from-top-4 duration-700">
-          <h2 className="text-4xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-            How will you enjoy<br />
-            your <span className="text-[#7c3aed] italic">Boba?</span>
-          </h2>
-          <p className="text-xs font-medium text-zinc-400 uppercase tracking-[0.3em]">Select your dining preference</p>
+          <div className="relative">
+            {/* Invisible English sizer for layout stability */}
+            <h2 className="text-4xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              How will you enjoy<br />
+              <span className="italic">your Boba?</span>
+            </h2>
+            {/* Visible translated headline */}
+            <h2 className="text-4xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif", wordBreak: 'keep-all' }}>
+              {t.orderTypeTitle1}<br />
+              <span className="text-[#7c3aed] italic">{t.orderTypeTitle2}</span>
+            </h2>
+          </div>
+          <div className="relative h-4">
+            <p className="text-xs font-medium text-zinc-400 uppercase tracking-[0.3em] invisible" aria-hidden="true">Select your dining preference</p>
+            <p className="text-xs font-medium text-zinc-400 uppercase tracking-[0.3em] absolute inset-0 text-center">{t.orderTypeSubtitle}</p>
+          </div>
         </div>
 
         <div className="flex gap-12 w-full justify-center max-w-6xl">
           {[
             {
-              id: 'dine_in', label: 'Eat Here', icon: (
+              id: 'dine_in', label: t.eatHere, icon: (
                 <svg viewBox="0 0 24 24" className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
                 </svg>
               )
             },
             {
-              id: 'take_out', label: 'Take Out', icon: <ShoppingBag size={52} strokeWidth={1.5} />
+              id: 'take_out', label: t.takeOut, icon: <ShoppingBag size={52} strokeWidth={1.5} />
             }
           ].map((type, index) => (
             <button
@@ -880,8 +951,14 @@ const KioskPage = () => {
 
           {/* Category Header */}
           <div className="px-5 pt-5 pb-2">
-            <h3 className="text-base font-black text-[#7c14d4] tracking-tight">Categories</h3>
-            <p className="text-[10px] font-semibold text-zinc-400 tracking-wide">Pick your vibe</p>
+            <div className="relative h-6">
+              <h3 className="text-base font-black text-[#7c14d4] tracking-tight invisible" aria-hidden="true">Categories</h3>
+              <h3 className="text-base font-black text-[#7c14d4] tracking-tight absolute inset-0">{t.categories}</h3>
+            </div>
+            <div className="relative h-4 mt-0.5">
+              <p className="text-[10px] font-semibold text-zinc-400 tracking-wide invisible" aria-hidden="true">Pick your vibe</p>
+              <p className="text-[10px] font-semibold text-zinc-400 tracking-wide absolute inset-0">{t.pickYourVibe}</p>
+            </div>
           </div>
 
           {/* Category List */}
@@ -893,7 +970,7 @@ const KioskPage = () => {
                 : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#7c14d4]'
                 }`}
             >
-              <span className="text-sm truncate">All Menu</span>
+              <span className="text-sm truncate">{t.allMenu}</span>
             </button>
 
             {categories.map((cat: string) => (
@@ -916,7 +993,7 @@ const KioskPage = () => {
             className="m-3 py-2.5 bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-500 font-bold text-xs hover:bg-zinc-200 hover:text-zinc-800 transition-all flex items-center justify-center gap-1.5"
           >
             <ChevronRight className="rotate-180" size={16} />
-            Cancel Order
+            {t.cancelOrder}
           </button>
         </div>
 
@@ -931,7 +1008,7 @@ const KioskPage = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400" size={18} />
               <input
                 type="text"
-                placeholder="Search beverages..."
+                placeholder={t.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); if (activeCategory) setActiveCategory(''); }}
                 className="w-full bg-white/80 border border-purple-100 rounded-full py-2.5 pl-11 pr-4 text-sm font-semibold placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-orange-200 focus:border-orange-300 transition-all outline-none text-zinc-800 shadow-sm"
@@ -962,21 +1039,38 @@ const KioskPage = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h1
-                      className="text-4xl font-bold text-zinc-800 leading-[1.1]"
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                    >
-                      Pick Your<br />
-                      <span
-                        className="italic text-[#7c14d4]"
+                    <div className="relative">
+                      {/* Invisible English sizer for layout stability */}
+                      <h1
+                        className="text-4xl font-bold text-zinc-800 leading-[1.1] invisible"
+                        aria-hidden="true"
                         style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                       >
-                        Happiness
-                      </span>
-                    </h1>
-                    <p className="text-sm text-zinc-400 font-medium mt-2 max-w-[300px]">
-                      The perfect blend of flavor and joy, crafted just for your afternoon boost.
-                    </p>
+                        Pick Your<br />
+                        <span className="italic">Happiness</span>
+                      </h1>
+                      {/* Visible translated headline */}
+                      <h1
+                        className="text-4xl font-bold text-zinc-800 leading-[1.1] absolute inset-0"
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif", wordBreak: 'keep-all' }}
+                      >
+                        {t.pickYourHappiness1}<br />
+                        <span
+                          className="italic text-[#7c14d4]"
+                          style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                        >
+                          {t.pickYourHappiness2}
+                        </span>
+                      </h1>
+                    </div>
+                    <div className="relative mt-2">
+                      <p className="text-sm text-zinc-400 font-medium max-w-[300px] invisible" aria-hidden="true">
+                        The perfect blend of flavor and joy, crafted just for your afternoon boost.
+                      </p>
+                      <p className="text-sm text-zinc-400 font-medium max-w-[300px] absolute inset-0">
+                        {t.menuSubtitle}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -1002,7 +1096,7 @@ const KioskPage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       <div className="absolute bottom-0 left-0 p-6">
                         <div className="flex gap-2 mb-2">
-                          <span className="px-3 py-1 bg-[#7c14d4] text-white text-[9px] font-black uppercase tracking-widest rounded-lg">Bestseller</span>
+                          <span className="px-3 py-1 bg-[#7c14d4] text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{t.bestseller}</span>
                           <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{featuredItems[0].category}</span>
                         </div>
                         <h3
@@ -1011,9 +1105,9 @@ const KioskPage = () => {
                         >
                           {featuredItems[0].name}
                         </h3>
-                        <p className="text-white/60 text-xs font-medium mb-3">Freshly crafted with premium ingredients.</p>
+                        <p className="text-white/60 text-xs font-medium mb-3">{t.freshDescription}</p>
                         <button className="px-5 py-2.5 bg-white text-orange-600 rounded-full font-bold text-sm hover:bg-orange-50 transition-colors shadow-lg flex items-center gap-2 active:scale-95">
-                          Quick Add – ₱{Number(featuredItems[0].sellingPrice).toFixed(0)}
+                          {t.quickAdd} – ₱{Number(featuredItems[0].sellingPrice).toFixed(0)}
                         </button>
                       </div>
                     </div>
@@ -1055,7 +1149,7 @@ const KioskPage = () => {
                   className="text-xl font-bold text-zinc-800 mb-4"
                   style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                 >
-                  {searchQuery ? 'Search Results' : activeCategory ? activeCategory : 'Recommended for You'}
+                  {searchQuery ? t.searchResults : activeCategory ? activeCategory : t.recommendedForYou}
                 </h2>
                 <div className="grid grid-cols-3 xl:grid-cols-4 gap-4">
                   {displayItems.map((item: MenuItem) => {
@@ -1100,7 +1194,7 @@ const KioskPage = () => {
                 {displayItems.length === 0 && !loading && (
                   <div className="py-20 flex flex-col items-center justify-center opacity-40">
                     <Search size={64} className="mb-6 text-zinc-300" />
-                    <p className="font-bold tracking-wide text-xl text-center text-zinc-500">No items found</p>
+                    <p className="font-bold tracking-wide text-xl text-center text-zinc-500">{t.noItemsFound}</p>
                   </div>
                 )}
               </div>
@@ -1123,7 +1217,7 @@ const KioskPage = () => {
               <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-2">
                   <ShoppingBag size={18} className="text-[#7c14d4]" />
-                  <h2 className="text-base font-black text-zinc-900">My Order ({cartCount})</h2>
+                  <h2 className="text-base font-black text-zinc-900">{t.myOrder} ({cartCount})</h2>
                 </div>
                 <button
                   onClick={() => setShowCartDrawer(false)}
@@ -1138,7 +1232,7 @@ const KioskPage = () => {
                 {cart.length === 0 ? (
                   <div className="py-12 flex flex-col items-center justify-center opacity-40">
                     <ShoppingBag size={40} className="mb-3 text-zinc-300" />
-                    <p className="font-bold uppercase tracking-widest text-xs text-zinc-500">Your tray is empty</p>
+                    <p className="font-bold uppercase tracking-widest text-xs text-zinc-500">{t.yourTrayEmpty}</p>
                   </div>
                 ) : (
                   cart.map((item: CartItem) => {
@@ -1160,7 +1254,7 @@ const KioskPage = () => {
                             {sizeLabel && <span className="text-[#7c14d4] ml-1">({sizeLabel})</span>}
                           </h4>
                           <div className="flex flex-wrap gap-1 mt-0.5">
-                            {item.selectedSugarLevel && <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} Sugar</span>}
+                            {item.selectedSugarLevel && <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} {t.sugar}</span>}
                             {item.selectedAddOns && item.selectedAddOns.length > 0 && <span className="text-[8px] font-bold text-zinc-400">{item.selectedAddOns.map(a => a.name).join(' · ')}</span>}
                           </div>
                           <div className="flex items-center justify-between mt-1.5">
@@ -1182,7 +1276,7 @@ const KioskPage = () => {
               {cart.length > 0 && (
                 <div className="p-4 border-t border-zinc-100 bg-white space-y-3 shrink-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-500 font-bold text-sm">Total Amount</span>
+                    <span className="text-zinc-500 font-bold text-sm">{t.totalAmount}</span>
                     <span className="text-2xl font-black text-orange-600 tracking-tight">₱{calculateTotal().toFixed(0)}</span>
                   </div>
                   <button
@@ -1190,14 +1284,14 @@ const KioskPage = () => {
                     disabled={loading}
                     className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black uppercase text-sm tracking-wider shadow-lg shadow-orange-200 hover:from-orange-600 hover:to-amber-600 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {loading ? 'Processing...' : 'Checkout'}
+                    {loading ? t.processing : t.checkout}
                     {!loading && <ChevronRight size={18} strokeWidth={3} />}
                   </button>
                   <button
                     onClick={() => { setCart([]); setShowCartDrawer(false); }}
                     className="w-full py-2 text-center font-bold text-zinc-400 text-[10px] uppercase tracking-widest hover:text-red-500 transition-colors"
                   >
-                    Clear Order
+                    {t.clearOrder}
                   </button>
                 </div>
               )}
@@ -1212,7 +1306,7 @@ const KioskPage = () => {
             className="fixed bottom-6 right-6 z-[80] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-3.5 rounded-full font-black text-sm uppercase tracking-wider shadow-xl shadow-orange-300/40 hover:from-orange-600 hover:to-amber-600 transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-300"
           >
             <ShoppingBag size={18} strokeWidth={2.5} />
-            <span>{cartCount} {cartCount === 1 ? 'item' : 'items'}</span>
+            <span>{cartCount} {cartCount === 1 ? t.item : t.items}</span>
             <span className="w-px h-4 bg-white/30" />
             <span>₱{calculateTotal().toFixed(0)}</span>
           </button>
@@ -1231,10 +1325,20 @@ const KioskPage = () => {
                     <ShoppingBag size={32} className="text-[#7c14d4]" />
                   </div>
                   <div>
-                    <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      {mixMatchStep === 'select_drink' ? 'Choose Your Drink' : 'Customize Drink'}
-                    </h3>
-                    <p className="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em]">
+                    <div className="relative">
+                      {/* Invisible English sizers for Mix & Match headers */}
+                      <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                        {mixMatchStep === 'select_drink'
+                          ? (pendingMixMatchItem.category_type === 'combo' ? "Customize Your Combo" : "Choose Your Drink")
+                          : "Customize Drink"}
+                      </h3>
+                      <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif", wordBreak: 'keep-all' }}>
+                        {mixMatchStep === 'select_drink'
+                          ? (pendingMixMatchItem.category_type === 'combo' ? t.customizeYourCombo : t.chooseYourDrink)
+                          : t.customizeDrink}
+                      </h3>
+                    </div>
+                    <p className="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] line-clamp-1">
                       {mixMatchStep === 'select_drink' ? pendingMixMatchItem.name : selectedMixMatchDrink?.name}
                     </p>
                   </div>
@@ -1246,7 +1350,7 @@ const KioskPage = () => {
                       className="px-6 py-3 bg-white border border-purple-200 text-[#7c14d4] rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
                     >
                       <ChevronRight className="rotate-180" size={16} />
-                      Back to Selection
+                      {t.backToSelection}
                     </button>
                   )}
                   <button
@@ -1265,11 +1369,11 @@ const KioskPage = () => {
                     {loading ? (
                       <div className="col-span-full py-20 flex flex-col items-center justify-center gap-4">
                         <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
-                        <p className="font-bold text-zinc-400 uppercase tracking-widest text-xs">Loading collection...</p>
+                        <p className="font-bold text-zinc-400 uppercase tracking-widest text-xs">{t.loadingCollection}</p>
                       </div>
                     ) : mixMatchDrinkPool.length === 0 ? (
                       <div className="col-span-full py-20 text-center">
-                        <p className="text-zinc-400 font-bold">No drinks available for this bundle.</p>
+                        <p className="text-zinc-400 font-bold">{t.noDrinksAvailable}</p>
                       </div>
                     ) : (
                       mixMatchDrinkPool.map((drink) => (
@@ -1298,7 +1402,7 @@ const KioskPage = () => {
                     <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
                       <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
                         <span className="w-8 h-8 rounded-full bg-[#7c14d4] text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">1</span>
-                        Select Sugar Level
+                        {t.selectSugarLevel}
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         {sugarLevels.map((sl) => (
@@ -1320,11 +1424,11 @@ const KioskPage = () => {
                     <div className="bg-white p-8 rounded-[2rem] border border-orange-50 shadow-sm">
                       <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
                         <span className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm shadow-md shadow-orange-200">2</span>
-                        Drink Options
+                        {t.drinkOptions}
                       </h4>
                       <div className="space-y-8">
                         <div>
-                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Ice Level</p>
+                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">{t.iceLevel}</p>
                           <div className="grid grid-cols-4 gap-3">
                             {['NO ICE', '-ICE', '+ICE', 'WARM'].map(opt => (
                               <button
@@ -1341,7 +1445,7 @@ const KioskPage = () => {
                           </div>
                         </div>
                         <div>
-                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Pearl Preference</p>
+                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">{t.pearlPreference}</p>
                           <div className="grid grid-cols-2 gap-4">
                             {['NO PRL', 'W/ PRL'].map(opt => (
                               <button
@@ -1364,7 +1468,7 @@ const KioskPage = () => {
                     <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
                       <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
                         <span className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">3</span>
-                        Extra Toppings
+                        {t.extraToppings}
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {allAddOns
@@ -1404,12 +1508,14 @@ const KioskPage = () => {
               <div className="p-8 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
                 <div className="flex items-center gap-8">
                   <div className="bg-zinc-50 px-6 py-4 rounded-2xl border border-zinc-100">
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Bundle Total</p>
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
+                      {pendingMixMatchItem.category_type === 'combo' ? t.comboTotal : t.bundleTotal}
+                    </p>
                     <p className="text-3xl font-black text-zinc-900 tracking-tighter">₱{pendingMixMatchItem.sellingPrice}</p>
                   </div>
                   {mixMatchStep === 'customize_drink' && mixMatchAddOns.reduce((s, a) => s + a.price, 0) > 0 && (
                     <div className="text-orange-600 font-bold">
-                      <p className="text-[10px] uppercase tracking-widest mb-1">Add-ons</p>
+                      <p className="text-[10px] uppercase tracking-widest mb-1">{t.addOns}</p>
                       <p className="text-xl">+₱{mixMatchAddOns.reduce((s, a) => s + a.price, 0)}</p>
                     </div>
                   )}
@@ -1420,7 +1526,7 @@ const KioskPage = () => {
                     onClick={confirmMixAndMatch}
                     className="bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
                   >
-                    Add to Tray
+                    {t.addToTray}
                     <Plus size={24} strokeWidth={3} />
                   </button>
                 )}
@@ -1463,7 +1569,10 @@ const KioskPage = () => {
                     <div className="bg-white/95 p-8 rounded-3xl border border-purple-100 shadow-sm">
                       <div className="flex items-center gap-4 mb-6">
                         <div className="w-10 h-10 bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0">1</div>
-                        <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase">Select Sugar</h4>
+                        <div className="relative flex-1 h-8">
+                          <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase invisible" aria-hidden="true">Select Sugar</h4>
+                          <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.selectSugar}</h4>
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         {sugarLevels.map((sl) => (
@@ -1487,7 +1596,10 @@ const KioskPage = () => {
                     <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 border border-orange-300/50">
                       {((customizingItem.category?.toLowerCase().includes('milk') || customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0) ? '2' : '1'}
                     </div>
-                    <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase">Add Toppings</h4>
+                    <div className="relative flex-1 h-8">
+                      <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase invisible" aria-hidden="true">Add Toppings</h4>
+                      <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.addToppings}</h4>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                     {allAddOns
@@ -1533,7 +1645,7 @@ const KioskPage = () => {
 
               <div className="p-8 border-t border-zinc-200 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgb(0,0,0,0.03)] z-10">
                 <div>
-                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-1">Total</p>
+                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-1">{t.total}</p>
                   <div className="text-4xl font-black text-orange-600 tracking-tighter">
                     ₱{(
                       Number(customizingItem.sellingPrice) +
@@ -1545,7 +1657,7 @@ const KioskPage = () => {
                   onClick={confirmCustomization}
                   className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-12 py-6 rounded-2xl font-black uppercase tracking-wider text-xl flex items-center gap-3 hover:from-orange-600 hover:to-amber-600 transition-all shadow-[0_8px_20px_rgba(234,88,12,0.3)] hover:shadow-[0_12px_25px_rgba(234,88,12,0.4)] hover:-translate-y-[1px] active:scale-95"
                 >
-                  <span>Add to Tray</span>
+                  <span>{t.addToTray}</span>
                   <Plus size={24} strokeWidth={3} />
                 </button>
               </div>
@@ -1584,14 +1696,22 @@ const KioskPage = () => {
         </div>
 
         <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
-          <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-            Order <span className="text-[#7c3aed] italic">Received</span>
-          </h2>
-          <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em]">Please proceed to counter to pay</p>
+          <div className="relative">
+            <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              Order <span className="italic text-[#7c3aed]">Received</span>
+            </h2>
+            <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              {t.confirmTitle1} <span className="text-[#7c3aed] italic">{t.confirmTitle2}</span>
+            </h2>
+          </div>
+          <div className="relative h-5">
+            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em] invisible" aria-hidden="true">Please proceed to counter to pay</p>
+            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em] absolute inset-0 text-center">{t.proceedToCounter}</p>
+          </div>
         </div>
 
         <div className="bg-white p-10 rounded-[3rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
-          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-5">Your Ticket Number</p>
+          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-5">{t.yourTicketNumber}</p>
 
           <div className="bg-purple-50/50 px-12 py-8 rounded-[2.5rem] mb-10 border border-purple-100/50 shadow-inner w-full text-center">
             <h3 className="text-7xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -1600,7 +1720,7 @@ const KioskPage = () => {
           </div>
 
           <div className="w-full flex items-center justify-between pt-8 border-t border-dashed border-purple-100">
-            <span className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Total Due</span>
+            <span className="text-zinc-400 font-bold uppercase text-xs tracking-widest">{t.totalDue}</span>
             <span className="text-4xl font-bold text-[#3b0764] tracking-tighter">₱{calculateTotal().toFixed(0)}</span>
           </div>
         </div>
@@ -1609,7 +1729,7 @@ const KioskPage = () => {
           onClick={handleReset}
           className="group relative overflow-hidden bg-[#7c3aed] text-white pl-12 pr-8 py-5 rounded-full font-bold text-xl tracking-[0.15em] uppercase shadow-[0_25px_60px_rgba(124,58,237,0.35)] flex items-center gap-8 transition-all hover:scale-[1.02] active:scale-95 mt-4"
         >
-          <span className="relative z-10">New Order</span>
+          <span className="relative z-10">{t.newOrder}</span>
           <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
             <ChevronRight size={24} strokeWidth={4} />
           </div>
@@ -1628,93 +1748,130 @@ const KioskPage = () => {
 
     return (
       <div
-        className="flex-1 flex flex-col p-10 overflow-hidden relative"
+        className="flex-1 flex flex-col p-12 overflow-hidden relative"
         style={{
           background: 'linear-gradient(145deg, #faf7ff 0%, #f2ecff 45%, #fff4fb 78%, #fff8ec 100%)'
         }}
       >
-        <div className="absolute top-0 right-0 w-[420px] h-[420px] bg-violet-500/12 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
-        <div className="absolute bottom-[-10%] left-[-6%] w-[420px] h-[420px] bg-fuchsia-400/12 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="absolute top-[35%] left-[45%] w-[300px] h-[300px] bg-amber-300/10 rounded-full blur-[120px] pointer-events-none"></div>
+        {/* Premium Background Orbs (Consistent with Splash) */}
+        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-violet-500/12 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-[-15%] left-[-8%] w-[500px] h-[500px] bg-fuchsia-400/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[400px] h-[400px] bg-amber-300/10 rounded-full blur-[140px] pointer-events-none" />
 
-        <div className="max-w-4xl mx-auto w-full flex flex-col h-full relative z-10">
-          <div className="flex flex-col items-center mb-10 shrink-0">
-            <img src={logo} alt="Lucky Boba" className="w-32 h-auto mb-6 drop-shadow-sm" />
-            <h1 className="text-4xl font-black text-zinc-900 tracking-tight">Kiosk Setup</h1>
-            <p className="text-zinc-500 font-semibold text-sm mt-2 uppercase tracking-[0.12em]">Select the branch for this device</p>
+        <div className="max-w-5xl mx-auto w-full flex flex-col h-full relative z-10">
+          {/* Header Section */}
+          <div className="flex flex-col items-center mb-12 shrink-0 animate-in fade-in slide-in-from-top-6 duration-1000">
+            <img src={logo} alt="Lucky Boba" className="w-28 h-auto mb-8 drop-shadow-md hover:scale-105 transition-transform duration-500" />
+            <h1 className="text-5xl font-black text-zinc-900 tracking-tighter text-center" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              Kiosk <span className="text-[#7c14d4] italic">Setup</span>
+            </h1>
+            <p className="text-zinc-500 font-bold text-xs mt-4 uppercase tracking-[0.3em] opacity-60">
+              {t.selectBranchDevice}
+            </p>
           </div>
 
-          <div className="mb-8 shrink-0 w-full max-w-xl mx-auto">
-            <div className="flex items-center gap-3 bg-white/95 border border-violet-200 rounded-2xl px-5 py-4 shadow-lg group focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-100 transition-all backdrop-blur-sm">
-              <Search size={20} className="text-zinc-400 group-focus-within:text-violet-500 transition-colors" />
+          {/* Search Section */}
+          <div className="mb-12 shrink-0 w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-top-4 duration-1000 delay-200">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                <Search size={22} className="text-zinc-300 group-focus-within:text-[#7c14d4] transition-colors duration-300" />
+              </div>
               <input
                 value={branchSearch}
                 onChange={e => setBranchSearch(e.target.value)}
-                className="flex-1 bg-transparent text-base font-semibold text-zinc-900 outline-none placeholder:text-zinc-400"
-                placeholder="Search by name or address..."
+                className="w-full bg-white/60 backdrop-blur-xl border border-white/80 rounded-[2rem] py-5 pl-16 pr-14 text-lg font-semibold text-zinc-800 placeholder:text-zinc-300 focus:bg-white/90 focus:ring-4 focus:ring-violet-100 focus:border-violet-300 transition-all outline-none shadow-[0_15px_40px_rgba(88,28,135,0.06)] group-hover:shadow-[0_20px_50px_rgba(88,28,135,0.1)]"
+                placeholder={t.searchBranchPlaceholder}
               />
               {branchSearch && (
-                <button onClick={() => setBranchSearch("")} className="text-zinc-400 hover:text-zinc-600 transition-colors bg-zinc-100 hover:bg-zinc-200 p-1 rounded-full flex items-center justify-center">
-                  <X size={14} />
+                <button
+                  onClick={() => setBranchSearch("")}
+                  className="absolute inset-y-0 right-5 flex items-center justify-center w-10 h-10 my-auto text-zinc-300 hover:text-zinc-600 transition-colors bg-zinc-100/50 hover:bg-zinc-200/50 rounded-full"
+                >
+                  <X size={18} />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">
+          {/* Branch Grid */}
+          <div className="flex-1 overflow-y-auto pr-4 -mr-4 scrollbar-hide grid grid-cols-1 md:grid-cols-2 gap-6 pb-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-400">
             {filtered.map(branch => (
               <button
                 key={branch.id}
                 onClick={() => handleSelectBranch(branch)}
-                className={`p-6 rounded-2xl shadow-md border flex flex-col items-start text-left transition-all group active:scale-[0.98] backdrop-blur-sm ${selectedBranchToConfirm?.id === branch.id
-                  ? 'bg-white border-violet-500 ring-4 ring-violet-100 shadow-xl -translate-y-[2px]'
-                  : 'bg-white/95 border-zinc-200/80 hover:border-violet-300 hover:shadow-xl hover:-translate-y-[2px]'
+                className={`p-10 rounded-[2.5rem] border-2 flex flex-col items-start text-left transition-all duration-500 group active:scale-[0.97] backdrop-blur-xl group relative ${selectedBranchToConfirm?.id === branch.id
+                    ? 'bg-white border-[#7c14d4] shadow-[0_25px_60px_rgba(124,20,212,0.15)] -translate-y-2'
+                    : 'bg-white/40 border-white/60 hover:bg-white/80 hover:border-violet-200 hover:shadow-[0_30px_70px_rgba(88,28,135,0.12)] hover:-translate-y-1.5 shadow-sm'
                   }`}
               >
-                <div className="flex items-center gap-4 w-full mb-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors border ${selectedBranchToConfirm?.id === branch.id
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500 border-violet-500 text-white'
-                    : 'bg-zinc-50 border-zinc-100 text-zinc-600 group-hover:bg-gradient-to-r group-hover:from-violet-600 group-hover:to-fuchsia-500 group-hover:border-violet-600 group-hover:text-white'
+                {/* Visual Accent */}
+                <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-violet-500/10 to-transparent rounded-bl-[4rem] transition-opacity duration-500 ${selectedBranchToConfirm?.id === branch.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+
+                <div className="flex items-center gap-6 w-full mb-6 relative z-10">
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 border ${selectedBranchToConfirm?.id === branch.id
+                      ? 'bg-gradient-to-br from-[#7c14d4] to-fuchsia-600 border-[#7c14d4] text-white shadow-lg shadow-purple-200 scale-110'
+                      : 'bg-white border-zinc-100 text-zinc-400 group-hover:bg-gradient-to-br group-hover:from-[#7c14d4] group-hover:to-fuchsia-600 group-hover:border-[#7c14d4] group-hover:text-white group-hover:scale-110'
                     }`}>
-                    <ShoppingBag size={22} />
+                    <ShoppingBag size={28} />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-black text-zinc-900 line-clamp-1 capitalize">{branch.name.toLowerCase()}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase tracking-wider">Active</span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-2xl font-black text-zinc-900 capitalize mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      {branch.name.toLowerCase()}
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100/50">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">{t.active}</span>
+                      </div>
                       {selectedBranchToConfirm?.id === branch.id && (
-                        <span className="text-[10px] font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 px-2 py-0.5 rounded uppercase tracking-wider">Selected</span>
+                        <div className="px-3 py-1 bg-gradient-to-br from-[#7c14d4] to-fuchsia-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
+                          {t.selected}
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 w-full mt-1">
-                  <div className="flex items-start gap-2 text-zinc-500">
-                    <MapPin size={14} className="shrink-0 mt-0.5 text-zinc-400" />
-                    <p className="text-sm font-medium line-clamp-2">{branch.address || 'No address provided'}</p>
+                <div className="space-y-3 w-full relative z-10 transition-transform duration-500 group-hover:translate-x-1">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center shrink-0">
+                      <MapPin size={16} className="text-zinc-400" />
+                    </div>
+                    <p className="text-sm font-semibold text-zinc-500 leading-relaxed pt-1.5">
+                      {branch.address || t.noAddressProvided}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <Clock size={14} className="shrink-0" />
-                    <p className="text-xs font-medium">09:00 AM - 09:00 PM</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center shrink-0">
+                      <Clock size={16} className="text-zinc-400" />
+                    </div>
+                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                      09:00 AM - 09:00 PM
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between w-full">
-                  <div className={`flex items-center gap-1 text-xs font-semibold transition-all duration-300 ${selectedBranchToConfirm?.id === branch.id
-                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500 opacity-100 translate-x-0'
-                    : 'text-violet-600 opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0'
+                <div className="mt-8 pt-6 border-t border-zinc-100/50 w-full flex items-center justify-between relative z-10">
+                  <div className={`flex items-center gap-2 font-black uppercase text-[10px] tracking-[0.2em] transition-all duration-500 ${selectedBranchToConfirm?.id === branch.id
+                      ? 'text-[#7c14d4] translate-x-1'
+                      : 'text-zinc-300 group-hover:text-[#7c14d4] group-hover:translate-x-1'
                     }`}>
-                    <span>Select Branch</span>
-                    <ChevronRight size={16} />
+                    <span>{t.selectBranch}</span>
+                    <ChevronRight size={14} strokeWidth={3} />
                   </div>
                 </div>
               </button>
             ))}
+
             {filtered.length === 0 && (
-              <div className="col-span-full py-20 flex flex-col items-center justify-center text-zinc-400">
-                <Search size={40} className="mb-4 opacity-30 text-zinc-300" />
-                <p className="font-semibold tracking-wide text-sm">No branches found matching your search</p>
+              <div className="col-span-full py-28 flex flex-col items-center justify-center gap-6 animate-in fade-in zoom-in duration-700">
+                <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100">
+                  <Search size={40} className="text-zinc-200" />
+                </div>
+                <div className="text-center">
+                  <p className="font-black text-zinc-900 text-xl tracking-tight mb-2">{t.noBranchesFound}</p>
+                  <p className="text-zinc-400 font-bold text-sm uppercase tracking-widest">Try adjusting your search terms</p>
+                </div>
               </div>
             )}
           </div>
@@ -1750,7 +1907,7 @@ const KioskPage = () => {
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center print:hidden">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-            <span className="font-black text-violet-600 uppercase tracking-widest text-sm">Processing...</span>
+            <span className="font-black text-violet-600 uppercase tracking-widest text-sm">{t.processingLoader}</span>
           </div>
         </div>
       )}
@@ -1761,22 +1918,22 @@ const KioskPage = () => {
             <div className="w-14 h-14 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <MapPin size={28} />
             </div>
-            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Confirm Branch</h2>
+            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">{t.confirmBranch}</h2>
             <p className="text-zinc-500 text-sm text-center mb-6 font-medium">
-              Set this kiosk to <strong className="text-zinc-800">{selectedBranchToConfirm.name}</strong>? This will bind the device to this location.
+              Set this kiosk to <strong className="text-zinc-800">{selectedBranchToConfirm.name}</strong>? {t.confirmBranchMessage}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setSelectedBranchToConfirm(null)}
                 className="flex-1 py-3.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-xl font-semibold tracking-wide text-sm transition-colors"
               >
-                Cancel
+                {t.cancel}
               </button>
               <button
                 onClick={confirmBranchSelection}
                 className="flex-1 py-3.5 bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 text-white rounded-xl font-semibold tracking-wide text-sm shadow-[0_4px_14px_0_rgba(124,58,237,0.39)] hover:shadow-[0_6px_20px_rgba(124,58,237,0.3)] active:scale-[0.98] transition-all"
               >
-                Confirm
+                {t.confirm}
               </button>
             </div>
           </div>
@@ -1791,9 +1948,9 @@ const KioskPage = () => {
               <Lock size={32} />
             </div>
 
-            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Access Control</h2>
+            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">{t.accessControl}</h2>
             <p className="text-zinc-500 text-sm text-center mb-8 font-medium">
-              Enter Admin Security PIN to reset Kiosk settings.
+              {t.enterAdminPin}
             </p>
 
             {/* PIN Dots */}
@@ -1832,7 +1989,7 @@ const KioskPage = () => {
                 onClick={() => setPinInput('')}
                 className="h-14 rounded-xl bg-zinc-50 text-sm font-semibold text-zinc-500 hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all outline-none border border-zinc-100"
               >
-                Clear
+                {t.clear}
               </button>
               <button
                 onClick={() => {
@@ -1852,13 +2009,13 @@ const KioskPage = () => {
                 onClick={() => setIsPinModalOpen(false)}
                 className="h-14 rounded-xl bg-zinc-50 text-sm font-semibold text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 active:scale-95 transition-all outline-none border border-zinc-100"
               >
-                Exit
+                {t.exit}
               </button>
             </div>
 
             {pinError ? (
               <p className="text-red-500 text-sm font-semibold text-center tracking-wide animate-pulse h-5">
-                Incorrect PIN
+                {t.incorrectPin}
               </p>
             ) : (
               <div className="h-5" />
@@ -1873,14 +2030,14 @@ const KioskPage = () => {
       {isAdminModalOpen && (
         <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center print:hidden animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-10 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col items-center">
-            <h2 className="text-3xl font-black text-[#3b2063] uppercase italic mb-8 shrink-0">Admin Settings</h2>
+            <h2 className="text-3xl font-black text-[#3b2063] uppercase italic mb-8 shrink-0">{t.adminSettings}</h2>
 
             <div className="w-full flex-1 overflow-y-auto pr-2 space-y-6 text-left shrink">
               {/* Expo Mode Toggle */}
               <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-zinc-900 uppercase">Expo Mode</h3>
-                  <p className="text-xs text-zinc-500 font-medium">Limit the menu to specific items only.</p>
+                  <h3 className="font-bold text-zinc-900 uppercase">{t.expoMode}</h3>
+                  <p className="text-xs text-zinc-500 font-medium">{t.expoModeDesc}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -1895,15 +2052,15 @@ const KioskPage = () => {
                   }}
                   className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-colors w-32 shrink-0 ${isExpoMode ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-600' : 'bg-zinc-200 text-zinc-400 hover:bg-zinc-300'}`}
                 >
-                  {isExpoMode ? 'Enabled' : 'Disabled'}
+                  {isExpoMode ? t.enabled : t.disabled}
                 </button>
               </div>
 
               {/* Expo Item Selection */}
               {isExpoMode && (
                 <div className="bg-white p-6 rounded-2xl border border-violet-100">
-                  <h3 className="font-bold text-violet-900 uppercase">Select Expo Items</h3>
-                  <p className="text-xs text-zinc-500 font-medium mb-4">Click to toggle items for the Expo.</p>
+                  <h3 className="font-bold text-violet-900 uppercase">{t.selectExpoItems}</h3>
+                  <p className="text-xs text-zinc-500 font-medium mb-4">{t.expoItemsDesc}</p>
 
                   {/* Search and Category Filter */}
                   {items.length > 0 && (
@@ -1912,7 +2069,7 @@ const KioskPage = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
                         <input
                           type="text"
-                          placeholder="Search items to add to Expo..."
+                          placeholder={t.searchExpoPlaceholder}
                           value={expoSearchQuery}
                           onChange={(e) => setExpoSearchQuery(e.target.value)}
                           className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-sm font-medium placeholder:text-zinc-400 focus:ring-2 focus:ring-violet-500 transition-all outline-none"
@@ -1923,7 +2080,7 @@ const KioskPage = () => {
                           onClick={() => setExpoCategoryFilter('')}
                           className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap shrink-0 ${expoCategoryFilter === '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'}`}
                         >
-                          All
+                          {t.all}
                         </button>
                         {Array.from(new Set(items.map(i => i.category))).filter(Boolean).map(cat => (
                           <button
@@ -1939,7 +2096,7 @@ const KioskPage = () => {
                   )}
 
                   {items.length === 0 ? (
-                    <p className="text-xs text-zinc-400 italic">No items loaded for this branch.</p>
+                    <p className="text-xs text-zinc-400 italic">{t.noItemsLoaded}</p>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto p-1 pr-2">
                       {items.filter(item => {
@@ -2002,8 +2159,8 @@ const KioskPage = () => {
               {/* Reset Kiosk */}
               <div className="bg-white p-6 rounded-2xl border border-red-50 flex items-center justify-between mt-8">
                 <div>
-                  <h3 className="font-bold text-red-600 uppercase">Reset Location</h3>
-                  <p className="text-xs text-red-400 font-medium">Unbind this device.</p>
+                  <h3 className="font-bold text-red-600 uppercase">{t.resetLocation}</h3>
+                  <p className="text-xs text-red-400 font-medium">{t.unbindDevice}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -2012,7 +2169,7 @@ const KioskPage = () => {
                   }}
                   className="px-6 py-4 bg-red-50 border border-red-100 text-red-600 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-red-600 hover:text-white transition-colors"
                 >
-                  Reset Now
+                  {t.resetNow}
                 </button>
               </div>
             </div>
@@ -2021,7 +2178,7 @@ const KioskPage = () => {
               onClick={() => setIsAdminModalOpen(false)}
               className="mt-8 py-5 bg-[#3b2063] hover:bg-[#2d184d] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-[#3b2063]/20 w-full shrink-0"
             >
-              Close Settings
+              {t.closeSettings}
             </button>
           </div>
         </div>
@@ -2034,15 +2191,15 @@ const KioskPage = () => {
             <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <X size={32} strokeWidth={3} />
             </div>
-            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Order Failed</h2>
+            <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">{t.orderFailed}</h2>
             <p className="text-zinc-500 text-sm text-center mb-8 font-medium leading-relaxed">
-              {errorMessage || 'Failed to place order. Please call staff for assistance.'}
+              {errorMessage || t.orderFailedMessage}
             </p>
             <button
               onClick={() => setShowErrorModal(false)}
               className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-semibold tracking-wide text-sm transition-all shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] active:scale-[0.98]"
             >
-              Try Again
+              {t.tryAgain}
             </button>
           </div>
         </div>

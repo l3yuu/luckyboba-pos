@@ -13,7 +13,7 @@ class CategoryDrinkController extends Controller
             'category_id' => 'required|exists:categories,id',
         ]);
 
-        $drinks = CategoryDrink::with('menuItem')
+        $drinks = CategoryDrink::with('menuItem.options')
             ->where('category_id', $request->category_id)
             ->whereHas('menuItem', function($q) {
                 $q->where('status', 'active');
@@ -26,6 +26,9 @@ class CategoryDrinkController extends Controller
                 'name'         => $d->menuItem->name ?? '—',
                 'size'         => $d->size,
                 'price'        => $d->menuItem->price ?? 0,
+                'has_ice'      => $d->menuItem ? $d->menuItem->options->contains('option_type', 'ice') : false,
+                'has_pearl'    => $d->menuItem ? $d->menuItem->options->contains('option_type', 'pearl') : false,
+                'has_sugar'    => $d->menuItem ? $d->menuItem->options->contains('option_type', 'sugar') : false,
             ]);
 
         return response()->json(['success' => true, 'data' => $drinks]);

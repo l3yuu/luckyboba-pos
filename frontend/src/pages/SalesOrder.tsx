@@ -8,7 +8,7 @@ import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/Offli
 
 import {
   type MenuItem, type Category, type CartItem,
-  type Bundle, type BundleComponentCustomization,
+  type Bundle, type BundleComponent, type BundleComponentCustomization,
   SUGAR_LEVELS
 } from '../types/index';
 import { useToast } from '../hooks/useToast';
@@ -198,11 +198,10 @@ const SalesOrder = () => {
   })
   const [isBundleModalOpen, setIsBundleModalOpen] = useState(false)
   const [activeBundleItem, setActiveBundleItem] = useState<Bundle | null>(null)
+  const [flattenedBundleItems, setFlattenedBundleItems] = useState<(BundleComponent & { menuItem?: MenuItem })[]>([])
+  const [bundleComponentSelections, setBundleComponentSelections] = useState<BundleComponentCustomization[]>([])
   const [bundleComponentIndex, setBundleComponentIndex] = useState(0)
-  const [bundleComponentCustomizations, setBundleComponentCustomizations] = useState<BundleComponentCustomization[]>([])
-  const [bundleComponentSugar, setBundleComponentSugar] = useState('')
-  const [bundleComponentOptions, setBundleComponentOptions] = useState<string[]>([])
-  const [bundleComponentAddOns, setBundleComponentAddOns] = useState<string[]>([])
+  const [activeBundleComponentIndex, setActiveBundleComponentIndex] = useState<number | null>(null)
   const [bundleComponentAddOnModalOpen, setBundleComponentAddOnModalOpen] = useState(false)
 
   // Cart item editing
@@ -871,12 +870,29 @@ const SalesOrder = () => {
     if (catType === 'bundle') {
       const bundle = bundlesData.find(b => b.barcode === item.barcode)
       if (bundle) {
+        // Flatten items: if quantity is 2, create 2 separate slots for customization
+        const allMenuItems = categories.flatMap(c => c.menu_items)
+        const flattened = (bundle.items || []).flatMap(bi => {
+          // Robust lookup: handle string/number IDs and optional id field
+          const itemDetail = allMenuItems.find(m => String(m.id) === String(bi.menu_item_id))
+          return Array.from({ length: bi.quantity || 1 }, () => ({
+            ...bi,
+            quantity: 1,
+            // Attach actual menu item details for options/sugar lookup
+            menuItem: itemDetail
+          }))
+        })
+
         setActiveBundleItem(bundle)
+        setFlattenedBundleItems(flattened)
+        setBundleComponentSelections(flattened.map(item => ({
+          name: item.display_name ?? item.menuItem?.name ?? item.custom_name ?? '',
+          quantity: 1,
+          sugarLevel: '',
+          options: [],
+          addOns: []
+        })))
         setBundleComponentIndex(0)
-        setBundleComponentCustomizations([])
-        setBundleComponentSugar('')
-        setBundleComponentOptions([])
-        setBundleComponentAddOns([])
         setOrderCharge(null)
         setIsBundleModalOpen(true)
         return
@@ -995,7 +1011,13 @@ const SalesOrder = () => {
     }
     const cartSize: 'M' | 'L' | 'none' = isDrink ? size : 'none'
     const cupSizeLabel = (isDrink || isOz) && categorySize ? categorySize : undefined
-    const unitPrice = Number(selectedItem.price) + extraCost
+    
+    // Select base price based on platform
+    let basePrice = Number(selectedItem.price)
+    if (orderCharge === 'grab' && Number(selectedItem.grab_price ?? 0) > 0) basePrice = Number(selectedItem.grab_price)
+    else if (orderCharge === 'panda' && Number(selectedItem.panda_price ?? 0) > 0) basePrice = Number(selectedItem.panda_price)
+
+    const unitPrice = basePrice + extraCost
     const newCartItem: CartItem = {
       ...selectedItem,
       name: isWings ? `${selectedItem.name} (${categorySize})` : selectedItem.name,
@@ -1028,41 +1050,72 @@ const SalesOrder = () => {
 
   // ── Bundle component confirm ───────────────────────────────────────────────
 
-  const confirmBundleComponent = () => {
+  const updateBundleSelection = (index: number, updates: Partial<BundleComponentCustomization>) => {
+    setBundleComponentSelections(prev => prev.map((s, i) => i === index ? { ...s, ...updates } : s))
+  }
+
+  const toggleBundleComponentOption = (index: number, opt: string) => {
+    setBundleComponentSelections(prev => prev.map((s, i) => {
+      if (i !== index) return s
+      const iceOpts = ['NO ICE', '-ICE', '+ICE', 'WARM']
+      const pearlOpts = ['NO PRL', 'W/ PRL']
+      let nextOptions = [...s.options]
+      if (iceOpts.includes(opt)) {
+        nextOptions = nextOptions.filter(o => !iceOpts.includes(o))
+      } else if (pearlOpts.includes(opt)) {
+        nextOptions = nextOptions.filter(o => !pearlOpts.includes(o))
+      }
+      if (s.options.includes(opt)) {
+        nextOptions = nextOptions.filter(o => o !== opt)
+      } else {
+        nextOptions.push(opt)
+      }
+      return { ...s, options: nextOptions }
+    }))
+  }
+
+  const confirmBundleSelection = () => {
     if (!activeBundleItem) return
-    const component = activeBundleItem.items[bundleComponentIndex]
-    const displayName = component.display_name ?? component.custom_name ?? ''
-    const isMilkTea = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea')
+
+    // Validation for current step
+    const item = flattenedBundleItems[bundleComponentIndex] as BundleComponent & { menuItem?: MenuItem }
+    const sel = bundleComponentSelections[bundleComponentIndex]
+    const itemName = (sel.name || '').toLowerCase()
+    const hasSugarLevels = (item.menuItem?.sugar_levels?.length ?? 0) > 0 || 
+                           item.menuItem?.category_id != null ||
+                           itemName.includes('tea') || itemName.includes('drink') || 
+                           itemName.includes('coffee') || itemName.includes('boba') ||
+                           itemName.includes('milk') || itemName.includes('latte')
+    
+    if (hasSugarLevels && sel.sugarLevel === '') {
+        showToast(`Please select sugar level for ${sel.name}`, 'warning')
+        return
+    }
+
+    const isMilkTea = sel.name.toLowerCase().includes('milk tea') || sel.name.toLowerCase().includes('m.tea')
     const pearlOpts = ['NO PRL', 'W/ PRL']
-    if (isMilkTea && !bundleComponentOptions.some(o => pearlOpts.includes(o))) {
-      showToast('Please select NO PRL or W/ PRL', 'warning')
-      return
+    if (isMilkTea && !sel.options.some(o => pearlOpts.includes(o))) {
+        showToast(`Please select NO PRL or W/ PRL for ${sel.name}`, 'warning')
+        return
     }
-    const customization: BundleComponentCustomization = {
-      name: displayName,
-      quantity: component.quantity,
-      sugarLevel: bundleComponentSugar,
-      options: bundleComponentOptions,
-      addOns: bundleComponentAddOns,
+
+    // Advance or Finalize
+    if (bundleComponentIndex < flattenedBundleItems.length - 1) {
+        setBundleComponentIndex(prev => prev + 1)
+        return
     }
-    const newCustomizations = [...bundleComponentCustomizations, customization]
-    if (bundleComponentIndex < activeBundleItem.items.length - 1) {
-      setBundleComponentCustomizations(newCustomizations)
-      setBundleComponentIndex(i => i + 1)
-      setBundleComponentSugar('')
-      setBundleComponentOptions([])
-      setBundleComponentAddOns([])
-      return
-    }
-    const remarksLines = newCustomizations
+
+    // Finalize
+    const remarksLines = bundleComponentSelections
       .map(
         (c, i) =>
-          `[${i + 1}] ${c.quantity > 1 ? `${c.quantity}x ` : ''}${c.name}: Sugar ${c.sugarLevel}` +
+          `[${i + 1}] ${c.name}: Sugar ${c.sugarLevel}` +
           `${c.options.length ? ' | ' + c.options.join(', ') : ''}` +
           `${c.addOns.length ? ' | +' + c.addOns.join(', ') : ''}`
       )
       .join(' || ')
-    const bundleAddOnCost = newCustomizations.reduce((total, c) => {
+
+    const bundleAddOnCost = bundleComponentSelections.reduce((total, c) => {
       return (
         total +
         c.addOns.reduce((sum, addonName) => {
@@ -1074,24 +1127,33 @@ const SalesOrder = () => {
         }, 0)
       )
     }, 0)
+
     const matchingMenuItem = categories.flatMap(c => c.menu_items).find(m => m.barcode === activeBundleItem.barcode)
+    const grabPriceVal = Number(activeBundleItem.grab_price || matchingMenuItem?.grab_price || 0)
+    const pandaPriceVal = Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0)
+    
+    let basePrice = Number(activeBundleItem.price)
+    if (orderCharge === 'grab' && grabPriceVal > 0) basePrice = grabPriceVal
+    else if (orderCharge === 'panda' && pandaPriceVal > 0) basePrice = pandaPriceVal
+
     const cartItem: CartItem = {
       id: activeBundleItem.id,
       category_id: 0,
       name: activeBundleItem.display_name ?? activeBundleItem.name,
-      grab_price: Number(activeBundleItem.grab_price || matchingMenuItem?.grab_price || 0),
-      panda_price: Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0),
+      grab_price: grabPriceVal,
+      panda_price: pandaPriceVal,
       price: Number(activeBundleItem.price),
       barcode: activeBundleItem.barcode,
       qty: 1,
       size: 'L',
       remarks: remarksLines,
       charges: { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
-      finalPrice: Number(activeBundleItem.price) + bundleAddOnCost,
+      finalPrice: basePrice + bundleAddOnCost,
       isBundle: true,
       bundleId: activeBundleItem.id,
-      bundleComponents: newCustomizations,
+      bundleComponents: bundleComponentSelections,
     }
+
     mergeIntoCart(cartItem)
     logCartAction(cartItem.name, 1, cashierName)
     setIsBundleModalOpen(false)
@@ -1663,23 +1725,29 @@ const SalesOrder = () => {
             return (
               <BundleModal
                 activeBundleItem={activeBundleItem}
-                bundleComponentIndex={bundleComponentIndex}
-                bundleComponentSugar={bundleComponentSugar}
-                bundleComponentOptions={bundleComponentOptions}
-                bundleComponentAddOns={bundleComponentAddOns}
+                flattenedBundleItems={flattenedBundleItems as (BundleComponent & { menuItem?: MenuItem })[]}
+                bundleSelections={bundleComponentSelections}
                 sugarLevels={sugarLevels}
                 filteredAddOns={filteredAddOns}
-                bundleComponentAddOnModalOpen={bundleComponentAddOnModalOpen}
-                onSugarChange={setBundleComponentSugar}
-                onToggleOption={makeToggleOption(setBundleComponentOptions)}
-                onOpenAddOns={() => setBundleComponentAddOnModalOpen(true)}
+                bundleComponentIndex={bundleComponentIndex}
+                addonModalOpen={bundleComponentAddOnModalOpen}
+                activeAddOnIndex={activeBundleComponentIndex}
+                onSugarChange={(s) => updateBundleSelection(bundleComponentIndex, { sugarLevel: s })}
+                onToggleOption={opt => toggleBundleComponentOption(bundleComponentIndex, opt)}
+                onOpenAddOns={() => {
+                  setActiveBundleComponentIndex(bundleComponentIndex)
+                  setBundleComponentAddOnModalOpen(true)
+                }}
                 onCloseAddOns={() => setBundleComponentAddOnModalOpen(false)}
-                onToggleAddOn={name =>
-                  setBundleComponentAddOns(prev =>
-                    prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
-                  )
-                }
-                onConfirm={confirmBundleComponent}
+                onToggleAddOn={name => {
+                  if (activeBundleComponentIndex === null) return
+                  const currentAddOns = bundleComponentSelections[activeBundleComponentIndex].addOns
+                  const nextAddOns = currentAddOns.includes(name) 
+                    ? currentAddOns.filter(a => a !== name) 
+                    : [...currentAddOns, name]
+                  updateBundleSelection(activeBundleComponentIndex, { addOns: nextAddOns })
+                }}
+                onConfirm={confirmBundleSelection}
                 onClose={() => {
                   setIsBundleModalOpen(false)
                   setActiveBundleItem(null)

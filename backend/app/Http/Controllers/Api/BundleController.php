@@ -32,7 +32,15 @@ public function index(Request $request)
         $query->where('barcode', $request->barcode);  // ✅ add this
     }
 
-    $bundles = $query->orderBy('category')->get();
+    $bundles = $query->orderBy('category')->get()->map(function($bundle) {
+        $bundle->items->map(function($item) {
+            $item->has_ice = $item->menuItem ? $item->menuItem->options->contains('option_type', 'ice') : false;
+            $item->has_pearl = $item->menuItem ? $item->menuItem->options->contains('option_type', 'pearl') : false;
+            $item->has_sugar = $item->menuItem ? $item->menuItem->options->contains('option_type', 'sugar') : false;
+            return $item;
+        });
+        return $bundle;
+    });
 
     return response()->json($bundles);
 }

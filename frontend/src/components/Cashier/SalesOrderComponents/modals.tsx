@@ -3,7 +3,7 @@
 
 import React from 'react';
 import {
-  type CartItem, type Bundle, type MenuItem,
+  type CartItem, type Bundle, type MenuItem, type BundleComponent, type BundleComponentCustomization,
   EXTRA_OPTIONS,
 } from '../../../types/index';
 import {
@@ -356,8 +356,8 @@ export const ItemSelectionModal = ({
           <div>
             <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
               Charges
-              {orderCharge === 'grab' && Number((selectedItem as { grab_price?: number })?.grab_price ?? 0) > 0 ? ` (+₱${Number((selectedItem as { grab_price?: number })?.grab_price).toFixed(2)})` : ''}
-              {orderCharge === 'panda' && Number((selectedItem as { panda_price?: number })?.panda_price ?? 0) > 0 ? ` (+₱${Number((selectedItem as { panda_price?: number })?.panda_price).toFixed(2)})` : ''}
+              {orderCharge === 'grab' && Number((selectedItem as { grab_price?: number })?.grab_price ?? 0) > 0 ? ` (+₱${(Number((selectedItem as { grab_price?: number })?.grab_price) - Number(selectedItem.price)).toFixed(2)})` : ''}
+              {orderCharge === 'panda' && Number((selectedItem as { panda_price?: number })?.panda_price ?? 0) > 0 ? ` (+₱${(Number((selectedItem as { panda_price?: number })?.panda_price) - Number(selectedItem.price)).toFixed(2)})` : ''}
             </label>
             <div className="grid grid-cols-2 gap-3">
               {(['grab', 'panda'] as const).map(type => {
@@ -397,12 +397,12 @@ export const ItemSelectionModal = ({
 
 interface BundleModalProps {
   activeBundleItem: Bundle;
+  flattenedBundleItems: (BundleComponent & { menuItem?: MenuItem })[];
+  bundleSelections: BundleComponentCustomization[];
   bundleComponentIndex: number;
-  bundleComponentSugar: string;
-  bundleComponentOptions: string[];
-  bundleComponentAddOns: string[];
   filteredAddOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
-  bundleComponentAddOnModalOpen: boolean;
+  addonModalOpen: boolean;
+  activeAddOnIndex: number | null;
   sugarLevels?: { id: number; label: string; value: string }[];
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
@@ -419,105 +419,133 @@ interface BundleModalProps {
 }
 
 export const BundleModal = ({
-  activeBundleItem, bundleComponentIndex, bundleComponentSugar, bundleComponentOptions,
-  bundleComponentAddOns, bundleGrabPrice, bundlePandaPrice, filteredAddOns,
-  bundleComponentAddOnModalOpen, sugarLevels, onSugarChange, onToggleOption,
+  activeBundleItem, flattenedBundleItems, bundleSelections,
+  bundleComponentIndex, bundleGrabPrice, bundlePandaPrice, filteredAddOns,
+  addonModalOpen, activeAddOnIndex, sugarLevels, onSugarChange, onToggleOption,
   onOpenAddOns, onCloseAddOns, onToggleAddOn, onConfirm, onClose, orderCharge, onToggleOrderCharge,
   orderType = 'take-out',
 }: BundleModalProps) => {
-  const component = activeBundleItem.items[bundleComponentIndex];
-  const totalSteps = activeBundleItem.items.length;
-  const isLastStep = bundleComponentIndex === totalSteps - 1;
-  const displayName = component.display_name ?? component.custom_name ?? '';
-  const isMilkTea = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea');
-  const hasPearl = bundleComponentOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
-  const hasSugarLevels = sugarLevels && sugarLevels.length > 0;
-  const canNext = (!hasSugarLevels || bundleComponentSugar !== '') && (!isMilkTea || hasPearl);
+  const currentStep = bundleComponentIndex;
+  const totalSteps = flattenedBundleItems.length;
+  const isLastStep = currentStep === totalSteps - 1;
+  const component = flattenedBundleItems[currentStep];
+  const selection = bundleSelections[currentStep];
+  
+  if (!selection || !component) return null;
+
+  const itemDetail = component.menuItem;
+  const itemName = (selection.name || '').toLowerCase();
+  const hasSugar = (itemDetail?.sugar_levels?.length ?? 0) > 0 || 
+                  itemDetail?.category_id != null ||
+                  itemName.includes('tea') || 
+                  itemName.includes('drink') || 
+                  itemName.includes('coffee') ||
+                  itemName.includes('boba') ||
+                  itemName.includes('milk') ||
+                  itemName.includes('latte') ||
+                  itemName.includes('cooler') ||
+                  itemName.includes('punch');
+  
+  const itemOpts = itemDetail?.options ?? [];
+  const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
+    const pearlOpts = ['NO PRL', 'W/ PRL'];
+    const iceOpts = ['NO ICE', '-ICE', '+ICE'];
+    if (pearlOpts.includes(opt)) return itemOpts.includes('pearl');
+    if (iceOpts.includes(opt)) return itemOpts.includes('ice');
+    return true;
+  });
 
   return (
     <>
       <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
           <div className="bg-[#3b2063] p-5 text-white relative shrink-0">
-            <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Bundle — {activeBundleItem.display_name ?? activeBundleItem.name}</div>
+            <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Bundle Configuration — {activeBundleItem.display_name ?? activeBundleItem.name}</div>
             <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
-              Drink {bundleComponentIndex + 1} of {totalSteps}: {displayName}
-              {component.quantity > 1 && <span className="ml-2 text-white/50 font-bold text-sm">×{component.quantity}</span>}
+              Drink {currentStep + 1} of {totalSteps}: {selection.name}
             </h2>
             <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
-              <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((bundleComponentIndex + 1) / totalSteps) * 100}%` }} />
+              <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }} />
             </div>
-            <div className="mt-2 flex items-center gap-3">
-              <span className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Bundle Price</span>
-              <span className="text-white font-black text-sm">₱{Number(activeBundleItem.price).toFixed(2)}</span>
-              {bundleGrabPrice > 0 && orderCharge === 'grab' && <span className="text-green-300 font-black text-sm">+₱{bundleGrabPrice.toFixed(2)} Grab</span>}
-              {bundlePandaPrice > 0 && orderCharge === 'panda' && <span className="text-pink-300 font-black text-sm">+₱{bundlePandaPrice.toFixed(2)} Panda</span>}
+            <div className="mt-2 flex items-center gap-3 text-[11px]">
+              <span className="text-white font-black">₱{Number(activeBundleItem.price).toFixed(2)}</span>
+              {orderCharge === 'grab' && bundleGrabPrice > 0 && <span className="text-green-300 font-black">+₱{(bundleGrabPrice - Number(activeBundleItem.price)).toFixed(2)} Grab</span>}
+              {orderCharge === 'panda' && bundlePandaPrice > 0 && <span className="text-pink-300 font-black">+₱{(bundlePandaPrice - Number(activeBundleItem.price)).toFixed(2)} Panda</span>}
             </div>
             <button onClick={onClose} className="absolute top-5 right-5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
               <CloseIcon size={4} />
             </button>
           </div>
-          <div className="p-6 space-y-5 overflow-y-auto bg-white">
-            {sugarLevels && sugarLevels.length > 0 && (
-              <div>
-                <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-                <div className="flex gap-2">
-                  {sugarLevels.map((lvl: { id: number; label: string; value: string }) => (
-                    <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
-                      className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === lvl.value ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                      {lvl.label}
-                    </button>
-                  ))}
-                </div>
-                {bundleComponentSugar === '' && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>}
-              </div>
-            )}
-            <div>
-              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
-              <div className="flex flex-wrap gap-2">
-                {EXTRA_OPTIONS.map((opt: string) => (
-                  <button key={opt} onClick={() => onToggleOption(opt)}
-                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${bundleComponentOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra Add-ons</label>
-              <AddOnTriggerButton count={bundleComponentAddOns.length} onClick={onOpenAddOns} />
-            </div>
-            {onToggleOrderCharge && (
-              <div>
-                <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
-                  Charges
-                  {orderCharge === 'grab' && bundleGrabPrice > 0 && ` (+₱${bundleGrabPrice.toFixed(2)})`}
-                  {orderCharge === 'panda' && bundlePandaPrice > 0 && ` (+₱${bundlePandaPrice.toFixed(2)})`}
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {(['grab', 'panda'] as const).map(type => {
-                    const isActive = orderCharge === type;
-                    const isLockedByOrderType = orderType !== 'delivery';
-                    const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
-                    return (
-                      <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
-                        className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40 cursor-not-allowed' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
-                        <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
+
+          <div className="p-6 space-y-6 overflow-y-auto bg-white flex-1 custom-scrollbar">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {hasSugar && sugarLevels && sugarLevels.length > 0 && (
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1 mb-2 block">Sugar Level</label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {sugarLevels.map((lvl) => (
+                      <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
+                        className={`flex-1 min-w-[50px] py-2.5 rounded-xl text-[11px] font-black transition-all ${selection.sugarLevel === lvl.value ? 'bg-[#3b2063] text-white shadow-md' : 'bg-[#f5f0ff] text-zinc-600 border border-[#e9d5ff] hover:bg-white'}`}>
+                        {lvl.label}
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
+                  {selection.sugarLevel === '' && <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>}
                 </div>
+              )}
+
+              {visibleOpts.length > 0 && (
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1 mb-2 block">Options</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {visibleOpts.map((opt: string) => (
+                      <button key={opt} onClick={() => onToggleOption(opt)}
+                        className={`px-3.5 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selection.options.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-[#f5f0ff] text-zinc-600 border border-[#e9d5ff] hover:bg-white'}`}>
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1 mb-2 block">Extras</label>
+                <AddOnTriggerButton count={selection.addOns.length} onClick={onOpenAddOns} />
               </div>
-            )}
-            <button onClick={onConfirm} disabled={!canNext}
-              className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
-              {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
+
+              {onToggleOrderCharge && (
+                <div className="pt-2 border-t border-zinc-100 mt-6">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1 mb-2 block">Platform Charges</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(['grab', 'panda'] as const).map(type => {
+                      const isActive = orderCharge === type;
+                      const isLockedByOrderType = orderType !== 'delivery';
+                      const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
+                      return (
+                        <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
+                          className={`p-3 rounded-xl border-2 transition-all flex items-center justify-center ${isDisabled ? 'border-zinc-100 bg-zinc-50 text-zinc-300 opacity-40' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : 'border-zinc-200 bg-white text-zinc-500 hover:border-[#3b2063] hover:text-[#3b2063]'}`}>
+                          <span className="font-bold text-[10px] uppercase">{type === 'grab' ? '🛵 Grab Food' : '🐼 Food Panda'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-5 bg-zinc-50 border-t border-zinc-100 shrink-0">
+            <button onClick={onConfirm}
+              className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-all bg-[#3b2063] text-white hover:bg-[#6a12b8] active:scale-[0.98]`}>
+              {isLastStep ? '✓ Add Bundle to Order' : `Next: Item ${currentStep + 2} of ${totalSteps} →`}
             </button>
           </div>
         </div>
       </div>
-      {bundleComponentAddOnModalOpen && (
-        <AddOnModalShell title="Bundle Drink Add-ons" addOns={filteredAddOns} selected={bundleComponentAddOns}
+      {addonModalOpen && activeAddOnIndex !== null && (
+        <AddOnModalShell title={`Add-ons: ${bundleSelections[activeAddOnIndex]?.name}`} 
+          addOns={filteredAddOns} 
+          selected={bundleSelections[activeAddOnIndex]?.addOns || []}
           onToggle={onToggleAddOn} onClose={onCloseAddOns} zIndex="z-[110]" orderCharge={orderCharge} />
       )}
     </>

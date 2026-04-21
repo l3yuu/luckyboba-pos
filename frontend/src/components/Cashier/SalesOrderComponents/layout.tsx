@@ -139,17 +139,10 @@ export const MenuArea = ({
                 <button 
                   key={item.id} 
                   onClick={() => onItemClick(item)}
-                  className={`${BASE_CARD} hover:border-[#3b2063] group p-0 overflow-hidden flex-col h-auto`}
+                  className={`${BASE_CARD} hover:border-[#3b2063] group flex-col py-3 px-2`}
                 >
-                  <div className="w-full aspect-square bg-white flex items-center justify-center overflow-hidden border-b border-zinc-100 shrink-0">
-                    <div className="opacity-10 text-[#3b2063]">
-                      <DrinkIcon size={32} />
-                    </div>
-                  </div>
-                  <div className="p-3 w-full flex-1 flex flex-col justify-between">
-                    <span className="text-[10px] font-black uppercase text-zinc-900 leading-tight line-clamp-2 mb-1">{item.name}</span>
-                    <span className="text-xs font-black text-[#7c14d4]">₱{Number(item.sellingPrice || item.price).toFixed(2)}</span>
-                  </div>
+                  <span className="text-sm font-black uppercase text-zinc-900 leading-tight line-clamp-2 mb-1">{item.name}</span>
+                  <span className="text-xs font-black text-[#7c14d4] mt-auto">₱{Number(item.sellingPrice || item.price).toFixed(2)}</span>
                 </button>
               ))}
               {getFilteredItems(selectedCategory.menu_items).length === 0 && (
@@ -245,17 +238,10 @@ export const MenuArea = ({
                           <button
                             key={`${item.id}-${cat.id}`}
                             onClick={() => onItemClick(item)}
-                            className={`${BASE_CARD} hover:border-[#3b2063] group p-0 overflow-hidden flex-col h-auto`}
+                            className={`${BASE_CARD} hover:border-[#3b2063] group flex-col py-3 px-2`}
                           >
-                            <div className="w-full aspect-square bg-white flex items-center justify-center overflow-hidden border-b border-zinc-100 shrink-0">
-                              <div className="opacity-10 text-[#3b2063]">
-                                <DrinkIcon size={32} />
-                              </div>
-                            </div>
-                            <div className="p-3 w-full flex-1 flex flex-col justify-between text-black">
-                              <span className="text-[10px] font-black uppercase leading-tight line-clamp-2 mb-1">{item.name}</span>
-                              <span className="text-xs font-black text-[#7c14d4]">₱{Number(item.sellingPrice || item.price).toFixed(2)}</span>
-                            </div>
+                            <span className="text-sm font-black uppercase text-zinc-900 leading-tight line-clamp-2 mb-1">{item.name}</span>
+                            <span className="text-xs font-black text-[#7c14d4] mt-auto">₱{Number(item.sellingPrice || item.price).toFixed(2)}</span>
                           </button>
                         ))}
                       </div>
