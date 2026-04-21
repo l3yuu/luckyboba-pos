@@ -45,6 +45,7 @@ import FeaturedDrinksTab from "../components/NewSuperAdmin/Sidebar/System/Featur
 import CustomerManagementTab from "../components/NewSuperAdmin/Sidebar/System/CustomerManagementTab";
 import OnlineOrdersTab from "../components/NewSuperAdmin/Sidebar/Navigation/OnlineOrdersTab";
 import BranchPaymentSettingsTab from "../components/NewSuperAdmin/Sidebar/System/BranchPaymentSettingsTab";
+import AppBranchesTab from "../components/NewSuperAdmin/Sidebar/System/AppBranchesTab";
 
 
 const GlobalStyles = () => (
@@ -129,6 +130,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "featured_drinks": return <FeaturedDrinksTab />;
 
       // ── App ───────────────────────────────────────────────────────────────────
+      case "app_branches": return <AppBranchesTab />;
       case "card_management": return <CardManagementTab />;
       case "card_approvals": return <CardApprovalTab />;
       case "card_members": return <CardUsersTab />;
