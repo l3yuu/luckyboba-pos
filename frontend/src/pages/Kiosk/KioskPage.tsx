@@ -164,15 +164,15 @@ const KioskPage = () => {
 
   // Slideshow State for Landing Page
   const [currentSlide, setCurrentSlide] = useState(0);
-  const splashSlides = [
-    '/images/slideshow/lucky_classic.png',
-    '/images/slideshow/hot_drinks.png',
-    '/images/slideshow/iced_coffee.png',
-    '/images/slideshow/fruit_juices.png',
-    '/images/slideshow/frappe.png',
-    '/images/slideshow/classicjr.png',
-    '/images/slideshow/pudding.png',
-  ];
+  const splashSlides = useMemo(() => [
+    getImageUrl('slideshow/lucky_classic.png'),
+    getImageUrl('slideshow/hot_drinks.png'),
+    getImageUrl('slideshow/iced_coffee.png'),
+    getImageUrl('slideshow/fruit_juices.png'),
+    getImageUrl('slideshow/frappe.png'),
+    getImageUrl('slideshow/classicjr.png'),
+    getImageUrl('slideshow/pudding.png'),
+  ], []);
 
   useEffect(() => {
     if (step === 'splash') {
