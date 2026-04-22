@@ -445,7 +445,7 @@ const SalesOrder = () => {
     if (!branchId) return;
 
     try {
-      const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&t=${Date.now()}`)
+      const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=pos&t=${Date.now()}`)
       const serverSeq = parseInt(data.next_sequence, 10)
       if (!isNaN(serverSeq)) {
         localStorage.setItem(seqKey, String(serverSeq))
@@ -1369,9 +1369,9 @@ const SalesOrder = () => {
     let finalOrNumber = orNumber;
     let finalQueueNumber = queueNumber;
 
-    if (navigator.onLine) {
+    if (navigator.onLine && branchId) {
       try {
-        const { data } = await api.get('/receipts/next-sequence');
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=pos&t=${Date.now()}`);
         const serverSeq = parseInt(data.next_sequence, 10);
         if (!isNaN(serverSeq)) finalOrNumber = generateORNumber(serverSeq);
         const serverQueue = parseInt(data.next_queue, 10);
@@ -1379,9 +1379,20 @@ const SalesOrder = () => {
         
         setOrNumber(finalOrNumber);
         setQueueNumber(finalQueueNumber);
-      } catch {
-        // Fallback to cached state
+      } catch (err) {
+        console.error('[Sequence Fetch] Failed:', err);
+        // Fallback to local increment
+        const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1;
+        finalOrNumber = generateORNumber(lastSeq);
+        const lastQueue = parseInt(localStorage.getItem(queueKey) || '0', 10) + 1;
+        finalQueueNumber = generateQueueNumber(lastQueue);
       }
+    } else {
+      // Offline fallback
+      const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1;
+      finalOrNumber = generateORNumber(lastSeq);
+      const lastQueue = parseInt(localStorage.getItem(queueKey) || '0', 10) + 1;
+      finalQueueNumber = generateQueueNumber(lastQueue);
     }
 
     let scDiscountAmount = 0

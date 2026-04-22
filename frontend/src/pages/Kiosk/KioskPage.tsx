@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { KioskTicketPrint } from '../../components/Cashier/SalesOrderComponents/print';
 import { getImageUrl } from '../../utils/imageUtils';
-import { generateORNumber } from '../../components/Cashier/SalesOrderComponents/shared';
+
 
 // --- Types ---
 
@@ -584,7 +584,7 @@ const KioskPage = () => {
 
         if (!isNaN(serverSeq)) {
           seq = serverSeq;
-          nextQueue = !isNaN(serverQueue) ? serverQueue : 1;
+          nextQueue = !isNaN(serverQueue) ? Math.max(100, serverQueue) : 100;
 
           // Sync local storage as well
           const seqKey = `last_or_sequence_${branchId}`;
@@ -611,20 +611,23 @@ const KioskPage = () => {
         if (lastDate !== todayKey) {
           nextQueue = 100; // Reset for a new day (Kiosk starts at 100)
         } else {
-          nextQueue = parseInt(localStorage.getItem(queueKey) || '99', 10) + 1;
+          nextQueue = Math.max(100, parseInt(localStorage.getItem(queueKey) || '99', 10) + 1);
         }
         localStorage.setItem(queueKey, String(nextQueue));
         localStorage.setItem(dateKey, todayKey);
       }
 
-      const siNumber = generateORNumber(seq);
+      // Use a temporary KSK- prefix — the real SI# is assigned by the cashier
+      // when they click "Start Preparing" in the Online Orders panel
+      const formattedQueue = String(nextQueue).padStart(3, '0');
+      const tempInvoice = `KSK-${formattedQueue}`;
 
       const total = calculateTotal();
       const vatableSales = total / 1.12;
       const vatAmount = total - vatableSales;
 
       const payload = {
-        si_number: siNumber,
+        si_number: tempInvoice,
         branch_id: branchId,
         payment_method: 'cash',
         status: 'pending',
@@ -650,13 +653,11 @@ const KioskPage = () => {
         }))
       };
 
-      const response = await api.post('/kiosk-sales', payload);
-      const finalSiNumber = response.data?.si_number || siNumber;
+      await api.post('/kiosk-sales', payload);
 
-      const formattedQueue = String(nextQueue).padStart(3, '0');
       setOrderNumber(formattedQueue);
       setPrintData({
-        invoice: finalSiNumber,
+        invoice: tempInvoice,
         cart: [...cart],
         queueNumber: formattedQueue
       });

@@ -7,8 +7,10 @@ import type { CashInProps, ReceiptData } from '../../../types/transactions';
 import TopNavbar from '../../Cashier/TopNavbar';
 import { useToast } from '../../../context/ToastContext'; 
 import { Monitor, Printer, Wallet, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useAuth } from '../../../hooks/useAuth';
 
 const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
+  const { user } = useAuth();
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
   const [amount, setAmount] = useState('');
@@ -91,9 +93,12 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
             if (Array.isArray(r.data))
               localStorage.setItem('pos_discounts_cache', JSON.stringify(r.data));
           }),
-          api.get('/receipts/next-sequence').then(r => {
+          api.get(`/receipts/next-sequence?branch_id=${user?.branch_id || ''}&source=pos&t=${Date.now()}`).then(r => {
             const seq = parseInt(r.data?.next_sequence, 10);
-            if (!isNaN(seq)) localStorage.setItem('last_or_sequence', String(seq));
+            if (!isNaN(seq)) {
+              const key = `last_or_sequence_${user?.branch_id || 'default'}`;
+              localStorage.setItem(key, String(seq));
+            }
           }),
         ]);
 
