@@ -80,7 +80,7 @@ const blankForm = (): FormState => ({
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
 const Avatar: React.FC<{ name: string; size?: string }> = ({ name, size = 'w-9 h-9 text-[11px]' }) => (
-  <div className={`${size} rounded-xl bg-[#3b2063]/10 flex items-center justify-center font-black text-[#3b2063] shrink-0 border border-[#3b2063]/20 shadow-sm`}>
+  <div className={`${size} rounded-xl bg-[#a020f0]/10 flex items-center justify-center font-black text-[#a020f0] shrink-0 border border-[#a020f0]/20 shadow-sm`}>
     {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
   </div>
 );
@@ -103,8 +103,8 @@ const RoleBadge: React.FC<{ role: string }> = ({ role }) => {
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest
       ${isTL
-        ? 'bg-[#3b2063] text-white shadow-lg shadow-[#3b2063]/20'
-        : 'bg-white text-[#3b2063] border border-[#3b2063]/20 shadow-sm'}`}>
+        ? 'bg-[#a020f0] text-white shadow-lg shadow-[#a020f0]/20'
+        : 'bg-white text-[#a020f0] border border-[#a020f0]/20 shadow-sm'}`}>
       {isTL ? <Shield size={10} /> : <Users size={10} />}
       {role.replace('_', ' ')}
     </span>
@@ -134,7 +134,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: 'px-4 py-2.5 text-[11px]', md: 'px-5 py-3 text-sm', lg: 'px-6 py-4 text-sm' };
   const variants: Record<VariantKey, string> = {
-    primary:   'bg-[#3b2063] hover:bg-[#3b2063] text-white shadow-lg shadow-[#3b2063]/20',
+    primary:   'bg-[#a020f0] hover:bg-[#a020f0] text-white shadow-lg shadow-[#a020f0]/20',
     secondary: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm',
     danger:    'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20',
     ghost:     'bg-transparent text-slate-500 hover:bg-slate-100',
@@ -160,7 +160,7 @@ const ModalShell: React.FC<{
       <div className={`relative bg-white w-full ${maxWidth} border border-slate-200 rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}>
         <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 bg-white shadow-md border border-slate-100 rounded-2xl flex items-center justify-center text-[#3b2063]">{icon}</div>
+            <div className="w-11 h-11 bg-white shadow-md border border-slate-100 rounded-2xl flex items-center justify-center text-[#a020f0]">{icon}</div>
             <div>
               <p className="text-base font-black text-slate-900 tracking-tight leading-tight">{title}</p>
               <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">{sub}</p>
@@ -190,13 +190,13 @@ const Field: React.FC<{ label: string; required?: boolean; error?: string; child
 );
 
 const inputCls = (err?: string) =>
-  `w-full text-[13px] font-bold text-slate-900 bg-slate-50 border-2 rounded-2xl px-4 py-3.5 outline-none focus:ring-4 focus:ring-[#3b2063]/10 focus:bg-white focus:border-[#3b2063] transition-all ${err ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'}`;
+  `w-full text-[13px] font-bold text-slate-900 bg-slate-50 border-2 rounded-2xl px-4 py-3.5 outline-none focus:ring-4 focus:ring-[#a020f0]/10 focus:bg-white focus:border-[#a020f0] transition-all ${err ? 'border-rose-200 bg-rose-50/30' : 'border-slate-100'}`;
 
 // ─── View Modal ───────────────────────────────────────────────────────────────
 
 const ViewStaffModal: React.FC<{ onClose: () => void; user: Staff }> = ({ onClose, user }) => {
   const rows: [string, React.ReactNode][] = [
-    ['Staff Entity ID',   <span className="font-mono text-[#3b2063]">#{user.id}</span>],
+    ['Staff Entity ID',   <span className="font-mono text-[#a020f0]">#{user.id}</span>],
     ['Full Legal Name',   <div className="flex items-center gap-3"><Avatar name={user.name} />{user.name}</div>],
     ['Primary Email',      <span className="flex items-center gap-1.5"><Mail size={12} className="text-slate-400" />{user.email}</span>],
     ['Assign Branch',     <span className="flex items-center gap-1.5"><MapPin size={12} className="text-slate-400" />{user.branch}</span>],
@@ -346,9 +346,9 @@ const StaffFormModal: React.FC<{
         </Field>
       </div>
       {!editingUser && (
-        <div className="p-4 bg-[#3b2063]/10 border border-[#3b2063]/20 rounded-2xl flex items-start gap-3">
-          <Activity size={16} className="text-[#3b2063] mt-1" />
-          <p className="text-[10px] text-[#3b2063] font-bold leading-relaxed uppercase tracking-wider">
+        <div className="p-4 bg-[#a020f0]/10 border border-[#a020f0]/20 rounded-2xl flex items-start gap-3">
+          <Activity size={16} className="text-[#a020f0] mt-1" />
+          <p className="text-[10px] text-[#a020f0] font-bold leading-relaxed uppercase tracking-wider">
             Operational Note: Device terminal mapping remains restricted until the entity is confirmed in the global database.
           </p>
         </div>
@@ -604,10 +604,10 @@ const AssignDeviceModal: React.FC<{
                 </span>}
           </div>
           {currentDevice ? (
-            <div className="p-4 bg-[#3b2063]/10 border border-[#3b2063]/20 rounded-2xl flex items-start gap-4">
-              <Activity size={18} className="text-[#3b2063] mt-0.5" />
-              <p className="text-[11px] text-[#3b2063] font-bold leading-relaxed uppercase tracking-wide">
-                Terminal active on <span className="underline decoration-[#3b2063]/30 underline-offset-4">{currentDevice.pos_number}</span>
+            <div className="p-4 bg-[#a020f0]/10 border border-[#a020f0]/20 rounded-2xl flex items-start gap-4">
+              <Activity size={18} className="text-[#a020f0] mt-0.5" />
+              <p className="text-[11px] text-[#a020f0] font-bold leading-relaxed uppercase tracking-wide">
+                Terminal active on <span className="underline decoration-[#a020f0]/30 underline-offset-4">{currentDevice.pos_number}</span>
                 {currentDevice.branch?.name ? ` @ ${currentDevice.branch.name}` : ''}. Modify or wipe this record.
               </p>
             </div>
@@ -704,8 +704,8 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-10 pb-10 border-b border-slate-100">
         <div>
            <div className="flex items-center gap-3 mb-3">
-             <div className="w-2.5 h-2.5 rounded-full bg-[#3b2063]" />
-             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3b2063]">Operations Control</p>
+             <div className="w-2.5 h-2.5 rounded-full bg-[#a020f0]" />
+             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#a020f0]">Operations Control</p>
            </div>
            <h1 className="text-[2.2rem] font-black text-slate-900 tracking-tight leading-none">Personnel Directory</h1>
            <p className="text-[0.75rem] font-bold text-slate-400 mt-4 uppercase tracking-[0.1em]">
@@ -716,8 +716,8 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
           <button 
             onClick={fetchStaff} 
             disabled={loading}
-            style={{ backgroundColor: '#3b2063' }}
-            className="inline-flex items-center justify-center gap-2 font-black uppercase tracking-widest rounded-2xl transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 px-4 py-3.5 text-[11px] text-white hover:opacity-90 shadow-xl shadow-[#3b2063]/20"
+            style={{ backgroundColor: '#a020f0' }}
+            className="inline-flex items-center justify-center gap-2 font-black uppercase tracking-widest rounded-2xl transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 px-4 py-3.5 text-[11px] text-white hover:opacity-90 shadow-xl shadow-[#a020f0]/20"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Sync Audit
           </button>
@@ -730,8 +730,8 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
       {/* ── REGIONAL STATS HUD ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
         <div className="bg-white border-2 border-slate-100 rounded-[1.75rem] p-6 flex items-center gap-5 shadow-xl shadow-slate-900/5 overflow-hidden relative">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#3b2063]" />
-          <div className="w-14 h-14 bg-[#3b2063]/10 rounded-2xl flex items-center justify-center text-[#3b2063] shadow-inner">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#a020f0]" />
+          <div className="w-14 h-14 bg-[#a020f0]/10 rounded-2xl flex items-center justify-center text-[#a020f0] shadow-inner">
             <Users size={24} strokeWidth={2.5} />
           </div>
           <div>
@@ -762,9 +762,9 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
       </div>
 
       {/* ── ENTITY REGISTRY TABLE ── */}
-      <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-[#3b2063]/5 bg-gradient-to-br from-white to-slate-50/50">
+      <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-[#a020f0]/5 bg-gradient-to-br from-white to-slate-50/50">
         <div className="flex items-center gap-4 px-8 py-6 border-b border-slate-100">
-          <div className="flex-1 flex items-center gap-3 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus-within:border-[#3b2063] focus-within:ring-4 focus-within:ring-[#3b2063]/10 transition-all duration-300">
+          <div className="flex-1 flex items-center gap-3 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3.5 focus-within:border-[#a020f0] focus-within:ring-4 focus-within:ring-[#a020f0]/10 transition-all duration-300">
             <Search size={16} className="text-slate-400" />
             <input
               value={search}
@@ -817,7 +817,7 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
               )}
 
               {!loading && !fetchError && filtered.map(u => (
-                <tr key={u.id} className="group hover:bg-[#3b2063]/10/20 transition-colors duration-300">
+                <tr key={u.id} className="group hover:bg-[#a020f0]/10/20 transition-colors duration-300">
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-4">
                       <Avatar name={u.name} />
@@ -838,7 +838,7 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
                     <div className="flex flex-col gap-2">
                       <DevicePill deviceNumber={u.device_number} />
                       {u.role === 'cashier' && (
-                         <button onClick={() => setDeviceTarget(u)} className="text-left text-[9px] font-black text-[#3b2063] hover:text-indigo-800 uppercase tracking-widest underline decoration-indigo-200 underline-offset-4 transition-all">
+                         <button onClick={() => setDeviceTarget(u)} className="text-left text-[9px] font-black text-[#a020f0] hover:text-indigo-800 uppercase tracking-widest underline decoration-indigo-200 underline-offset-4 transition-all">
                            {u.device_number ? 'Update Mapping' : 'Provision Sync'}
                          </button>
                       )}
@@ -855,16 +855,16 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-4 group-hover:translate-x-0">
-                      <button onClick={() => setViewTarget(u)} title="Deep View" className="p-2.5 bg-white border border-slate-100 text-slate-500 hover:text-[#3b2063] hover:border-[#3b2063]/30 rounded-xl shadow-lg shadow-[#3b2063]/5 transition-all">
+                      <button onClick={() => setViewTarget(u)} title="Deep View" className="p-2.5 bg-white border border-slate-100 text-slate-500 hover:text-[#a020f0] hover:border-[#a020f0]/30 rounded-xl shadow-lg shadow-[#a020f0]/5 transition-all">
                         <Eye size={15} strokeWidth={2.5}/>
                       </button>
-                      <button onClick={() => setEditTarget(u)} title="Sync Profile" className="p-2.5 bg-white border border-slate-100 text-slate-500 hover:text-[#3b2063] hover:border-[#3b2063]/30 rounded-xl shadow-lg shadow-[#3b2063]/5 transition-all">
+                      <button onClick={() => setEditTarget(u)} title="Sync Profile" className="p-2.5 bg-white border border-slate-100 text-slate-500 hover:text-[#a020f0] hover:border-[#a020f0]/30 rounded-xl shadow-lg shadow-[#a020f0]/5 transition-all">
                         <Edit2 size={15} strokeWidth={2.5}/>
                       </button>
-                      <button onClick={() => setToggleTarget(u)} title={u.status === 'ACTIVE' ? 'Suspend Access' : 'Reactivate'} className={`p-2.5 bg-white border border-slate-100 rounded-xl shadow-lg shadow-[#3b2063]/5 transition-all ${u.status === 'ACTIVE' ? 'text-amber-500 hover:text-amber-600 hover:border-amber-100' : 'text-emerald-500 hover:text-emerald-600'}`}>
+                      <button onClick={() => setToggleTarget(u)} title={u.status === 'ACTIVE' ? 'Suspend Access' : 'Reactivate'} className={`p-2.5 bg-white border border-slate-100 rounded-xl shadow-lg shadow-[#a020f0]/5 transition-all ${u.status === 'ACTIVE' ? 'text-amber-500 hover:text-amber-600 hover:border-amber-100' : 'text-emerald-500 hover:text-emerald-600'}`}>
                         {u.status === 'ACTIVE' ? <Lock size={15} strokeWidth={2.5}/> : <UserCheck size={15} strokeWidth={2.5}/>}
                       </button>
-                      <button onClick={() => setDelTarget(u)} title="Wipe Record" className="p-2.5 bg-white border border-slate-100 text-slate-500 hover:text-rose-500 hover:border-rose-100 rounded-xl shadow-lg shadow-[#3b2063]/5 transition-all">
+                      <button onClick={() => setDelTarget(u)} title="Wipe Record" className="p-2.5 bg-white border border-slate-100 text-slate-500 hover:text-rose-500 hover:border-rose-100 rounded-xl shadow-lg shadow-[#a020f0]/5 transition-all">
                         <Trash2 size={15} strokeWidth={2.5}/>
                       </button>
                     </div>

@@ -855,7 +855,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="flex items-center gap-2 h-11 px-5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
-                  style={{ background: isMenuOpen ? '#1a0f2e' : '#f5f4f8', color: isMenuOpen ? '#fff' : '#3b2063', border: `1px solid ${isMenuOpen ? '#1a0f2e' : '#e4e4e7'}` }}
+                  style={{ background: isMenuOpen ? '#1a0f2e' : '#f5f4f8', color: isMenuOpen ? '#fff' : '#a020f0', border: `1px solid ${isMenuOpen ? '#1a0f2e' : '#e4e4e7'}` }}
                 >
                   <Menu size={14} strokeWidth={2.5} />
                   Select Report
@@ -954,7 +954,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
                   {loading ? 'Loading…' : 'Generate'}
                 </button>
                 <button onClick={() => window.print()}
-                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#3b2063] hover:border-[#ddd6f7] flex items-center justify-center transition-all">
+                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#a020f0] hover:border-[#ddd6f7] flex items-center justify-center transition-all">
                   <Printer size={16} />
                 </button>
               </div>
@@ -997,7 +997,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
             <div className="flex items-start justify-center py-8 px-4 bg-[#f5f4f8] overflow-y-auto" style={{ maxHeight: '75vh' }}>
               {loading ? (
                 <div className="flex flex-col items-center gap-3 py-16">
-                  <div className="w-9 h-9 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
+                  <div className="w-9 h-9 border-2 border-[#a020f0] border-t-transparent animate-spin rounded-full" />
                   <p className="zr-label" style={{ color: '#a1a1aa' }}>Generating report…</p>
                 </div>
               ) : reportData ? (

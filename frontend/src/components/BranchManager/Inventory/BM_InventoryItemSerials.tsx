@@ -135,7 +135,7 @@ const SerialFormModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <Hash size={15} className="text-[#3b2063]" />
+              <Hash size={15} className="text-[#a020f0]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Serial Item' : 'Register Serial Item'}</p>
@@ -186,7 +186,7 @@ const SerialFormModal: React.FC<{
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 bg-[#a020f0] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Register'}
           </button>
         </div>
@@ -282,13 +282,13 @@ const BM_InventoryItemSerials: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0]" size={15} />
             <input
               type="text"
               placeholder="Search serial # or item name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all shadow-sm"
             />
           </div>
 
@@ -306,7 +306,7 @@ const BM_InventoryItemSerials: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <button onClick={() => setAddOpen(true)} className="w-full md:w-auto px-5 py-3 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-xs">
+            <button onClick={() => setAddOpen(true)} className="w-full md:w-auto px-5 py-3 bg-[#a020f0] hover:bg-[#2a1647] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-xs">
               <Plus size={14} strokeWidth={3} /> Register Item
             </button>
           </div>
@@ -354,7 +354,7 @@ const BM_InventoryItemSerials: React.FC = () => {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                        <Hash size={12} className="text-[#3b2063]" />
+                        <Hash size={12} className="text-[#a020f0]" />
                       </div>
                       <span className="font-black text-[#1a0f2e] text-xs tabular-nums">{item.serial_number}</span>
                     </div>
@@ -385,7 +385,7 @@ const BM_InventoryItemSerials: React.FC = () => {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1">
-                      <button onClick={() => setEditTarget(item)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors"><Edit2 size={13} /></button>
+                      <button onClick={() => setEditTarget(item)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#a020f0] transition-colors"><Edit2 size={13} /></button>
                       <button onClick={() => setDelTarget(item)} className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors"><Trash2 size={13} /></button>
                     </div>
                   </td>

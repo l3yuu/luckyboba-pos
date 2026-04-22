@@ -183,7 +183,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#a020f0] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -1441,7 +1441,7 @@ const handlePrint = async () => {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${
-                isMenuOpen ? "bg-[#3b2063] text-white border-[#3b2063]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                isMenuOpen ? "bg-[#a020f0] text-white border-[#a020f0]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
               }`}
             >
               <Menu size={13} /> Menu
@@ -1450,14 +1450,14 @@ const handlePrint = async () => {
               <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-violet-100 shadow-2xl p-4 z-50 rounded-[0.625rem]">
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#7c14d4]"   },
+                    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#a020f0]"   },
                     { label: "OVERVIEW",    title: "SALES SUMMARY",  type: "summary",      color: "border-amber-400"   },
-                    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#7c14d4]"   },
-                    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#7c14d4]"   },
-                    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#7c14d4]"   },
-                    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#7c14d4]"   },
+                    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#a020f0]"   },
+                    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#a020f0]"   },
+                    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#a020f0]"   },
+                    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#a020f0]"   },
                     { label: "Z-READING",   title: "Z READING", type: "z_reading", color: "border-red-500" },
-                    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#7c14d4]"   },
+                    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#a020f0]"   },
                   ].map(card => (
                     <button
                       key={card.type}
@@ -1515,7 +1515,7 @@ const handlePrint = async () => {
               className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
             <div className="ml-2">
               {checkingStatus ? (
-                <div className="w-4 h-4 border-2 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-[#a020f0] border-t-transparent rounded-full animate-spin" />
               ) : zStatus?.is_closed ? (
                 <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border border-emerald-200">
                   <CheckCircle size={10} /> Closed

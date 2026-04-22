@@ -35,6 +35,7 @@ class Branch extends Model
     'longitude',
     'image',
     'kiosk_pin',
+    'kiosk_password',
 ];
 
 protected $casts = [

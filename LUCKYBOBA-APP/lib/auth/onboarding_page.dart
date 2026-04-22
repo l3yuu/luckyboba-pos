@@ -23,7 +23,6 @@ class _OnboardingPageState extends State<OnboardingPage>
 
   // ── Brand tokens ──────────────────────────────────────────────────────────
   static const Color _purple     = Color(0xFF7C14D4);
-  static const Color _orange     = Color(0xFFFF8C00);
 
   // ── Slide data ────────────────────────────────────────────────────────────
   static const List<_OnboardSlide> _slides = [
@@ -191,91 +190,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                 itemBuilder: (_, index) => _buildSlide(index, mq),
               ),
 
-              // ── TOP BAR ───────────────────────────────────────────────
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Logo + Brand
-                      Row(
-                        children: [
-                          Container(
-                            width: 36, height: 36,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.3),
-                                  blurRadius: 12,
-                                ),
-                              ],
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Image.asset(
-                              'assets/images/maps_logo.png',
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => const Icon(
-                                Icons.local_cafe_rounded,
-                                color: Colors.white, size: 18,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Lucky Boba',
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withValues(alpha: 0.5),
-                                  blurRadius: 12,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // Skip button
-                      AnimatedOpacity(
-                        opacity: isLast ? 0 : 1,
-                        duration: const Duration(milliseconds: 300),
-                        child: GestureDetector(
-                          onTap: isLast ? null : _finish,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.25),
-                              ),
-                            ),
-                            child: Text(
-                              'Skip',
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // TOP BAR REMOVED
 
               // ── BOTTOM CONTROLS ───────────────────────────────────────
               Positioned(
@@ -286,12 +201,13 @@ class _OnboardingPageState extends State<OnboardingPage>
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Progress dots
-                        _buildProgressDots(),
-                        const SizedBox(height: 22),
                         // CTA Button
                         _buildCTAButton(isLast),
+                        const SizedBox(height: 22),
+                        // Progress dots
+                        _buildProgressDots(),
                       ],
                     ),
                   ),
@@ -374,117 +290,39 @@ class _OnboardingPageState extends State<OnboardingPage>
             position: _contentSlide[index],
             child: Padding(
               padding: EdgeInsets.fromLTRB(
-                28, mq.padding.top + 80, 28, 160,
+                28, mq.padding.top + 80, 28, 200,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Emoji + Badge row
-                  Row(
-                    children: [
-                      // Animated emoji bubble
-                      AnimatedBuilder(
-                        animation: _floatCtrl,
-                        builder: (_, child) => Transform.translate(
-                          offset: Offset(0, _floatAnim.value * 0.4),
-                          child: child,
-                        ),
-                        child: Container(
-                          width: 52, height: 52,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                slide.accentColor.withValues(alpha: 0.25),
-                                slide.accentColor.withValues(alpha: 0.08),
-                              ],
-                            ),
-                            border: Border.all(
-                              color: slide.accentColor.withValues(alpha: 0.35),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              slide.emoji,
-                              style: const TextStyle(fontSize: 24),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      // Badge pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: slide.accentColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: slide.accentColor.withValues(alpha: 0.40),
-                            width: 1.2,
-                          ),
-                        ),
-                        child: Text(
-                          slide.badge,
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: slide.accentColor,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 22),
-
-                  // Title with gradient
-                  ShaderMask(
-                    shaderCallback: (bounds) => LinearGradient(
-                      colors: [Colors.white, Colors.white.withValues(alpha: 0.85)],
-                    ).createShader(bounds),
-                    child: Text(
-                      slide.title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 38,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        height: 1.1,
-                        letterSpacing: -0.5,
-                      ),
+                  Text(
+                    slide.title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 38,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.1,
+                      letterSpacing: -0.5,
+                      shadows: [
+                        Shadow(color: Colors.black.withValues(alpha: 0.8), blurRadius: 8, offset: const Offset(0, 2)),
+                        Shadow(color: Colors.black.withValues(alpha: 0.8), blurRadius: 16, offset: const Offset(0, 4)),
+                      ],
                     ),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Accent divider line
-                  Container(
-                    width: 48,
-                    height: 3.5,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(2),
-                      gradient: LinearGradient(
-                        colors: [slide.accentColor, slide.accentColor.withValues(alpha: 0.3)],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Subtitle
                   Text(
                     slide.subtitle,
                     style: GoogleFonts.poppins(
                       fontSize: 14.5,
-                      color: Colors.white.withValues(alpha: 0.75),
+                      color: Colors.white,
                       height: 1.6,
-                      fontWeight: FontWeight.w400,
+                      fontWeight: FontWeight.w500,
+                      shadows: [
+                        Shadow(color: Colors.black.withValues(alpha: 0.8), blurRadius: 6, offset: const Offset(0, 2)),
+                      ],
                     ),
                   ),
                 ],
@@ -496,30 +334,24 @@ class _OnboardingPageState extends State<OnboardingPage>
     );
   }
 
-  // ── PROGRESS DOTS ─────────────────────────────────────────────────────────
   Widget _buildProgressDots() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: List.generate(_slides.length, (i) {
         final active = i == _currentPage;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 350),
           curve: Curves.easeInOut,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: active ? 32 : 8,
+          margin: const EdgeInsets.only(right: 8),
+          width: active ? 28 : 8,
           height: 8,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
-            gradient: active
-                ? LinearGradient(
-                    colors: [_orange, _slides[_currentPage].accentColor],
-                  )
-                : null,
-            color: active ? null : Colors.white.withValues(alpha: 0.25),
+            color: active ? const Color(0xFFA64DFF) : Colors.white.withValues(alpha: 0.3),
             boxShadow: active
                 ? [
                     BoxShadow(
-                      color: _orange.withValues(alpha: 0.4),
+                      color: const Color(0xFFA64DFF).withValues(alpha: 0.4),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -535,87 +367,48 @@ class _OnboardingPageState extends State<OnboardingPage>
   Widget _buildCTAButton(bool isLast) {
     return GestureDetector(
       onTap: _next,
-      child: AnimatedBuilder(
-        animation: _shimmerCtrl,
-        builder: (_, _) {
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: isLast
-                    ? [_orange, const Color(0xFFFF6B35)]
-                    : [_purple, const Color(0xFF9B30FF)],
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Color(0xFFA64DFF), Color(0xFFC47AFF)],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFA64DFF).withValues(alpha: 0.45),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              isLast ? 'Get Started' : 'Continue',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: 0.3,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: (isLast ? _orange : _purple).withValues(alpha: 0.45),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Shimmer sweep overlay
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: Transform.translate(
-                    offset: Offset(
-                      ((_shimmerCtrl.value * 2) - 0.5) *
-                          MediaQuery.of(context).size.width,
-                      0,
-                    ),
-                    child: Container(
-                      width: 80,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            Colors.white.withValues(alpha: 0.15),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Button content
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      isLast ? 'Get Started' : 'Continue',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: Icon(
-                        isLast
-                            ? Icons.local_cafe_rounded
-                            : Icons.arrow_forward_rounded,
-                        key: ValueKey(isLast),
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            const SizedBox(width: 8),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Icon(
+                isLast ? Icons.local_cafe_rounded : Icons.arrow_forward_rounded,
+                key: ValueKey(isLast),
+                color: Colors.white,
+                size: 20,
+              ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }

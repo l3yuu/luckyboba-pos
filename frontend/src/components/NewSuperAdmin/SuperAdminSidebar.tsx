@@ -21,7 +21,7 @@ export type TabId =
   | "card_management" | "card_approvals"
   | "card_members"
   | "loyalty"
-  | "customers"
+  | "customers" | "app_branches"
   | "promotions" | "vouchers" | "payment_settings" | "audit" | "settings" | "featured_drinks";
 
 export interface SuperAdminSidebarProps {
@@ -50,11 +50,11 @@ const STYLES = `
     border-radius: 0.4rem; border: none; cursor: pointer;
     background: transparent; transition: background 0.12s, color 0.12s;
   }
-  .sa-tab:hover  { background: #f5f3ff; color: #3b2063; }
-  .sa-tab.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
+  .sa-tab:hover  { background: #f5f3ff; color: #a020f0; }
+  .sa-tab.active { background: #ede8ff; color: #a020f0; font-weight: 600; }
   .sa-tab.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-    width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
+    width: 2.5px; background: #a020f0; border-radius: 0 2px 2px 0;
   }
 
   .sa-accordion {
@@ -95,11 +95,11 @@ const STYLES = `
     transition: background 0.12s, color 0.12s;
     position: relative;
   }
-  .sa-item:hover  { background: #f4f2ff; color: #3b2063; }
-  .sa-item.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
+  .sa-item:hover  { background: #f4f2ff; color: #a020f0; }
+  .sa-item.active { background: #ede8ff; color: #a020f0; font-weight: 600; }
   .sa-item.active::before {
     content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
-    width: 3px; background: #3b2063; border-radius: 0 3px 3px 0;
+    width: 3px; background: #a020f0; border-radius: 0 3px 3px 0;
   }
 
   .sa-item-icon {
@@ -118,7 +118,7 @@ const STYLES = `
     color: #3f3f46; font-size: 0.95rem; font-weight: 500;
     transition: background 0.12s, color 0.12s;
   }
-  .sa-group-btn:hover { background: #f4f2ff; color: #3b2063; }
+  .sa-group-btn:hover { background: #f4f2ff; color: #a020f0; }
   .sa-group-btn .sa-item-icon {
     flex-shrink: 0; width: 38px; height: 38px; border-radius: 0.6rem;
     background: #f4f4f5; display: flex; align-items: center; justify-content: center;
@@ -145,11 +145,11 @@ const STYLES = `
     transition: background 0.12s, color 0.12s;
     position: relative;
   }
-  .sa-sub:hover  { background: #f4f2ff; color: #3b2063; }
-  .sa-sub.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
+  .sa-sub:hover  { background: #f4f2ff; color: #a020f0; }
+  .sa-sub.active { background: #ede8ff; color: #a020f0; font-weight: 600; }
   .sa-sub.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-    width: 3px; background: #3b2063; border-radius: 0 3px 3px 0;
+    width: 3px; background: #a020f0; border-radius: 0 3px 3px 0;
   }
   .sa-sub::after {
     content: ''; position: absolute; left: 51px; top: 50%;
@@ -157,7 +157,7 @@ const STYLES = `
     background: #d4d4d8; transform: translateY(-50%);
     transition: background 0.12s;
   }
-  .sa-sub.active::after, .sa-sub:hover::after { background: #3b2063; }
+  .sa-sub.active::after, .sa-sub:hover::after { background: #a020f0; }
 
   .sa-logout {
     display: flex; align-items: center; gap: 14px;
@@ -219,6 +219,7 @@ const EXPENSES_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 
 const MOBILE_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "online_orders",  label: "Online Orders",     icon: <ShoppingBag size={14} /> },
+  { id: "app_branches",   label: "Branches",          icon: <GitBranch size={14} /> },
   { id: "card_management", label: "Card Management", icon: <CreditCard size={14} /> },
   { id: "card_approvals", label: "Card Approvals", icon: <CreditCard size={14} /> },
   { id: "card_members",     label: "Card Members",   icon: <Users      size={14} /> },
@@ -261,10 +262,10 @@ const SubItem = ({
   <button
     onClick={onClick}
     className={`sa-tab flex items-center gap-2 w-full pl-7 pr-2.5 py-1.5 text-[0.76rem] font-medium mb-0.5 text-left relative
-      ${active ? "active text-[#3b2063]" : "text-zinc-500"}`}
+      ${active ? "active text-[#a020f0]" : "text-zinc-500"}`}
   >
     <span className="absolute left-4 top-1/2 -translate-y-1/2 w-px h-3 bg-zinc-200 rounded-full" />
-    <span className={`shrink-0 ${active ? "text-[#3b2063]" : "text-zinc-400"}`}>{item.icon}</span>
+    <span className={`shrink-0 ${active ? "text-[#a020f0]" : "text-zinc-400"}`}>{item.icon}</span>
     {item.label}
   </button>
 );
@@ -282,9 +283,9 @@ const NavGroup = ({
     <button
       onClick={onToggle}
       className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative transition-colors
-        ${isGroupActive ? "active text-[#3b2063]" : "text-zinc-500"}`}
+        ${isGroupActive ? "active text-[#a020f0]" : "text-zinc-500"}`}
     >
-      <span className={`shrink-0 ${isGroupActive ? "text-[#3b2063]" : "text-zinc-400"}`}>{icon}</span>
+      <span className={`shrink-0 ${isGroupActive ? "text-[#a020f0]" : "text-zinc-400"}`}>{icon}</span>
       <span className="flex-1">{label}</span>
       <ChevronDown size={12} className={`sa-chevron ${expanded ? "open" : ""}`} />
     </button>
@@ -309,7 +310,7 @@ const MobileGroup = ({
 }) => (
   <>
     <button onClick={onToggle} className="sa-group-btn">
-      <span className="sa-item-icon" style={{ color: isGroupActive ? '#3b2063' : '#71717a' }}>{icon}</span>
+      <span className="sa-item-icon" style={{ color: isGroupActive ? '#a020f0' : '#71717a' }}>{icon}</span>
       <span style={{ flex: 1 }}>{label}</span>
       <ChevronDown size={16} className={`sa-m-chevron ${expanded ? "open" : ""}`} />
     </button>
@@ -421,7 +422,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
         {/* User profile */}
         <div className="shrink-0 px-4 pt-6 pb-4 border-b border-zinc-100">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-[0.4rem] bg-[#3b2063] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-[0.4rem] bg-[#a020f0] flex items-center justify-center shrink-0">
               <span className="text-[0.55rem] font-black text-white tracking-wide">{initials}</span>
             </div>
             {authUser ? (
@@ -444,7 +445,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           {NAV_ITEMS.map(t => (
             <button key={t.id} onClick={() => go(t.id)}
               className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === t.id ? "active" : "text-zinc-500"}`}>
-              <span className={`shrink-0 ${active === t.id ? "text-[#3b2063]" : "text-zinc-400"}`}>{t.icon}</span>
+              <span className={`shrink-0 ${active === t.id ? "text-[#a020f0]" : "text-zinc-400"}`}>{t.icon}</span>
               {t.label}
             </button>
           ))}
@@ -478,7 +479,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           {SYSTEM_ITEMS.map(t => (
             <button key={t.id} onClick={() => go(t.id)}
               className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === t.id ? "active" : "text-zinc-500"}`}>
-              <span className={`shrink-0 ${active === t.id ? "text-[#3b2063]" : "text-zinc-400"}`}>{t.icon}</span>
+              <span className={`shrink-0 ${active === t.id ? "text-[#a020f0]" : "text-zinc-400"}`}>{t.icon}</span>
               {t.label}
             </button>
           ))}
@@ -489,7 +490,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
         <div className="shrink-0 px-3 pb-4 pt-2 border-t border-zinc-100">
           <button onClick={() => go("settings")}
             className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === "settings" ? "active" : "text-zinc-500"}`}>
-            <span className={`shrink-0 ${active === "settings" ? "text-[#3b2063]" : "text-zinc-400"}`}><Settings size={14} /></span>
+            <span className={`shrink-0 ${active === "settings" ? "text-[#a020f0]" : "text-zinc-400"}`}><Settings size={14} /></span>
             Settings
           </button>
           <div className="h-px bg-zinc-100 my-2" />
@@ -538,7 +539,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
             <div style={{ flexShrink: 0, padding: "56px 20px 16px", paddingTop: "max(56px, calc(env(safe-area-inset-top) + 20px))" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #7c3aed, #3b2063)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 0 3px #ede8ff" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: "linear-gradient(135deg, #7c3aed, #a020f0)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 0 3px #ede8ff" }}>
                     <span style={{ fontSize: "1rem", fontWeight: 800, color: "#fff" }}>{initials}</span>
                   </div>
                   <div>
@@ -563,7 +564,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               <div className="sa-sec">Navigation</div>
               {NAV_ITEMS.map(t => (
                 <button key={t.id} onClick={() => go(t.id)} className={`sa-item ${active === t.id ? "active" : ""}`}>
-                  <span className="sa-item-icon" style={{ color: active === t.id ? "#3b2063" : "#71717a" }}>{t.icon}</span>
+                  <span className="sa-item-icon" style={{ color: active === t.id ? "#a020f0" : "#71717a" }}>{t.icon}</span>
                   {t.label}
                 </button>
               ))}
@@ -596,7 +597,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               <div className="sa-sec">System</div>
               {SYSTEM_ITEMS.map(t => (
                 <button key={t.id} onClick={() => go(t.id)} className={`sa-item ${active === t.id ? "active" : ""}`}>
-                  <span className="sa-item-icon" style={{ color: active === t.id ? "#3b2063" : "#71717a" }}>{t.icon}</span>
+                  <span className="sa-item-icon" style={{ color: active === t.id ? "#a020f0" : "#71717a" }}>{t.icon}</span>
                   {t.label}
                 </button>
               ))}
@@ -605,8 +606,8 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
 
             {/* Bottom actions */}
             <div style={{ flexShrink: 0, padding: "8px 14px", paddingBottom: "max(24px, env(safe-area-inset-bottom))", borderTop: "1px solid #f0f0f2" }}>
-              <button onClick={() => go("settings")} className={`sa-item ${active === "settings" ? "active" : ""}`} style={{ color: active === "settings" ? "#3b2063" : "#3f3f46" }}>
-                <span className="sa-item-icon" style={{ color: active === "settings" ? "#3b2063" : "#71717a" }}><Settings size={18} /></span>
+              <button onClick={() => go("settings")} className={`sa-item ${active === "settings" ? "active" : ""}`} style={{ color: active === "settings" ? "#a020f0" : "#3f3f46" }}>
+                <span className="sa-item-icon" style={{ color: active === "settings" ? "#a020f0" : "#71717a" }}><Settings size={18} /></span>
                 Settings
               </button>
               <button onClick={() => setShowLogoutModal(true)} disabled={isLoggingOut} className="sa-logout">
@@ -648,7 +649,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
             </p>
             {authUser && (
               <div style={{ width: "100%", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, padding: 12, background: "#f9f9f9", border: "1px solid #e4e4e7", borderRadius: "0.75rem", textAlign: "left" }}>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#3b2063", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#a020f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#fff" }}>{initials}</span>
                 </div>
                 <div style={{ minWidth: 0 }}>

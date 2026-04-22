@@ -70,7 +70,7 @@ const Btn: React.FC<{
   className?: string;
 }> = ({ children, variant = "primary", size = "sm", onClick, disabled, className = "" }) => {
   const v = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#a020f0] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -538,13 +538,13 @@ const fetchData = async () => {
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex items-center gap-3">
           <div className="relative group flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0]" size={15} />
             <input
               type="text"
               placeholder="Search by POS number, device ID, or cashier..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all shadow-sm"
             />
           </div>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}

@@ -3,7 +3,7 @@ import { ArrowLeft, FileDown, Database, Upload, AlertCircle, Info, AlertTriangle
 
 // ─── Design tokens (matching BranchManagerDashboard) ─────────────────────────
 // bg:       #f5f4f8   card: white + border-gray-100 + rounded-2xl
-// primary:  #3b2063   primary-dark: #2a1647
+// primary:  #a020f0   primary-dark: #2a1647
 // text:     #1a0f2e   muted: #71717a   label: #a1a1aa
 // accent:   #ede9fe   accent-border: #ddd6f7
 // font:     DM Sans
@@ -35,7 +35,7 @@ const PageHeader = ({ onBack, title, subtitle }: { onBack: () => void; title: st
       <ArrowLeft size={15} strokeWidth={2.5} />
     </button>
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-[#3b2063] rounded-xl flex items-center justify-center shadow-sm shrink-0">
+      <div className="w-10 h-10 bg-[#a020f0] rounded-xl flex items-center justify-center shadow-sm shrink-0">
         <FileDown size={17} className="text-white" strokeWidth={2.5} />
       </div>
       <div>
@@ -47,9 +47,9 @@ const PageHeader = ({ onBack, title, subtitle }: { onBack: () => void; title: st
 );
 
 const DropZone = ({ label = 'Click to Add File' }: { label?: string }) => (
-  <div className="border-2 border-dashed border-gray-200 bg-[#f5f4f8] rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#ede9fe]/20 transition-all cursor-pointer group">
+  <div className="border-2 border-dashed border-gray-200 bg-[#f5f4f8] rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#a020f0] hover:bg-[#ede9fe]/20 transition-all cursor-pointer group">
     <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-      <Upload size={22} className="text-zinc-400 group-hover:text-[#3b2063]" />
+      <Upload size={22} className="text-zinc-400 group-hover:text-[#a020f0]" />
     </div>
     <div>
       <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1a0f2e', textTransform: 'uppercase', letterSpacing: '0.14em' }}>{label}</p>
@@ -60,15 +60,15 @@ const DropZone = ({ label = 'Click to Add File' }: { label?: string }) => (
 
 const TipHeader = ({ label = 'Important Tips: Sample Format CSV' }: { label?: string }) => (
   <div className="flex items-center gap-2 mb-3">
-    <AlertCircle size={13} className="text-[#3b2063] shrink-0" />
-    <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#3b2063', textTransform: 'uppercase', letterSpacing: '0.2em' }}>{label}</span>
+    <AlertCircle size={13} className="text-[#a020f0] shrink-0" />
+    <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#a020f0', textTransform: 'uppercase', letterSpacing: '0.2em' }}>{label}</span>
   </div>
 );
 
 const InfoBox = ({ items }: { items: string[] }) => (
   <div className="bg-[#ede9fe]/40 border border-[#ddd6f7] rounded-xl p-4 flex gap-3">
-    <Info size={15} className="text-[#3b2063] shrink-0 mt-0.5" />
-    <div style={{ fontSize: '0.7rem', color: '#3b2063', fontWeight: 500 }} className="space-y-1">
+    <Info size={15} className="text-[#a020f0] shrink-0 mt-0.5" />
+    <div style={{ fontSize: '0.7rem', color: '#a020f0', fontWeight: 500 }} className="space-y-1">
       {items.map((t, i) => <p key={i}>{t}</p>)}
     </div>
   </div>
@@ -88,7 +88,7 @@ const SampleTable = ({ headers, rows }: { headers: string[]; rows: (string | num
         <thead>
           <tr className="bg-[#f5f4f8] border-b border-gray-100">
             {headers.map((h, i) => (
-              <th key={i} className="px-4 py-2.5" style={{ fontSize: '0.6rem', fontWeight: 800, color: '#3b2063', textTransform: 'uppercase', letterSpacing: '0.16em', textAlign: 'center' }}>{h}</th>
+              <th key={i} className="px-4 py-2.5" style={{ fontSize: '0.6rem', fontWeight: 800, color: '#a020f0', textTransform: 'uppercase', letterSpacing: '0.16em', textAlign: 'center' }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -108,7 +108,7 @@ const SampleTable = ({ headers, rows }: { headers: string[]; rows: (string | num
 
 const ActionRow = ({ onBack, importLabel = 'Import' }: { onBack: () => void; importLabel?: string }) => (
   <div className="flex gap-3">
-    <button className="h-11 px-6 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-[10px] uppercase tracking-[0.18em] transition-all rounded-xl shadow-sm flex items-center gap-2 active:scale-[0.98]">
+    <button className="h-11 px-6 bg-[#a020f0] hover:bg-[#2a1647] text-white font-bold text-[10px] uppercase tracking-[0.18em] transition-all rounded-xl shadow-sm flex items-center gap-2 active:scale-[0.98]">
       <FileDown size={14} strokeWidth={2.5} /> {importLabel}
     </button>
     <button onClick={onBack} className="h-11 px-6 bg-white border border-gray-100 hover:border-[#ddd6f7] hover:bg-[#ede9fe]/20 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.18em] transition-all rounded-xl shadow-sm active:scale-[0.98]">
@@ -151,7 +151,7 @@ const ViewInventory = ({ onBack }: { onBack: () => void }) => (
         {[['Items with VAT', ['VATABLE','NOT-VATABLE']], ['Items Active', ['ACTIVE','NOT-ACTIVE']], ['Nonstock', ['YES','NO']]].map(([lbl, opts], i) => (
           <div key={i} className="space-y-1.5">
             <label style={{ fontSize: '0.62rem', fontWeight: 800, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.16em' }}>{lbl as string}</label>
-            <select className="w-full px-4 py-3 bg-[#f5f4f8] border border-gray-100 rounded-xl text-xs font-bold text-[#1a0f2e] outline-none focus:border-[#3b2063] cursor-pointer transition-colors">
+            <select className="w-full px-4 py-3 bg-[#f5f4f8] border border-gray-100 rounded-xl text-xs font-bold text-[#1a0f2e] outline-none focus:border-[#a020f0] cursor-pointer transition-colors">
               {(opts as string[]).map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
@@ -176,7 +176,7 @@ const ViewFoodItems = ({ onBack }: { onBack: () => void }) => (
         {[['Items with VAT', ['VATABLE','NOT-VATABLE']], ['Items Active', ['ACTIVE','NOT-ACTIVE']]].map(([lbl, opts], i) => (
           <div key={i} className="space-y-1.5">
             <label style={{ fontSize: '0.62rem', fontWeight: 800, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.16em' }}>{lbl as string}</label>
-            <select className="w-full px-4 py-3 bg-[#f5f4f8] border border-gray-100 rounded-xl text-xs font-bold text-[#1a0f2e] outline-none focus:border-[#3b2063] cursor-pointer transition-colors">
+            <select className="w-full px-4 py-3 bg-[#f5f4f8] border border-gray-100 rounded-xl text-xs font-bold text-[#1a0f2e] outline-none focus:border-[#a020f0] cursor-pointer transition-colors">
               {(opts as string[]).map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
@@ -336,7 +336,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
               <ArrowLeft size={15} strokeWidth={2.5} />
             </button>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#3b2063] rounded-xl flex items-center justify-center shadow-sm shrink-0">
+              <div className="w-10 h-10 bg-[#a020f0] rounded-xl flex items-center justify-center shadow-sm shrink-0">
                 <FileDown size={17} className="text-white" strokeWidth={2.5} />
               </div>
               <div>
@@ -356,7 +356,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-[#f5f4f8] group-hover:bg-[#ede9fe]/60 rounded-xl flex items-center justify-center transition-colors shrink-0">
-                    <Upload size={15} className="text-[#3b2063]" strokeWidth={2.5} />
+                    <Upload size={15} className="text-[#a020f0]" strokeWidth={2.5} />
                   </div>
                   <div className="min-w-0">
                     <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1a0f2e', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1.3 }}>{item.label}</p>
@@ -370,7 +370,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           {/* Footer note */}
           <div className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
             <div className="w-8 h-8 bg-[#f5f4f8] rounded-xl flex items-center justify-center shrink-0">
-              <Database size={14} className="text-[#3b2063]" strokeWidth={2.5} />
+              <Database size={14} className="text-[#a020f0]" strokeWidth={2.5} />
             </div>
             <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
               Ensure files are in .CSV or .XLSX format before importing.

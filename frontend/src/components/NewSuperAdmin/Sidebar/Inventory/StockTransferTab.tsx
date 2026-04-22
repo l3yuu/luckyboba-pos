@@ -109,7 +109,7 @@ const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: Si
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white shadow-sm",
+    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white shadow-sm",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm",
     danger: "bg-red-600 hover:bg-red-700 text-white shadow-sm",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -124,7 +124,7 @@ const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: Si
 
 const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ col, active, dir }) => {
   if (col !== active) return <ChevronDown size={11} className="text-zinc-300 ml-0.5" />;
-  return dir === "asc" ? <ChevronUp size={11} className="text-[#3b2063] ml-0.5" /> : <ChevronDown size={11} className="text-[#3b2063] ml-0.5" />;
+  return dir === "asc" ? <ChevronUp size={11} className="text-[#a020f0] ml-0.5" /> : <ChevronDown size={11} className="text-[#a020f0] ml-0.5" />;
 };
 
 const StatusBadge: React.FC<{ status: TransferStatus }> = ({ status }) => {
@@ -435,7 +435,7 @@ const ViewTransferModal: React.FC<{
               ].map((step) => (
                 <div key={step.label} className="grid grid-cols-[90px_1fr_auto] gap-2 items-center text-[11px]">
                   <span className="font-black text-zinc-500 uppercase tracking-wider">{step.label}</span>
-                  <span className="font-bold text-[#3b2063]">{step.user}</span>
+                  <span className="font-bold text-[#a020f0]">{step.user}</span>
                   <span className="font-semibold text-zinc-400 tabular-nums">{formatDateTime(step.at)}</span>
                 </div>
               ))}
@@ -444,9 +444,9 @@ const ViewTransferModal: React.FC<{
 
           {/* Timeline Visual */}
           <div className="relative flex items-center justify-between gap-4 p-5 bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden mt-2">
-            <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#3b2063]" />
+            <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#a020f0]" />
             <div className="flex-1 flex flex-col items-center">
-              <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">From Source</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-[#a020f0] mb-1">From Source</p>
               <div className="flex items-center gap-2 bg-white border border-zinc-200 px-3 py-2 rounded-xl shadow-sm w-full min-h-[44px] justify-center text-center">
                 <Building2 size={14} className="text-zinc-400 shrink-0" />
                 <span className="text-xs font-black text-[#1a0f2e]">{transfer.from_branch?.name ?? transfer.from_branch_name ?? (transfer.from_branch_id === null ? 'Main Office' : '—')}</span>
@@ -458,7 +458,7 @@ const ViewTransferModal: React.FC<{
               </div>
             </div>
             <div className="flex-1 flex flex-col items-center">
-              <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">To Destination</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-[#a020f0] mb-1">To Destination</p>
               <div className="flex items-center gap-2 bg-white border border-zinc-200 px-3 py-2 rounded-xl shadow-sm w-full min-h-[44px] justify-center text-center">
                 <Building2 size={14} className="text-zinc-400 shrink-0" />
                 <span className="text-xs font-black text-[#1a0f2e]">{transfer.to_branch?.name ?? transfer.to_branch_name ?? (transfer.to_branch_id === null ? 'Main Office' : '—')}</span>
@@ -498,7 +498,7 @@ const ViewTransferModal: React.FC<{
                       </td>
                       <td className="px-4 py-3 text-right">
                          <div className="flex flex-col items-end">
-                            <span className="font-black text-[#3b2063] text-sm tabular-nums">{item.quantity}</span>
+                            <span className="font-black text-[#a020f0] text-sm tabular-nums">{item.quantity}</span>
                             {item.conversion_factor && item.conversion_factor > 1 && (
                               <span className="text-[9px] text-zinc-400 font-bold tabular-nums">
                                 Total: {Number(item.quantity) * item.conversion_factor}

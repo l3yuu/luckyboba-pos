@@ -157,13 +157,13 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
   const isDineIn = order.order_type === 'dine_in';
 
   return (
-    <div className={`bg-white rounded-xl border-2 ${meta.border} shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden`}>
+    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col relative group">
 
       {/* Card header */}
       <div className={`${meta.bg} px-4 py-3 flex items-center justify-between border-b ${meta.border}`}>
         <div className="flex items-center gap-2">
           {meta.icon}
-          <span className="font-black text-sm text-[#1a0f2e]">#{seqNumber}</span>
+          <span className="font-black text-sm text-zinc-900">#{seqNumber}</span>
           <span className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest">{invoice}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -187,14 +187,14 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-[#f5f0ff] rounded-lg flex items-center justify-center shrink-0">
-              <User size={13} className="text-[#3b2063]" />
+              <User size={13} className="text-[#a020f0]" />
             </div>
             <div>
-              <div className="text-xs font-black text-[#1a0f2e] leading-tight">
+              <div className="text-xs font-black text-zinc-900 leading-tight">
                 {order.customer_name ?? 'App Customer'}
               </div>
               {order.customer_code && (
-                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
                   {order.customer_code}
                 </div>
               )}
@@ -216,7 +216,7 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
             {(order.qr_code || invoice) && (
               <button
                 onClick={() => setShowQr(v => !v)}
-                className="flex items-center gap-1 px-2 py-1 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg text-[10px] font-bold text-[#7c14d4] hover:bg-[#ede9fe] transition-colors"
+                className="flex items-center gap-1 px-2 py-1 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg text-[10px] font-bold text-[#a020f0] hover:bg-[#ede9fe] transition-colors"
               >
                 <QrCode size={11} />
                 QR
@@ -228,7 +228,7 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
         {/* Order number popup */}
         {showQr && (
           <div className="flex flex-col items-center gap-2 py-3 bg-[#f5f0ff] rounded-lg border border-[#e9d5ff]">
-            <div className="text-[10px] font-black uppercase tracking-widest text-[#7c14d4]">Order Number</div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#a020f0]">Order Number</div>
             <div className="text-4xl font-black text-[#1a0f2e] tracking-widest font-mono">#{seqNumber}</div>
             {order.customer_code && (
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
@@ -244,22 +244,22 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
             const safeAddOns = Array.isArray(item.add_ons) ? item.add_ons : [];
             return (
               <div key={i} className="flex items-start justify-between gap-2 text-xs">
-                <div className="flex items-start gap-1.5 min-w-0">
-                  <span className="text-zinc-400 font-bold shrink-0">×{itemQty(item)}</span>
+                <div className="flex items-start gap-2 min-w-0">
+                  <span className="text-zinc-400 font-bold shrink-0 mt-0.5">×{itemQty(item)}</span>
                   <div className="min-w-0">
-                    <span className="font-bold text-[#1a0f2e] truncate block">
+                    <span className="font-bold text-zinc-800 truncate block text-[11px] leading-tight">
                       {item.name}
                       {item.cup_size && <span className="text-zinc-400 font-normal ml-1">({item.cup_size})</span>}
                     </span>
                     {safeAddOns.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-0.5">
+                      <div className="flex flex-wrap gap-1 mt-1">
                         {safeAddOns.map((a, j) => {
                           let addOnName = '';
                           if (typeof a === 'string') addOnName = a;
                           else if (typeof a === 'object' && a !== null) addOnName = a.name || a.addon_name || JSON.stringify(a);
                           if (!addOnName) return null;
                           return (
-                            <span key={j} className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded font-bold">
+                            <span key={j} className="bg-amber-50 text-amber-600 border border-amber-200 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                               +{addOnName}
                             </span>
                           );
@@ -268,7 +268,7 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
                     )}
                   </div>
                 </div>
-                <span className="font-bold text-[#7c14d4] shrink-0">
+                <span className="font-black text-violet-600 shrink-0">
                   {fmt(itemPrice(item) * itemQty(item))}
                 </span>
               </div>
@@ -277,9 +277,9 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
         </div>
 
         {/* Total */}
-        <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
+        <div className="flex items-center justify-between pt-3 pb-1 border-t border-zinc-100 mt-1">
           <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total</span>
-          <span className="text-base font-black text-[#1a0f2e]">{fmt(orderTotal(order))}</span>
+          <span className="text-lg font-black text-zinc-900 tracking-tight">{fmt(orderTotal(order))}</span>
         </div>
 
         {/* Action button */}
@@ -287,7 +287,7 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
           <button
             onClick={() => onMove(order.id, next)}
             disabled={updating}
-            className={`w-full py-2.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${next === 'preparing' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+            className={`w-full py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${next === 'preparing' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-[0_4px_14px_0_rgba(37,99,235,0.3)]' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_4px_14px_0_rgba(16,185,129,0.3)]'}`}
           >
             {updating
               ? 'Updating...'
@@ -320,8 +320,8 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId }: ColumnPro
   };
 
   return (
-    <div className="flex flex-col min-h-0 flex-1">
-      <div className={`flex items-center justify-between px-4 py-3 rounded-xl mb-3 ${meta.bg} border ${meta.border}`}>
+    <div className="flex flex-col min-h-0 flex-1 bg-white/40 rounded-3xl p-3 border border-white">
+      <div className={`flex items-center justify-between px-5 py-4 rounded-2xl mb-4 ${meta.bg} border ${meta.border}`}>
         <div className="flex items-center gap-2">
           {meta.icon}
           <span className={`text-xs font-black uppercase tracking-widest ${meta.color}`}>
@@ -332,7 +332,7 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId }: ColumnPro
           {orders.length}
         </span>
       </div>
-      <div className="flex-1 overflow-y-auto space-y-3 pr-1 pb-4" style={{ scrollbarWidth: 'thin' }}>
+      <div className="flex-1 overflow-y-auto space-y-3 px-1 pb-4" style={{ scrollbarWidth: 'thin' }}>
         {orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 gap-2 text-center">
             <Package size={24} className="text-zinc-200" />
@@ -595,8 +595,8 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   if (loading) return (
     <div className="flex items-center justify-center h-full bg-[#f4f2fb]">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-[#7c14d4]/20 border-t-[#7c14d4] rounded-full animate-spin" />
-        <p className="text-xs font-black uppercase tracking-widest text-[#7c14d4]/60">Loading orders...</p>
+        <div className="w-10 h-10 border-4 border-[#a020f0]/20 border-t-[#a020f0] rounded-full animate-spin" />
+        <p className="text-xs font-black uppercase tracking-widest text-[#a020f0]/60">Loading orders...</p>
       </div>
     </div>
   );
@@ -612,13 +612,13 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           {isPage && (
             <button
               onClick={() => navigate(-1)}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#f5f0ff] hover:bg-[#ede9fe] text-[#7c14d4] transition-colors mr-1 border border-[#e9d5ff]"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#f5f0ff] hover:bg-[#ede9fe] text-[#a020f0] transition-colors mr-1 border border-[#e9d5ff]"
               title="Back"
             >
               <ArrowLeft size={18} strokeWidth={2.5} />
             </button>
           )}
-          <div className="w-9 h-9 bg-[#7c14d4] rounded-xl flex items-center justify-center">
+          <div className="w-9 h-9 bg-[#a020f0] rounded-xl flex items-center justify-center">
             <ShoppingBag size={16} className="text-white" />
           </div>
           <div>
@@ -636,7 +636,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
               placeholder="Search..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs w-48 focus:outline-none focus:ring-2 focus:ring-[#7c14d4]/20 focus:border-[#7c14d4] transition-all"
+              className="pl-9 pr-4 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs w-48 focus:outline-none focus:ring-2 focus:ring-[#a020f0]/20 focus:border-[#a020f0] transition-all"
             />
           </div>
         </div>
@@ -650,7 +650,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           <button
             onClick={() => fetchOrders(true)}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-[#7c14d4] text-white rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-[#6b11b8] transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2 bg-[#a020f0] text-white rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-[#6b11b8] transition-colors disabled:opacity-60"
           >
             <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
             Refresh
@@ -707,8 +707,8 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
             <div className="px-6 py-4">
               <p className="text-zinc-500 text-xs font-bold text-center">
                 {confirmOrder.status === 'preparing'
-                  ? 'This will move the order to Preparing and print the kitchen ticket.'
-                  : 'This will mark the order as Completed and print the receipt automatically.'}
+                  ? 'This will move the order to Preparing.'
+                  : 'This will mark the order as Completed.'}
               </p>
             </div>
 
@@ -733,7 +733,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
               >
                 {confirmOrder.status === 'preparing'
                   ? <><Printer size={13} /> TAKE PAYMENT</>
-                  : <><Printer size={13} /> Confirm & Print Receipt</>}
+                  : <><Printer size={13} /> Mark as Done</>}
               </button>
             </div>
           </div>

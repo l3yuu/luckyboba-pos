@@ -15,6 +15,7 @@ import {
   MapPin,
   Clock,
   Lock,
+  Key,
   Globe,
   HelpCircle,
   Check,
@@ -94,7 +95,7 @@ const useKioskIdle = (onReset: () => void) => {
 // --- Main Component ---
 
 const KioskPage = () => {
-  const [step, setStep] = useState<'splash' | 'order_type' | 'menu' | 'confirm' | 'select_branch'>('splash');
+  const [step, setStep] = useState<'locked' | 'splash' | 'order_type' | 'menu' | 'confirm' | 'select_branch'>('splash');
   const [orderType, setOrderType] = useState<'dine_in' | 'take_out' | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('');
@@ -137,6 +138,9 @@ const KioskPage = () => {
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
+  const [accessPassword, setAccessPassword] = useState('');
+  const [accessError, setAccessError] = useState(false);
+  const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
 
   // Admin & Expo State
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
@@ -213,6 +217,12 @@ const KioskPage = () => {
         setBranchId(parsedId);
         localStorage.setItem('kiosk_branch_id', bIdAttr);
 
+        // Check if unlocked for this session
+        const isUnlocked = sessionStorage.getItem(`kiosk_unlocked_${parsedId}`) === 'true';
+        if (!isUnlocked) {
+          setStep('locked');
+        }
+
         try {
           setLoading(true);
           const [res, aoRes, slRes] = await Promise.all([
@@ -284,9 +294,18 @@ const KioskPage = () => {
 
     setBranchId(branch.id);
     setBranchName(branch.name);
+    setAccessPassword('');
+    setAccessError(false);
     localStorage.setItem('kiosk_branch_id', branch.id.toString());
     setSelectedBranchToConfirm(null);
-    setStep('splash');
+
+    // Check if unlocked for this session
+    const isUnlocked = sessionStorage.getItem(`kiosk_unlocked_${branch.id}`) === 'true';
+    if (!isUnlocked) {
+      setStep('locked');
+    } else {
+      setStep('splash');
+    }
     // Refresh items for this branch
     const fetchMenu = async () => {
       try {
@@ -368,6 +387,30 @@ const KioskPage = () => {
       triggerPinError();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyPassword = async () => {
+    if (!branchId || !accessPassword) return;
+    setIsVerifyingPassword(true);
+    setAccessError(false);
+    try {
+      const response = await api.post('/kiosk/verify-password', {
+        password: accessPassword,
+        branch_id: branchId
+      });
+
+      if (response.data.success) {
+        sessionStorage.setItem(`kiosk_unlocked_${branchId}`, 'true');
+        setStep('splash');
+        setAccessPassword('');
+      } else {
+        setAccessError(true);
+      }
+    } catch (_err) {
+      setAccessError(true);
+    } finally {
+      setIsVerifyingPassword(false);
     }
   };
 
@@ -955,8 +998,8 @@ const KioskPage = () => {
           {/* Category Header */}
           <div className="px-5 pt-5 pb-2">
             <div className="relative h-6">
-              <h3 className="text-base font-black text-[#7c14d4] tracking-tight invisible" aria-hidden="true">Categories</h3>
-              <h3 className="text-base font-black text-[#7c14d4] tracking-tight absolute inset-0">{t.categories}</h3>
+              <h3 className="text-base font-black text-[#a020f0] tracking-tight invisible" aria-hidden="true">Categories</h3>
+              <h3 className="text-base font-black text-[#a020f0] tracking-tight absolute inset-0">{t.categories}</h3>
             </div>
             <div className="relative h-4 mt-0.5">
               <p className="text-[10px] font-semibold text-zinc-400 tracking-wide invisible" aria-hidden="true">Pick your vibe</p>
@@ -969,8 +1012,8 @@ const KioskPage = () => {
             <button
               onClick={() => { setActiveCategory(''); setSearchQuery(''); }}
               className={`w-full px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5 ${activeCategory === '' && searchQuery === ''
-                ? 'bg-[#7c14d4] text-white font-bold shadow-lg shadow-purple-200'
-                : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#7c14d4]'
+                ? 'bg-[#a020f0] text-white font-bold shadow-lg shadow-purple-200'
+                : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#a020f0]'
                 }`}
             >
               <span className="text-sm truncate">{t.allMenu}</span>
@@ -981,8 +1024,8 @@ const KioskPage = () => {
                 key={cat}
                 onClick={() => { setActiveCategory(cat); setSearchQuery(''); }}
                 className={`w-full px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5 ${activeCategory === cat
-                  ? 'bg-[#7c14d4] text-white font-bold shadow-lg shadow-purple-200'
-                  : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#7c14d4]'
+                  ? 'bg-[#a020f0] text-white font-bold shadow-lg shadow-purple-200'
+                  : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#a020f0]'
                   }`}
               >
                 <span className="text-sm truncate capitalize">{cat}</span>
@@ -1024,7 +1067,7 @@ const KioskPage = () => {
                 onClick={() => setShowCartDrawer(!showCartDrawer)}
                 className="relative w-10 h-10 bg-white border border-purple-100 rounded-full flex items-center justify-center hover:bg-purple-50 transition-colors shadow-sm"
               >
-                <ShoppingBag size={18} className="text-[#7c14d4]" />
+                <ShoppingBag size={18} className="text-[#a020f0]" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-sm">
                     {cartCount}
@@ -1059,7 +1102,7 @@ const KioskPage = () => {
                       >
                         {t.pickYourHappiness1}<br />
                         <span
-                          className="italic text-[#7c14d4]"
+                          className="italic text-[#a020f0]"
                           style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                         >
                           {t.pickYourHappiness2}
@@ -1099,7 +1142,7 @@ const KioskPage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       <div className="absolute bottom-0 left-0 p-6">
                         <div className="flex gap-2 mb-2">
-                          <span className="px-3 py-1 bg-[#7c14d4] text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{t.bestseller}</span>
+                          <span className="px-3 py-1 bg-[#a020f0] text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{t.bestseller}</span>
                           <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{featuredItems[0].category}</span>
                         </div>
                         <h3
@@ -1178,7 +1221,7 @@ const KioskPage = () => {
                         <div className="p-3 flex flex-col flex-1">
                           <h3 className="font-bold text-xs text-zinc-800 leading-tight mb-1 h-8 overflow-hidden line-clamp-2">
                             {item.name}
-                            {sizeLabel && <span className="text-[#7c14d4] ml-1 font-bold">({sizeLabel})</span>}
+                            {sizeLabel && <span className="text-[#a020f0] ml-1 font-bold">({sizeLabel})</span>}
                           </h3>
                           <div className="flex items-center justify-between mt-auto pt-1.5">
                             <span className="text-orange-600 font-black text-base tracking-tight">
@@ -1219,7 +1262,7 @@ const KioskPage = () => {
               {/* Header */}
               <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-2">
-                  <ShoppingBag size={18} className="text-[#7c14d4]" />
+                  <ShoppingBag size={18} className="text-[#a020f0]" />
                   <h2 className="text-base font-black text-zinc-900">{t.myOrder} ({cartCount})</h2>
                 </div>
                 <button
@@ -1254,7 +1297,7 @@ const KioskPage = () => {
                         <div className="flex-1 min-w-0">
                           <h4 className="font-bold text-zinc-800 text-xs leading-tight line-clamp-1">
                             {item.name}
-                            {sizeLabel && <span className="text-[#7c14d4] ml-1">({sizeLabel})</span>}
+                            {sizeLabel && <span className="text-[#a020f0] ml-1">({sizeLabel})</span>}
                           </h4>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {item.selectedSugarLevel && <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} {t.sugar}</span>}
@@ -1325,7 +1368,7 @@ const KioskPage = () => {
               <div className="p-10 border-b border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-6">
                   <div className="w-20 h-20 bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl flex items-center justify-center shadow-inner">
-                    <ShoppingBag size={40} className="text-[#7c14d4]" />
+                    <ShoppingBag size={40} className="text-[#a020f0]" />
                   </div>
                   <div>
                     <div className="relative">
@@ -1350,7 +1393,7 @@ const KioskPage = () => {
                   {mixMatchStep === 'customize_drink' && (
                     <button
                       onClick={() => setMixMatchStep('select_drink')}
-                      className="px-6 py-3 bg-white border border-purple-200 text-[#7c14d4] rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
+                      className="px-6 py-3 bg-white border border-purple-200 text-[#a020f0] rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
                     >
                       <ChevronRight className="rotate-180" size={16} />
                       {t.backToSelection}
@@ -1393,7 +1436,7 @@ const KioskPage = () => {
                           </div>
                           <div>
                             <h4 className="font-black text-zinc-800 uppercase text-sm tracking-tight leading-tight mb-1">{drink.name}</h4>
-                            {drink.size && <span className="text-[10px] font-black bg-purple-50 text-[#7c14d4] px-2 py-0.5 rounded-full">{drink.size}</span>}
+                            {drink.size && <span className="text-[10px] font-black bg-purple-50 text-[#a020f0] px-2 py-0.5 rounded-full">{drink.size}</span>}
                           </div>
                         </div>
                       ))
@@ -1404,7 +1447,7 @@ const KioskPage = () => {
                     {/* Sugar Level */}
                     <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
                       <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
-                        <span className="w-8 h-8 rounded-full bg-[#7c14d4] text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">1</span>
+                        <span className="w-8 h-8 rounded-full bg-[#a020f0] text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">1</span>
                         {t.selectSugarLevel}
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -1413,7 +1456,7 @@ const KioskPage = () => {
                             key={sl.id}
                             onClick={() => setMixMatchSugar(sl.value)}
                             className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchSugar === sl.value
-                              ? 'bg-[#7c14d4] border-[#7c14d4] text-white shadow-lg shadow-purple-200'
+                              ? 'bg-[#a020f0] border-[#a020f0] text-white shadow-lg shadow-purple-200'
                               : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
                               }`}
                           >
@@ -1527,7 +1570,7 @@ const KioskPage = () => {
                 {mixMatchStep === 'customize_drink' && (
                   <button
                     onClick={confirmMixAndMatch}
-                    className="bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
+                    className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-8 py-4 rounded-xl font-black uppercase tracking-wider text-base flex items-center gap-3 hover:from-orange-600 hover:to-amber-600 transition-all shadow-[0_8px_20px_rgba(234,88,12,0.3)] hover:shadow-[0_12px_25px_rgba(234,88,12,0.4)] hover:-translate-y-[1px] active:scale-95"
                   >
                     {t.addToTray}
                     <Plus size={24} strokeWidth={3} />
@@ -1551,12 +1594,12 @@ const KioskPage = () => {
                     {customizingItem.image ? (
                       <img src={getImageUrl(customizingItem.image)} className="w-full h-full object-cover" />
                     ) : (
-                      <ShoppingBag size={40} className="text-[#7c14d4]" />
+                      <ShoppingBag size={40} className="text-[#a020f0]" />
                     )}
                   </div>
                   <div>
                     <h3 className="text-4xl font-black text-zinc-900 tracking-tight uppercase line-clamp-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{customizingItem.name}</h3>
-                    <div className="inline-block px-3 py-1 bg-purple-50 border border-purple-200 text-[#7c14d4] rounded-lg text-xs font-black uppercase tracking-widest mt-2">{customizingItem.category}</div>
+                    <div className="inline-block px-3 py-1 bg-purple-50 border border-purple-200 text-[#a020f0] rounded-lg text-xs font-black uppercase tracking-widest mt-2">{customizingItem.category}</div>
                   </div>
                 </div>
                 <button
@@ -1572,7 +1615,7 @@ const KioskPage = () => {
                   customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
                     <div className="bg-white/95 p-8 rounded-[2rem] border border-purple-50 shadow-sm">
                       <div className="flex items-center gap-4 mb-6">
-                        <div className="w-10 h-10 bg-[#7c14d4] text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 shadow-md shadow-purple-200">1</div>
+                        <div className="w-10 h-10 bg-[#a020f0] text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 shadow-md shadow-purple-200">1</div>
                         <div className="relative flex-1 h-8">
                           <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase invisible" aria-hidden="true">Select Sugar</h4>
                           <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.selectSugar}</h4>
@@ -1584,7 +1627,7 @@ const KioskPage = () => {
                             key={sl.id}
                             onClick={() => setSelectedSugarLevel(sl.value)}
                             className={`py-5 rounded-2xl font-black text-sm transition-all border-2 ${selectedSugarLevel === sl.value
-                              ? 'bg-[#7c14d4] border-[#7c14d4] text-white shadow-lg shadow-purple-200'
+                              ? 'bg-[#a020f0] border-[#a020f0] text-white shadow-lg shadow-purple-200'
                               : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
                               }`}
                           >
@@ -1667,7 +1710,7 @@ const KioskPage = () => {
                 </div>
                 <button
                   onClick={confirmCustomization}
-                  className="bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
+                  className="bg-gradient-to-r from-[#a020f0] to-purple-500 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
                 >
                   <span>{t.addToTray}</span>
                   <Plus size={24} strokeWidth={3} />
@@ -1924,9 +1967,80 @@ const KioskPage = () => {
     );
   };
 
+
+  const AccessLockView = () => (
+    <div
+      className="flex-1 flex flex-col items-center justify-center p-12 overflow-hidden relative"
+      style={{
+        background: 'linear-gradient(145deg, #1a0b2e 0%, #2e1065 45%, #4c1d95 78%, #5b21b6 100%)'
+      }}
+    >
+      <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-violet-400/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[-15%] left-[-8%] w-[500px] h-[500px] bg-fuchsia-400/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="max-w-md w-full bg-white/10 backdrop-blur-2xl border border-white/20 p-10 rounded-[2.5rem] shadow-2xl flex flex-col items-center relative z-10">
+        <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center mb-8 border border-white/20 shadow-inner">
+          <Lock size={32} className="text-white" />
+        </div>
+
+        <h1 className="text-3xl font-black text-white uppercase tracking-tight mb-2">Kiosk Locked</h1>
+        <p className="text-violet-200 text-sm font-medium mb-8 text-center px-4">
+          Please enter the access password to unlock this kiosk for customer use.
+        </p>
+
+        <div className="w-full space-y-4">
+          <div className="relative group">
+            <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-violet-300 group-focus-within:text-white transition-colors" size={20} />
+            <input
+              type="password"
+              value={accessPassword}
+              onChange={(e) => setAccessPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+              placeholder="Enter Password"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white text-lg font-bold placeholder:text-violet-300/50 focus:bg-white/10 focus:border-white/30 focus:ring-2 focus:ring-white/10 outline-none transition-all tracking-widest"
+              autoFocus
+            />
+          </div>
+
+          {accessError && (
+            <p className="text-red-400 text-xs font-black uppercase tracking-widest text-center animate-bounce">
+              Invalid access password
+            </p>
+          )}
+
+          <button
+            onClick={handleVerifyPassword}
+            disabled={isVerifyingPassword || !accessPassword}
+            className="w-full bg-white text-[#2e1065] py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl hover:bg-violet-50 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 mt-2"
+          >
+            {isVerifyingPassword ? 'Verifying...' : 'Unlock Kiosk'}
+          </button>
+        </div>
+
+        <div className="mt-12 flex flex-col items-center gap-2">
+          <img src={logo} alt="Lucky Boba" className="h-8 w-auto opacity-50" />
+          <p className="text-violet-300/40 text-[9px] font-black uppercase tracking-widest">
+            Branch Security System v2.4
+          </p>
+        </div>
+      </div>
+
+      <button
+        onClick={() => {
+          localStorage.removeItem('kiosk_branch_id');
+          window.location.reload();
+        }}
+        className="absolute bottom-10 text-white/30 hover:text-white/60 font-black text-[10px] uppercase tracking-[0.3em] transition-colors"
+      >
+        Change Branch Location
+      </button>
+    </div>
+  );
+
   return (
     <KioskLayout>
       <div className="h-full flex flex-col bg-white print:hidden overflow-hidden">
+        {step === 'locked' && AccessLockView()}
         {step === 'select_branch' && BranchSelectorView()}
         {step === 'splash' && SplashView()}
         {step === 'order_type' && OrderTypeView()}
@@ -1947,7 +2061,7 @@ const KioskPage = () => {
       )}
 
 
-      {loading && step !== 'menu' && (
+      {loading && step !== 'menu' && step !== 'locked' && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center print:hidden">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />

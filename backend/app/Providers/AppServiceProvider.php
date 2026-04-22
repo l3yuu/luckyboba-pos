@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Observers\UniversalObserver;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 // Import every model you want auto-audited
 use App\Models\Sale;
@@ -55,5 +58,14 @@ class AppServiceProvider extends ServiceProvider
         // if (class_exists(StockTransfer::class))  StockTransfer::observe(UniversalObserver::class);
         // if (class_exists(Supplier::class))       Supplier::observe(UniversalObserver::class);
         // if (class_exists(\App\Models\Voucher::class)) \App\Models\Voucher::observe(UniversalObserver::class);
+
+        // ── Rate Limiters ───────────────────────────────────────────────────
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('kiosk', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
     }
 }

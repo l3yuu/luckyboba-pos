@@ -153,7 +153,7 @@ const OrderDetailModal = ({ order, onClose, onUpdateStatus }: {
           {/* Branch & QR */}
           <div className="flex items-center justify-between text-xs">
             <span className="text-zinc-400 font-medium">Branch: <span className="text-zinc-600 font-bold">{order.branch_name ?? "—"}</span></span>
-            <span className="text-zinc-400 font-medium">QR: <span className="font-mono text-[#3b2063] font-bold">{order.qr_code}</span></span>
+            <span className="text-zinc-400 font-medium">QR: <span className="font-mono text-[#a020f0] font-bold">{order.qr_code}</span></span>
           </div>
 
           {/* Items */}
@@ -414,7 +414,7 @@ const OnlineOrdersTab: React.FC = () => {
                 color={{ bg: "bg-emerald-50", border: "border-emerald-200", iconColor: "text-emerald-600" }} />
               <StatCard icon={<TrendingUp size={18} strokeWidth={2.5} />} label="Today's Revenue"
                 value={fmt(stats.total_today)}
-                color={{ bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", iconColor: "text-[#3b2063]" }} />
+                color={{ bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", iconColor: "text-[#a020f0]" }} />
               <StatCard icon={<Clock size={18} strokeWidth={2.5} />} label="Avg Wait Time"
                 value={`${stats.avg_wait_min}m`}
                 sub={stats.avg_wait_min > 10 ? "Above target" : "On track"}
@@ -475,7 +475,7 @@ const OnlineOrdersTab: React.FC = () => {
                   <tr>
                     <td colSpan={8} className="px-5 py-16 text-center">
                       <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center">
-                        <ShoppingBag size={22} className="text-[#3b2063]" />
+                        <ShoppingBag size={22} className="text-[#a020f0]" />
                       </div>
                       <p className="text-sm font-bold text-[#1a0f2e] mb-1">No Orders</p>
                       <p className="text-xs text-zinc-400 font-medium">

@@ -40,7 +40,7 @@ const STYLES = `
     transition: all 0.2s; outline: none; width: 80px; text-align: center;
     padding: 0.5rem 0.2rem;
   }
-  .tl-input-audit:focus { border-color: #3b2063; box-shadow: 0 0 0 3px rgba(59, 32, 99, 0.05); }
+  .tl-input-audit:focus { border-color: #a020f0; box-shadow: 0 0 0 3px rgba(59, 32, 99, 0.05); }
   .tl-input-audit:disabled { opacity: 0.4; cursor: not-allowed; }
   
   .var-badge {
@@ -164,7 +164,7 @@ const UsageReportPanel = ({ branchId }: { branchId: number | null }) => {
             placeholder="Filter materials..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="bg-slate-50 border-none pl-11 pr-4 py-2.5 rounded-xl text-[11px] font-bold outline-none w-full focus:bg-white focus:ring-2 focus:ring-[#3b206310] transition-all"
+            className="bg-slate-50 border-none pl-11 pr-4 py-2.5 rounded-xl text-[11px] font-bold outline-none w-full focus:bg-white focus:ring-2 focus:ring-[#a020f010] transition-all"
           />
         </div>
       </div>
@@ -189,7 +189,7 @@ const UsageReportPanel = ({ branchId }: { branchId: number | null }) => {
             <button 
               onClick={handleSubmitAudit}
               disabled={saving}
-              className="bg-[#3b2063] text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] shadow-lg shadow-[#3b206320] hover:bg-[#2d1851] disabled:opacity-50 transition-all"
+              className="bg-[#a020f0] text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] shadow-lg shadow-[#a020f020] hover:bg-[#2d1851] disabled:opacity-50 transition-all"
             >
               {saving ? 'Saving...' : 'Commit Audit'}
             </button>
@@ -280,28 +280,28 @@ const UsageReportPanel = ({ branchId }: { branchId: number | null }) => {
       {/* Inventory Legend */}
       <div className="mt-8 tl-card border-slate-100 bg-slate-50/30 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Info size={14} className="text-[#3b2063]" />
+          <Info size={14} className="text-[#a020f0]" />
           <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800">Inventory Glossary</h4>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-y-6 gap-x-8">
           <div className="space-y-1">
-            <p className="font-black text-[10px] text-[#3b2063]">BEG</p>
+            <p className="font-black text-[10px] text-[#a020f0]">BEG</p>
             <p className="text-[9px] font-bold text-slate-500 leading-relaxed italic">Beginning Inventory: Stock at the start of the day.</p>
           </div>
           <div className="space-y-1">
-            <p className="font-black text-[10px] text-[#3b2063]">DEL / IN</p>
+            <p className="font-black text-[10px] text-[#a020f0]">DEL / IN</p>
             <p className="text-[9px] font-bold text-slate-500 leading-relaxed italic">Deliveries & Transfers In: New stock added to branch.</p>
           </div>
           <div className="space-y-1">
-            <p className="font-black text-[10px] text-[#3b2063]">COOKED / OUT</p>
+            <p className="font-black text-[10px] text-[#a020f0]">COOKED / OUT</p>
             <p className="text-[9px] font-bold text-slate-500 leading-relaxed italic">Prep Use & Transfers Out: Stock consumed or moved out.</p>
           </div>
           <div className="space-y-1">
-            <p className="font-black text-[10px] text-[#3b2063]">SPOIL</p>
+            <p className="font-black text-[10px] text-[#a020f0]">SPOIL</p>
             <p className="text-[9px] font-bold text-slate-500 leading-relaxed italic">Spoilage / Loss: Quantity of expired or damaged items.</p>
           </div>
           <div className="space-y-1">
-            <p className="font-black text-[10px] text-[#3b2063]">VAR</p>
+            <p className="font-black text-[10px] text-[#a020f0]">VAR</p>
             <p className="text-[9px] font-bold text-slate-500 leading-relaxed italic">Variance: The difference between Should Be and Actual.</p>
           </div>
         </div>

@@ -64,7 +64,7 @@ const StatusBadge: React.FC<{ status: VoidStatus }> = ({ status }) => {
   const map: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
     pending: { bg: 'bg-amber-500/10 text-amber-500 border-amber-500/20', icon: <Clock size={10} />, text: 'Pending Approval' },
     approved: { bg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: <CheckCircle2 size={10} />, text: 'Approved' },
-    completed: { bg: 'bg-[#3b2063]/10 text-[#3b2063] border-[#3b2063]/20', icon: <FileText size={10} />, text: 'Legitimate' },
+    completed: { bg: 'bg-[#a020f0]/10 text-[#a020f0] border-[#a020f0]/20', icon: <FileText size={10} />, text: 'Legitimate' },
     cancelled: { bg: 'bg-rose-500/10 text-rose-500 border-rose-500/20', icon: <ShieldAlert size={10} />, text: 'Voided' },
   };
   const config = map[status] || map.completed;
@@ -174,19 +174,19 @@ const VoidJournalPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
         </div>
         <div className="flex items-center gap-4">
           <div className="relative group">
-            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3b2063] group-hover:scale-110 transition-transform" size={16} />
+            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a020f0] group-hover:scale-110 transition-transform" size={16} />
             <input
               type="date"
               value={selectedDate}
               onChange={e => setSelectedDate(e.target.value)}
-              className="bg-white border-2 border-slate-100 rounded-2xl px-12 py-3.5 text-xs font-black uppercase tracking-widest outline-none focus:border-[#3b2063] transition-all shadow-xl shadow-slate-900/5"
+              className="bg-white border-2 border-slate-100 rounded-2xl px-12 py-3.5 text-xs font-black uppercase tracking-widest outline-none focus:border-[#a020f0] transition-all shadow-xl shadow-slate-900/5"
             />
           </div>
           <button
             onClick={fetchLogs}
             disabled={loading}
-            style={{ backgroundColor: '#3b2063' }}
-            className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-4 py-2 text-xs text-white hover:opacity-90 shadow-xl shadow-[#3b2063]/20 disabled:opacity-50"
+            style={{ backgroundColor: '#a020f0' }}
+            className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-4 py-2 text-xs text-white hover:opacity-90 shadow-xl shadow-[#a020f0]/20 disabled:opacity-50"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Sync Records
           </button>
@@ -202,9 +202,9 @@ const VoidJournalPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
       </div>
 
       {/* ── Transaction Registry ── */}
-      <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-[#3b2063]/5">
+      <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-[#a020f0]/5">
         <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30">
-          <div className="flex items-center gap-4 bg-white border-2 border-slate-100 rounded-[1.25rem] px-5 py-4 focus-within:border-[#3b2063] focus-within:ring-8 focus-within:ring-indigo-50 transition-all">
+          <div className="flex items-center gap-4 bg-white border-2 border-slate-100 rounded-[1.25rem] px-5 py-4 focus-within:border-[#a020f0] focus-within:ring-8 focus-within:ring-indigo-50 transition-all">
             <Search size={18} className="text-slate-300" />
             <input
               value={searchQuery}
@@ -251,7 +251,7 @@ const VoidJournalPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
                 <tr key={log.id} className="group hover:bg-slate-50/80 transition-colors duration-300">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-4 bg-slate-200 rounded-full group-hover:bg-[#3b2063] transition-colors" />
+                      <div className="w-1.5 h-4 bg-slate-200 rounded-full group-hover:bg-[#a020f0] transition-colors" />
                       <span className="font-mono text-[13px] font-black text-slate-900 tracking-tight">{log.invoice}</span>
                     </div>
                   </td>

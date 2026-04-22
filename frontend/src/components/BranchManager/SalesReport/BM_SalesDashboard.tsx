@@ -127,7 +127,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#a020f0] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -145,7 +145,7 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
 );
 
 const PAYMENT_COLORS: Record<string, string> = {
-  cash:   "#3b2063",
+  cash:   "#a020f0",
   gcash:  "#0ea5e9",
   card:   "#10b981",
   maya:   "#f59e0b",
@@ -299,7 +299,7 @@ const BM_SalesDashboard: React.FC = () => {
           <div className="flex rounded-xl overflow-hidden border border-zinc-200 shadow-sm shrink-0">
             {(["period", "range"] as const).map(m => (
               <button key={m} onClick={() => setMode(m)}
-                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === m ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === m ? "bg-[#a020f0] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
                 {m === "period" ? "Period" : "Range"}
               </button>
             ))}
@@ -310,7 +310,7 @@ const BM_SalesDashboard: React.FC = () => {
             <div className="flex rounded-xl overflow-hidden border border-zinc-200 shadow-sm shrink-0">
               {(["daily", "weekly", "monthly"] as const).map(p => (
                 <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-                  className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                  className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#a020f0] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
                   {p}
                 </button>
               ))}
@@ -378,7 +378,7 @@ const BM_SalesDashboard: React.FC = () => {
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors -mb-px ${
               activeTab === tab.id
-                ? "border-[#3b2063] text-[#3b2063]"
+                ? "border-[#a020f0] text-[#a020f0]"
                 : "border-transparent text-zinc-400 hover:text-zinc-600"
             }`}>
             {tab.label}
@@ -407,8 +407,8 @@ const BM_SalesDashboard: React.FC = () => {
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="bmRevGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#3b2063" stopOpacity={0.18} />
-                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0}    />
+                      <stop offset="5%"  stopColor="#a020f0" stopOpacity={0.18} />
+                      <stop offset="95%" stopColor="#a020f0" stopOpacity={0}    />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" />
@@ -416,7 +416,7 @@ const BM_SalesDashboard: React.FC = () => {
                   <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
                   <Tooltip formatter={(v) => [`₱${Number(v ?? 0).toLocaleString()}`, "Revenue"] as [string, string]}
                     contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
-                  <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={2.5} fill="url(#bmRevGrad)" name="Revenue" />
+                  <Area type="monotone" dataKey="revenue" stroke="#a020f0" strokeWidth={2.5} fill="url(#bmRevGrad)" name="Revenue" />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -471,7 +471,7 @@ const BM_SalesDashboard: React.FC = () => {
                     <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                       <td className="px-5 py-3.5 font-medium text-zinc-700">{row.date}</td>
                       <td className="px-5 py-3.5 text-zinc-600">{Number(row.orders).toLocaleString()}</td>
-                      <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(Number(row.revenue))}</td>
+                      <td className="px-5 py-3.5 font-bold text-[#a020f0]">{fmt(Number(row.revenue))}</td>
                       <td className="px-5 py-3.5 text-zinc-600">
                         {row.orders > 0 ? fmt(Number(row.revenue) / Number(row.orders)) : "—"}
                       </td>
@@ -481,7 +481,7 @@ const BM_SalesDashboard: React.FC = () => {
                     <tr className="bg-zinc-50 border-t border-zinc-200">
                       <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest">Total</td>
                       <td className="px-5 py-3.5 font-black text-[#1a0f2e]">{totalOrders.toLocaleString()}</td>
-                      <td className="px-5 py-3.5 font-black text-[#3b2063]">{fmt(grandTotal)}</td>
+                      <td className="px-5 py-3.5 font-black text-[#a020f0]">{fmt(grandTotal)}</td>
                       <td className="px-5 py-3.5 font-bold text-zinc-600">{fmt(avgOrderValue)}</td>
                     </tr>
                   )}
@@ -497,13 +497,13 @@ const BM_SalesDashboard: React.FC = () => {
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
           <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
             <div className="relative group flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0]" size={15} />
               <input
                 type="text"
                 placeholder="Search products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+                className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all shadow-sm"
               />
             </div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 shrink-0">
@@ -548,7 +548,7 @@ const BM_SalesDashboard: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           <div className="w-16 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-[#3b2063]" style={{ width: `${pct}%` }} />
+                            <div className="h-full rounded-full bg-[#a020f0]" style={{ width: `${pct}%` }} />
                           </div>
                           <span className="text-zinc-600 font-medium">{p.total_quantity.toLocaleString()}x</span>
                         </div>
@@ -622,7 +622,7 @@ const BM_SalesDashboard: React.FC = () => {
             {!loading && paymentChartData.length > 0 && (
               <div className="bg-zinc-50 border border-zinc-200 rounded-[0.625rem] px-4 py-3.5 flex items-center justify-between">
                 <p className="text-xs font-black text-[#1a0f2e] uppercase tracking-widest">Total</p>
-                <p className="text-sm font-black text-[#3b2063]">
+                <p className="text-sm font-black text-[#a020f0]">
                   {fmt(paymentChartData.reduce((s, x) => s + x.revenue, 0))}
                 </p>
               </div>

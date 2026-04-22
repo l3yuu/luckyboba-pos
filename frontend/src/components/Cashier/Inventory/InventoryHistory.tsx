@@ -118,7 +118,7 @@ const InventoryHistoryModal = ({ onClose }: InventoryHistoryModalProps) => {
         style={{ ...dashboardFont, maxHeight: '90vh' }}
       >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#3b2063] rounded-t-xl shrink-0">
+        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#a020f0] rounded-t-xl shrink-0">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-purple-200">Inventory</p>
             <h2 className="text-sm font-extrabold text-white mt-0.5">Stock Movement History</h2>
@@ -151,7 +151,7 @@ const InventoryHistoryModal = ({ onClose }: InventoryHistoryModalProps) => {
               onClick={() => setFilter(f.key)}
               className={`h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 border
                 ${filter === f.key
-                  ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-sm'
+                  ? 'bg-[#a020f0] text-white border-[#a020f0] shadow-sm'
                   : 'bg-white text-zinc-500 border-zinc-200 hover:border-[#e9d5ff] hover:bg-[#f5f0ff]'
                 }`}
             >
@@ -171,7 +171,7 @@ const InventoryHistoryModal = ({ onClose }: InventoryHistoryModalProps) => {
               placeholder="Search by ingredient or reason..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg px-10 py-2.5 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#3b2063] focus:bg-white transition-all placeholder:text-zinc-400"
+              className="w-full bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg px-10 py-2.5 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#a020f0] focus:bg-white transition-all placeholder:text-zinc-400"
             />
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 text-zinc-300 absolute left-3 top-1/2 -translate-y-1/2">
               <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -186,13 +186,13 @@ const InventoryHistoryModal = ({ onClose }: InventoryHistoryModalProps) => {
         <div className="flex-1 overflow-y-auto px-7 pb-4">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3b2063]" />
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#a020f0]" />
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Loading history...</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <p className="text-sm font-bold text-red-500">{error}</p>
-              <button onClick={fetchMovements} className="h-9 px-5 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest rounded-lg">Retry</button>
+              <button onClick={fetchMovements} className="h-9 px-5 bg-[#a020f0] text-white font-bold text-xs uppercase tracking-widest rounded-lg">Retry</button>
             </div>
           ) : paginated.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
@@ -226,7 +226,7 @@ const InventoryHistoryModal = ({ onClose }: InventoryHistoryModalProps) => {
                       </td>
 
                       <td className="py-3 pr-4">
-                        <span className="text-[12px] font-extrabold text-[#3b2063]">
+                        <span className="text-[12px] font-extrabold text-[#a020f0]">
                           {m.raw_material?.name ?? `Material #${m.raw_material_id}`}
                         </span>
                         {m.raw_material?.unit && (
@@ -289,7 +289,7 @@ const InventoryHistoryModal = ({ onClose }: InventoryHistoryModalProps) => {
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="h-8 w-8 flex items-center justify-center border border-[#e9d5ff] rounded-lg text-[#3b2063] hover:border-[#3b2063] hover:bg-[#f5f0ff] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="h-8 w-8 flex items-center justify-center border border-[#e9d5ff] rounded-lg text-[#a020f0] hover:border-[#a020f0] hover:bg-[#f5f0ff] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -301,7 +301,7 @@ const InventoryHistoryModal = ({ onClose }: InventoryHistoryModalProps) => {
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="h-8 w-8 flex items-center justify-center border border-[#e9d5ff] rounded-lg text-[#3b2063] hover:border-[#3b2063] hover:bg-[#f5f0ff] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="h-8 w-8 flex items-center justify-center border border-[#e9d5ff] rounded-lg text-[#a020f0] hover:border-[#a020f0] hover:bg-[#f5f0ff] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />

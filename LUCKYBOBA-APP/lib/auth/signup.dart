@@ -136,35 +136,24 @@ class _SignupPageState extends State<SignupPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: const Color(0xFFF6F4F9),
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/prompt_image.png',
-              fit: BoxFit.cover,
-              color: Colors.black.withValues(alpha: 0.45),
-              colorBlendMode: BlendMode.darken,
-            ),
-          ),
-          Positioned.fill(
+          // Background gradient bubble (matching login)
+          Positioned(
+            top: -150,
+            left: -150,
             child: Container(
+              width: 400,
+              height: 400,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppTheme.primary.withValues(alpha: 0.3),
-                    Colors.black.withValues(alpha: 0.7),
-                  ],
-                ),
+                shape: BoxShape.circle,
+                color: const Color(0xFFD4B4FF).withValues(alpha: 0.35),
               ),
-            ),
-          ),
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(color: Colors.black.withValues(alpha: 0.15)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                child: Container(color: Colors.transparent),
+              ),
             ),
           ),
           SafeArea(
@@ -179,85 +168,149 @@ class _SignupPageState extends State<SignupPage>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        // Back button
                         Align(
                           alignment: Alignment.centerLeft,
                           child: GestureDetector(
                             onTap: () => Navigator.pop(context),
                             child: Container(
-                              width: 42, height: 42,
+                              width: 40, height: 40,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.1),
+                                color: Colors.white,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white24, width: 1.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
+                              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF8B3AFA), size: 16),
                             ),
                           ),
                         ),
                         const SizedBox(height: 20),
+
+                        // Logo
                         Hero(
                           tag: 'app_logo',
                           child: Container(
-                            width: 80, height: 80,
-                            decoration: BoxDecoration(
+                            width: 60, height: 60,
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                               boxShadow: [
-                                BoxShadow(color: AppTheme.primary.withValues(alpha: 0.4), blurRadius: 40, spreadRadius: 8),
+                                BoxShadow(color: Colors.black12, blurRadius: 10),
                               ],
-                              border: Border.all(color: Colors.white, width: 2.5),
                             ),
                             child: ClipOval(
                               child: Image.asset('assets/images/lucky_logo.jpg', fit: BoxFit.cover),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Text('Lucky Boba', style: GoogleFonts.outfit(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1)),
-                        const SizedBox(height: 4),
-                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Text('CREATE YOUR PROFILE', style: GoogleFonts.outfit(color: Colors.white70, letterSpacing: 2.5, fontSize: 8, fontWeight: FontWeight.w800))),
+                        const SizedBox(height: 16),
+
+                        // Title
+                        Text(
+                          'Lucky Boba',
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFF8B3AFA),
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            fontStyle: FontStyle.italic,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Create your account to get started.',
+                          style: GoogleFonts.poppins(
+                            color: Colors.black54,
+                            fontSize: 14,
+                          ),
+                        ),
                         const SizedBox(height: 32),
+
+                        // Form card
                         Container(
-                          padding: const EdgeInsets.all(28),
-                          decoration: AppTheme.glassDecoration(borderRadius: 32),
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 20,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Register', style: AppTheme.subHeading.copyWith(color: Colors.white, fontSize: 20)),
+                              Text('FULL NAME', style: GoogleFonts.poppins(color: Colors.black54, fontSize: 11, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 8),
+                              _inputField(controller: _nameCtrl, hint: 'John Doe', icon: Icons.person_rounded, isPassword: false, obscure: false),
+
+                              const SizedBox(height: 20),
+                              Text('EMAIL ADDRESS', style: GoogleFonts.poppins(color: Colors.black54, fontSize: 11, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 8),
+                              _inputField(controller: _emailCtrl, hint: 'hello@bobaethereal.com', icon: Icons.mail_rounded, isPassword: false, obscure: false, keyboardType: TextInputType.emailAddress),
+
+                              const SizedBox(height: 20),
+                              Text('PASSWORD', style: GoogleFonts.poppins(color: Colors.black54, fontSize: 11, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 8),
+                              _inputField(controller: _passwordCtrl, hint: '••••••••', icon: Icons.lock_rounded, isPassword: true, obscure: _obscure, onToggle: () => setState(() => _obscure = !_obscure)),
+
+                              const SizedBox(height: 20),
+                              Text('CONFIRM PASSWORD', style: GoogleFonts.poppins(color: Colors.black54, fontSize: 11, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 8),
+                              _inputField(controller: _confirmCtrl, hint: '••••••••', icon: Icons.lock_rounded, isPassword: true, obscure: _obscureConf, onToggle: () => setState(() => _obscureConf = !_obscureConf)),
+
                               const SizedBox(height: 24),
-                              _inputField(controller: _nameCtrl, hint: 'Full Name', icon: Icons.person_outline_rounded, isPassword: false, obscure: false),
-                              const SizedBox(height: 16),
-                              _inputField(controller: _emailCtrl, hint: 'Email Address', icon: Icons.alternate_email_rounded, isPassword: false, obscure: false, keyboardType: TextInputType.emailAddress),
-                              const SizedBox(height: 16),
-                              _inputField(controller: _passwordCtrl, hint: 'Password', icon: Icons.lock_outline_rounded, isPassword: true, obscure: _obscure, onToggle: () => setState(() => _obscure = !_obscure)),
-                              const SizedBox(height: 16),
-                              _inputField(controller: _confirmCtrl, hint: 'Confirm Password', icon: Icons.lock_reset_rounded, isPassword: true, obscure: _obscureConf, onToggle: () => setState(() => _obscureConf = !_obscureConf)),
-                              const SizedBox(height: 32),
                               SizedBox(
-                                width: double.infinity, height: 58,
+                                width: double.infinity, height: 50,
                                 child: ElevatedButton(
                                   onPressed: _loading ? null : _handleSignup,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.secondary,
+                                    backgroundColor: const Color(0xFFA64DFF),
                                     foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     elevation: 0,
                                   ),
                                   child: _loading
-                                      ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
-                                      : Text('Create Account', style: AppTheme.buttonText.copyWith(fontSize: 15)),
+                                      ? const SizedBox(
+                                          width: 24, height: 24,
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text('Create Account', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700)),
+                                            const SizedBox(width: 8),
+                                            const Icon(Icons.arrow_forward_rounded, size: 18),
+                                          ],
+                                        ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 36),
+
+                        const SizedBox(height: 32),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text("Already have an account? ", style: AppTheme.body.copyWith(color: Colors.white70)),
+                            Text(
+                              "Already have an account? ",
+                              style: GoogleFonts.poppins(color: Colors.black54, fontSize: 13),
+                            ),
                             GestureDetector(
                               onTap: () => Navigator.pop(context),
-                              child: Text('Sign In', style: AppTheme.body.copyWith(color: AppTheme.secondary, fontWeight: FontWeight.w800)),
+                              child: Text(
+                                'Sign In',
+                                style: GoogleFonts.poppins(color: const Color(0xFF8B3AFA), fontSize: 13, fontWeight: FontWeight.w700),
+                              ),
                             ),
                           ],
                         ),
@@ -278,11 +331,28 @@ class _SignupPageState extends State<SignupPage>
       controller: controller,
       obscureText: isPassword && obscure,
       keyboardType: keyboardType,
-      style: AppTheme.body.copyWith(color: Colors.white, fontWeight: FontWeight.w500),
-      decoration: AppTheme.inputStyle(hint: hint, icon: icon, suffixIcon: isPassword ? IconButton(onPressed: onToggle, icon: Icon(obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.white70, size: 20)) : null).copyWith(
-        fillColor: Colors.white.withValues(alpha: 0.1),
-        hintStyle: AppTheme.body.copyWith(color: Colors.white38, fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.white70, size: 20),
+      style: GoogleFonts.poppins(color: Colors.black87, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.poppins(color: Colors.black38, fontSize: 14),
+        filled: true,
+        fillColor: const Color(0xFFF3F2F5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        prefixIcon: Icon(icon, color: Colors.black38, size: 18),
+        suffixIcon: isPassword
+            ? IconButton(
+                onPressed: onToggle,
+                icon: Icon(
+                  obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: Colors.black38,
+                  size: 18,
+                ),
+              )
+            : null,
+        contentPadding: const EdgeInsets.symmetric(vertical: 14),
       ),
     );
   }
