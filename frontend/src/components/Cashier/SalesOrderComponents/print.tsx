@@ -694,12 +694,15 @@ export const KioskTicketPrint = ({
         </div>
 
         {/* Queue Number */}
-        <div className="text-center mb-1">
+        <div className="text-center mb-1 pb-1">
           <p className="text-[8px] font-black uppercase tracking-widest text-gray-500">Your Number:</p>
           <h2 className="font-black tracking-tighter italic font-mono border-y border-black py-0.5 my-0.5"
             style={{ fontSize: '28pt', lineHeight: 1, maxWidth: '100%' }}>
             #{queueNumber}
           </h2>
+          <p className="!text-[9px] !font-bold !mt-1 !text-gray-800 !tracking-wider">
+            {formattedDate} • {formattedTime}
+          </p>
         </div>
 
         {/* Items Table Header */}

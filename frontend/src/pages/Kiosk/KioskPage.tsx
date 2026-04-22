@@ -420,9 +420,13 @@ const KioskPage = () => {
       const addonIds = addons.map(a => a.id).sort().join(',');
       // groupKey REMOVED to fix lint warning (manually comparing below)
 
+      const cat = item.category?.toLowerCase() || '';
+      const isDrink = cat.includes('milk tea') || cat.includes('milktea') || cat.includes('coffee') || cat.includes('yakult') || cat.includes('fruit') || cat.includes('yogurt') || cat.includes('frappe') || cat.includes('series') || cat.includes('drink') || cat.includes('matcha');
+      const finalSugar = isDrink ? sugar : undefined;
+
       const existing = prev.find((i: CartItem) => {
         const iAddonIds = (i.selectedAddOns || []).map(a => a.id).sort().join(',');
-        return i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds;
+        return i.id === item.id && i.selectedSugarLevel === finalSugar && iAddonIds === addonIds;
       });
 
       const addonsTotal = addons.reduce((sum, a) => sum + a.price, 0);
@@ -432,7 +436,7 @@ const KioskPage = () => {
       if (existing) {
         return prev.map((i: CartItem) => {
           const iAddonIds = (i.selectedAddOns || []).map(a => a.id).sort().join(',');
-          if (i.id === item.id && i.selectedSugarLevel === sugar && iAddonIds === addonIds) {
+          if (i.id === item.id && i.selectedSugarLevel === finalSugar && iAddonIds === addonIds) {
             return { ...i, qty: i.qty + 1 };
           }
           return i;
@@ -444,7 +448,7 @@ const KioskPage = () => {
         qty: 1,
         uniqueId: Math.random().toString(36).substr(2, 9),
         selectedAddOns: addons,
-        selectedSugarLevel: sugar,
+        selectedSugarLevel: finalSugar,
         itemTotal: itemTotal
       }];
     });
@@ -634,20 +638,24 @@ const KioskPage = () => {
         total: total,
         vatable_sales: Number(vatableSales.toFixed(2)),
         vat_amount: Number(vatAmount.toFixed(2)),
-        items: cart.map((item: CartItem) => ({
-          menu_item_id: item.id,
-          name: item.name,
-          quantity: item.qty,
-          unit_price: Number(item.sellingPrice),
-          total_price: item.itemTotal * item.qty,
-          sugar_level: item.selectedSugarLevel || '100%',
-          remarks: item.remarks || '',
-          add_ons: (item.selectedAddOns || []).map(ao => ({
-            name: ao.name,
-            price: ao.price
-          })),
-          size: item.size || 'Standard',
-        }))
+        items: cart.map((item: CartItem) => {
+          const cat = item.category?.toLowerCase() || '';
+          const isDrink = cat.includes('milk tea') || cat.includes('milktea') || cat.includes('coffee') || cat.includes('yakult') || cat.includes('fruit') || cat.includes('yogurt') || cat.includes('frappe') || cat.includes('series') || cat.includes('drink');
+          return {
+            menu_item_id: item.id,
+            name: item.name,
+            quantity: item.qty,
+            unit_price: Number(item.sellingPrice),
+            total_price: item.itemTotal * item.qty,
+            sugar_level: isDrink ? (item.selectedSugarLevel || '100%') : '',
+            remarks: item.remarks || '',
+            add_ons: (item.selectedAddOns || []).map(ao => ({
+              name: ao.name,
+              price: ao.price
+            })),
+            size: item.size || 'Standard',
+          };
+        })
       };
 
       const response = await api.post('/kiosk-sales', payload);
@@ -1301,7 +1309,9 @@ const KioskPage = () => {
                             {sizeLabel && <span className="text-[#6a12b8] ml-1">({sizeLabel})</span>}
                           </h4>
                           <div className="flex flex-wrap gap-1 mt-0.5">
-                            {item.selectedSugarLevel && <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} {t.sugar}</span>}
+                            {item.selectedSugarLevel && 
+                              (item.category?.toLowerCase().includes('milk tea') || item.category?.toLowerCase().includes('milktea') || item.category?.toLowerCase().includes('coffee') || item.category?.toLowerCase().includes('yakult') || item.category?.toLowerCase().includes('fruit') || item.category?.toLowerCase().includes('yogurt') || item.category?.toLowerCase().includes('frappe') || item.category?.toLowerCase().includes('series') || item.category?.toLowerCase().includes('drink') || item.category?.toLowerCase().includes('matcha')) && 
+                              <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} {t.sugar}</span>}
                             {item.selectedAddOns && item.selectedAddOns.length > 0 && <span className="text-[8px] font-bold text-zinc-400">{item.selectedAddOns.map(a => a.name).join(' · ')}</span>}
                           </div>
                           <div className="flex items-center justify-between mt-1.5">
