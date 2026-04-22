@@ -40,18 +40,18 @@ Route::post('/purchase-card',             [CardPurchaseController::class, 'purch
 Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus'])->middleware('throttle:30,1');
 
 // ✅ PUBLIC MOBILE ROUTES
-Route::post('/kiosk-sales', [SalesController::class, 'store']); // Allow kiosk orders without auth
-Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:60,1');
+Route::post('/kiosk-sales', [SalesController::class, 'store'])->middleware('throttle:kiosk'); // Allow kiosk orders without auth
+Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:api');
 Route::get('/cards/image/{path}', [CardController::class, 'image'])
     ->where('path', '.*')
     ->middleware('throttle:120,1');
-Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
-Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
-Route::get('/addons',           [AddOnController::class, 'index'])->middleware('throttle:60,1');
-Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');
-Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:60,1');
-Route::get('/bundles',          [BundleController::class, 'index'])->middleware('throttle:60,1');
-Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
+Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:api');
+Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:api');
+Route::get('/addons',           [AddOnController::class, 'index'])->middleware('throttle:api');
+Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:api');
+Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:api');
+Route::get('/bundles',          [BundleController::class, 'index'])->middleware('throttle:api');
+Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence'])->middleware('throttle:kiosk');
 
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ if ($branchId) {
         });
 
     return response()->json($items);
-})->middleware('throttle:30,1');
+})->middleware('throttle:kiosk');
 // ─────────────────────────────────────────────────────────────────────────────
 
 Route::post('/kiosk/verify-pin', function (Illuminate\Http\Request $request) {
@@ -145,15 +145,34 @@ Route::post('/kiosk/verify-pin', function (Illuminate\Http\Request $request) {
     }
 
     return response()->json(['success' => false, 'message' => 'Invalid PIN'], 403);
-})->middleware('throttle:30,1');
+})->middleware('throttle:kiosk');
 
-Route::get('/branches/available', [BranchController::class, 'availableBranches']);
+Route::post('/kiosk/verify-password', function (Illuminate\Http\Request $request) {
+    $request->validate([
+        'password' => 'required|string',
+        'branch_id' => 'required|integer'
+    ]);
+    $password = $request->input('password');
+    $branchId = $request->input('branch_id');
+
+    $branch = \App\Models\Branch::find($branchId);
+    if ($branch) {
+        $branchPassword = $branch->kiosk_password ?? 'luckyboba';
+        if ($password === $branchPassword) {
+            return response()->json(['success' => true]);
+        }
+    }
+
+    return response()->json(['success' => false, 'message' => 'Invalid Password'], 403);
+})->middleware('throttle:kiosk');
+
+Route::get('/branches/available', [BranchController::class, 'availableBranches'])->middleware('throttle:api');
 Route::post('/google-login', [AuthController::class, 'googleLogin'])->middleware('throttle:10,1');
-Route::post('/register', [AuthController::class, 'register']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 // ── Z Reading print — public, auth handled via one-time cache token ───────────
-Route::get('/readings/z/print', [SalesDashboardController::class, 'zReadingPrint']);
+Route::get('/readings/z/print', [SalesDashboardController::class, 'zReadingPrint'])->middleware('throttle:30,1');
 // ── Authenticated routes ─────────────────────────────────────────────────────
-Route::middleware(['auth:sanctum', 'active'])->group(function () {
+Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function () {
 
     Route::post('/online-orders', [OnlineOrderController::class, 'store']);
     Route::post('/cards/generate-qr',  [CardController::class, 'generateQr']);
@@ -161,7 +180,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/my-orders',      [OnlineOrderController::class, 'myOrders']);
     Route::get('/orders/{id}/reorder', [OnlineOrderController::class, 'reorder']);
     Route::get('/points', [PointsController::class, 'index']);
-    Route::post('/points/redeem', [PointsController::class, 'redeem']);
+    Route::post('/points/redeem', [PointsController::class, 'redeem'])->middleware('throttle:5,1');
 
     // ── LOYALTY (Mobile & Shared) ──────────────────────────────────────────
     Route::get('/loyalty/rewards', [LoyaltyManagementController::class, 'getRewards']);
@@ -258,7 +277,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── NO ROLE RESTRICTION ───────────────────────────────────────────────────
-    Route::post('/auth/verify-manager-pin', [UserController::class, 'verifyManagerPin']);
+    Route::post('/auth/verify-manager-pin', [UserController::class, 'verifyManagerPin'])->middleware('throttle:10,1');
 
     // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
     Route::middleware(['role:superadmin,branch_manager,supervisor,cashier,team_leader'])->group(function () {
@@ -500,9 +519,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
 
         Route::prefix('branches')->group(function () {
-            Route::post  ('/',                    [BranchController::class, 'store']);
             Route::put   ('/{id}',                [BranchController::class, 'update']);
-            Route::delete('/{id}',                [BranchController::class, 'destroy']);
             Route::get   ('/{id}/daily-sales',    [BranchController::class, 'dailySales']);
             Route::get   ('/{id}/analytics',      [BranchController::class, 'analytics']);
             Route::get   ('/{id}/sales-summary',  [BranchController::class, 'salesSummary']);
@@ -571,9 +588,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::prefix('branches')->group(function () {
             Route::post  ('/',                    [BranchController::class, 'store']);
-            Route::put   ('/{id}',                [BranchController::class, 'update']);
             Route::delete('/{id}',                [BranchController::class, 'destroy']);
-            Route::post  ('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
 
         Route::prefix('bundles')->group(function () {
