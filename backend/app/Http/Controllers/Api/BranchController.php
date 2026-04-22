@@ -200,6 +200,7 @@ public function store(Request $request)
             'ownership_type' => 'sometimes|required|in:company,franchise',
             'vat_type'       => 'sometimes|required|in:vat,non_vat',
             'kiosk_pin'      => 'sometimes|nullable|string|min:4|max:10',
+            'kiosk_password' => 'sometimes|nullable|string|min:4|max:255',
             'latitude'       => 'sometimes|nullable|string',
             'longitude'      => 'sometimes|nullable|string',
             'image'          => 'sometimes|nullable|image|max:2048',
@@ -214,6 +215,15 @@ public function store(Request $request)
         }
 
         try {
+            $user = $request->user();
+            // Security: Branch Managers can only update their own branch
+            if ($user->role === 'branch_manager' && $user->branch_id != $id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. You can only update your own branch settings.'
+                ], 403);
+            }
+
             $branch  = Branch::findOrFail($id);
             $oldName = $branch->name;
 
@@ -221,7 +231,7 @@ public function store(Request $request)
                 'name', 'location', 'status', 'ownership_type', 'vat_type',
                 'brand', 'company_name', 'store_address', 'vat_reg_tin',
                 'min_number', 'serial_number', 'owner_name', 'kiosk_pin',
-                'latitude', 'longitude'
+                'kiosk_password', 'latitude', 'longitude'
             ]);
 
             if ($request->hasFile('image')) {

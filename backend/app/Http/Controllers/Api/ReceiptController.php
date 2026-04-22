@@ -25,7 +25,7 @@ class ReceiptController extends Controller
             return response()->json([
                 'next_sequence' => 1,
                 'next_queue'    => 1
-            ]);
+            ], 200)->header('Cache-Control', 'no-cache, no-store, must-revalidate');
         }
 
         // SI sequence logic - check both sales and receipts to prevent duplicates
@@ -55,19 +55,37 @@ class ReceiptController extends Controller
 
         $queueQuery = Sale::where('branch_id', $branchId);
         
-        if ($lastZReading) {
+        // 2. Daily Queue logic — count sales since last closed Z-Reading
+        $lastZReading = ZReading::where('branch_id', $branchId)
+            ->where('is_closed', true)
+            ->latest('closed_at')
+            ->first();
+
+        $queueQuery = Sale::where('branch_id', $branchId);
+        
+        if ($lastZReading && $lastZReading->closed_at) {
             $queueQuery->where('created_at', '>', $lastZReading->closed_at);
         } else {
-            // Fallback: If no Z-Reading ever exists, count all for today
+            // Fallback: If no Z-Reading exists for this session, count all for today
             $queueQuery->whereDate('created_at', now()->toDateString());
         }
 
-        $nextQueue = $queueQuery->count() + 1;
+        $count = $queueQuery->count();
+        $nextQueue = $count + 1;
+
+        // Diagnostic Logging for Production Troubleshooting
+        \Log::info("Queue Investigation [Branch: {$branchId}]:", [
+            'last_z_reading_id' => $lastZReading?->id,
+            'last_z_closed_at'  => $lastZReading?->closed_at,
+            'sales_since_z'     => $count,
+            'calculated_next'   => $nextQueue,
+            'server_time'       => now()->toDateTimeString(),
+        ]);
 
         return response()->json([
             'next_sequence' => $nextSeq,
             'next_queue'    => $nextQueue
-        ]);
+        ])->header('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
 
     // ─────────────────────────────────────────────────────────────

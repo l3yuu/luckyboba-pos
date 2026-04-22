@@ -15,6 +15,7 @@ import {
   MapPin,
   Clock,
   Lock,
+  Key,
   Globe,
   HelpCircle,
   Check,
@@ -94,7 +95,7 @@ const useKioskIdle = (onReset: () => void) => {
 // --- Main Component ---
 
 const KioskPage = () => {
-  const [step, setStep] = useState<'splash' | 'order_type' | 'menu' | 'confirm' | 'select_branch'>('splash');
+  const [step, setStep] = useState<'locked' | 'splash' | 'order_type' | 'menu' | 'confirm' | 'select_branch'>('splash');
   const [orderType, setOrderType] = useState<'dine_in' | 'take_out' | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('');
@@ -137,6 +138,9 @@ const KioskPage = () => {
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
+  const [accessPassword, setAccessPassword] = useState('');
+  const [accessError, setAccessError] = useState(false);
+  const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
 
   // Admin & Expo State
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
@@ -210,6 +214,12 @@ const KioskPage = () => {
         setBranchId(parsedId);
         localStorage.setItem('kiosk_branch_id', bIdAttr);
 
+        // Check if unlocked for this session
+        const isUnlocked = sessionStorage.getItem(`kiosk_unlocked_${parsedId}`) === 'true';
+        if (!isUnlocked) {
+          setStep('locked');
+        }
+
         try {
           setLoading(true);
           const [res, aoRes, slRes] = await Promise.all([
@@ -281,9 +291,18 @@ const KioskPage = () => {
 
     setBranchId(branch.id);
     setBranchName(branch.name);
+    setAccessPassword('');
+    setAccessError(false);
     localStorage.setItem('kiosk_branch_id', branch.id.toString());
     setSelectedBranchToConfirm(null);
-    setStep('splash');
+
+    // Check if unlocked for this session
+    const isUnlocked = sessionStorage.getItem(`kiosk_unlocked_${branch.id}`) === 'true';
+    if (!isUnlocked) {
+      setStep('locked');
+    } else {
+      setStep('splash');
+    }
     // Refresh items for this branch
     const fetchMenu = async () => {
       try {
@@ -365,6 +384,30 @@ const KioskPage = () => {
       triggerPinError();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyPassword = async () => {
+    if (!branchId || !accessPassword) return;
+    setIsVerifyingPassword(true);
+    setAccessError(false);
+    try {
+      const response = await api.post('/kiosk/verify-password', {
+        password: accessPassword,
+        branch_id: branchId
+      });
+
+      if (response.data.success) {
+        sessionStorage.setItem(`kiosk_unlocked_${branchId}`, 'true');
+        setStep('splash');
+        setAccessPassword('');
+      } else {
+        setAccessError(true);
+      }
+    } catch (_err) {
+      setAccessError(true);
+    } finally {
+      setIsVerifyingPassword(false);
     }
   };
 
@@ -473,7 +516,7 @@ const KioskPage = () => {
   };
 
   const handleItemClick = (item: MenuItem) => {
-    if (item.category_type === 'mix_and_match' || item.category_type === 'combo') {
+    if (item.category_type === 'mix_and_match' || item.category_type === 'combo' || item.category_type === 'bundle') {
       setPendingMixMatchItem(item);
       setMixMatchStep('select_drink');
       setSelectedMixMatchDrink(null);
@@ -532,7 +575,7 @@ const KioskPage = () => {
       const todayKey = new Date().toISOString().split('T')[0];
 
       try {
-        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}`);
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&t=${Date.now()}`);
         const serverSeq = parseInt(data.next_sequence, 10);
         const serverQueue = parseInt(data.next_queue, 10);
 
@@ -1327,14 +1370,14 @@ const KioskPage = () => {
                   <div>
                     <div className="relative">
                       {/* Invisible English sizers for Mix & Match headers */}
-                      <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                      <h3 className="text-4xl font-black text-zinc-900 tracking-tight uppercase invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                         {mixMatchStep === 'select_drink'
-                          ? (pendingMixMatchItem.category_type === 'combo' ? "Customize Your Combo" : "Choose Your Drink")
+                          ? (pendingMixMatchItem.category_type === 'combo' ? "Customize Your Combo" : (pendingMixMatchItem.category_type === 'bundle' ? "Customize Your Bundle" : "Choose Your Drink"))
                           : "Customize Drink"}
                       </h3>
-                      <h3 className="text-3xl font-black text-zinc-900 tracking-tight uppercase absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif", wordBreak: 'keep-all' }}>
+                      <h3 className="text-4xl font-black text-zinc-900 tracking-tight uppercase absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif", wordBreak: 'keep-all' }}>
                         {mixMatchStep === 'select_drink'
-                          ? (pendingMixMatchItem.category_type === 'combo' ? t.customizeYourCombo : t.chooseYourDrink)
+                          ? (pendingMixMatchItem.category_type === 'combo' ? t.customizeYourCombo : (pendingMixMatchItem.category_type === 'bundle' ? t.bundleConfigTitle : t.chooseYourDrink))
                           : t.customizeDrink}
                       </h3>
                     </div>
@@ -1547,7 +1590,7 @@ const KioskPage = () => {
                     {customizingItem.image ? (
                       <img src={getImageUrl(customizingItem.image)} className="w-full h-full object-cover" />
                     ) : (
-                      <ShoppingBag size={32} className="text-orange-300" />
+                      <ShoppingBag size={40} className="text-[#7c14d4]" />
                     )}
                   </div>
                   <div>
@@ -1650,6 +1693,12 @@ const KioskPage = () => {
                       selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
                     ).toFixed(0)}
                   </div>
+                  {selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0) > 0 && (
+                    <div className="text-orange-600 font-bold">
+                      <p className="text-[10px] uppercase tracking-widest mb-1">{t.addOns}</p>
+                      <p className="text-xl">+₱{selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0).toFixed(0)}</p>
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={confirmCustomization}
@@ -1668,7 +1717,7 @@ const KioskPage = () => {
 
 
   const ConfirmView = () => (
-    <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fdf8ff]">
+    <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fdf8ff] scrollbar-hide">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-100/30 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-50/40 rounded-full blur-[100px] translate-y-1/4 -translate-x-1/4 pointer-events-none" />
@@ -1676,8 +1725,8 @@ const KioskPage = () => {
       {/* Top Bar (Unified) */}
       <div className="h-20 px-12 flex items-center justify-between shrink-0 relative z-50">
         <div className="flex items-center gap-4">
-          <img src={logo} alt="Lucky Boba" className="h-12 w-auto drop-shadow-sm" />
-          <span className="text-2xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
+          <img src={logo} alt="Lucky Boba" className="h-14 w-auto drop-shadow-sm" />
+          <span className="text-3xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
         </div>
         <div className="flex items-center gap-6">
           <div className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
@@ -1687,49 +1736,48 @@ const KioskPage = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-10 px-12 relative z-10 py-12">
-        <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_15px_40px_rgba(16,185,129,0.3)] animate-bounce relative shrink-0">
-          <div className="absolute inset-0 border-4 border-emerald-400 rounded-full animate-ping opacity-50"></div>
-          <CheckCircle2 size={48} strokeWidth={3} className="relative z-10" />
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-4 px-8 sm:px-12 relative z-10 py-2 sm:py-4 w-full">
+        <div className="w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_10px_25px_rgba(16,185,129,0.2)] animate-bounce relative shrink-0">
+          <Check size={32} strokeWidth={4} />
         </div>
 
-        <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="relative">
-            <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-              Order <span className="italic text-[#7c3aed]">Received</span>
+            <h2 className="text-4xl sm:text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              ORDER <span className="italic text-[#7c3aed]">RECEIVED</span>
             </h2>
-            <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+            <h2 className="text-4xl sm:text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
               {t.confirmTitle1} <span className="text-[#7c3aed] italic">{t.confirmTitle2}</span>
             </h2>
           </div>
-          <div className="relative h-5">
-            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em] invisible" aria-hidden="true">Please proceed to counter to pay</p>
-            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em] absolute inset-0 text-center">{t.proceedToCounter}</p>
+          <div className="relative h-4">
+            <p className="text-[10px] sm:text-xs font-semibold text-emerald-600 uppercase tracking-[0.2em] invisible" aria-hidden="true">Please proceed to counter to pay</p>
+            <p className="text-[10px] sm:text-xs font-semibold text-emerald-600 uppercase tracking-[0.2em] absolute inset-0 text-center">{t.proceedToCounter}</p>
           </div>
         </div>
 
-        <div className="bg-white p-10 rounded-[3rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
-          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-5">{t.yourTicketNumber}</p>
+        <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] w-full max-w-lg shadow-[0_30px_80px_rgba(0,0,0,0.04)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
+          <p className="text-zinc-400 font-bold uppercase tracking-[0.3em] text-[9px] mb-4">{t.yourTicketNumber}</p>
 
-          <div className="bg-purple-50/50 px-12 py-8 rounded-[2.5rem] mb-10 border border-purple-100/50 shadow-inner w-full text-center">
-            <h3 className="text-7xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
-              #{orderNumber}
+          <div className="bg-purple-50/20 px-10 py-6 rounded-[2rem] mb-6 border border-purple-100/20 shadow-inner w-full text-center">
+            <h3 className="text-5xl sm:text-6xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <span className="text-[#7c3aed]/40 font-medium mr-1">#</span>{orderNumber}
             </h3>
           </div>
 
-          <div className="w-full flex items-center justify-between pt-8 border-t border-dashed border-purple-100">
-            <span className="text-zinc-400 font-bold uppercase text-xs tracking-widest">{t.totalDue}</span>
+          <div className="w-full flex items-center justify-between pt-6 border-t border-dashed border-purple-100/60">
+            <span className="text-zinc-400 font-bold uppercase text-[9px] tracking-[0.2em]">{t.totalDue}</span>
             <span className="text-4xl font-bold text-[#3b0764] tracking-tighter">₱{calculateTotal().toFixed(0)}</span>
           </div>
         </div>
 
         <button
           onClick={handleReset}
-          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-12 pr-8 py-5 rounded-full font-bold text-xl tracking-[0.15em] uppercase shadow-[0_25px_60px_rgba(124,58,237,0.35)] flex items-center gap-8 transition-all hover:scale-[1.02] active:scale-95 mt-4"
+          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-7 pr-3 py-2.5 rounded-[1.25rem] font-bold text-sm tracking-[0.12em] uppercase shadow-[0_12px_30px_rgba(124,58,237,0.25)] flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95 mt-4"
         >
           <span className="relative z-10">{t.newOrder}</span>
-          <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
-            <ChevronRight size={24} strokeWidth={4} />
+          <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
+            <ChevronRight size={16} strokeWidth={4} />
           </div>
         </button>
       </div>
@@ -1798,8 +1846,8 @@ const KioskPage = () => {
                 key={branch.id}
                 onClick={() => handleSelectBranch(branch)}
                 className={`p-10 rounded-[2.5rem] border-2 flex flex-col items-start text-left transition-all duration-500 group active:scale-[0.97] backdrop-blur-xl group relative ${selectedBranchToConfirm?.id === branch.id
-                    ? 'bg-white border-[#a020f0] shadow-[0_25px_60px_rgba(124,20,212,0.15)] -translate-y-2'
-                    : 'bg-white/40 border-white/60 hover:bg-white/80 hover:border-violet-200 hover:shadow-[0_30px_70px_rgba(88,28,135,0.12)] hover:-translate-y-1.5 shadow-sm'
+                  ? 'bg-white border-[#7c14d4] shadow-[0_25px_60px_rgba(124,20,212,0.15)] -translate-y-2'
+                  : 'bg-white/40 border-white/60 hover:bg-white/80 hover:border-violet-200 hover:shadow-[0_30px_70px_rgba(88,28,135,0.12)] hover:-translate-y-1.5 shadow-sm'
                   }`}
               >
                 {/* Visual Accent */}
@@ -1807,8 +1855,8 @@ const KioskPage = () => {
 
                 <div className="flex items-center gap-6 w-full mb-6 relative z-10">
                   <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 border ${selectedBranchToConfirm?.id === branch.id
-                      ? 'bg-gradient-to-br from-[#a020f0] to-fuchsia-600 border-[#a020f0] text-white shadow-lg shadow-purple-200 scale-110'
-                      : 'bg-white border-zinc-100 text-zinc-400 group-hover:bg-gradient-to-br group-hover:from-[#a020f0] group-hover:to-fuchsia-600 group-hover:border-[#a020f0] group-hover:text-white group-hover:scale-110'
+                    ? 'bg-gradient-to-br from-[#7c14d4] to-fuchsia-600 border-[#7c14d4] text-white shadow-lg shadow-purple-200 scale-110'
+                    : 'bg-white border-zinc-100 text-zinc-400 group-hover:bg-gradient-to-br group-hover:from-[#7c14d4] group-hover:to-fuchsia-600 group-hover:border-[#7c14d4] group-hover:text-white group-hover:scale-110'
                     }`}>
                     <ShoppingBag size={28} />
                   </div>
@@ -1851,8 +1899,8 @@ const KioskPage = () => {
 
                 <div className="mt-8 pt-6 border-t border-zinc-100/50 w-full flex items-center justify-between relative z-10">
                   <div className={`flex items-center gap-2 font-black uppercase text-[10px] tracking-[0.2em] transition-all duration-500 ${selectedBranchToConfirm?.id === branch.id
-                      ? 'text-[#a020f0] translate-x-1'
-                      : 'text-zinc-300 group-hover:text-[#a020f0] group-hover:translate-x-1'
+                    ? 'text-[#7c14d4] translate-x-1'
+                    : 'text-zinc-300 group-hover:text-[#7c14d4] group-hover:translate-x-1'
                     }`}>
                     <span>{t.selectBranch}</span>
                     <ChevronRight size={14} strokeWidth={3} />
@@ -1878,10 +1926,80 @@ const KioskPage = () => {
     );
   };
 
+  const AccessLockView = () => (
+    <div
+      className="flex-1 flex flex-col items-center justify-center p-12 overflow-hidden relative"
+      style={{
+        background: 'linear-gradient(145deg, #1a0b2e 0%, #2e1065 45%, #4c1d95 78%, #5b21b6 100%)'
+      }}
+    >
+      <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-violet-400/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[-15%] left-[-8%] w-[500px] h-[500px] bg-fuchsia-400/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="max-w-md w-full bg-white/10 backdrop-blur-2xl border border-white/20 p-10 rounded-[2.5rem] shadow-2xl flex flex-col items-center relative z-10">
+        <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center mb-8 border border-white/20 shadow-inner">
+          <Lock size={32} className="text-white" />
+        </div>
+
+        <h1 className="text-3xl font-black text-white uppercase tracking-tight mb-2">Kiosk Locked</h1>
+        <p className="text-violet-200 text-sm font-medium mb-8 text-center px-4">
+          Please enter the access password to unlock this kiosk for customer use.
+        </p>
+
+        <div className="w-full space-y-4">
+          <div className="relative group">
+            <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-violet-300 group-focus-within:text-white transition-colors" size={20} />
+            <input
+              type="password"
+              value={accessPassword}
+              onChange={(e) => setAccessPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+              placeholder="Enter Password"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white text-lg font-bold placeholder:text-violet-300/50 focus:bg-white/10 focus:border-white/30 focus:ring-2 focus:ring-white/10 outline-none transition-all tracking-widest"
+              autoFocus
+            />
+          </div>
+
+          {accessError && (
+            <p className="text-red-400 text-xs font-black uppercase tracking-widest text-center animate-bounce">
+              Invalid access password
+            </p>
+          )}
+
+          <button
+            onClick={handleVerifyPassword}
+            disabled={isVerifyingPassword || !accessPassword}
+            className="w-full bg-white text-[#2e1065] py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl hover:bg-violet-50 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 mt-2"
+          >
+            {isVerifyingPassword ? 'Verifying...' : 'Unlock Kiosk'}
+          </button>
+        </div>
+
+        <div className="mt-12 flex flex-col items-center gap-2">
+          <img src={logo} alt="Lucky Boba" className="h-8 w-auto opacity-50" />
+          <p className="text-violet-300/40 text-[9px] font-black uppercase tracking-widest">
+            Branch Security System v2.4
+          </p>
+        </div>
+      </div>
+
+      <button
+        onClick={() => {
+          localStorage.removeItem('kiosk_branch_id');
+          window.location.reload();
+        }}
+        className="absolute bottom-10 text-white/30 hover:text-white/60 font-black text-[10px] uppercase tracking-[0.3em] transition-colors"
+      >
+        Change Branch Location
+      </button>
+    </div>
+  );
+
   return (
     <KioskLayout>
       <div className="h-full flex flex-col bg-white print:hidden overflow-hidden">
         {step === 'select_branch' && BranchSelectorView()}
+        {step === 'locked' && AccessLockView()}
         {step === 'splash' && SplashView()}
         {step === 'order_type' && OrderTypeView()}
         {step === 'menu' && MenuView()}
@@ -1901,7 +2019,7 @@ const KioskPage = () => {
       )}
 
 
-      {loading && step !== 'menu' && (
+      {loading && step !== 'menu' && step !== 'locked' && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center print:hidden">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />

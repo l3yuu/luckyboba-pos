@@ -14,6 +14,7 @@ import BM_AddCustomers from "./BM_AddCustomers";
 import BM_DiscountSettings from "./BM_DiscountSettings";
 import BM_ExportData from "./BM_ExportData";
 import BM_AddVouchers from "./BM_AddVouchers";
+import { useToast } from "../../../hooks/useToast";
 
 // ── Role-Specific UI Components (Mirrored from SuperAdmin) ──────────────
 
@@ -107,9 +108,9 @@ interface ActivityLog {
 const BM_Settings = () => {
   const [activeSubView, setActiveSubView] = useState<string | null>(null);
   const [isLogOpen, setIsLogOpen] = useState(false);
-  const [, setLoading] = useState(true);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [confirmConfig, setConfirmConfig] = useState<{ title: string; desc: string; isDanger?: boolean; onConfirm: () => void } | null>(null);
+  const { showToast } = useToast();
 
   const [branchInfo, setBranchInfo] = useState({
     id: null as number | null,
@@ -117,10 +118,13 @@ const BM_Settings = () => {
     location: "Loading...",
     email: "N/A",
     phone: "N/A",
-    kiosk_pin: "1234"
+    kiosk_pin: "1234",
+    kiosk_password: "luckyboba"
   });
   const [kioskPinInput, setKioskPinInput] = useState("1234");
+  const [kioskPasswordInput, setKioskPasswordInput] = useState("luckyboba");
   const [isUpdatingPin, setIsUpdatingPin] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const [notifications, setNotifications] = useState(true);
   const [autoReports, setAutoReports] = useState(true);
@@ -149,9 +153,11 @@ const BM_Settings = () => {
           location: branchData?.location || "Unknown Location",
           email: userRes.data.email,
           phone: branchData?.contact ?? "N/A",
-          kiosk_pin: branchData?.kiosk_pin || "1234"
+          kiosk_pin: branchData?.kiosk_pin || "1234",
+          kiosk_password: branchData?.kiosk_password || "luckyboba"
         });
         setKioskPinInput(branchData?.kiosk_pin || "1234");
+        setKioskPasswordInput(branchData?.kiosk_password || "luckyboba");
       }
 
       if (auditRes.data.success) {
@@ -169,30 +175,39 @@ const BM_Settings = () => {
     fetchSettings();
   }, [fetchSettings]);
 
-  const showSaved = (msg = 'Saved successfully!') => {
-    setSaveMsg(msg);
-    setTimeout(() => setSaveMsg(null), 2500);
-  };
-
   const handleToggle = (key: 'notifications' | 'auto_reports') => {
     if (key === 'notifications') setNotifications(!notifications);
     if (key === 'auto_reports') setAutoReports(!autoReports);
-    showSaved('Preferences updated!');
+    showToast('Preferences updated!');
   };
 
   const closeSubView = () => setActiveSubView(null);
 
   const saveKioskPin = async () => {
-    if (!branchInfo.id) return showSaved('Error: Branch ID missing');
+    if (!branchInfo.id) return showToast('Error: Branch ID missing', 'error');
     setIsUpdatingPin(true);
     try {
       await api.put(`/branches/${branchInfo.id}`, { kiosk_pin: kioskPinInput });
-      showSaved('Kiosk PIN updated!');
+      showToast('Kiosk PIN updated successfully!');
       setBranchInfo(prev => ({ ...prev, kiosk_pin: kioskPinInput }));
     } catch (_err) {
-      showSaved('Failed to update Kiosk PIN.');
+      showToast('Failed to update Kiosk PIN. Check your connection.', 'error');
     } finally {
       setIsUpdatingPin(false);
+    }
+  };
+
+  const saveKioskPassword = async () => {
+    if (!branchInfo.id) return showToast('Error: Branch ID missing', 'error');
+    setIsUpdatingPassword(true);
+    try {
+      await api.put(`/branches/${branchInfo.id}`, { kiosk_password: kioskPasswordInput });
+      showToast('Kiosk Access Password updated!');
+      setBranchInfo(prev => ({ ...prev, kiosk_password: kioskPasswordInput }));
+    } catch (_err) {
+      showToast('Failed to update Kiosk Password.', 'error');
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -203,6 +218,15 @@ const BM_Settings = () => {
   if (activeSubView === 'discount') return <BM_DiscountSettings onBack={closeSubView} />;
   if (activeSubView === 'export-data') return <BM_ExportData onBack={closeSubView} />;
   if (activeSubView === 'add-vouchers') return <BM_AddVouchers onBack={closeSubView} />;
+  
+  if (loading) {
+    return (
+      <div className="p-8 flex flex-col items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin mb-4" />
+        <p className="text-xs text-zinc-400 font-medium">Loading branch configuration...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 md:p-8 fade-in">
@@ -210,13 +234,6 @@ const BM_Settings = () => {
         @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         .fade-in { animation: fadeIn 0.25s ease forwards; }
       `}</style>
-
-      {/* Save toast */}
-      {saveMsg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-lg animate-fade-in flex items-center gap-2">
-          ✓ {saveMsg}
-        </div>
-      )}
 
       <SectionHeader title="Branch Configuration" desc="Manage local settings and diagnostic health" />
 
@@ -255,27 +272,52 @@ const BM_Settings = () => {
               <p className="text-[10px] text-violet-400 mt-1">To update branch profile details, please contact the SuperAdmin.</p>
             </div>
 
-            {/* Kiosk PIN Update */}
-            <div className="mt-6 pt-6 border-t border-zinc-100">
-              <p className="text-sm font-bold text-[#1a0f2e] mb-1">Local Kiosk Security</p>
-              <p className="text-xs text-zinc-400 mb-4">Set the 4 to 10-digit PIN required to access Kiosk settings.</p>
-              <div className="flex gap-3 items-end">
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Kiosk Admin PIN</p>
-                  <input
-                    type="password"
-                    value={kioskPinInput}
-                    onChange={e => setKioskPinInput(e.target.value)}
-                    placeholder="Enter new PIN"
-                    className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-[0.4rem] px-3 py-1.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
-                  />
+            {/* Kiosk Security Settings */}
+            <div className="mt-6 pt-6 border-t border-zinc-100 flex flex-col gap-6">
+              <div>
+                <p className="text-sm font-bold text-[#1a0f2e] mb-1">Local Kiosk Settings PIN</p>
+                <p className="text-xs text-zinc-400 mb-4">Set the 4 to 10-digit PIN required to access Kiosk settings.</p>
+                <div className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Kiosk Admin PIN</p>
+                    <input
+                      type="password"
+                      value={kioskPinInput}
+                      onChange={e => setKioskPinInput(e.target.value)}
+                      placeholder="Enter new PIN"
+                      className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-[0.4rem] px-3 py-1.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <Btn 
+                    onClick={saveKioskPin}
+                    disabled={isUpdatingPin || kioskPinInput === branchInfo.kiosk_pin || kioskPinInput.length < 4}
+                  >
+                    {isUpdatingPin ? 'Saving...' : 'Update PIN'}
+                  </Btn>
                 </div>
-                <Btn 
-                  onClick={saveKioskPin}
-                  disabled={isUpdatingPin || kioskPinInput === branchInfo.kiosk_pin || kioskPinInput.length < 4}
-                >
-                  {isUpdatingPin ? 'Saving...' : 'Update PIN'}
-                </Btn>
+              </div>
+
+              <div className="pt-6 border-t border-zinc-100">
+                <p className="text-sm font-bold text-[#1a0f2e] mb-1">Kiosk Access Password</p>
+                <p className="text-xs text-zinc-400 mb-4">Set the password required to unlock the Kiosk for customer use.</p>
+                <div className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Access Password</p>
+                    <input
+                      type="password"
+                      value={kioskPasswordInput}
+                      onChange={e => setKioskPasswordInput(e.target.value)}
+                      placeholder="Enter access password"
+                      className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-[0.4rem] px-3 py-1.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <Btn 
+                    onClick={saveKioskPassword}
+                    disabled={isUpdatingPassword || kioskPasswordInput === branchInfo.kiosk_password || kioskPasswordInput.length < 4}
+                  >
+                    {isUpdatingPassword ? 'Saving...' : 'Update Password'}
+                  </Btn>
+                </div>
               </div>
             </div>
           </div>
