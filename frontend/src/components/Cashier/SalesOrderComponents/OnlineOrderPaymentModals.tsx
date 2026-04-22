@@ -55,6 +55,7 @@ const buildInitialAssignments = (order: OrderForPayment | null): ItemPaxAssignme
 
 interface PaymentModalProps {
   order: OrderForPayment | null;
+  addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
   discounts?: Discount[];
   vatType?: 'vat' | 'non_vat';
   onClose: () => void;
@@ -80,6 +81,7 @@ interface PaymentModalProps {
 
 export const OnlineOrderPaymentModal = ({ 
   order, 
+  addOnsData = [],
   discounts = [], 
   vatType = 'vat', 
   onClose, 
@@ -109,13 +111,31 @@ export const OnlineOrderPaymentModal = ({
     const isGrab = order.source === 'grab' || paymentMethod === 'grab';
     const isPanda = order.source === 'panda' || paymentMethod === 'food_panda';
 
-    const cartItems: CartItemForCalc[] = items.map(item => ({
-      qty: item.qty ?? item.quantity ?? 1,
-      price: item.unit_price ?? item.price ?? 0,
-      grab_price: item.grab_price,
-      panda_price: item.panda_price,
-      charges: { grab: isGrab, panda: isPanda },
-    }));
+    const getAddOnPrice = (addon: string | { name?: string; price?: number; addon_name?: string }, isGrab: boolean, isPanda: boolean) => {
+      if (typeof addon === 'object' && addon.price !== undefined && Number(addon.price) > 0) {
+        return Number(addon.price);
+      }
+      const name = typeof addon === 'string' ? addon : (addon.name || addon.addon_name);
+      if (!name) return 0;
+      const match = addOnsData.find(a => a.name.toLowerCase() === name.toLowerCase());
+      if (!match) return 0;
+      if (isGrab && match.grab_price && Number(match.grab_price) > 0) return Number(match.grab_price);
+      if (isPanda && match.panda_price && Number(match.panda_price) > 0) return Number(match.panda_price);
+      return Number(match.price);
+    };
+
+    const cartItems: CartItemForCalc[] = items.map(item => {
+      const itemQtyVal = item.qty ?? item.quantity ?? 1;
+      const addOnCost = (item.add_ons || []).reduce((sum, add) => sum + getAddOnPrice(add, isGrab, isPanda), 0);
+      
+      return {
+        qty: itemQtyVal,
+        price: (item.unit_price ?? item.price ?? 0) + addOnCost,
+        grab_price: Number(item.grab_price ?? 0) > 0 ? Number(item.grab_price) + addOnCost : undefined,
+        panda_price: Number(item.panda_price ?? 0) > 0 ? Number(item.panda_price) + addOnCost : undefined,
+        charges: { grab: isGrab, panda: isPanda },
+      };
+    });
 
     const grossSubtotal = cartItems.reduce(
       (acc, item) => acc + (Number(item.price) * item.qty) + getItemSurcharge(item),
@@ -185,7 +205,7 @@ export const OnlineOrderPaymentModal = ({
       totalCount: cartItems.reduce((acc, i) => acc + i.qty, 0),
       hasPaxDiscount
     };
-  }, [order, itemPaxAssignments, selectedDiscount, paymentMethod, discounts, isVat]);
+  }, [order, addOnsData, itemPaxAssignments, selectedDiscount, paymentMethod, discounts, isVat]);
 
   if (!order || !totals) return null;
 
@@ -262,9 +282,31 @@ export const OnlineOrderPaymentModal = ({
                             </p>
                             <div className="text-[10px] text-zinc-500 mt-1 ml-2">
                               {item.sugar_level && <p>• Sugar {item.sugar_level}</p>}
-                              {(item.add_ons || []).map((add, ai) => (
-                                <p key={ai}>• {typeof add === 'string' ? add : (add.name || add.addon_name)}</p>
-                              ))}
+                              {(item.add_ons || []).map((add, ai) => {
+                                const isGrab = order.source === 'grab' || paymentMethod === 'grab';
+                                const isPanda = order.source === 'panda' || paymentMethod === 'food_panda';
+                                
+                                // Local helper for UI display
+                                const getPrice = (addon: string | { name?: string; price?: number; addon_name?: string }) => {
+                                  if (typeof addon === 'object' && addon.price !== undefined && Number(addon.price) > 0) return Number(addon.price);
+                                  const name = typeof addon === 'string' ? addon : (addon.name || addon.addon_name);
+                                  const match = addOnsData.find(a => a.name.toLowerCase() === (name || '').toLowerCase());
+                                  if (!match) return 0;
+                                  if (isGrab && match.grab_price && Number(match.grab_price) > 0) return Number(match.grab_price);
+                                  if (isPanda && match.panda_price && Number(match.panda_price) > 0) return Number(match.panda_price);
+                                  return Number(match.price);
+                                };
+
+                                const addName = typeof add === 'string' ? add : (add.name || add.addon_name);
+                                const addPrice = getPrice(add);
+
+                                return (
+                                  <div key={ai} className="flex justify-between items-center pr-4">
+                                    <span>• {addName}</span>
+                                    {addPrice > 0 && <span>₱ {addPrice.toFixed(2)}</span>}
+                                  </div>
+                                );
+                              })}
                               {item.remarks && <p className="italic">• {item.remarks}</p>}
                             </div>
                           </div>
