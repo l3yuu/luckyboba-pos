@@ -1972,38 +1972,38 @@ const KioskPage = () => {
     <div
       className="flex-1 flex flex-col items-center justify-center p-12 overflow-hidden relative"
       style={{
-        background: 'linear-gradient(145deg, #1a0b2e 0%, #2e1065 45%, #4c1d95 78%, #5b21b6 100%)'
+        background: 'linear-gradient(145deg, #fdf8ff 0%, #f3e8ff 100%)'
       }}
     >
-      <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-violet-400/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#a020f0]/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-[-15%] left-[-8%] w-[500px] h-[500px] bg-fuchsia-400/10 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="max-w-md w-full bg-white/10 backdrop-blur-2xl border border-white/20 p-10 rounded-[2.5rem] shadow-2xl flex flex-col items-center relative z-10">
-        <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center mb-8 border border-white/20 shadow-inner">
-          <Lock size={32} className="text-white" />
+      <div className="max-w-md w-full bg-white/90 backdrop-blur-2xl border border-purple-100 p-10 rounded-[2.5rem] shadow-[0_40px_100px_rgba(160,32,240,0.15)] flex flex-col items-center relative z-10">
+        <div className="w-20 h-20 bg-purple-50 rounded-3xl flex items-center justify-center mb-8 border border-purple-100 shadow-inner">
+          <Lock size={32} className="text-[#a020f0]" />
         </div>
 
-        <h1 className="text-3xl font-black text-white uppercase tracking-tight mb-2">Kiosk Locked</h1>
-        <p className="text-violet-200 text-sm font-medium mb-8 text-center px-4">
+        <h1 className="text-3xl font-black text-zinc-900 uppercase tracking-tight mb-2">Kiosk Locked</h1>
+        <p className="text-zinc-500 text-sm font-medium mb-8 text-center px-4">
           Please enter the access password to unlock this kiosk for customer use.
         </p>
 
         <div className="w-full space-y-4">
           <div className="relative group">
-            <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-violet-300 group-focus-within:text-white transition-colors" size={20} />
+            <Key className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0] transition-colors" size={20} />
             <input
               type="password"
               value={accessPassword}
               onChange={(e) => setAccessPassword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
               placeholder="Enter Password"
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white text-lg font-bold placeholder:text-violet-300/50 focus:bg-white/10 focus:border-white/30 focus:ring-2 focus:ring-white/10 outline-none transition-all tracking-widest"
+              className="w-full bg-[#fafafa] border-[1.5px] border-zinc-200 rounded-2xl py-4 pl-14 pr-4 text-zinc-900 text-lg font-bold placeholder:text-zinc-400 focus:bg-white focus:border-[#a020f0] focus:ring-4 focus:ring-[#a020f0]/10 outline-none transition-all tracking-widest shadow-sm"
               autoFocus
             />
           </div>
 
           {accessError && (
-            <p className="text-red-400 text-xs font-black uppercase tracking-widest text-center animate-bounce">
+            <p className="text-red-500 text-xs font-black uppercase tracking-widest text-center animate-bounce">
               Invalid access password
             </p>
           )}
@@ -2011,15 +2011,15 @@ const KioskPage = () => {
           <button
             onClick={handleVerifyPassword}
             disabled={isVerifyingPassword || !accessPassword}
-            className="w-full bg-white text-[#2e1065] py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl hover:bg-violet-50 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 mt-2"
+            className="w-full bg-gradient-to-r from-[#a020f0] to-purple-500 text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl shadow-purple-200 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 mt-2"
           >
             {isVerifyingPassword ? 'Verifying...' : 'Unlock Kiosk'}
           </button>
         </div>
 
         <div className="mt-12 flex flex-col items-center gap-2">
-          <img src={logo} alt="Lucky Boba" className="h-8 w-auto opacity-50" />
-          <p className="text-violet-300/40 text-[9px] font-black uppercase tracking-widest">
+          <img src={logo} alt="Lucky Boba" className="h-8 w-auto opacity-70 grayscale" />
+          <p className="text-zinc-400 text-[9px] font-black uppercase tracking-widest">
             Branch Security System v2.4
           </p>
         </div>
@@ -2030,7 +2030,7 @@ const KioskPage = () => {
           localStorage.removeItem('kiosk_branch_id');
           window.location.reload();
         }}
-        className="absolute bottom-10 text-white/30 hover:text-white/60 font-black text-[10px] uppercase tracking-[0.3em] transition-colors"
+        className="absolute bottom-10 text-zinc-400 hover:text-[#a020f0] font-black text-[10px] uppercase tracking-[0.3em] transition-colors"
       >
         Change Branch Location
       </button>
