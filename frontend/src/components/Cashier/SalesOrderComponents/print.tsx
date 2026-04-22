@@ -95,6 +95,8 @@ export const ReceiptPrint = ({
   pwd_discount_amount = 0,
   itemPaxAssignments = {},
   posFooter = {},
+  contactEmail,
+  contactPhone,
 }: ReceiptPrintProps) => {
 
   // FIX #6 + #7 — removed dead coveredUnitMap / itemCoverageMap computation that
@@ -589,8 +591,8 @@ export const ReceiptPrint = ({
         {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
   FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />
-  {posFooter.contact_email ? posFooter.contact_email : 'luckyboba.franchise@gmail.com'}<br />
-  {posFooter.contact_phone ? posFooter.contact_phone : '09171699894'}
+  {contactEmail || posFooter.contact_email || 'luckyboba.franchise@gmail.com'}<br />
+  {contactPhone || posFooter.contact_phone || '09171699894'}
 </div>
 
         {/* ── POS Supplier Footer ── */}
