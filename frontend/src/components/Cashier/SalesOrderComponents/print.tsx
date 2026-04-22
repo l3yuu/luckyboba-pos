@@ -160,7 +160,7 @@ export const ReceiptPrint = ({
 
 
   const addOnUnitPrice = (item: CartItem, addonName: string): number => {
-    const a = addOnsData.find(x => x.name === addonName);
+    const a = addOnsData.find(x => x.name.toLowerCase() === addonName.toLowerCase());
     if (!a) return 0;
     return item.charges?.grab && Number(a.grab_price ?? 0) > 0
       ? Number(a.grab_price)
@@ -444,7 +444,7 @@ export const ReceiptPrint = ({
                     const groups = splitGroups.filter(g => g.discountType === type);
                     const discountTotal = groups.reduce((acc: number, g) => {
                       const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
-                        const a = addOnsData.find(x => x.name === name);
+                        const a = addOnsData.find(x => x.name.toLowerCase() === name.toLowerCase());
                         return sum + (a ? Number(a.price) : 0);
                       }, 0);
                       const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
@@ -452,7 +452,7 @@ export const ReceiptPrint = ({
                     }, 0);
                     const groupNetSubtotal = groups.reduce((acc: number, g) => {
                       const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
-                        const a = addOnsData.find(x => x.name === name);
+                        const a = addOnsData.find(x => x.name.toLowerCase() === name.toLowerCase());
                         return sum + (a ? Number(a.price) : 0);
                       }, 0);
                       const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
@@ -569,24 +569,26 @@ export const ReceiptPrint = ({
         </div>
 
         {/* Signature fields */}
-        <div className="text-xs mt-5 space-y-2">
-          {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature:'].map(label => (
-            <div key={label} className="flex justify-between items-end w-full">
-              <span>{label}</span>
-              <span className="border-b border-black w-[70%] relative">
-                {label === 'Name:' && customerName && (
-                  <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
-                )}
-                {/* FIX #3 — join arrays to a comma-separated string for display */}
-                {label === 'TIN/ID/SC:' && (seniorIds.length > 0 || pwdIds.length > 0) && (
-                  <span className="absolute left-1 bottom-0 text-[10px]">
-                    {[...seniorIds, ...pwdIds].join(', ')}
-                  </span>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
+        {(paxSenior > 0 || paxPwd > 0 || (seniorIds && seniorIds.length > 0) || (pwdIds && pwdIds.length > 0)) && (
+          <div className="text-xs mt-5 space-y-2">
+            {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature'].map(label => (
+              <div key={label} className="flex justify-between items-end w-full">
+                <span>{label}</span>
+                <span className="border-b border-black w-[70%] relative">
+                  {label === 'Name:' && customerName && (
+                    <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
+                  )}
+                  {/* FIX #3 — join arrays to a comma-separated string for display */}
+                  {label === 'TIN/ID/SC:' && ((seniorIds && seniorIds.length > 0) || (pwdIds && pwdIds.length > 0)) && (
+                    <span className="absolute left-1 bottom-0 text-[10px]">
+                      {[...(seniorIds || []), ...(pwdIds || [])].join(', ')}
+                    </span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
@@ -787,6 +789,16 @@ export const KioskTicketPrint = ({
               <span className="tracking-tighter" style={{ fontSize: '14pt' }}>{totalAmount.toFixed(2)}</span>
             </div>
           </div>
+        </div>
+
+        {/* Signature fields */}
+        <div className="text-[9px] mt-4 mb-4 space-y-2 border-t border-black pt-2">
+          {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature'].map(label => (
+            <div key={label} className="flex justify-between items-end w-full">
+              <span className="font-bold">{label}</span>
+              <span className="border-b border-black w-[70%] h-3"></span>
+            </div>
+          ))}
         </div>
 
         {/* Footer */}

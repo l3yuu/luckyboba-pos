@@ -33,7 +33,7 @@ interface SaleItem {
   cup_size_label?: string;
   sugar_level?: string;
   options?: string[];
-  add_ons?: (string | { name?: string; addon_name?: string })[];
+  add_ons?: (string | { name?: string; addon_name?: string; price?: number })[];
   remarks?: string;
 }
 
@@ -57,6 +57,12 @@ interface OnlineOrder {
   source?: string;
   created_at: string;
   items: SaleItem[];
+  sc_discount_amount?: number;
+  pwd_discount_amount?: number;
+  senior_id?: string;
+  pwd_id?: string;
+  pax_senior?: number;
+  pax_pwd?: number;
 }
 
 type Status = 'pending' | 'preparing' | 'completed';
@@ -128,7 +134,10 @@ const mapOrderToCart = (order: OnlineOrder): CartItem[] => {
       sugarLevel,
       remarks: item.remarks || '',
       options: Array.isArray(item.options) ? item.options : [],
-      addOns: Array.isArray(item.add_ons) ? item.add_ons.map((a: string | Record<string, string>) => typeof a === 'string' ? a : (a.name || a.addon_name || '')) : [],
+      addOns: Array.isArray(item.add_ons) 
+        ? item.add_ons.map((a: string | { name?: string; addon_name?: string; price?: number }) => 
+            typeof a === 'string' ? a : (a.name || a.addon_name || '')) 
+        : [],
       finalPrice: itemPrice(item),
     };
   }) as unknown as CartItem[];
@@ -544,7 +553,21 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
       (order.items || []).forEach((item, cartIndex) => {
         const assignments = itemPaxAssignments[String(cartIndex)] ?? [];
-        const unitPrice = Number(item.unit_price ?? item.price ?? 0);
+        
+        const addOnCost = (item.add_ons || []).reduce((sum, add) => {
+          if (typeof add === 'object' && add.price !== undefined && Number(add.price) > 0) {
+            return sum + Number(add.price);
+          }
+          const name = typeof add === 'string' ? add : (add.name || add.addon_name);
+          const match = addOnsData.find(a => a.name.toLowerCase() === (name || '').toLowerCase());
+          if (!match) return sum;
+          if (paymentMethod === 'grab' && match.grab_price && Number(match.grab_price) > 0) return sum + Number(match.grab_price);
+          if (paymentMethod === 'food_panda' && match.panda_price && Number(match.panda_price) > 0) return sum + Number(match.panda_price);
+          return sum + Number(match.price);
+        }, 0);
+
+        const unitPrice = Number(item.unit_price ?? item.price ?? 0) + addOnCost;
+        
         assignments.forEach(a => {
           if (a === 'none') return;
           const vatExcl = isVatOrder ? unitPrice / 1.12 : unitPrice;
@@ -592,6 +615,12 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         vat_amount: calculations.vatAmount,
         vat_exempt_sales: calculations.vatExemptSales,
         discount_amount: Math.round((scDiscountAmount + pwdDiscountAmount + promoDiscountAmount) * 100) / 100,
+        sc_discount_amount: Math.round(scDiscountAmount * 100) / 100,
+        pwd_discount_amount: Math.round(pwdDiscountAmount * 100) / 100,
+        senior_id: seniorIds.filter(Boolean).join(',') || undefined,
+        pwd_id: pwdIds.filter(Boolean).join(',') || undefined,
+        pax_senior: paxSenior || undefined,
+        pax_pwd: paxPwd || undefined,
       };
       setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
       const seqNumber = updatedOrder.customer_code || '001';
@@ -827,6 +856,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       <OnlineOrderPaymentModal
         key={activePaymentOrder?.id ?? 'none'}
         order={activePaymentOrder}
+        addOnsData={addOnsData}
         discounts={discounts}
         vatType={vatType}
         onClose={() => setActivePaymentOrder(null)}
@@ -923,6 +953,12 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           promoDiscount={printJob.order.discount_amount ?? 0}
           itemPaxAssignments={{}}
           customerName={printJob.order.customer_name ?? 'App Customer'}
+          seniorIds={printJob.order.senior_id ? printJob.order.senior_id.split(',') : []}
+          pwdIds={printJob.order.pwd_id ? printJob.order.pwd_id.split(',') : []}
+          paxSenior={printJob.order.pax_senior}
+          paxPwd={printJob.order.pax_pwd}
+          sc_discount_amount={printJob.order.sc_discount_amount}
+          pwd_discount_amount={printJob.order.pwd_discount_amount}
           orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
           formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
           formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
