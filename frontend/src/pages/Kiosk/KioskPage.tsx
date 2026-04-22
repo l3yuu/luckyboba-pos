@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { KioskTicketPrint } from '../../components/Cashier/SalesOrderComponents/print';
 import { getImageUrl } from '../../utils/imageUtils';
+import { useOfflineQueue } from '../../hooks/useOfflineQueue';
 
 
 // --- Types ---
@@ -95,6 +96,7 @@ const useKioskIdle = (onReset: () => void) => {
 // --- Main Component ---
 
 const KioskPage = () => {
+  const { enqueue } = useOfflineQueue();
   const [step, setStep] = useState<'locked' | 'splash' | 'order_type' | 'menu' | 'confirm' | 'select_branch'>('splash');
   const [orderType, setOrderType] = useState<'dine_in' | 'take_out' | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
@@ -104,6 +106,7 @@ const KioskPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [isOfflineOrder, setIsOfflineOrder] = useState(false);
 
   // --- Mix and Match State ---
   const [isMixMatchViewOpen, setIsMixMatchViewOpen] = useState(false);
@@ -582,7 +585,8 @@ const KioskPage = () => {
       const todayKey = new Date().toISOString().split('T')[0];
 
       try {
-        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=kiosk&t=${Date.now()}`);
+        // Fast-fail sequence fetch (3 seconds)
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=kiosk&t=${Date.now()}`, { timeout: 3000 });
         const serverSeq = parseInt(data.next_sequence, 10);
         const serverQueue = parseInt(data.next_queue, 10);
 
@@ -661,7 +665,14 @@ const KioskPage = () => {
         })
       };
 
-      await api.post('/kiosk-sales', payload);
+      try {
+        // Fast-fail order submission (3 seconds)
+        await api.post('/kiosk-sales', payload, { timeout: 3000 });
+      } catch (err) {
+        console.warn('[Offline Mode] Saving kiosk order locally:', err);
+        enqueue(payload, '/kiosk-sales');
+        setIsOfflineOrder(true);
+      }
 
       setOrderNumber(formattedQueue);
       setPrintData({
@@ -1777,6 +1788,12 @@ const KioskPage = () => {
         </div>
 
         <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] w-full max-w-lg shadow-[0_30px_80px_rgba(0,0,0,0.04)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
+          {isOfflineOrder && (
+            <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[8px] font-bold mb-4 flex items-center gap-1 uppercase tracking-widest animate-pulse">
+              <Clock className="w-2.5 h-2.5" />
+              {t.offlineSaved}
+            </div>
+          )}
           <p className="text-zinc-400 font-bold uppercase tracking-[0.3em] text-[9px] mb-4">{t.yourTicketNumber}</p>
 
           <div className="bg-purple-50/20 px-10 py-6 rounded-[2rem] mb-6 border border-purple-100/20 shadow-inner w-full text-center">

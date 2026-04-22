@@ -1371,7 +1371,8 @@ const SalesOrder = () => {
 
     if (navigator.onLine && branchId) {
       try {
-        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=pos&t=${Date.now()}`);
+        // Fast-fail sequence fetch (5 seconds)
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=pos&t=${Date.now()}`, { timeout: 5000 });
         const serverSeq = parseInt(data.next_sequence, 10);
         if (!isNaN(serverSeq)) finalOrNumber = generateORNumber(serverSeq);
         const serverQueue = parseInt(data.next_queue, 10);
@@ -1472,7 +1473,8 @@ const SalesOrder = () => {
 
     if (navigator.onLine) {
       try {
-        const res = await api.post('/sales', orderData);
+        // Fast-fail order submission (5 seconds)
+        const res = await api.post('/sales', orderData, { timeout: 5000 });
         if (res.data?.si_number) {
           finalOrNumber = res.data.si_number;
           setOrNumber(finalOrNumber);

@@ -123,6 +123,7 @@ interface TranslationStrings {
   bundleItemStep: string;
   nextItem: string;
   confirmBundle: string;
+  offlineSaved: string;
 }
 
 type TranslationMap = Record<KioskLanguage, TranslationStrings>;
@@ -248,6 +249,7 @@ export const translations: TranslationMap = {
     bundleItemStep: 'Step',
     nextItem: 'Next Item',
     confirmBundle: 'Confirm Bundle',
+    offlineSaved: 'Saved Locally (Pending Sync)',
   },
 
   Filipino: {
@@ -370,6 +372,7 @@ export const translations: TranslationMap = {
     bundleItemStep: 'Hahakbang',
     nextItem: 'Susunod na Item',
     confirmBundle: 'Kumpirmahin ang Bundle',
+    offlineSaved: 'Naka-save Locally (Isi-sync)',
   },
 
   Chinese: {
@@ -492,6 +495,7 @@ export const translations: TranslationMap = {
     bundleItemStep: '第',
     nextItem: '下一件',
     confirmBundle: '确认组合',
+    offlineSaved: '已本地保存 (等待同步)',
   },
 
   Korean: {
@@ -614,6 +618,7 @@ export const translations: TranslationMap = {
     bundleItemStep: '단계',
     nextItem: '다음 항목',
     confirmBundle: '번들 확정',
+    offlineSaved: '로컬 저장됨 (동기화 대기 중)',
   },
 };
 
