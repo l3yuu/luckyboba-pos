@@ -141,7 +141,7 @@ interface BtnProps {
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
   };
   return (
@@ -327,7 +327,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
   const sellersAllTime: TopSellerItem[] = [];
   const allTimeMax = 1;
 
-  const PURPLES = ['#a020f0', '#6d28d9', '#7c3aed', '#a78bfa', '#c4b5fd', '#ede9fe'];
+  const PURPLES = ['#6a12b8', '#6d28d9', '#7c3aed', '#a78bfa', '#c4b5fd', '#ede9fe'];
 
   // ── Quick stats ────────────────────────────────────────────────────────────
   const avgOrderVal = fmt(
@@ -377,7 +377,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
               { key: 'monthly', label: 'Monthly' },
             ] as const).map(({ key, label }) => (
               <button key={key} onClick={() => setTimeFilter(key)}
-                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${timeFilter === key ? 'bg-[#a020f0] text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}>
+                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${timeFilter === key ? 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}>
                 {label}
               </button>
             ))}
@@ -491,8 +491,8 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                 <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="bmGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#a020f0" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#a020f0" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#6a12b8" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#6a12b8" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
@@ -502,9 +502,9 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                     tick={{ fontSize: 11, fill: '#a1a1aa', fontWeight: 600 }} tickFormatter={fmtK} />
                   <Tooltip content={(props) => <ChartTip {...props} avgRevenue={avgRevenue} />}
                     cursor={{ stroke: '#ddd6f7', strokeWidth: 1, strokeDasharray: '3 3' }} />
-                  <Area type="monotone" dataKey="value" name="Revenue" stroke="#a020f0" strokeWidth={2.5}
+                  <Area type="monotone" dataKey="value" name="Revenue" stroke="#6a12b8" strokeWidth={2.5}
                     fillOpacity={1} fill="url(#bmGrad)"
-                    activeDot={{ r: 4, fill: '#a020f0', stroke: '#fff', strokeWidth: 2 }} />
+                    activeDot={{ r: 4, fill: '#6a12b8', stroke: '#fff', strokeWidth: 2 }} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -540,7 +540,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
-                            style={{ background: i === 0 ? '#a020f0' : '#f4f4f5', color: i === 0 ? '#fff' : '#71717a' }}>
+                            style={{ background: i === 0 ? '#6a12b8' : '#f4f4f5', color: i === 0 ? '#fff' : '#71717a' }}>
                             <span style={{ fontSize: 9, fontWeight: 800 }}>{i + 1}</span>
                           </div>
                           <span className="text-xs font-semibold text-zinc-700 truncate max-w-32.5">{item.product_name}</span>
@@ -583,7 +583,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                   />
                   <Bar dataKey="qty" radius={[4, 4, 0, 0]}>
                     {sellersAllTime.slice(0, 6).map((_: TopSellerItem, i: number) => (
-                      <Cell key={i} fill={i === 0 ? '#a020f0' : `hsl(${265 - i * 15},${70 - i * 8}%,${60 + i * 5}%)`} />
+                      <Cell key={i} fill={i === 0 ? '#6a12b8' : `hsl(${265 - i * 15},${70 - i * 8}%,${60 + i * 5}%)`} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -598,7 +598,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                   return (
                     <div key={i} className="flex items-center gap-3">
                       <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
-                        style={{ background: i === 0 ? '#a020f0' : i === 1 ? '#ede8ff' : '#f4f4f5', color: i === 0 ? '#fff' : i === 1 ? '#a020f0' : '#71717a' }}>
+                        style={{ background: i === 0 ? '#6a12b8' : i === 1 ? '#ede8ff' : '#f4f4f5', color: i === 0 ? '#fff' : i === 1 ? '#6a12b8' : '#71717a' }}>
                         <span style={{ fontSize: 9, fontWeight: 800 }}>{i + 1}</span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -607,7 +607,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                           <span className="text-[10px] font-bold text-zinc-500 ml-2 shrink-0">{item.total_qty.toLocaleString()}</span>
                         </div>
                         <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: i === 0 ? '#a020f0' : '#d4d4d8' }} />
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: i === 0 ? '#6a12b8' : '#d4d4d8' }} />
                         </div>
                       </div>
                       <span className="text-[10px] font-bold text-zinc-400 shrink-0 w-8 text-right">{pct}%</span>

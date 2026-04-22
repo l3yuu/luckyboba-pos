@@ -50,7 +50,7 @@ const Btn: React.FC<{
 }> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false }) => {
   const sizes = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
   const variants = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-50 text-red-600 border border-red-100 hover:bg-red-500 hover:text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -224,7 +224,7 @@ const CardApprovalsTab: React.FC = () => {
         {/* Table Header Row */}
         <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between gap-4 bg-zinc-50/20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#a020f0] border border-violet-900/10 flex items-center justify-center rounded-xl shrink-0 shadow-sm">
+            <div className="w-10 h-10 bg-[#6a12b8] border border-violet-900/10 flex items-center justify-center rounded-xl shrink-0 shadow-sm">
               <RefreshCw size={16} className={`text-white ${loading ? "animate-spin" : ""}`} onClick={fetchPending} />
             </div>
             <div>
@@ -282,7 +282,7 @@ const CardApprovalsTab: React.FC = () => {
                     <td className="px-7 py-5">
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-50 border border-zinc-100 rounded-lg">
                         <CreditCard size={13} className="text-violet-600" />
-                        <span className="text-xs font-bold text-[#a020f0]">{req.card_title}</span>
+                        <span className="text-xs font-bold text-[#6a12b8]">{req.card_title}</span>
                       </div>
                     </td>
                     <td className="px-7 py-5">

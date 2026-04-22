@@ -59,7 +59,7 @@ const Btn: React.FC<{
 }> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
   const sizes = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
   const variants = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white shadow-sm",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white shadow-sm",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-50 text-red-600 border border-red-100 hover:bg-red-500 hover:text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -323,7 +323,7 @@ const CardManagementTab = () => {
               placeholder="Search by card title..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#a020f0]/10 focus:border-[#a020f0] transition-all"
+              className="w-full pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#6a12b8]/10 focus:border-[#6a12b8] transition-all"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -386,7 +386,7 @@ const CardManagementTab = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="font-bold text-[#a020f0] tabular-nums text-sm">₱{Number(card.price).toLocaleString()}</span>
+                      <span className="font-bold text-[#6a12b8] tabular-nums text-sm">₱{Number(card.price).toLocaleString()}</span>
                     </td>
                     <td className="px-6 py-4 text-zinc-500 font-medium">
                       {card.sort_order}
@@ -479,7 +479,7 @@ const CardManagementTab = () => {
               </div>
               <div className="pt-2">
                 <label className="flex items-center gap-3 cursor-pointer group select-none">
-                  <div className={`relative w-10 h-5 flex items-center rounded-full transition-colors ${isActive ? "bg-[#a020f0]" : "bg-zinc-200"}`}>
+                  <div className={`relative w-10 h-5 flex items-center rounded-full transition-colors ${isActive ? "bg-[#6a12b8]" : "bg-zinc-200"}`}>
                     <div className={`absolute w-3.5 h-3.5 bg-white rounded-full transition-transform transform ${isActive ? "translate-x-5.5" : "translate-x-1"} shadow-sm`} />
                   </div>
                   <span className="text-xs font-bold text-zinc-600 group-hover:text-zinc-900 transition-colors">Enabled & Active</span>
@@ -505,7 +505,7 @@ const CardManagementTab = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Available Months</label>
-                  <button onClick={() => setAvailableMonths(availableMonths.length === 12 ? [] : [...MONTHS])} className="text-[10px] font-bold text-[#a020f0] hover:underline">
+                  <button onClick={() => setAvailableMonths(availableMonths.length === 12 ? [] : [...MONTHS])} className="text-[10px] font-bold text-[#6a12b8] hover:underline">
                     {availableMonths.length === 12 ? "Reset" : "Select All"}
                   </button>
                 </div>

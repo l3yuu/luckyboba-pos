@@ -90,14 +90,14 @@ interface StatCardProps {
 
 const StatCard = ({ label, value, icon, isSuccess, isBrand, isDanger }: StatCardProps) => (
   <div className={`px-5 py-4 border flex flex-col justify-between shadow-sm transition-all rounded-[0.625rem] ${
-    isBrand ? 'bg-[#a020f0] border-[#6a12b8]' : 'bg-white border-zinc-200 hover:border-[#e9d5ff]'
+    isBrand ? 'bg-[#6a12b8] border-[#6a12b8]' : 'bg-white border-zinc-200 hover:border-[#e9d5ff]'
   }`}>
     <div className="flex items-center justify-between mb-3">
       <p className={`text-[10px] font-bold uppercase tracking-widest ${isBrand ? 'text-[#e9d5ff]' : 'text-zinc-500'}`}>
         {label}
       </p>
       <div className={`w-7 h-7 flex items-center justify-center rounded-sm ${
-        isBrand ? 'bg-white/10 text-[#e9d5ff]' : 'bg-[#f5f0ff] border border-[#e9d5ff] text-[#a020f0]'
+        isBrand ? 'bg-white/10 text-[#e9d5ff]' : 'bg-[#f5f0ff] border border-[#e9d5ff] text-[#6a12b8]'
       }`}>
         {icon}
       </div>
@@ -154,7 +154,7 @@ const SalesDashboard = () => {
   if (loading && !payload) {
     return (
       <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col items-center justify-center font-sans">
-        <div className="w-10 h-10 border-2 border-[#a020f0] border-t-transparent animate-spin rounded-none" />
+        <div className="w-10 h-10 border-2 border-[#6a12b8] border-t-transparent animate-spin rounded-none" />
         <p className="mt-4 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-400">Syncing Terminal Analytics...</p>
       </div>
     );
@@ -253,10 +253,10 @@ const SalesDashboard = () => {
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6 md:p-8 shadow-sm">
           <div className="flex items-start justify-between mb-8 border-b border-zinc-100 pb-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-[#a020f0] text-white rounded-sm"><BarChart3 size={20} /></div>
+              <div className="p-3 bg-[#6a12b8] text-white rounded-sm"><BarChart3 size={20} /></div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">Revenue Performance</p>
-                <h2 className="text-[#a020f0] font-black text-lg uppercase tracking-widest leading-none mt-1">Weekly Sales Audit</h2>
+                <h2 className="text-[#6a12b8] font-black text-lg uppercase tracking-widest leading-none mt-1">Weekly Sales Audit</h2>
               </div>
             </div>
             <div className="text-right">
@@ -289,12 +289,12 @@ const SalesDashboard = () => {
                   viewBox={`0 0 100 ${WEEKLY_HEIGHT}`} preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#a020f0" />
+                      <stop offset="0%" stopColor="#6a12b8" />
                       <stop offset="100%" stopColor="#a855f7" />
                     </linearGradient>
                     <linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#a020f0" stopOpacity="0.10" />
-                      <stop offset="100%" stopColor="#a020f0" stopOpacity="0" />
+                      <stop offset="0%" stopColor="#6a12b8" stopOpacity="0.10" />
+                      <stop offset="100%" stopColor="#6a12b8" stopOpacity="0" />
                     </linearGradient>
                   </defs>
                   {linePoints.length > 1 && (
@@ -313,7 +313,7 @@ const SalesDashboard = () => {
                     onMouseEnter={() => setHoveredValue(p)}
                     onMouseLeave={() => setHoveredValue(null)}
                   >
-                    <div className="w-4 h-4 rounded-full bg-white border-2 border-[#a020f0] group-hover:scale-150 transition-transform duration-150 shadow-sm" />
+                    <div className="w-4 h-4 rounded-full bg-white border-2 border-[#6a12b8] group-hover:scale-150 transition-transform duration-150 shadow-sm" />
                     {hoveredValue === p && (
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 pointer-events-none z-20">
                         <div className="bg-[#1a0f2e] text-white px-3 py-2 rounded-[0.375rem] border border-[#e9d5ff]/10 shadow-2xl text-center whitespace-nowrap">
@@ -330,7 +330,7 @@ const SalesDashboard = () => {
               <div className="flex justify-between pt-3 mt-1 border-t border-zinc-100">
                 {weekly.map((d, i) => (
                   <div key={i} className="text-center" style={{ width: `${100 / weekly.length}%` }}>
-                    <p className="text-[9px] font-black uppercase text-[#a020f0] tracking-widest">{d.day}</p>
+                    <p className="text-[9px] font-black uppercase text-[#6a12b8] tracking-widest">{d.day}</p>
                     <p className="text-[8px] font-black text-zinc-300 uppercase">{d.date.split(' ')[1]}</p>
                   </div>
                 ))}
@@ -356,7 +356,7 @@ const SalesDashboard = () => {
             <div className="flex items-start justify-between mb-8 border-b border-zinc-100 pb-4">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400">Shift Analytics</p>
-                <h3 className="text-[#a020f0] font-black text-sm uppercase tracking-widest mt-1">Hourly Sales Distribution</h3>
+                <h3 className="text-[#6a12b8] font-black text-sm uppercase tracking-widest mt-1">Hourly Sales Distribution</h3>
               </div>
               <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-[0.375rem]">
                 <span className="w-1.5 h-1.5 bg-emerald-400 animate-pulse rounded-full" />
@@ -398,8 +398,8 @@ const SalesDashboard = () => {
                               style={{
                                 height: `${pct}%`,
                                 background: isHovered
-                                  ? 'linear-gradient(to top, #a020f0, #a855f7)'
-                                  : hasValue ? '#a020f0' : '#f5f0ff',
+                                  ? 'linear-gradient(to top, #6a12b8, #a855f7)'
+                                  : hasValue ? '#6a12b8' : '#f5f0ff',
                                 transitionDelay: `${i * 20}ms`,
                               }} />
                             {isHovered && hasValue && (

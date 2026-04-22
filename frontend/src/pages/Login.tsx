@@ -190,7 +190,7 @@ const Login: React.FC = () => {
           padding: 2rem 2rem 2rem;
           position: relative;
           overflow: hidden;
-          background-color: #a020f0;
+          background-color: #6a12b8;
           background-image:
             radial-gradient(ellipse 80% 60% at 50% 50%, #8b1fe0 0%, #6a0ec0 100%),
             repeating-linear-gradient(
@@ -212,7 +212,7 @@ const Login: React.FC = () => {
           filter: blur(90px);
           opacity: 0.3;
         }
-        .lb-blob-tl { width: 380px; height: 380px; background: #a020f0; top: -160px; left: -160px; }
+        .lb-blob-tl { width: 380px; height: 380px; background: #6a12b8; top: -160px; left: -160px; }
         .lb-blob-br { width: 340px; height: 340px; background: #4b0eaa; bottom: -140px; right: -140px; }
 
         .lb-brand {
@@ -409,7 +409,7 @@ const Login: React.FC = () => {
         }
         .lb-input::placeholder { color: #c4c4c8; font-weight: 300; }
         .lb-input:focus {
-          border-color: #a020f0;
+          border-color: #6a12b8;
           background: #fff;
           box-shadow: 0 0 0 3px rgba(124,20,212,0.08);
         }
@@ -423,14 +423,14 @@ const Login: React.FC = () => {
           display: flex; padding: 3px;
           transition: color 0.15s;
         }
-        .lb-eye:hover { color: #a020f0; }
+        .lb-eye:hover { color: #6a12b8; }
 
         .lb-btn-wrap { margin-top: 1.4rem; }
 
         .lb-btn {
           width: 100%;
           padding: 13px 20px;
-          background: #a020f0;
+          background: #6a12b8;
           color: #fff;
           font-family: 'DM Sans', sans-serif;
           font-size: 0.68rem;
@@ -638,7 +638,7 @@ const Login: React.FC = () => {
         .otp-verify-btn {
           width: 100%;
           padding: 15px;
-          background: #a020f0;
+          background: #6a12b8;
           color: white;
           border-radius: 14px;
           border: none;

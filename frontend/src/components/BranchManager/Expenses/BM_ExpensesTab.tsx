@@ -98,7 +98,7 @@ const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: Si
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#a020f0] hover:bg-[#2a1647] text-white shadow-md shadow-violet-900/10",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white shadow-md shadow-violet-900/10",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm",
     danger:    "bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-900/10",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -379,13 +379,13 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
             <input
               type="text"
               placeholder="Search expenses..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
             />
           </div>
 
@@ -439,7 +439,7 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
                            contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', fontSize: '11px', fontWeight: 800 }} 
                            cursor={{ fill: 'rgba(59, 32, 99, 0.03)' }} 
                         />
-                        <Bar dataKey="amount" fill="#a020f0" radius={[6, 6, 0, 0]} barSize={24} />
+                        <Bar dataKey="amount" fill="#6a12b8" radius={[6, 6, 0, 0]} barSize={24} />
                      </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -480,7 +480,7 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                    <div className="text-center">
                       <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Total</p>
-                      <p className="text-sm font-black text-[#a020f0]">₱{summary.total_expense.toLocaleString()}</p>
+                      <p className="text-sm font-black text-[#6a12b8]">₱{summary.total_expense.toLocaleString()}</p>
                    </div>
                 </div>
               )}
@@ -503,7 +503,7 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
       <div className="bg-white border border-zinc-200 rounded-[1.5rem] shadow-sm overflow-hidden flex flex-col min-h-[400px]">
          <div className="px-8 py-5 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/20">
             <div className="flex items-center gap-3">
-               <div className="w-2 h-6 bg-[#a020f0] rounded-full" />
+               <div className="w-2 h-6 bg-[#6a12b8] rounded-full" />
                <p className="text-xs font-black uppercase tracking-widest text-[#1a0f2e]">Detailed Ledger</p>
             </div>
             <div className="flex items-center gap-2">
@@ -552,7 +552,7 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
                           </span>
                        </td>
                        <td className="px-6 py-5">
-                          <p className="text-[1rem] font-black text-[#a020f0] tabular-nums">₱{e.amount.toLocaleString()}</p>
+                          <p className="text-[1rem] font-black text-[#6a12b8] tabular-nums">₱{e.amount.toLocaleString()}</p>
                        </td>
                        <td className="px-6 py-5">
                           <div className="flex items-center gap-3">

@@ -30,7 +30,7 @@ export const PublicRoute = () => {
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #a020f0;
+            background-color: #6a12b8;
             background-image:
               radial-gradient(ellipse 80% 60% at 50% 50%, #8b1fe0 0%, #6a0ec0 100%),
               repeating-linear-gradient(
@@ -52,7 +52,7 @@ export const PublicRoute = () => {
             filter: blur(80px);
             opacity: 0.35;
           }
-          .lb-auth-blob-tl { width: 420px; height: 420px; background: #a020f0; top: -180px; left: -180px; }
+          .lb-auth-blob-tl { width: 420px; height: 420px; background: #6a12b8; top: -180px; left: -180px; }
           .lb-auth-blob-br { width: 380px; height: 380px; background: #5b0ea6; bottom: -160px; right: -160px; }
 
           /* white card */
@@ -97,7 +97,7 @@ export const PublicRoute = () => {
             position: absolute; inset: 0;
             border-radius: 50%;
             border: 3px solid transparent;
-            border-top-color: #a020f0;
+            border-top-color: #6a12b8;
             animation: lb-spin 0.7s linear infinite;
           }
 
@@ -112,7 +112,7 @@ export const PublicRoute = () => {
           .lb-auth-dot {
             width: 6px; height: 6px;
             border-radius: 50%;
-            background: #a020f0;
+            background: #6a12b8;
             animation: lb-pulse-dot 1.2s ease infinite;
           }
           .lb-auth-dot:nth-child(2) { animation-delay: 0.2s; background: #6d28d9; }

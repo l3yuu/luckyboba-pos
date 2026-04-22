@@ -96,7 +96,7 @@ const MovementDrawer: React.FC<{
       case 'add': return { icon: <TrendingUp size={14} />, color: '#16a34a', bg: '#f0fdf4', label: 'Restock' };
       case 'subtract': return { icon: <TrendingDown size={14} />, color: '#dc2626', bg: '#fef2f2', label: 'Usage' };
       case 'waste': return { icon: <Trash2 size={14} className="text-red-500" />, color: '#ea580c', bg: '#fff7ed', label: 'Waste' };
-      case 'set': return { icon: <Clock size={14} />, color: '#a020f0', bg: '#f5f0ff', label: 'Audit' };
+      case 'set': return { icon: <Clock size={14} />, color: '#6a12b8', bg: '#f5f0ff', label: 'Audit' };
       default: return { icon: <Info size={14} />, color: '#71717a', bg: '#f4f4f5', label: 'Update' };
     }
   };
@@ -110,7 +110,7 @@ const MovementDrawer: React.FC<{
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-6 border-b border-zinc-100 bg-white">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#a020f0] rounded-2xl flex items-center justify-center shadow-lg shadow-purple-100">
+            <div className="w-12 h-12 bg-[#6a12b8] rounded-2xl flex items-center justify-center shadow-lg shadow-purple-100">
               <Clock size={20} className="text-white" />
             </div>
             <div>
@@ -127,7 +127,7 @@ const MovementDrawer: React.FC<{
         <div className="grid grid-cols-3 bg-[#faf9ff] border-b border-zinc-100">
           {[
             { label: 'BEG', value: row.beg, color: '#71717a' },
-            { label: 'USED', value: row.usage, color: '#a020f0' },
+            { label: 'USED', value: row.usage, color: '#6a12b8' },
             { label: 'END', value: row.end, color: '#1a0f2e' },
           ].map(s => (
             <div key={s.label} className="text-center py-4 border-r border-zinc-100 last:border-0">
@@ -296,7 +296,7 @@ const ProductSoldCard: React.FC<{
       <div className="px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Coffee size={14} className="text-[#a020f0]" />
+            <Coffee size={14} className="text-[#6a12b8]" />
             <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#1a0f2e]">Product Sold Summary</p>
           </div>
           <span className="text-[10px] font-bold text-zinc-400 bg-white border border-zinc-100 px-2 py-0.5 rounded-full">
@@ -305,7 +305,7 @@ const ProductSoldCard: React.FC<{
         </div>
         
         {/* Search Bar */}
-        <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 focus-within:border-[#a020f0] transition-colors shadow-sm">
+        <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 focus-within:border-[#6a12b8] transition-colors shadow-sm">
           <Search size={12} className="text-zinc-400" />
           <input
             type="text"
@@ -348,13 +348,13 @@ const ProductSoldCard: React.FC<{
                         onClick={() => toggleExpanded(itemKey)}
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-[11px] font-bold text-[#1a0f2e] group-hover:text-[#a020f0] transition-colors pr-2">
+                          <p className="text-[11px] font-bold text-[#1a0f2e] group-hover:text-[#6a12b8] transition-colors pr-2">
                             {p.product_name} {p.cup_size_label && (
                               <span className="text-[10px] font-medium text-zinc-400">{p.cup_size_label}</span>
                             )}
                           </p>
                           <div className="flex items-center gap-3">
-                            <p className="text-xs font-black text-[#a020f0] tabular-nums">{p.total_sold}</p>
+                            <p className="text-xs font-black text-[#6a12b8] tabular-nums">{p.total_sold}</p>
                             <div className="text-zinc-400">
                               {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                             </div>
@@ -435,7 +435,7 @@ const UsageBreakdownDrawer: React.FC<{
       <div className="relative bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#a020f0] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#6a12b8] rounded-lg flex items-center justify-center">
               <Coffee size={14} className="text-white" />
             </div>
             <div>
@@ -475,7 +475,7 @@ const UsageBreakdownDrawer: React.FC<{
                       <p className="text-[10px] text-zinc-400">{it.cup_size_label} · {it.recipe_quantity ?? 0} {row.unit}/cup</p>
                     </div>
                     <div className="col-span-2 text-center">
-                      <p className="text-xs font-black text-[#a020f0]">{it.total_sold}</p>
+                      <p className="text-xs font-black text-[#6a12b8]">{it.total_sold}</p>
                       <p className="text-[8px] text-zinc-400 uppercase">Cups</p>
                     </div>
                     <div className="col-span-4 text-right">
@@ -489,7 +489,7 @@ const UsageBreakdownDrawer: React.FC<{
           )}
         </div>
 
-        <div className="p-5 border-t border-zinc-100 bg-[#a020f0] text-white">
+        <div className="p-5 border-t border-zinc-100 bg-[#6a12b8] text-white">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">Total Consumption</span>
             <span className="text-lg font-black">{row.out} {row.unit}</span>
@@ -686,7 +686,7 @@ const UsageReportTab: React.FC = () => {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {[
-          { label: 'Total Items', value: rows.length, color: '#a020f0', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Total Items', value: rows.length, color: '#6a12b8', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Total Usage', value: totalUsage, color: '#1a0f2e', bg: '#faf9ff', border: '#e9d5ff' },
           { label: 'Total Spoilage', value: totalSpoil, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
           { label: 'Pending Arrival', value: rows.reduce((s, r) => s + (r.incoming || 0), 0), color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
@@ -737,7 +737,7 @@ const UsageReportTab: React.FC = () => {
                   key={m.id}
                   onClick={() => setViewMode(m.id as 'today' | 'monthly' | 'specific')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${viewMode === m.id
-                    ? 'bg-[#a020f0] text-white shadow-md'
+                    ? 'bg-[#6a12b8] text-white shadow-md'
                     : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50'
                     }`}
                 >
@@ -748,8 +748,8 @@ const UsageReportTab: React.FC = () => {
 
             <div className="flex items-center gap-2">
               {viewMode === 'specific' && (
-                <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1.5 h-9 group hover:border-[#a020f0] transition-colors">
-                  <Calendar size={13} className="text-zinc-400 group-hover:text-[#a020f0]" />
+                <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1.5 h-9 group hover:border-[#6a12b8] transition-colors">
+                  <Calendar size={13} className="text-zinc-400 group-hover:text-[#6a12b8]" />
                   <input
                     type="date"
                     value={specificDate}
@@ -761,11 +761,11 @@ const UsageReportTab: React.FC = () => {
               {viewMode === 'monthly' && (
                 <>
                   <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
-                    className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9 hover:border-[#a020f0] transition-colors cursor-pointer">
+                    className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9 hover:border-[#6a12b8] transition-colors cursor-pointer">
                     {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
                   </select>
                   <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
-                    className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9 hover:border-[#a020f0] transition-colors cursor-pointer">
+                    className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9 hover:border-[#6a12b8] transition-colors cursor-pointer">
                     {[now.getFullYear() - 1, now.getFullYear()].map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </>
@@ -810,11 +810,11 @@ const UsageReportTab: React.FC = () => {
             )}
 
             <button onClick={() => setShowGuide((v: boolean) => !v)}
-              className="flex items-center gap-1.5 px-3 py-2 h-9 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-500 hover:text-[#a020f0] hover:border-[#e9d5ff] transition-colors ml-auto shrink-0">
+              className="flex items-center gap-1.5 px-3 py-2 h-9 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-500 hover:text-[#6a12b8] hover:border-[#e9d5ff] transition-colors ml-auto shrink-0">
               Column Guide {showGuide ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             </button>
             <button onClick={handleExport} disabled={exporting || loading}
-              className="bg-[#a020f0] hover:bg-[#2d1851] shrink-0 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all disabled:opacity-50">
+              className="bg-[#6a12b8] hover:bg-[#2d1851] shrink-0 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all disabled:opacity-50">
               <Download size={13} /> {exporting ? 'Exporting...' : 'Export CSV'}
             </button>
           </div>
@@ -824,7 +824,7 @@ const UsageReportTab: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5 py-4 bg-[#faf9ff] border-b border-zinc-100">
               {Object.entries(COLUMN_GUIDE).map(([col, desc]) => (
                 <div key={col} className="flex items-start gap-2">
-                  <span className="text-[9px] font-black text-[#a020f0] bg-[#f5f0ff] px-1.5 py-0.5 rounded border border-[#e9d5ff] shrink-0 mt-0.5">{col}</span>
+                  <span className="text-[9px] font-black text-[#6a12b8] bg-[#f5f0ff] px-1.5 py-0.5 rounded border border-[#e9d5ff] shrink-0 mt-0.5">{col}</span>
                   <p className="text-[10px] text-zinc-500 leading-tight">{desc}</p>
                 </div>
               ))}
@@ -880,9 +880,9 @@ const UsageReportTab: React.FC = () => {
                         }}
                       >
                         <div className="flex items-center justify-end gap-1.5">
-                          <span style={{ color: r.out > 0 ? '#a020f0' : '#a1a1aa' }}>{r.out}</span>
+                          <span style={{ color: r.out > 0 ? '#6a12b8' : '#a1a1aa' }}>{r.out}</span>
                           {r.out > 0 && (
-                            <div className="p-1 rounded bg-[#f5f0ff] text-[#a020f0] opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="p-1 rounded bg-[#f5f0ff] text-[#6a12b8] opacity-0 group-hover:opacity-100 transition-opacity">
                               <Info size={10} />
                             </div>
                           )}
@@ -902,7 +902,7 @@ const UsageReportTab: React.FC = () => {
                             type="number"
                             value={editingCounts[r.id] ?? r.end}
                             onChange={(e) => setEditingCounts(prev => ({ ...prev, [r.id]: e.target.value }))}
-                            className="w-16 h-7 bg-white border border-zinc-200 rounded px-2 text-xs font-black text-right text-[#1a0f2e] focus:border-[#a020f0] focus:ring-1 focus:ring-[#a020f0] outline-none transition-all tabular-nums"
+                            className="w-16 h-7 bg-white border border-zinc-200 rounded px-2 text-xs font-black text-right text-[#1a0f2e] focus:border-[#6a12b8] focus:ring-1 focus:ring-[#6a12b8] outline-none transition-all tabular-nums"
                             placeholder={String(r.end)}
                           />
                         ) : (

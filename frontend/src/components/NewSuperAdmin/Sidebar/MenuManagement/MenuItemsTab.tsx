@@ -98,7 +98,7 @@ interface BtnProps {
 export const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -1563,7 +1563,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         </div>
         <button type="button" onClick={() => setForm(p => ({ ...p, is_available: !p.is_available }))} className="transition-colors">
           {form.is_available
-            ? <ToggleRight size={28} className="text-[#a020f0]" />
+            ? <ToggleRight size={28} className="text-[#6a12b8]" />
             : <ToggleLeft size={28} className="text-zinc-300" />}
         </button>
       </div>
@@ -1944,7 +1944,7 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
             <p className="text-[10px] text-zinc-400">Toggle off to hide from POS</p>
           </div>
           <button type="button" onClick={() => setForm(p => ({ ...p, is_available: !p.is_available }))}>
-            {form.is_available ? <ToggleRight size={26} className="text-[#a020f0]" /> : <ToggleLeft size={26} className="text-zinc-300" />}
+            {form.is_available ? <ToggleRight size={26} className="text-[#6a12b8]" /> : <ToggleLeft size={26} className="text-zinc-300" />}
           </button>
         </div>
         <div className="flex items-center gap-2 justify-end">
@@ -2393,7 +2393,7 @@ const MenuItemsTab: React.FC = () => {
                       ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200">{item.subcategory}</span>
                       : <span className="text-zinc-300 text-xs">—</span>}
                   </td>
-                  <td className="px-5 py-3.5 font-bold text-[#a020f0] text-xs">{fmt(item.price)}</td>
+                  <td className="px-5 py-3.5 font-bold text-[#6a12b8] text-xs">{fmt(item.price)}</td>
                   <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{item.barcode ?? "—"}</td>
                   <td className="px-5 py-3.5">
                     {["drink"].includes(item.category_type)
@@ -2414,7 +2414,7 @@ const MenuItemsTab: React.FC = () => {
                   </td>
                   <td className="px-5 py-3.5">
                     <button onClick={() => toggleAvailable(item)} className="transition-colors" title={item.is_available ? "Click to hide" : "Click to show"}>
-                      {item.is_available ? <ToggleRight size={22} className="text-[#a020f0]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
+                      {item.is_available ? <ToggleRight size={22} className="text-[#6a12b8]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
                     </button>
                   </td>
                   <td className="px-5 py-3.5">

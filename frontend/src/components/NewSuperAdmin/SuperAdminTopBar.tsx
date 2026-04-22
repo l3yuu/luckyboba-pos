@@ -201,7 +201,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
     const parts = text.split(new RegExp(`(${query.replace(/[:]/g, '')})`, 'gi'));
     return parts.map((part, i) => 
       part.toLowerCase() === query.toLowerCase().replace(/.*:/, '').trim() 
-        ? <span key={i} className="text-[#a020f0] font-black bg-[#ede8ff] px-0.5 rounded">{part}</span> 
+        ? <span key={i} className="text-[#6a12b8] font-black bg-[#ede8ff] px-0.5 rounded">{part}</span> 
         : part
     );
   };
@@ -265,7 +265,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
           {/* Mobile hamburger */}
           <button
             onClick={onMenuClick}
-            className="md:hidden p-2 rounded-[0.4rem] text-[#a020f0] hover:bg-[#f5f3ff] transition-colors shrink-0"
+            className="md:hidden p-2 rounded-[0.4rem] text-[#6a12b8] hover:bg-[#f5f3ff] transition-colors shrink-0"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="6" x2="21" y2="6" />
@@ -305,7 +305,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
             className="hidden md:inline-flex items-center gap-1.5 shrink-0"
             style={{
               fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
-              textTransform: 'uppercase', background: '#ede9fe', color: '#a020f0',
+              textTransform: 'uppercase', background: '#ede9fe', color: '#6a12b8',
               border: '1px solid #ddd6f7', borderRadius: '100px', padding: '3px 9px',
             }}
           >
@@ -317,7 +317,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
           <div className="hidden lg:flex items-center ml-4 relative" ref={searchRef}>
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={13} className={`${isSearchOpen ? 'text-[#a020f0]' : 'text-zinc-400'} transition-colors`} />
+                <Search size={13} className={`${isSearchOpen ? 'text-[#6a12b8]' : 'text-zinc-400'} transition-colors`} />
               </div>
               <input
                 ref={inputRef}
@@ -329,12 +329,12 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
                   setSearchOpen(true);
                 }}
                 placeholder="Search... (Ctrl+K)"
-                className={`w-64 xl:w-80 pl-9 pr-4 py-1.5 text-[0.75rem] font-medium bg-zinc-50 border ${isSearchOpen ? 'border-[#a020f0] bg-white ring-2 ring-[#ede8ff]' : 'border-zinc-200'
+                className={`w-64 xl:w-80 pl-9 pr-4 py-1.5 text-[0.75rem] font-medium bg-zinc-50 border ${isSearchOpen ? 'border-[#6a12b8] bg-white ring-2 ring-[#ede8ff]' : 'border-zinc-200'
                   } rounded-full transition-all focus:outline-none placeholder:text-zinc-400`}
               />
               {isSearching && (
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <RefreshCw size={10} className="text-[#a020f0] animate-spin" />
+                  <RefreshCw size={10} className="text-[#6a12b8] animate-spin" />
                 </div>
               )}
             </div>
@@ -357,7 +357,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
                         }}
                         className="w-full text-left px-5 py-2 hover:bg-[#f5f3ff] group transition-colors flex flex-col"
                       >
-                        <span className="text-[0.75rem] font-bold text-[#1a0f2e] group-hover:text-[#a020f0]">{res.title}</span>
+                        <span className="text-[0.75rem] font-bold text-[#1a0f2e] group-hover:text-[#6a12b8]">{res.title}</span>
                         <span className="text-[0.6rem] text-zinc-400">{res.type.toUpperCase()}</span>
                       </button>
                     ))}
@@ -391,9 +391,9 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
                                     setSearchOpen(false);
                                     setSearchQuery("");
                                   }}
-                                  className={`w-full text-left px-3 py-2 rounded-lg hover:bg-[#f5f3ff] group transition-colors flex flex-col ${res.type === 'action' ? 'border-l-2 border-[#a020f0] bg-zinc-50' : ''}`}
+                                  className={`w-full text-left px-3 py-2 rounded-lg hover:bg-[#f5f3ff] group transition-colors flex flex-col ${res.type === 'action' ? 'border-l-2 border-[#6a12b8] bg-zinc-50' : ''}`}
                                 >
-                                  <span className="text-[0.75rem] font-bold text-[#1a0f2e] group-hover:text-[#a020f0]">
+                                  <span className="text-[0.75rem] font-bold text-[#1a0f2e] group-hover:text-[#6a12b8]">
                                     {highlightMatch(res.title, searchQuery)}
                                   </span>
                                   <span className="text-[0.65rem] text-zinc-500">
@@ -417,11 +417,11 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
                 {/* 3. Search Tips (Shown when empty and no history) */}
                 {searchQuery.length === 0 && recentSearches.length === 0 && (
                    <div className="p-5 text-center">
-                      <p className="text-[0.7rem] font-bold text-[#a020f0] uppercase tracking-widest">Search Pro</p>
+                      <p className="text-[0.7rem] font-bold text-[#6a12b8] uppercase tracking-widest">Search Pro</p>
                       <div className="mt-3 space-y-2 text-[0.65rem] text-zinc-500 font-medium">
-                        <p>💡 Tip: Use <span className="text-[#a020f0] font-bold uppercase">user:</span> to filter users</p>
-                        <p>💡 Tip: Use <span className="text-[#a020f0] font-bold uppercase">sale:</span> for receipts</p>
-                        <p>💡 Tip: Type <span className="text-[#a020f0] font-bold uppercase">new</span> for quick actions</p>
+                        <p>💡 Tip: Use <span className="text-[#6a12b8] font-bold uppercase">user:</span> to filter users</p>
+                        <p>💡 Tip: Use <span className="text-[#6a12b8] font-bold uppercase">sale:</span> for receipts</p>
+                        <p>💡 Tip: Type <span className="text-[#6a12b8] font-bold uppercase">new</span> for quick actions</p>
                       </div>
                    </div>
                 )}
@@ -462,8 +462,8 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
             <button
               onClick={handleBellClick}
               className={`relative p-2 rounded-[0.4rem] transition-all ${isNotifOpen
-                  ? 'bg-[#a020f0] text-white'
-                  : 'text-zinc-500 hover:bg-zinc-100 hover:text-[#a020f0]'
+                  ? 'bg-[#6a12b8] text-white'
+                  : 'text-zinc-500 hover:bg-zinc-100 hover:text-[#6a12b8]'
                 }`}
             >
               <Bell size={15} strokeWidth={isNotifOpen ? 2.5 : 2} />
@@ -483,7 +483,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
                 style={{ animation: 'sa-topbar-rise 0.2s ease-out' }}
               >
                 {/* Dropdown Header */}
-                <div className="bg-[#a020f0] px-5 py-3.5 flex items-center justify-between">
+                <div className="bg-[#6a12b8] px-5 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-white text-[0.7rem] font-bold uppercase tracking-widest">Alerts</span>
                     {fetching && (
@@ -552,7 +552,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
                   <button
                     onClick={() => fetchNotifications()}
                     disabled={fetching}
-                    className="flex items-center gap-1.5 text-[9px] font-bold text-[#a020f0] uppercase tracking-widest hover:opacity-70 transition-opacity"
+                    className="flex items-center gap-1.5 text-[9px] font-bold text-[#6a12b8] uppercase tracking-widest hover:opacity-70 transition-opacity"
                   >
                     <RefreshCw size={9} className={fetching ? 'animate-spin' : ''} />
                     Refresh

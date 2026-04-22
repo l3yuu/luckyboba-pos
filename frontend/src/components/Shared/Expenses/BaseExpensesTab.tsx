@@ -111,7 +111,7 @@ const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: Si
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white shadow-sm",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white shadow-sm",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm",
     danger: "bg-red-600 hover:bg-red-700 text-white shadow-sm",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -126,7 +126,7 @@ const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: Si
 
 const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ col, active, dir }) => {
   if (col !== active) return <ChevronDown size={11} className="text-zinc-300 ml-0.5" />;
-  return dir === "asc" ? <ChevronUp size={11} className="text-[#a020f0] ml-0.5" /> : <ChevronDown size={11} className="text-[#a020f0] ml-0.5" />;
+  return dir === "asc" ? <ChevronUp size={11} className="text-[#6a12b8] ml-0.5" /> : <ChevronDown size={11} className="text-[#6a12b8] ml-0.5" />;
 };
 
 const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
@@ -701,7 +701,7 @@ const BaseExpensesTab: React.FC<BaseExpensesTabProps> = ({ role, fixedBranchId }
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <p className="text-sm font-black text-[#a020f0] tabular-nums">₱{exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                    <p className="text-sm font-black text-[#6a12b8] tabular-nums">₱{exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                     {exp.payment_method && <p className="text-[9px] font-bold text-zinc-400 truncate mt-0.5 italic">{exp.payment_method}</p>}
                   </td>
                   <td className="px-5 py-4 text-center">
@@ -753,7 +753,7 @@ const BaseExpensesTab: React.FC<BaseExpensesTabProps> = ({ role, fixedBranchId }
                   </td>
                   <td className="px-5 py-4">
                     {exp.receipt_path ? (
-                      <a href={exp.receipt_path} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#a020f0] hover:underline">
+                      <a href={exp.receipt_path} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#6a12b8] hover:underline">
                         <FileImage size={12} /> View
                       </a>
                     ) : <span className="text-[10px] text-zinc-300 font-bold uppercase italic">No Proof</span>}

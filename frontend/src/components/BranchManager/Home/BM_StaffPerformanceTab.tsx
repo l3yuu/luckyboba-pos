@@ -44,7 +44,7 @@ const StatCardSkeleton = () => (
 interface StatCardProps { icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: "violet" | "emerald" | "red" | "amber" }
 const StatCard = ({ icon, label, value, sub, color = "violet" }: StatCardProps) => {
   const colors: Record<string, { bg: string; border: string; icon: string }> = {
-    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#a020f0]" },
+    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#6a12b8]" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
     red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
     amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
@@ -139,19 +139,19 @@ const BM_StaffPerformanceTab: React.FC<BM_StaffPerformanceTabProps> = ({ branchI
       <div className="flex flex-col md:flex-row md:items-center gap-6">
         <div className="flex-1 flex items-center gap-2">
           <div className="relative group flex-1 hidden lg:block">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
             <input
               type="text"
               placeholder="Search staff members, branch, or performance..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
             />
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {(["daily", "weekly", "monthly"] as const).map(p => (
               <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-                className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all capitalize shadow-sm ${period === p ? "bg-[#a020f0] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
+                className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all capitalize shadow-sm ${period === p ? "bg-[#6a12b8] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
                 {p}
               </button>
             ))}
@@ -249,7 +249,7 @@ const BM_StaffPerformanceTab: React.FC<BM_StaffPerformanceTabProps> = ({ branchI
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button onClick={() => setSelectedStaff(s)} className="p-2 text-zinc-400 hover:bg-[#a020f0] hover:text-white rounded-lg transition-all">
+                    <button onClick={() => setSelectedStaff(s)} className="p-2 text-zinc-400 hover:bg-[#6a12b8] hover:text-white rounded-lg transition-all">
                       <ChevronRight size={16} strokeWidth={3} />
                     </button>
                   </td>
@@ -267,7 +267,7 @@ const BM_StaffPerformanceTab: React.FC<BM_StaffPerformanceTabProps> = ({ branchI
           <div className="relative bg-white w-full max-w-sm rounded-2xl shadow-xl overflow-hidden border border-zinc-100">
             <div className="p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[#a020f0]">
+                <div className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[#6a12b8]">
                   <Users size={18} />
                 </div>
                 <div>
@@ -297,7 +297,7 @@ const BM_StaffPerformanceTab: React.FC<BM_StaffPerformanceTabProps> = ({ branchI
                   <p className="text-[10px] font-black">{100 - selectedStaff.void_rate}%</p>
                 </div>
                 <div className="h-1.5 w-full bg-zinc-200/50 rounded-full mb-2 overflow-hidden">
-                  <div className={`h-full transition-all duration-700 ${selectedStaff.void_rate > 5 ? 'bg-red-500' : 'bg-[#a020f0]'}`} style={{ width: `${100 - selectedStaff.void_rate}%` }} />
+                  <div className={`h-full transition-all duration-700 ${selectedStaff.void_rate > 5 ? 'bg-red-500' : 'bg-[#6a12b8]'}`} style={{ width: `${100 - selectedStaff.void_rate}%` }} />
                 </div>
                 <p className="text-[10px] font-bold leading-relaxed opacity-80">
                   {selectedStaff.void_rate > 5 ? 'High void count detected. Recommend operational review.' : 'Staff maintaining excellent transactional discipline.'}

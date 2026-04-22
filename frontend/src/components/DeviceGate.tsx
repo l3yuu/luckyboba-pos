@@ -23,7 +23,7 @@ export function DeviceGate({ children }: Props) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center space-y-2">
-          <div className="w-8 h-8 border-4 border-[#a020f0] border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-8 h-8 border-4 border-[#6a12b8] border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-gray-400">Verifying device...</p>
         </div>
       </div>
@@ -72,7 +72,7 @@ export function DeviceGate({ children }: Props) {
           <button
             onClick={handleCopy}
             disabled={!deviceId}
-            className="w-full py-2 px-4 bg-[#a020f0] text-white text-sm font-semibold rounded-lg hover:bg-[#2d1850] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+            className="w-full py-2 px-4 bg-[#6a12b8] text-white text-sm font-semibold rounded-lg hover:bg-[#2d1850] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {copied ? (
               <>

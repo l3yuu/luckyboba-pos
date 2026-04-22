@@ -142,23 +142,23 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                     <div className="flex-1 relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
                         <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-zinc-200 bg-[#f5f0ff] text-xs font-bold outline-none focus:border-[#a020f0] focus:bg-white transition-all" />
+                            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-zinc-200 bg-[#f5f0ff] text-xs font-bold outline-none focus:border-[#6a12b8] focus:bg-white transition-all" />
                     </div>
                     <div className="flex-1 relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
                         <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-zinc-200 bg-[#f5f0ff] text-xs font-bold outline-none focus:border-[#a020f0] focus:bg-white transition-all" />
+                            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-zinc-200 bg-[#f5f0ff] text-xs font-bold outline-none focus:border-[#6a12b8] focus:bg-white transition-all" />
                     </div>
                 </div>
                 <div className="w-full xl:w-64 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
                     <input type="text" placeholder="Search Ref #" value={refNumSearch} onChange={(e) => setRefNumSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-zinc-200 bg-[#f5f0ff] text-xs font-bold outline-none focus:border-[#a020f0] focus:bg-white transition-all placeholder:text-zinc-400" />
+                        className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-zinc-200 bg-[#f5f0ff] text-xs font-bold outline-none focus:border-[#6a12b8] focus:bg-white transition-all placeholder:text-zinc-400" />
                 </div>
                 <div className="w-full xl:w-48 relative">
                     <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
                     <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-zinc-200 bg-[#f5f0ff] text-xs font-bold outline-none focus:border-[#a020f0] focus:bg-white transition-all cursor-pointer appearance-none">
+                        className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-zinc-200 bg-[#f5f0ff] text-xs font-bold outline-none focus:border-[#6a12b8] focus:bg-white transition-all cursor-pointer appearance-none">
                         <option value="ALL">All Categories</option>
                         <option value="Utilities">Utilities</option>
                         <option value="Rent">Rent</option>
@@ -168,12 +168,12 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                     </select>
                 </div>
                 <button onClick={() => fetchExpenses(true)}
-                    className="w-full xl:w-auto h-10 px-6 bg-[#a020f0] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg">
+                    className="w-full xl:w-auto h-10 px-6 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg">
                     Filter
                 </button>
                 <button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="w-full xl:w-auto h-10 px-5 bg-[#a020f0] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg shadow-sm flex items-center justify-center gap-2"
+                    className="w-full xl:w-auto h-10 px-5 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg shadow-sm flex items-center justify-center gap-2"
                 >
                     <Plus size={14} /> Add New Expense
                 </button>
@@ -214,7 +214,7 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                     <div>
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Net Cash Flow</p>
                         {isFetching ? <SkeletonBar h="h-6" w="w-24" className="mt-1" /> : (
-                            <p className={`text-xl font-black tabular-nums ${summary.netTotal >= 0 ? 'text-[#a020f0]' : 'text-red-600'}`}>
+                            <p className={`text-xl font-black tabular-nums ${summary.netTotal >= 0 ? 'text-[#6a12b8]' : 'text-red-600'}`}>
                                 ₱{summary.netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </p>
                         )}
@@ -262,7 +262,7 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                             ) : expenses.map((item, index) => (
                                 <tr key={index} className="hover:bg-[#faf9ff] transition-all group">
                                     <td className="px-6 py-4">
-                                        <span className="text-[11px] font-black text-zinc-400 font-mono group-hover:text-[#a020f0] transition-colors">{item.refNum}</span>
+                                        <span className="text-[11px] font-black text-zinc-400 font-mono group-hover:text-[#6a12b8] transition-colors">{item.refNum}</span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className="text-xs font-bold text-zinc-500">{new Date(item.date).toLocaleDateString()}</span>
@@ -299,7 +299,7 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                 <div className="fixed inset-0 z-[100] bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
                     <div className="absolute inset-0" onClick={() => setIsAddModalOpen(false)} />
                     <div className="relative bg-white rounded-[1.25rem] border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
-                        <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-[#a020f0]">
+                        <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-[#6a12b8]">
                             <div>
                                 <h2 className="text-sm font-black text-white">Record New Expense</h2>
                                 <p className="text-[10px] font-bold text-violet-200/60 uppercase tracking-widest mt-0.5">Finance Department</p>
@@ -313,31 +313,31 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-0.5">Reference Number</label>
                                 <input type="text" placeholder="e.g. INV-001"
-                                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none transition-all focus:border-[#a020f0] focus:bg-white font-mono"
+                                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none transition-all focus:border-[#6a12b8] focus:bg-white font-mono"
                                     value={newExpense.refNum} onChange={(e) => setNewExpense({ ...newExpense, refNum: e.target.value })} />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-0.5">Title / Merchant</label>
                                 <input type="text" placeholder="e.g. Meralco"
-                                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none transition-all focus:border-[#a020f0] focus:bg-white"
+                                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none transition-all focus:border-[#6a12b8] focus:bg-white"
                                     value={newExpense.title} onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })} />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-0.5">Notes</label>
                                 <textarea placeholder="Reason for this expense..."
-                                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none transition-all focus:border-[#a020f0] focus:bg-white h-24 resize-none"
+                                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none transition-all focus:border-[#6a12b8] focus:bg-white h-24 resize-none"
                                     value={newExpense.notes} onChange={(e) => setNewExpense({ ...newExpense, notes: e.target.value })} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-0.5">Date</label>
                                     <input type="date"
-                                        className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none focus:border-[#a020f0] focus:bg-white"
+                                        className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none focus:border-[#6a12b8] focus:bg-white"
                                         value={newExpense.date} onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })} />
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-0.5">Category</label>
-                                    <select className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none focus:border-[#a020f0] focus:bg-white"
+                                    <select className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none focus:border-[#6a12b8] focus:bg-white"
                                         value={newExpense.category} onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}>
                                         <option>Utilities</option>
                                         <option>Rent</option>
@@ -352,7 +352,7 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-black text-zinc-400">₱</span>
                                     <input type="number" placeholder="0.00" step="0.01"
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-xl font-black outline-none focus:border-[#a020f0] focus:bg-white tabular-nums"
+                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-xl font-black outline-none focus:border-[#6a12b8] focus:bg-white tabular-nums"
                                         value={newExpense.amount} onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })} />
                                 </div>
                             </div>
@@ -364,7 +364,7 @@ const TL_ExpensePanel: React.FC<{ branchId?: number | null }> = ({ branchId }) =
                                 Discard
                             </button>
                             <button onClick={handleSaveExpense} disabled={isSubmitting}
-                                className="flex-1 h-11 bg-[#a020f0] text-white font-black text-[10px] uppercase tracking-widest hover:bg-[#2a1647] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-xl shadow-lg shadow-violet-200/30">
+                                className="flex-1 h-11 bg-[#6a12b8] text-white font-black text-[10px] uppercase tracking-widest hover:bg-[#2a1647] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-xl shadow-lg shadow-violet-200/30">
                                 {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : 'Post Expense'}
                             </button>
                         </div>
