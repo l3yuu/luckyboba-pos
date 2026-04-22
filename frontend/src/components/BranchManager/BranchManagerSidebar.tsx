@@ -15,11 +15,11 @@ const SB_STYLES = `
     border-radius: 0.4rem; border: none; cursor: pointer;
     background: transparent; transition: background 0.12s, color 0.12s;
   }
-  .bm-tab:hover  { background: #f5f3ff; color: #a020f0; }
-  .bm-tab.active { background: #ede8ff; color: #a020f0; font-weight: 600; }
+  .bm-tab:hover  { background: #f5f3ff; color: #6a12b8; }
+  .bm-tab.active { background: #ede8ff; color: #6a12b8; font-weight: 600; }
   .bm-tab.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-    width: 2.5px; background: #a020f0; border-radius: 0 2px 2px 0;
+    width: 2.5px; background: #6a12b8; border-radius: 0 2px 2px 0;
   }
 
   /* ── Desktop accordion ── */
@@ -76,11 +76,11 @@ const SB_STYLES = `
     transition: background 0.12s, color 0.12s;
     position: relative;
   }
-  .bm-item:hover  { background: #f5f3ff; color: #a020f0; }
-  .bm-item.active { background: #ede8ff; color: #a020f0; font-weight: 600; }
+  .bm-item:hover  { background: #f5f3ff; color: #6a12b8; }
+  .bm-item.active { background: #ede8ff; color: #6a12b8; font-weight: 600; }
   .bm-item.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-    width: 2.5px; background: #a020f0; border-radius: 0 2px 2px 0;
+    width: 2.5px; background: #6a12b8; border-radius: 0 2px 2px 0;
   }
 
   /* ── Desktop group button ── */
@@ -92,7 +92,7 @@ const SB_STYLES = `
     color: #52525b; font-size: 0.8rem; font-weight: 500;
     transition: background 0.12s, color 0.12s;
   }
-  .bm-group-btn:hover { background: #f5f3ff; color: #a020f0; }
+  .bm-group-btn:hover { background: #f5f3ff; color: #6a12b8; }
 
   /* ── Desktop sub item ── */
   .bm-sub {
@@ -104,11 +104,11 @@ const SB_STYLES = `
     transition: background 0.12s, color 0.12s;
     position: relative;
   }
-  .bm-sub:hover  { background: #f5f3ff; color: #a020f0; }
-  .bm-sub.active { background: #ede8ff; color: #a020f0; font-weight: 600; }
+  .bm-sub:hover  { background: #f5f3ff; color: #6a12b8; }
+  .bm-sub.active { background: #ede8ff; color: #6a12b8; font-weight: 600; }
   .bm-sub.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-    width: 2.5px; background: #a020f0; border-radius: 0 2px 2px 0;
+    width: 2.5px; background: #6a12b8; border-radius: 0 2px 2px 0;
   }
   .bm-sub::after {
     content: ''; position: absolute; left: 18px; top: 50%;
@@ -116,13 +116,13 @@ const SB_STYLES = `
     background: #d4d4d8; transform: translateY(-50%);
     transition: background 0.12s;
   }
-  .bm-sub.active::after, .bm-sub:hover::after { background: #a020f0; }
+  .bm-sub.active::after, .bm-sub:hover::after { background: #6a12b8; }
 
   /* ── NEW: pulse badge for pending app orders ── */
   .bm-sb-badge {
     margin-left: auto;
     min-width: 18px; height: 18px;
-    background: #a020f0; color: #fff;
+    background: #6a12b8; color: #fff;
     border-radius: 100px; padding: 0 5px;
     font-size: 0.55rem; font-weight: 800;
     display: flex; align-items: center; justify-content: center;
@@ -141,11 +141,11 @@ const SB_STYLES = `
     transition: background 0.12s, color 0.12s;
     position: relative;
   }
-  .bm-m-item:hover  { background: #f4f2ff; color: #a020f0; }
-  .bm-m-item.active { background: #ede8ff; color: #a020f0; font-weight: 600; }
+  .bm-m-item:hover  { background: #f4f2ff; color: #6a12b8; }
+  .bm-m-item.active { background: #ede8ff; color: #6a12b8; font-weight: 600; }
   .bm-m-item.active::before {
     content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
-    width: 3px; background: #a020f0; border-radius: 0 3px 3px 0;
+    width: 3px; background: #6a12b8; border-radius: 0 3px 3px 0;
   }
   .bm-m-icon {
     flex-shrink: 0; width: 38px; height: 38px; border-radius: 0.6rem;
@@ -164,7 +164,7 @@ const SB_STYLES = `
     color: #3f3f46; font-size: 0.95rem; font-weight: 500;
     transition: background 0.12s, color 0.12s;
   }
-  .bm-m-group-btn:hover { background: #f4f2ff; color: #a020f0; }
+  .bm-m-group-btn:hover { background: #f4f2ff; color: #6a12b8; }
   .bm-m-group-btn .bm-m-icon {
     flex-shrink: 0; width: 38px; height: 38px; border-radius: 0.6rem;
     background: #f4f4f5; display: flex; align-items: center; justify-content: center;
@@ -190,11 +190,11 @@ const SB_STYLES = `
     transition: background 0.12s, color 0.12s;
     position: relative;
   }
-  .bm-m-sub:hover  { background: #f4f2ff; color: #a020f0; }
-  .bm-m-sub.active { background: #ede8ff; color: #a020f0; font-weight: 600; }
+  .bm-m-sub:hover  { background: #f4f2ff; color: #6a12b8; }
+  .bm-m-sub.active { background: #ede8ff; color: #6a12b8; font-weight: 600; }
   .bm-m-sub.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-    width: 3px; background: #a020f0; border-radius: 0 3px 3px 0;
+    width: 3px; background: #6a12b8; border-radius: 0 3px 3px 0;
   }
   .bm-m-sub::after {
     content: ''; position: absolute; left: 51px; top: 50%;
@@ -202,7 +202,7 @@ const SB_STYLES = `
     background: #d4d4d8; transform: translateY(-50%);
     transition: background 0.12s;
   }
-  .bm-m-sub.active::after, .bm-m-sub:hover::after { background: #a020f0; }
+  .bm-m-sub.active::after, .bm-m-sub:hover::after { background: #6a12b8; }
 
   /* ── Logout ── */
   .bm-logout {
@@ -294,9 +294,9 @@ const NavGroup = ({
     <>
       <button
         onClick={onToggle}
-        className={`bm-group-btn ${isGroupActive ? 'text-[#a020f0]' : ''}`}
+        className={`bm-group-btn ${isGroupActive ? 'text-[#6a12b8]' : ''}`}
       >
-        <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isGroupActive ? '#a020f0' : '#a1a1aa' }}>
+        <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isGroupActive ? '#6a12b8' : '#a1a1aa' }}>
           {icon}
         </span>
         <span style={{ flex: 1 }}>{label}</span>
@@ -337,7 +337,7 @@ const MobileGroup = ({
   return (
     <>
       <button onClick={onToggle} className="bm-m-group-btn">
-        <span className="bm-m-icon" style={{ color: isGroupActive ? '#a020f0' : '#71717a' }}>{icon}</span>
+        <span className="bm-m-icon" style={{ color: isGroupActive ? '#6a12b8' : '#71717a' }}>{icon}</span>
         <span style={{ flex: 1 }}>{label}</span>
         {badge != null && badge > 0 && <span className="bm-sb-badge">{badge}</span>}
         <ChevronDown size={16} style={{ color: '#a1a1aa', flexShrink: 0, transition: 'transform 0.32s cubic-bezier(0.4,0,0.2,1)', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
@@ -463,7 +463,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         {/* User profile */}
         <div className="shrink-0 px-4 pt-6 pb-4 border-b border-zinc-100">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-[0.4rem] bg-[#a020f0] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-[0.4rem] bg-[#6a12b8] flex items-center justify-center shrink-0">
               <span className="text-[0.55rem] font-black text-white tracking-wide">{initials}</span>
             </div>
             {authUser ? (
@@ -492,7 +492,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           ].map(t => (
             <button key={t.tab} onClick={() => go(t.tab)}
               className={`bm-item ${currentTab === t.tab ? 'active' : ''}`}>
-              <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === t.tab ? '#a020f0' : '#a1a1aa' }}>{t.icon}</span>
+              <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === t.tab ? '#6a12b8' : '#a1a1aa' }}>{t.icon}</span>
               {t.label}
             </button>
           ))}
@@ -519,11 +519,11 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Floor Ops</p>
           <button onClick={() => go('online-orders')} className={`bm-item ${currentTab === 'online-orders' ? 'active' : ''}`}>
-            <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === 'online-orders' ? '#a020f0' : '#a1a1aa' }}><ShoppingBag size={14} /></span>
+            <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === 'online-orders' ? '#6a12b8' : '#a1a1aa' }}><ShoppingBag size={14} /></span>
             Online Orders
           </button>
           <button onClick={() => go('void-logs')} className={`bm-item ${currentTab === 'void-logs' ? 'active' : ''}`}>
-            <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === 'void-logs' ? '#a020f0' : '#a1a1aa' }}><Trash2 size={14} /></span>
+            <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === 'void-logs' ? '#6a12b8' : '#a1a1aa' }}><Trash2 size={14} /></span>
             Void Logs
           </button>
 
@@ -533,7 +533,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             { tab: 'promos-discounts', label: 'Promos & Discounts', icon: <Tag size={14} /> },
           ].map(t => (
             <button key={t.tab} onClick={() => go(t.tab)} className={`bm-item ${currentTab === t.tab ? 'active' : ''}`}>
-              <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === t.tab ? '#a020f0' : '#a1a1aa' }}>{t.icon}</span>
+              <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === t.tab ? '#6a12b8' : '#a1a1aa' }}>{t.icon}</span>
               {t.label}
             </button>
           ))}
@@ -544,7 +544,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         {/* Desktop bottom */}
         <div className="shrink-0 px-3 pb-4 pt-2 border-t border-zinc-100">
           <button onClick={() => go('settings')} className={`bm-item ${currentTab === 'settings' ? 'active' : ''}`}>
-            <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === 'settings' ? '#a020f0' : '#a1a1aa' }}><SettingsIcon size={14} /></span>
+            <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === 'settings' ? '#6a12b8' : '#a1a1aa' }}><SettingsIcon size={14} /></span>
             Settings
           </button>
           <div className="bm-divider" />
@@ -591,7 +591,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             <div style={{ flexShrink: 0, padding: '56px 20px 16px', paddingTop: 'max(56px, calc(env(safe-area-inset-top) + 20px))' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #a020f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 0 3px #ede8ff' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #6a12b8)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 0 3px #ede8ff' }}>
                     <span style={{ fontSize: '1rem', fontWeight: 800, color: '#fff' }}>{initials}</span>
                   </div>
                   <div>
@@ -628,7 +628,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
                 { tab: 'device-management', label: 'Device Management', icon: <Monitor size={18} /> },
               ].map(t => (
                 <button key={t.tab} onClick={() => go(t.tab)} className={`bm-m-item ${currentTab === t.tab ? 'active' : ''}`}>
-                  <span className="bm-m-icon" style={{ color: currentTab === t.tab ? '#a020f0' : '#71717a' }}>{t.icon}</span>
+                  <span className="bm-m-icon" style={{ color: currentTab === t.tab ? '#6a12b8' : '#71717a' }}>{t.icon}</span>
                   {t.label}
                 </button>
               ))}
@@ -655,21 +655,21 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 
               <div className="bm-sec">Floor Ops</div>
               <button onClick={() => go('online-orders')} className={`bm-m-item ${currentTab === 'online-orders' ? 'active' : ''}`}>
-                <span className="bm-m-icon" style={{ color: currentTab === 'online-orders' ? '#a020f0' : '#71717a' }}><ShoppingBag size={18} /></span>
+                <span className="bm-m-icon" style={{ color: currentTab === 'online-orders' ? '#6a12b8' : '#71717a' }}><ShoppingBag size={18} /></span>
                 Online Orders
               </button>
               <button onClick={() => go('void-logs')} className={`bm-m-item ${currentTab === 'void-logs' ? 'active' : ''}`}>
-                <span className="bm-m-icon" style={{ color: currentTab === 'void-logs' ? '#a020f0' : '#71717a' }}><Trash2 size={18} /></span>
+                <span className="bm-m-icon" style={{ color: currentTab === 'void-logs' ? '#6a12b8' : '#71717a' }}><Trash2 size={18} /></span>
                 Void Logs
               </button>
 
               <div className="bm-sec">System</div>
               <button onClick={() => go('audit-logs')} className={`bm-m-item ${currentTab === 'audit-logs' ? 'active' : ''}`}>
-                <span className="bm-m-icon" style={{ color: currentTab === 'audit-logs' ? '#a020f0' : '#71717a' }}><Activity size={18} /></span>
+                <span className="bm-m-icon" style={{ color: currentTab === 'audit-logs' ? '#6a12b8' : '#71717a' }}><Activity size={18} /></span>
                 Audit Logs
               </button>
               <button onClick={() => go('promos-discounts')} className={`bm-m-item ${currentTab === 'promos-discounts' ? 'active' : ''}`}>
-                <span className="bm-m-icon" style={{ color: currentTab === 'promos-discounts' ? '#a020f0' : '#71717a' }}><Tag size={18} /></span>
+                <span className="bm-m-icon" style={{ color: currentTab === 'promos-discounts' ? '#6a12b8' : '#71717a' }}><Tag size={18} /></span>
                 Promos & Discounts
               </button>
 
@@ -679,7 +679,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             {/* Bottom actions */}
             <div style={{ flexShrink: 0, padding: '8px 14px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', borderTop: '1px solid #f0f0f2' }}>
               <button onClick={() => go('settings')} className={`bm-m-item ${currentTab === 'settings' ? 'active' : ''}`}>
-                <span className="bm-m-icon" style={{ color: currentTab === 'settings' ? '#a020f0' : '#71717a' }}><SettingsIcon size={18} /></span>
+                <span className="bm-m-icon" style={{ color: currentTab === 'settings' ? '#6a12b8' : '#71717a' }}><SettingsIcon size={18} /></span>
                 Settings
               </button>
               <button onClick={() => onLogout?.()} disabled={isLoggingOut}

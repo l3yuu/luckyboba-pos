@@ -32,7 +32,7 @@ const OrderTypeModal: React.FC<Props> = ({ onSelect, onClose }) => {
         {/* Header */}
         <div className="relative px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#a020f0] rounded-lg flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 bg-[#6a12b8] rounded-lg flex items-center justify-center shrink-0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                 stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
@@ -51,7 +51,7 @@ const OrderTypeModal: React.FC<Props> = ({ onSelect, onClose }) => {
           </div>
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#a020f0]/20 transition-colors text-[#1a0f2e] hover:text-[#a020f0]"
+            className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#6a12b8]/20 transition-colors text-[#1a0f2e] hover:text-[#6a12b8]"
             aria-label="Close"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -68,11 +68,11 @@ const OrderTypeModal: React.FC<Props> = ({ onSelect, onClose }) => {
           {/* Dine In */}
           <button
             onClick={() => onSelect("dine-in")}
-            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#a020f0] hover:border-[#a020f0] transition-all duration-200 active:scale-[0.98]"
+            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#6a12b8] hover:border-[#6a12b8] transition-all duration-200 active:scale-[0.98]"
           >
             <div className="w-12 h-12 rounded-xl bg-white border border-[#e9d5ff] group-hover:bg-white/20 group-hover:border-white/30 flex items-center justify-center shrink-0 transition-all">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="#a020f0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                stroke="#6a12b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
                 className="group-hover:stroke-white transition-all">
                 <circle cx="12" cy="12" r="9"/>
                 <path d="M8 7v4a2 2 0 0 0 4 0V7"/>
@@ -99,11 +99,11 @@ const OrderTypeModal: React.FC<Props> = ({ onSelect, onClose }) => {
           {/* Take Out */}
           <button
             onClick={() => onSelect("take-out")}
-            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#a020f0] hover:border-[#a020f0] transition-all duration-200 active:scale-[0.98]"
+            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#6a12b8] hover:border-[#6a12b8] transition-all duration-200 active:scale-[0.98]"
           >
             <div className="w-12 h-12 rounded-xl bg-white border border-[#e9d5ff] group-hover:bg-white/20 group-hover:border-white/30 flex items-center justify-center shrink-0 transition-all">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                stroke="#a020f0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                stroke="#6a12b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
                 className="group-hover:stroke-white transition-all">
                 <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
                 <line x1="3" y1="6" x2="21" y2="6"/>
@@ -129,12 +129,12 @@ const OrderTypeModal: React.FC<Props> = ({ onSelect, onClose }) => {
           {/* Delivery */}
           <button
             onClick={() => onSelect("delivery")}
-            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#a020f0] hover:border-[#a020f0] transition-all duration-200 active:scale-[0.98]"
+            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#6a12b8] hover:border-[#6a12b8] transition-all duration-200 active:scale-[0.98]"
           >
             <div className="w-12 h-12 rounded-xl bg-white border border-[#e9d5ff] group-hover:bg-white/20 group-hover:border-white/30 flex items-center justify-center shrink-0 transition-all">
               {/* Motorcycle icon */}
               <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" viewBox="0 0 48 48"
-                className="transition-all [&_path]:fill-[#a020f0] group-hover:[&_path]:fill-white">
+                className="transition-all [&_path]:fill-[#6a12b8] group-hover:[&_path]:fill-white">
                 <path fill="#333" fillRule="evenodd" d="M14.5 35C15.8807 35 17 33.8807 17 32.5 17 31.1193 15.8807 30 14.5 30 13.1193 30 12 31.1193 12 32.5 12 33.8807 13.1193 35 14.5 35zM14.5 38C17.5376 38 20 35.5376 20 32.5 20 29.4624 17.5376 27 14.5 27 11.4624 27 9 29.4624 9 32.5 9 35.5376 11.4624 38 14.5 38zM38 35C39.3807 35 40.5 33.8807 40.5 32.5 40.5 31.1193 39.3807 30 38 30 36.6193 30 35.5 31.1193 35.5 32.5 35.5 33.8807 36.6193 35 38 35zM38 38C41.0375 38 43.5 35.5376 43.5 32.5 43.5 29.4624 41.0375 27 38 27 34.9624 27 32.5 29.4624 32.5 32.5 32.5 35.5376 34.9624 38 38 38z" clipRule="evenodd"/>
                 <path fill="#333" d="M33.3583 33.28C32.8144 33.3759 32.286 33.0107 32.29 32.4584C32.2981 31.3512 32.6406 30.2636 33.2846 29.3439C34.1212 28.149 35.3983 27.3354 36.8348 27.0821C38.2714 26.8288 39.7497 27.1566 40.9446 27.9932C41.8643 28.6372 42.5581 29.5421 42.9444 30.5798C43.1371 31.0974 42.7654 31.6212 42.2215 31.7171L33.3583 33.28Z"/>
                 <path fill="#333" fillRule="evenodd" d="M40.371 28.8124C39.3934 28.1278 38.1838 27.8597 37.0085 28.0669C35.8331 28.2742 34.7883 28.9398 34.1037 29.9175C33.6138 30.6172 33.3371 31.4358 33.2954 32.2756L41.9371 30.7519C41.6107 29.9769 41.0707 29.3023 40.371 28.8124ZM36.6612 26.0973C38.3589 25.798 40.106 26.1853 41.5182 27.1741C42.6051 27.9352 43.425 29.0046 43.8816 30.2309C44.3365 31.453 43.4226 32.5208 42.3952 32.7019L33.5319 34.2648C32.5045 34.4459 31.2805 33.7551 31.2901 32.4511C31.2996 31.1426 31.7043 29.8573 32.4654 28.7703C33.4542 27.3582 34.9635 26.3967 36.6612 26.0973Z" clipRule="evenodd"/>

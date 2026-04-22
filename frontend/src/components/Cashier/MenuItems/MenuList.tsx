@@ -90,7 +90,7 @@ function MenuList() {
       <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col overflow-hidden">
         <TopNavbar />
         <div className="flex-1 flex items-center justify-center gap-3">
-          <RefreshCw size={22} className="animate-spin text-[#a020f0]" />
+          <RefreshCw size={22} className="animate-spin text-[#6a12b8]" />
           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Loading menu...</p>
         </div>
       </div>
@@ -116,7 +116,7 @@ function MenuList() {
                 type="text"
                 value={filterName}
                 onChange={(e) => setFilterName(e.target.value)}
-                className="w-full px-4 py-3 border border-[#e9d5ff] bg-[#f5f0ff] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#a020f0] focus:bg-white transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
+                className="w-full px-4 py-3 border border-[#e9d5ff] bg-[#f5f0ff] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#6a12b8] focus:bg-white transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
                 placeholder="Name or barcode..."
               />
             </div>
@@ -128,7 +128,7 @@ function MenuList() {
                 type="text"
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-4 py-3 border border-[#e9d5ff] bg-[#f5f0ff] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#a020f0] focus:bg-white transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
+                className="w-full px-4 py-3 border border-[#e9d5ff] bg-[#f5f0ff] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#6a12b8] focus:bg-white transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
                 placeholder="Filter by category..."
               />
             </div>
@@ -141,19 +141,19 @@ function MenuList() {
         <div className="flex gap-2 items-center">
           <button
             onClick={() => window.print()}
-            className="h-9 px-4 bg-white border border-[#e9d5ff] text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#a020f0] hover:text-[#a020f0] transition-colors flex items-center gap-2 rounded-[0.625rem]"
+            className="h-9 px-4 bg-white border border-[#e9d5ff] text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#6a12b8] hover:text-[#6a12b8] transition-colors flex items-center gap-2 rounded-[0.625rem]"
           >
             <Printer size={13} strokeWidth={2} /> Print
           </button>
           <button
             onClick={generateExcel}
-            className="h-9 px-4 bg-white border border-[#e9d5ff] text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#a020f0] hover:text-[#a020f0] transition-colors flex items-center gap-2 rounded-[0.625rem]"
+            className="h-9 px-4 bg-white border border-[#e9d5ff] text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#6a12b8] hover:text-[#6a12b8] transition-colors flex items-center gap-2 rounded-[0.625rem]"
           >
             <FileDown size={13} strokeWidth={2} /> Export XLS
           </button>
           <div className="flex-1" />
           <div className="h-9 px-4 bg-[#f5f0ff] border border-[#e9d5ff] flex items-center gap-2 rounded-[0.625rem]">
-            <Database size={12} className="text-[#a020f0]" />
+            <Database size={12} className="text-[#6a12b8]" />
             <span className="text-[11px] font-bold text-zinc-600 uppercase tracking-widest">
               {filteredData.length} <span className="text-zinc-400 font-medium">Records</span>
             </span>
@@ -184,7 +184,7 @@ function MenuList() {
                       <span className="text-sm font-medium text-zinc-400 tabular-nums">{item.barcode || '—'}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[10px] font-bold text-[#a020f0] uppercase tracking-wide rounded-sm">
+                      <span className="px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[10px] font-bold text-[#6a12b8] uppercase tracking-wide rounded-sm">
                         {item.category || 'General'}
                       </span>
                     </td>

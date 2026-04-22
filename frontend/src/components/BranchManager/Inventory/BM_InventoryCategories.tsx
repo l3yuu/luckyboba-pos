@@ -153,7 +153,7 @@ const RecipeFormModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <BookOpen size={15} className="text-[#a020f0]" />
+              <BookOpen size={15} className="text-[#6a12b8]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Recipe' : 'Add Recipe'}</p>
@@ -196,7 +196,7 @@ const RecipeFormModal: React.FC<{
 
           {/* Active toggle */}
           <label className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:bg-[#faf9ff] transition-colors">
-            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${isActive ? 'bg-[#a020f0]' : 'bg-zinc-300'}`}
+            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${isActive ? 'bg-[#6a12b8]' : 'bg-zinc-300'}`}
               onClick={() => setIsActive(v => !v)}>
               <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${isActive ? 'translate-x-4' : ''}`} />
             </div>
@@ -213,7 +213,7 @@ const RecipeFormModal: React.FC<{
                 Ingredients <span className="text-red-400">*</span>
               </label>
               <button onClick={addRow}
-                className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#a020f0] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
+                className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#6a12b8] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
                 <Plus size={11} /> Add Row
               </button>
             </div>
@@ -268,7 +268,7 @@ const RecipeFormModal: React.FC<{
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-2.5 bg-[#a020f0] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 bg-[#6a12b8] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create Recipe'}
           </button>
         </div>
@@ -389,13 +389,13 @@ const BM_InventoryCategories: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
             <input
               type="text"
               placeholder="Search recipes..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
             />
           </div>
 
@@ -409,7 +409,7 @@ const BM_InventoryCategories: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <button onClick={() => setAddOpen(true)} className="w-full md:w-auto px-5 py-3 bg-[#a020f0] hover:bg-[#2a1647] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-xs">
+            <button onClick={() => setAddOpen(true)} className="w-full md:w-auto px-5 py-3 bg-[#6a12b8] hover:bg-[#2a1647] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-xs">
               <Plus size={14} strokeWidth={3} /> Add Recipe
             </button>
           </div>
@@ -419,7 +419,7 @@ const BM_InventoryCategories: React.FC = () => {
       {/* Stat Cards */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
-          { label: 'Total Recipes',  value: totalRecipes,   color: '#a020f0', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Total Recipes',  value: totalRecipes,   color: '#6a12b8', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Active',         value: activeRecipes,  color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
           { label: 'No Ingredients', value: missingRecipes, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
         ].map(s => (
@@ -477,7 +477,7 @@ const BM_InventoryCategories: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                            <BookOpen size={12} className="text-[#a020f0]" />
+                            <BookOpen size={12} className="text-[#6a12b8]" />
                           </div>
                           <div>
                             <p className="font-bold text-[#1a0f2e] text-xs">{name}</p>
@@ -495,10 +495,10 @@ const BM_InventoryCategories: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <button onClick={() => handleToggle(r)}
                           className="flex items-center gap-2 group">
-                          <div className={`w-9 h-5 rounded-full transition-colors flex items-center ${r.is_active ? 'bg-[#a020f0]' : 'bg-zinc-300'}`}>
+                          <div className={`w-9 h-5 rounded-full transition-colors flex items-center ${r.is_active ? 'bg-[#6a12b8]' : 'bg-zinc-300'}`}>
                             <div className={`w-3.5 h-3.5 bg-white rounded-full mx-0.5 transition-transform ${r.is_active ? 'translate-x-4' : ''}`} />
                           </div>
-                          <span className={`text-[10px] font-bold uppercase tracking-widest ${r.is_active ? 'text-[#a020f0]' : 'text-zinc-400'}`}>
+                          <span className={`text-[10px] font-bold uppercase tracking-widest ${r.is_active ? 'text-[#6a12b8]' : 'text-zinc-400'}`}>
                             {r.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </button>
@@ -506,7 +506,7 @@ const BM_InventoryCategories: React.FC = () => {
                       <td className="px-5 py-3.5">
                         {hasItems ? (
                           <button onClick={() => setExpanded(isExpanded ? null : r.id)}
-                            className="flex items-center gap-1.5 text-xs font-bold text-[#a020f0] hover:text-[#6a12b8] transition-colors">
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#6a12b8] hover:text-[#6a12b8] transition-colors">
                             <CheckCircle size={12} className="text-emerald-500" />
                             {items.length} ingredient{items.length !== 1 ? 's' : ''}
                             {isExpanded ? <ChevronDown size={12} /> : <ChevronDown size={12} className="-rotate-90" />}
@@ -521,7 +521,7 @@ const BM_InventoryCategories: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1">
                           <button onClick={() => setEditTarget(r)} title="Edit"
-                            className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#a020f0] transition-colors">
+                            className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                             <Edit2 size={13} />
                           </button>
                           <button onClick={() => setDelTarget(r)} title="Delete"
@@ -539,7 +539,7 @@ const BM_InventoryCategories: React.FC = () => {
                           <div className="ml-10 border border-[#e9d5ff] rounded-xl overflow-hidden">
                             <div className="grid grid-cols-3 bg-[#f5f0ff] px-4 py-2 border-b border-[#e9d5ff]">
                               {['Material', 'Qty / Serving', 'Unit'].map(h => (
-                                <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#a020f0]">{h}</p>
+                                <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#6a12b8]">{h}</p>
                               ))}
                             </div>
                             {items.map((item, idx) => (

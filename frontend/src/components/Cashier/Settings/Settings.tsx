@@ -153,15 +153,15 @@ default:
         style={{ gridColumn: '1 / -1' }}
         className="group relative overflow-hidden flex items-center gap-6 p-7 rounded-[0.625rem] shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-[0.99] hover:shadow-md hover:border-[#e9d5ff]"
       >
-        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#a020f0]" />
-        <div className="w-14 h-14 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#a020f0] transition-colors">
-          <SettingsIcon size={24} strokeWidth={1.5} className="text-[#a020f0] group-hover:text-white transition-colors" />
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#6a12b8]" />
+        <div className="w-14 h-14 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#6a12b8] transition-colors">
+          <SettingsIcon size={24} strokeWidth={1.5} className="text-[#6a12b8] group-hover:text-white transition-colors" />
         </div>
         <div className="text-left">
           <p className="text-[11px] font-black text-[#1c1c1e] uppercase tracking-widest">Sales Settings</p>
           <p className="text-[10px] text-zinc-400 font-medium mt-0.5">Configure POS behavior, taxes & receipts</p>
         </div>
-        <div className="ml-auto px-3 py-1 rounded-[0.625rem] bg-[#f5f0ff] text-[8px] font-bold text-[#a020f0] uppercase tracking-tighter border border-[#e9d5ff] group-hover:bg-[#a020f0] group-hover:text-white group-hover:border-[#a020f0] transition-colors shrink-0">
+        <div className="ml-auto px-3 py-1 rounded-[0.625rem] bg-[#f5f0ff] text-[8px] font-bold text-[#6a12b8] uppercase tracking-tighter border border-[#e9d5ff] group-hover:bg-[#6a12b8] group-hover:text-white group-hover:border-[#6a12b8] transition-colors shrink-0">
           Configure
         </div>
       </button>
@@ -171,9 +171,9 @@ default:
         onClick={() => setActiveSubView('discount')}
         className="group relative overflow-hidden flex items-center gap-5 p-6 rounded-[0.625rem] shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-[0.99] hover:shadow-md hover:border-[#e9d5ff]"
       >
-        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#a020f0]" />
-        <div className="w-12 h-12 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#a020f0] transition-colors">
-          <Percent size={20} strokeWidth={1.5} className="text-[#a020f0] group-hover:text-white transition-colors" />
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#6a12b8]" />
+        <div className="w-12 h-12 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#6a12b8] transition-colors">
+          <Percent size={20} strokeWidth={1.5} className="text-[#6a12b8] group-hover:text-white transition-colors" />
         </div>
         <div className="text-left">
           <p className="text-[11px] font-black text-[#1c1c1e] uppercase tracking-widest">Discount</p>
@@ -186,9 +186,9 @@ default:
         onClick={() => setActiveSubView('export-data')}
         className="group relative overflow-hidden flex items-center gap-5 p-6 rounded-[0.625rem] shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-[0.99] hover:shadow-md hover:border-[#e9d5ff]"
       >
-        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#a020f0]" />
-        <div className="w-12 h-12 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#a020f0] transition-colors">
-          <FileUp size={20} strokeWidth={1.5} className="text-[#a020f0] group-hover:text-white transition-colors" />
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#6a12b8]" />
+        <div className="w-12 h-12 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#6a12b8] transition-colors">
+          <FileUp size={20} strokeWidth={1.5} className="text-[#6a12b8] group-hover:text-white transition-colors" />
         </div>
         <div className="text-left">
           <p className="text-[11px] font-black text-[#1c1c1e] uppercase tracking-widest">Export Data</p>
@@ -202,9 +202,9 @@ default:
         style={{ gridColumn: '1 / -1' }}
         className="group relative overflow-hidden flex items-center gap-6 p-7 rounded-[0.625rem] shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-[0.99] hover:shadow-md hover:border-[#e9d5ff]"
       >
-        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#a020f0]" />
-        <div className="w-14 h-14 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#a020f0] transition-colors">
-          <Database size={24} strokeWidth={1.5} className="text-[#a020f0] group-hover:text-white transition-colors" />
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#6a12b8]" />
+        <div className="w-14 h-14 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#6a12b8] transition-colors">
+          <Database size={24} strokeWidth={1.5} className="text-[#6a12b8] group-hover:text-white transition-colors" />
         </div>
         <div className="text-left">
           <p className="text-[11px] font-black text-[#1c1c1e] uppercase tracking-widest">Backup System</p>
@@ -212,7 +212,7 @@ default:
             Last backup: {formatBackupDate(auditInfo.last_backup) ?? '—'}
           </p>
         </div>
-        <div className="ml-auto px-3 py-1 rounded-[0.625rem] bg-[#f5f0ff] text-[8px] font-bold text-[#a020f0] uppercase tracking-tighter border border-[#e9d5ff] group-hover:bg-[#a020f0] group-hover:text-white group-hover:border-[#a020f0] transition-colors shrink-0">
+        <div className="ml-auto px-3 py-1 rounded-[0.625rem] bg-[#f5f0ff] text-[8px] font-bold text-[#6a12b8] uppercase tracking-tighter border border-[#e9d5ff] group-hover:bg-[#6a12b8] group-hover:text-white group-hover:border-[#6a12b8] transition-colors shrink-0">
           Manage
         </div>
       </button>
@@ -242,36 +242,36 @@ default:
             {/* System audit — admin only, only on main view */}
             {isAdmin && !activeSubView && (
               <div className="bg-white rounded-[0.625rem] shadow-sm border border-[#e9d5ff] overflow-hidden w-full shrink-0">
-                <div className="bg-[#a020f0] px-7 py-4 border-b border-[#6a12b8]">
+                <div className="bg-[#6a12b8] px-7 py-4 border-b border-[#6a12b8]">
                   <h2 className="text-white font-extrabold text-[10px] uppercase tracking-[0.3em] text-center">System Audit & Security</h2>
                 </div>
                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="flex flex-col items-center text-center gap-2">
-                    <div className="text-[#a020f0]"><Clock size={16} /></div>
+                    <div className="text-[#6a12b8]"><Clock size={16} /></div>
                     <div>
                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Last Backup</p>
                       <p className="text-sm font-extrabold text-black uppercase italic">{formatBackupDate(auditInfo.last_backup)}</p>
                     </div>
                   </div>
                   <div className="flex flex-col items-center text-center gap-2 border-x border-[#e9d5ff] px-4">
-                    <div className="text-[#a020f0]"><ShieldCheck size={16} /></div>
+                    <div className="text-[#6a12b8]"><ShieldCheck size={16} /></div>
                     <div>
                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Active Session</p>
                       <p className="text-sm font-extrabold text-black uppercase mb-1">{auditInfo.active_session}</p>
                       <button
                         onClick={() => setIsLogOpen(true)}
-                        className="text-[8px] font-bold text-[#a020f0] border border-[#a020f0]/20 px-2 py-0.5 rounded-[0.625rem] hover:bg-[#a020f0] hover:text-white transition-colors"
+                        className="text-[8px] font-bold text-[#6a12b8] border border-[#6a12b8]/20 px-2 py-0.5 rounded-[0.625rem] hover:bg-[#6a12b8] hover:text-white transition-colors"
                       >
                         VIEW LOGS
                       </button>
                     </div>
                   </div>
                   <div className="flex flex-col items-center text-center gap-2">
-                    <div className="text-[#a020f0]"><Activity size={16} /></div>
+                    <div className="text-[#6a12b8]"><Activity size={16} /></div>
                     <div>
                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">System Status</p>
                       <div className="flex items-center justify-center gap-2">
-                        <div className={`w-2 h-2 rounded-none animate-pulse ${auditInfo.system_status === 'Online' ? 'bg-[#a020f0]' : 'bg-red-500'}`} />
+                        <div className={`w-2 h-2 rounded-none animate-pulse ${auditInfo.system_status === 'Online' ? 'bg-[#6a12b8]' : 'bg-red-500'}`} />
                         <p className={`text-sm font-extrabold uppercase ${auditInfo.system_status === 'Online' ? 'text-black' : 'text-red-500'}`}>{auditInfo.system_status}</p>
                       </div>
                     </div>
@@ -287,7 +287,7 @@ default:
       {isLogOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
-            <div className="bg-[#a020f0] px-7 py-5 border-b border-[#6a12b8] flex justify-between items-center rounded-t-[0.625rem]">
+            <div className="bg-[#6a12b8] px-7 py-5 border-b border-[#6a12b8] flex justify-between items-center rounded-t-[0.625rem]">
               <h3 className="text-white font-extrabold text-xs uppercase tracking-widest">System Activity Log</h3>
               <div className="flex items-center gap-4">
                 <button onClick={handleExportLogs} className="text-white/80 hover:text-white transition-colors" title="Export Logs"><FileUp size={16} /></button>
@@ -302,7 +302,7 @@ default:
                     <div className="flex items-start gap-2">
                       {critical && <AlertTriangle className="text-red-500 mt-0.5" size={12} />}
                       <div>
-                        <p className={`text-[10px] font-extrabold uppercase tracking-tight ${critical ? 'text-red-600' : 'text-[#a020f0]'}`}>{log.user}</p>
+                        <p className={`text-[10px] font-extrabold uppercase tracking-tight ${critical ? 'text-red-600' : 'text-[#6a12b8]'}`}>{log.user}</p>
                         <p className={`text-xs font-semibold leading-tight ${critical ? 'text-red-700' : 'text-zinc-600'}`}>{log.action}</p>
                       </div>
                     </div>
@@ -316,7 +316,7 @@ default:
             <div className="p-4 bg-[#f5f0ff] border-t border-[#e9d5ff] flex justify-center">
               <button
                 onClick={() => setIsLogOpen(false)}
-                className="h-11 px-7 bg-white border border-[#e9d5ff] text-[#a020f0] rounded-[0.625rem] font-bold text-xs uppercase tracking-widest hover:bg-[#f5f0ff] transition-colors"
+                className="h-11 px-7 bg-white border border-[#e9d5ff] text-[#6a12b8] rounded-[0.625rem] font-bold text-xs uppercase tracking-widest hover:bg-[#f5f0ff] transition-colors"
               >
                 Close
               </button>

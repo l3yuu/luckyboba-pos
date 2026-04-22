@@ -42,7 +42,7 @@ interface BtnProps {
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -189,7 +189,7 @@ const SubCategoryModal: React.FC<{
                   {sizeOptions.map(sz => (
                     <button key={sz} type="button" onClick={() => setName(sz)}
                       className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${name === sz
-                        ? "bg-[#a020f0] text-white border-[#a020f0]"
+                        ? "bg-[#6a12b8] text-white border-[#6a12b8]"
                         : "bg-white text-zinc-600 border-zinc-200 hover:border-violet-300 hover:text-violet-600"
                         }`}>
                       {sz}
@@ -219,7 +219,7 @@ const SubCategoryModal: React.FC<{
             </div>
             <button type="button" onClick={() => setIsActive(v => !v)}>
               {isActive
-                ? <ToggleRight size={28} className="text-[#a020f0]" />
+                ? <ToggleRight size={28} className="text-[#6a12b8]" />
                 : <ToggleLeft size={28} className="text-zinc-300" />}
             </button>
           </div>
@@ -422,7 +422,7 @@ const SubCategoriesTab: React.FC = () => {
           {Object.values(grouped).map(({ cat, children }) => (
             <div key={cat.id} className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
               <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-100 bg-zinc-50/50">
-                <div className="w-2 h-6 rounded-full bg-[#a020f0] shrink-0" />
+                <div className="w-2 h-6 rounded-full bg-[#6a12b8] shrink-0" />
                 <p className="text-xs font-black text-[#1a0f2e] uppercase tracking-widest">{cat.name}</p>
                 <span className="text-[10px] font-bold text-zinc-400 ml-auto">{children.length} sub-categories</span>
               </div>
@@ -473,7 +473,7 @@ const SubCategoriesTab: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5">
                         <button onClick={() => toggleActive(sub)} className="transition-colors">
-                          {sub.is_active ? <ToggleRight size={22} className="text-[#a020f0]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
+                          {sub.is_active ? <ToggleRight size={22} className="text-[#6a12b8]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
                         </button>
                       </td>
                       <td className="px-5 py-3.5">
@@ -515,7 +515,7 @@ const SubCategoriesTab: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5">
                         <button onClick={() => toggleActive(sub)}>
-                          {sub.is_active ? <ToggleRight size={22} className="text-[#a020f0]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
+                          {sub.is_active ? <ToggleRight size={22} className="text-[#6a12b8]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
                         </button>
                       </td>
                       <td className="px-5 py-3.5">

@@ -61,11 +61,11 @@ const GlobalStyles = () => (
     .card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
     .card:hover { box-shadow: 0 4px 24px rgba(59,32,99,0.08); }
     .sa-tab { transition: background 0.12s, color 0.12s; border-radius: 0.4rem; }
-    .sa-tab:hover  { background: #f5f3ff; color: #a020f0; }
-    .sa-tab.active { background: #ede8ff; color: #a020f0; font-weight: 600; }
+    .sa-tab:hover  { background: #f5f3ff; color: #6a12b8; }
+    .sa-tab.active { background: #ede8ff; color: #6a12b8; font-weight: 600; }
     .sa-tab.active::before {
       content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-      width: 2.5px; background: #a020f0; border-radius: 0 2px 2px 0;
+      width: 2.5px; background: #6a12b8; border-radius: 0 2px 2px 0;
     }
     @keyframes sa-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
     .pulse   { animation: sa-pulse 2s ease-in-out infinite; }
@@ -75,7 +75,7 @@ const GlobalStyles = () => (
     .badge-inactive { background:#f3f4f6; color:#6b7280; }
     .badge-pending  { background:#fef3c7; color:#92400e; }
     .badge-danger   { background:#fee2e2; color:#991b1b; }
-    .toggle-on  { background:#a020f0; }
+    .toggle-on  { background:#6a12b8; }
     .toggle-off { background:#d1d5db; }
   `}</style>
 );

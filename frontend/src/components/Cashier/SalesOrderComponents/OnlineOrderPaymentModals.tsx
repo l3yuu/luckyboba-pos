@@ -37,7 +37,7 @@ export const OnlineOrderPaymentModal = ({ order, onClose, onConfirm }: PaymentMo
       <div className="bg-white w-full max-w-6xl rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] relative">
         
         {/* Header */}
-        <div className="bg-[#a020f0] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center">
+        <div className="bg-[#6a12b8] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center">
           <div className="w-1/3" />
           <div className="w-1/3">
             <h2 className="text-xl font-black uppercase tracking-widest">Payment Details</h2>
@@ -94,7 +94,7 @@ export const OnlineOrderPaymentModal = ({ order, onClose, onConfirm }: PaymentMo
             <div className="p-6 bg-[#f5f0ff] shrink-0 border-t border-[#e9d5ff]">
               <div className="space-y-1.5 text-[11px] font-bold text-zinc-600">
                 <div className="flex justify-between"><span>Items Count</span><span>{order.items?.length ?? 0}</span></div>
-                <div className="flex justify-between font-black text-lg text-[#a020f0] mt-2 pt-2 border-t border-[#e9d5ff]">
+                <div className="flex justify-between font-black text-lg text-[#6a12b8] mt-2 pt-2 border-t border-[#e9d5ff]">
                   <span>Total Due</span>
                   <span>₱ {amtDue.toFixed(2)}</span>
                 </div>
@@ -105,7 +105,7 @@ export const OnlineOrderPaymentModal = ({ order, onClose, onConfirm }: PaymentMo
           {/* Right: Tabs & Payment */}
           <div className="flex-1 flex flex-col bg-white overflow-hidden">
             <div className="flex border-b border-[#e9d5ff] shrink-0 bg-[#f5f0ff] p-2 gap-2">
-              <button className="flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] transition-all border-2 relative bg-[#a020f0] text-white border-[#a020f0] shadow-md">
+              <button className="flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] transition-all border-2 relative bg-[#6a12b8] text-white border-[#6a12b8] shadow-md">
                 Payment
               </button>
             </div>
@@ -120,7 +120,7 @@ export const OnlineOrderPaymentModal = ({ order, onClose, onConfirm }: PaymentMo
                       const isLocked = false; 
                       return (
                         <button key={id} onClick={() => { if (!isLocked) { setPaymentMethod(id); setReferenceNumber(''); setCashTendered(''); }}} disabled={isLocked}
-                          className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${isLocked ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40' : paymentMethod === id ? 'bg-[#a020f0] text-white border-[#a020f0] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#a020f0]/40'}`}>
+                          className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${isLocked ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40' : paymentMethod === id ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#6a12b8]/40'}`}>
                           {label}
                         </button>
                       );
@@ -131,17 +131,17 @@ export const OnlineOrderPaymentModal = ({ order, onClose, onConfirm }: PaymentMo
                     <>
                       <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase mb-2">Cash Tendered</h3>
                       <div className="relative mb-3">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#a020f0]/30">₱</span>
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#6a12b8]/30">₱</span>
                         <input type="number" value={cashTendered} onChange={e => setCashTendered(e.target.value ? Number(e.target.value) : '')}
-                          className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#a020f0] focus:bg-white transition-colors" placeholder="0.00" />
+                          className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#6a12b8] focus:bg-white transition-colors" placeholder="0.00" />
                       </div>
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
-                        <button onClick={() => setCashTendered(amtDue)} className="col-span-2 lg:col-span-4 bg-[#a020f0] hover:bg-[#6a12b8] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest transition-all shadow-md border-2 border-[#a020f0]">
+                        <button onClick={() => setCashTendered(amtDue)} className="col-span-2 lg:col-span-4 bg-[#6a12b8] hover:bg-[#6a12b8] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest transition-all shadow-md border-2 border-[#6a12b8]">
                           Exact Amount (₱ {amtDue.toFixed(2)})
                         </button>
                         {[100, 200, 500, 1000].map(amount => (
                           <button key={amount} onClick={() => setCashTendered(amount)}
-                            className="bg-[#f5f0ff] hover:bg-[#a020f0] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#a020f0]">
+                            className="bg-[#f5f0ff] hover:bg-[#6a12b8] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#6a12b8]">
                             ₱ {amount}
                           </button>
                         ))}
@@ -163,7 +163,7 @@ export const OnlineOrderPaymentModal = ({ order, onClose, onConfirm }: PaymentMo
                             setReferenceNumber(v);
                           }}
                           maxLength={13}
-                          className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#a020f0] focus:bg-white transition-colors uppercase"
+                          className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#6a12b8] focus:bg-white transition-colors uppercase"
                           placeholder="REF#" />
 
                         {['gcash', 'paymaya', 'credit', 'debit'].includes(paymentMethod) && referenceNumber.length < 13 && (
@@ -185,7 +185,7 @@ export const OnlineOrderPaymentModal = ({ order, onClose, onConfirm }: PaymentMo
                   (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
                   (['gcash', 'paymaya', 'credit', 'debit'].includes(paymentMethod) && referenceNumber.length < 13)
                 }
-                className="w-full bg-[#a020f0] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
+                className="w-full bg-[#6a12b8] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
                 Next: Capture Name
               </button>
             </div>

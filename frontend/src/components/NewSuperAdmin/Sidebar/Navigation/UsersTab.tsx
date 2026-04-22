@@ -99,7 +99,7 @@ const ALL_ROLES = ["superadmin", "system_admin", "branch_manager", "team_leader"
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 const Avatar: React.FC<{ name: string; size?: string }> = ({ name, size = "w-7 h-7 text-[10px]" }) => (
-  <div className={`${size} rounded-full bg-[#ede8ff] flex items-center justify-center font-bold text-[#a020f0] shrink-0`}>
+  <div className={`${size} rounded-full bg-[#ede8ff] flex items-center justify-center font-bold text-[#6a12b8] shrink-0`}>
     {name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
   </div>
 );
@@ -194,7 +194,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
