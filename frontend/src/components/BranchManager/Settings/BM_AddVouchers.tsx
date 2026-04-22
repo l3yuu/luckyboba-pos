@@ -94,7 +94,7 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
                         :                           'background:#f4f4f5;color:#a1a1aa;';
       const updatedAt = v.updated_at ? new Date(v.updated_at).toISOString().split('T')[0] : 'N/A';
       return `<tr>
-        <td style="padding:10px 14px;font-weight:900;color:#3b2063;">${v.code}</td>
+        <td style="padding:10px 14px;font-weight:900;color:#a020f0;">${v.code}</td>
         <td style="padding:10px 14px;font-weight:700;color:#10b981;text-align:right;">${v.value}</td>
         <td style="padding:10px 14px;text-align:center;"><span style="padding:3px 9px;border-radius:4px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;${statusStyle}">${v.status}</span></td>
         <td style="padding:10px 14px;text-align:center;text-transform:uppercase;color:#64748b;font-size:11px;">${v.type}</td>
@@ -105,7 +105,7 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
 
     printWindow.document.write(`<!DOCTYPE html><html><head><title>Voucher Report — Lucky Boba POS</title>
       <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1e293b;font-size:12px;}
-      .header{background:#3b2063;color:white;padding:24px 32px;display:flex;justify-content:space-between;align-items:center;}
+      .header{background:#a020f0;color:white;padding:24px 32px;display:flex;justify-content:space-between;align-items:center;}
       .header-title{font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;}
       .header-sub{font-size:10px;font-weight:600;opacity:0.6;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;}
       .header-meta{text-align:right;font-size:10px;opacity:0.75;line-height:1.6;}
@@ -121,7 +121,7 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
       <body><div class="header"><div><div class="header-title">Voucher Report</div><div class="header-sub">Lucky Boba POS System — Promo &amp; Discount Codes</div></div>
       <div class="header-meta"><div>Printed by: Administrator</div><div>${printDate}</div></div></div>
       <div class="body"><div class="summary">
-        <div class="summary-card"><div class="num" style="color:#3b2063;">${vouchers.length}</div><div class="lbl">Total Vouchers</div></div>
+        <div class="summary-card"><div class="num" style="color:#a020f0;">${vouchers.length}</div><div class="lbl">Total Vouchers</div></div>
         <div class="summary-card"><div class="num" style="color:#10b981;">${totalActive}</div><div class="lbl">Active</div></div>
         <div class="summary-card"><div class="num" style="color:#2563eb;">${totalRedeemed}</div><div class="lbl">Redeemed</div></div>
         <div class="summary-card"><div class="num" style="color:#a1a1aa;">${totalInactive}</div><div class="lbl">Inactive</div></div>
@@ -172,12 +172,12 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
             </div>
             <div className="flex gap-2">
               <button onClick={handlePrintVouchers}
-                className="flex items-center gap-2 h-9 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#3b2063] transition-all rounded-xl active:scale-[0.98]"
+                className="flex items-center gap-2 h-9 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#a020f0] transition-all rounded-xl active:scale-[0.98]"
                 style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                 <Printer size={13} strokeWidth={2.5} /> Print
               </button>
               <button onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2 h-9 px-4 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98] shadow-sm"
+                className="flex items-center gap-2 h-9 px-4 bg-[#a020f0] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98] shadow-sm"
                 style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                 <Plus size={13} strokeWidth={2.5} /> Add Voucher
               </button>
@@ -200,7 +200,7 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 {isFetching ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-20 text-center">
-                      <div className="w-7 h-7 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full mx-auto mb-3" />
+                      <div className="w-7 h-7 border-2 border-[#a020f0] border-t-transparent animate-spin rounded-full mx-auto mb-3" />
                       <p className="bm-label" style={{ color: '#d4d4d8' }}>Loading vouchers…</p>
                     </td>
                   </tr>
@@ -209,7 +209,7 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-lg bg-[#ede9fe] flex items-center justify-center">
-                          <Ticket size={10} strokeWidth={2.5} className="text-[#3b2063]" />
+                          <Ticket size={10} strokeWidth={2.5} className="text-[#a020f0]" />
                         </div>
                         <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1a0f2e' }}>{v.code}</span>
                       </div>
@@ -223,7 +223,7 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
                     <td className="px-6 py-3.5 text-center">
                       <span className="inline-block px-2.5 py-1 rounded-full"
                         style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                          background: '#ede9fe', color: '#3b2063' }}>
+                          background: '#ede9fe', color: '#a020f0' }}>
                         {v.type}
                       </span>
                     </td>
@@ -261,7 +261,7 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <span className="bm-label" style={{ color: '#d4d4d8' }}>Synchronized</span>
               </div>
               <button onClick={onBack}
-                className="flex items-center gap-2 h-9 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#3b2063] transition-all rounded-xl active:scale-[0.98]"
+                className="flex items-center gap-2 h-9 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#a020f0] transition-all rounded-xl active:scale-[0.98]"
                 style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                 <ArrowLeft size={13} strokeWidth={2.5} /> Back to Settings
               </button>
@@ -275,7 +275,7 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
             <div className="bg-white w-full max-w-md rounded-2xl border border-gray-100 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
               {loading && (
                 <div className="absolute inset-0 bg-white/60 z-50 flex items-center justify-center rounded-2xl backdrop-blur-[2px]">
-                  <Loader2 className="animate-spin text-[#3b2063]" size={28} />
+                  <Loader2 className="animate-spin text-[#a020f0]" size={28} />
                 </div>
               )}
 
@@ -319,7 +319,7 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
 
               <div className="px-7 py-5 border-t border-gray-50 flex flex-col gap-3">
                 <button onClick={handleAddVoucher} disabled={loading}
-                  className="w-full h-10 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full h-10 bg-[#a020f0] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                   style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                   <Save size={13} strokeWidth={2.5} /> Add Voucher
                 </button>
@@ -330,7 +330,7 @@ const BM_AddVouchers = ({ onBack }: { onBack: () => void }) => {
                     Cancel
                   </button>
                   <button onClick={() => showToast('Importing feature coming soon', 'warning')}
-                    className="flex-1 h-10 bg-[#ede9fe] hover:bg-[#3b2063] text-[#3b2063] hover:text-white transition-all rounded-xl active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="flex-1 h-10 bg-[#ede9fe] hover:bg-[#a020f0] text-[#a020f0] hover:text-white transition-all rounded-xl active:scale-[0.98] flex items-center justify-center gap-2"
                     style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                     <Upload size={13} strokeWidth={2.5} /> Import
                   </button>

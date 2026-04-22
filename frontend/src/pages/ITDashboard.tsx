@@ -91,7 +91,7 @@ const Stub: React.FC<StubProps> = ({ name }) => (
       textAlign: "center", color: "#9b96c4",
     }}>
       <div style={{ fontSize: 30, marginBottom: 12 }}>🔌</div>
-      <div style={{ fontWeight: 700, color: "#3b2063", fontSize: 15, marginBottom: 6 }}>
+      <div style={{ fontWeight: 700, color: "#a020f0", fontSize: 15, marginBottom: 6 }}>
         {name}
       </div>
       <div style={{ fontSize: 12, lineHeight: 1.7, maxWidth: 340, margin: "0 auto" }}>
@@ -157,7 +157,7 @@ const GlobalStyles: React.FC = () => (
     }
 
     :root {
-      --brand:        #3b2063;
+      --brand:        #a020f0;
       --brand-mid:    #5b42a0;
       --brand-light:  #7c5cfc;
       --bg:           #f5f4f8;
@@ -283,7 +283,7 @@ const GlobalStyles: React.FC = () => (
     .badge-inactive { background:#f3f4f6; color:#6b7280; }
     .badge-pending  { background:#fef3c7; color:#92400e; }
     .badge-danger   { background:#fee2e2; color:#991b1b; }
-    .toggle-on  { background:#3b2063; }
+    .toggle-on  { background:#a020f0; }
     .toggle-off { background:#d1d5db; }
   `}</style>
 );

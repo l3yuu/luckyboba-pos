@@ -48,11 +48,11 @@ const blankForm = (): FormState => ({
 const dashboardFont = { fontFamily: "'DM Sans', sans-serif" };
 
 const inputCls = (err?: string) =>
-  `w-full text-sm font-medium text-zinc-700 bg-white border rounded-[0.625rem] px-4 py-3 outline-none focus:ring-2 focus:ring-[#3b2063]/10 focus:border-[#3b2063] transition-all ${err ? 'border-red-300 bg-red-50' : 'border-[#e9d5ff]'}`;
+  `w-full text-sm font-medium text-zinc-700 bg-white border rounded-[0.625rem] px-4 py-3 outline-none focus:ring-2 focus:ring-[#a020f0]/10 focus:border-[#a020f0] transition-all ${err ? 'border-red-300 bg-red-50' : 'border-[#e9d5ff]'}`;
 
 const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
   <div className="space-y-1.5">
-    <label className="text-[10px] font-bold uppercase tracking-widest text-[#3b2063]/60 block">
+    <label className="text-[10px] font-bold uppercase tracking-widest text-[#a020f0]/60 block">
       {label}{required && <span className="text-red-400 ml-0.5">*</span>}
     </label>
     {children}
@@ -144,7 +144,7 @@ const SupplierFormModal: React.FC<{
       <div className="relative bg-[#fcfaff] w-full max-w-lg border border-[#e9d5ff] rounded-[0.625rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-7 py-5 bg-[#3b2063] rounded-t-[0.625rem]">
+        <div className="flex items-center justify-between px-7 py-5 bg-[#a020f0] rounded-t-[0.625rem]">
           <div className="flex items-center gap-3 text-white">
             <div className="w-9 h-9 bg-white/20 border border-white/30 rounded-[0.625rem] flex items-center justify-center">
               <Building2 size={15} />
@@ -198,14 +198,14 @@ const SupplierFormModal: React.FC<{
                 <CheckCircle size={15} />
               </div>
               <div>
-                <p className="text-[11px] font-black uppercase text-[#3b2063]">Active Status</p>
+                <p className="text-[11px] font-black uppercase text-[#a020f0]">Active Status</p>
                 <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Allow usage in purchase orders</p>
               </div>
             </div>
             <button
                type="button"
                onClick={() => setForm(p => ({ ...p, is_active: !p.is_active }))}
-               className={`w-12 h-6 rounded-full transition-all flex items-center p-1 ${form.is_active ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}
+               className={`w-12 h-6 rounded-full transition-all flex items-center p-1 ${form.is_active ? 'bg-[#a020f0]' : 'bg-zinc-300'}`}
             >
               <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${form.is_active ? 'translate-x-6' : ''}`} />
             </button>
@@ -214,13 +214,13 @@ const SupplierFormModal: React.FC<{
           {/* Items Supplied */}
           <div className="bg-[#f5f0ff] border border-[#e9d5ff] rounded-[0.625rem] p-5">
             <div className="flex items-center justify-between mb-3 text-[10px] font-bold uppercase tracking-widest">
-              <span className="text-[#3b2063]">Items Provided</span>
+              <span className="text-[#a020f0]">Items Provided</span>
               <span className="text-zinc-400 bg-white px-2 py-0.5 border border-[#e9d5ff] rounded-full">{form.material_ids.length} selected</span>
             </div>
             <div className="relative mb-3">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#3b2063]/40" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a020f0]/40" />
               <input value={matSearch} onChange={e => setMatSearch(e.target.value)}
-                className="w-full bg-white border border-[#e9d5ff] rounded-[0.625rem] pl-9 pr-4 py-2 text-xs font-semibold outline-none focus:border-[#3b2063]"
+                className="w-full bg-white border border-[#e9d5ff] rounded-[0.625rem] pl-9 pr-4 py-2 text-xs font-semibold outline-none focus:border-[#a020f0]"
                 placeholder="Find inventory items..." />
             </div>
             <div className="max-h-40 overflow-y-auto grid grid-cols-1 gap-2 custom-scrollbar pr-1">
@@ -230,12 +230,12 @@ const SupplierFormModal: React.FC<{
                 const checked = form.material_ids.includes(m.id);
                 return (
                   <button key={m.id} type="button" onClick={() => toggleMaterial(m.id)}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-[0.625rem] border transition-all text-left ${checked ? 'bg-white border-[#3b2063] shadow-sm' : 'bg-transparent border-transparent hover:bg-white/50'}`}>
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${checked ? 'border-[#3b2063] bg-[#3b2063]' : 'border-zinc-300'}`}>
+                    className={`flex items-center gap-3 px-3 py-2 rounded-[0.625rem] border transition-all text-left ${checked ? 'bg-white border-[#a020f0] shadow-sm' : 'bg-transparent border-transparent hover:bg-white/50'}`}>
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${checked ? 'border-[#a020f0] bg-[#a020f0]' : 'border-zinc-300'}`}>
                       {checked && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#3b2063] truncate">{m.name}</p>
+                      <p className="text-xs font-bold text-[#a020f0] truncate">{m.name}</p>
                     </div>
                     <span className="text-[9px] font-black text-zinc-400 uppercase bg-zinc-100 px-1.5 py-0.5 rounded">{m.unit}</span>
                   </button>
@@ -250,7 +250,7 @@ const SupplierFormModal: React.FC<{
               Discard
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 py-3 bg-[#3b2063] hover:bg-[#6a12b8] text-white rounded-[0.625rem] font-black text-[11px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+              className="flex-1 py-3 bg-[#a020f0] hover:bg-[#6a12b8] text-white rounded-[0.625rem] font-black text-[11px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2">
               {saving && <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
               {saving ? 'Processing...' : editing ? 'Update Data' : 'Add Supplier'}
             </button>
@@ -277,7 +277,7 @@ const ViewSupplierModal: React.FC<{ supplier: Supplier; onClose: () => void }> =
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-[#f5f0ff] border border-[#e9d5ff] rounded-[0.625rem] flex items-center justify-center shadow-sm">
-                <Building2 size={20} className="text-[#3b2063]" />
+                <Building2 size={20} className="text-[#a020f0]" />
               </div>
               <div>
                 <h3 className="text-base font-black text-[#1a0f2e]">{supplier.name}</h3>
@@ -299,12 +299,12 @@ const ViewSupplierModal: React.FC<{ supplier: Supplier; onClose: () => void }> =
               { icon: <Package size={13} />, label: 'Payables',      value: supplier.payment_terms },
             ].filter(r => r.value).map(row => (
               <div key={row.label} className="flex items-start gap-4 p-3 bg-white border border-[#e9d5ff]/50 rounded-[0.625rem]">
-                <div className="w-8 h-8 bg-zinc-50 border border-zinc-100 rounded-lg flex items-center justify-center shrink-0 text-[#3b2063]/40">
+                <div className="w-8 h-8 bg-zinc-50 border border-zinc-100 rounded-lg flex items-center justify-center shrink-0 text-[#a020f0]/40">
                   {row.icon}
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{row.label}</p>
-                  <p className="text-xs font-black text-[#3b2063] mt-0.5">{row.value}</p>
+                  <p className="text-xs font-black text-[#a020f0] mt-0.5">{row.value}</p>
                 </div>
               </div>
             ))}
@@ -314,7 +314,7 @@ const ViewSupplierModal: React.FC<{ supplier: Supplier; onClose: () => void }> =
                 <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Item Portfolio ({supplier.materials.length})</p>
                 <div className="flex flex-wrap gap-1.5">
                   {supplier.materials.map(m => (
-                    <span key={m.id} className="text-[10px] font-black bg-[#f5f0ff] text-[#3b2063] border border-[#e9d5ff] px-3 py-1 rounded-full uppercase tracking-tight">
+                    <span key={m.id} className="text-[10px] font-black bg-[#f5f0ff] text-[#a020f0] border border-[#e9d5ff] px-3 py-1 rounded-full uppercase tracking-tight">
                       {m.name}
                     </span>
                   ))}
@@ -326,7 +326,7 @@ const ViewSupplierModal: React.FC<{ supplier: Supplier; onClose: () => void }> =
 
         <div className="px-7 pb-7">
           <button onClick={onClose}
-            className="w-full py-3 bg-[#3b2063] text-white rounded-[0.625rem] font-black text-[11px] uppercase tracking-widest hover:bg-[#6a12b8] transition-all shadow-sm">
+            className="w-full py-3 bg-[#a020f0] text-white rounded-[0.625rem] font-black text-[11px] uppercase tracking-widest hover:bg-[#6a12b8] transition-all shadow-sm">
             Confirm & Close
           </button>
         </div>
@@ -444,16 +444,16 @@ const Supplier: React.FC = () => {
         {/* Header Ribbon */}
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#3b2063]/50">Inventory Logistics</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#a020f0]/50">Inventory Logistics</p>
             <h1 className="text-xl font-black text-[#1c1c1e] mt-1 shadow-sm inline-block bg-white px-3 py-1 rounded-[0.625rem] border border-[#e9d5ff]">Registered Suppliers</h1>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={fetchSuppliers} disabled={loading}
-              className="w-11 h-11 bg-white border border-[#e9d5ff] text-[#3b2063]/60 hover:text-[#3b2063] hover:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 flex items-center justify-center rounded-[0.625rem] transition-all shadow-sm">
+              className="w-11 h-11 bg-white border border-[#e9d5ff] text-[#a020f0]/60 hover:text-[#a020f0] hover:border-[#a020f0] focus:ring-2 focus:ring-[#a020f0]/10 flex items-center justify-center rounded-[0.625rem] transition-all shadow-sm">
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             </button>
             <button onClick={() => setAddOpen(true)}
-              className="h-11 px-8 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-black text-[11px] uppercase tracking-[0.2em] transition-all rounded-[0.625rem] shadow-md flex items-center gap-2">
+              className="h-11 px-8 bg-[#a020f0] hover:bg-[#6a12b8] text-white font-black text-[11px] uppercase tracking-[0.2em] transition-all rounded-[0.625rem] shadow-md flex items-center gap-2">
               <Plus size={16} strokeWidth={3} />
               Register New
             </button>
@@ -463,13 +463,13 @@ const Supplier: React.FC = () => {
         {/* Dynamic Analytics Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Partners', value: suppliers.length, icon: <Building2 />, accent: '#3b2063' },
+            { label: 'Partners', value: suppliers.length, icon: <Building2 />, accent: '#a020f0' },
             { label: 'Active',   value: activeCount,      icon: <CheckCircle />, accent: '#10b981' },
             { label: 'Inactive', value: suppliers.length - activeCount, icon: <AlertCircle />, accent: '#71717a' },
             { label: 'Items',    value: suppliers.reduce((acc, s) => acc + (s.materials_count ?? 0), 0), icon: <Package />, accent: '#f59e0b' },
           ].map(s => (
-            <div key={s.label} className="bg-white border border-[#e9d5ff] rounded-[0.75rem] p-5 shadow-sm relative overflow-hidden group hover:border-[#3b2063] transition-all">
-              <div className="absolute -right-2 -top-2 text-[#3b2063]/5 group-hover:text-[#3b2063]/10 transition-colors transform rotate-12 scale-150">
+            <div key={s.label} className="bg-white border border-[#e9d5ff] rounded-[0.75rem] p-5 shadow-sm relative overflow-hidden group hover:border-[#a020f0] transition-all">
+              <div className="absolute -right-2 -top-2 text-[#a020f0]/5 group-hover:text-[#a020f0]/10 transition-colors transform rotate-12 scale-150">
                 {s.icon}
               </div>
               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">{s.label}</p>
@@ -486,8 +486,8 @@ const Supplier: React.FC = () => {
           
           {/* Table Toolbar */}
           <div className="p-4 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-4 bg-zinc-50/50">
-            <div className="flex items-center gap-3 bg-white border border-[#e9d5ff] rounded-[0.625rem] px-4 py-2 flex-1 min-w-[280px] focus-within:border-[#3b2063] focus-within:ring-2 focus-within:ring-[#3b2063]/5 transition-all">
-              <Search size={16} className="text-[#3b2063]/30" />
+            <div className="flex items-center gap-3 bg-white border border-[#e9d5ff] rounded-[0.625rem] px-4 py-2 flex-1 min-w-[280px] focus-within:border-[#a020f0] focus-within:ring-2 focus-within:ring-[#a020f0]/5 transition-all">
+              <Search size={16} className="text-[#a020f0]/30" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 className="flex-1 bg-transparent text-sm font-semibold text-[#1a0f2e] outline-none placeholder:text-zinc-300"
                 placeholder="Lookup supplier by name or contact..."/>
@@ -496,12 +496,12 @@ const Supplier: React.FC = () => {
             
             <div className="flex items-center gap-3">
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                className="bg-white border border-[#e9d5ff] rounded-[0.625rem] px-4 py-2 text-[10px] font-black text-[#3b2063] uppercase tracking-widest outline-none focus:border-[#3b2063] h-10 shadow-sm cursor-pointer">
+                className="bg-white border border-[#e9d5ff] rounded-[0.625rem] px-4 py-2 text-[10px] font-black text-[#a020f0] uppercase tracking-widest outline-none focus:border-[#a020f0] h-10 shadow-sm cursor-pointer">
                 <option value="">Status: All</option>
                 <option value="active">Status: Active Only</option>
                 <option value="inactive">Status: Suspended</option>
               </select>
-              <span className="text-[10px] font-black text-[#3b2063]/40 uppercase tracking-widest hidden sm:block">
+              <span className="text-[10px] font-black text-[#a020f0]/40 uppercase tracking-widest hidden sm:block">
                 Showing {filtered.length} of {suppliers.length}
               </span>
             </div>
@@ -513,7 +513,7 @@ const Supplier: React.FC = () => {
               <thead>
                 <tr className="bg-[#fcfaff] border-b border-[#e9d5ff]">
                   {['Supplier Identity', 'Lead Contact', 'Item Portfolio', 'System Status', 'Control'].map(h => (
-                    <th key={h} className="px-7 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-[#3b2063]/40">{h}</th>
+                    <th key={h} className="px-7 py-4 text-[9px] font-black uppercase tracking-[0.2em] text-[#a020f0]/40">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -538,11 +538,11 @@ const Supplier: React.FC = () => {
                     </td>
                   </tr>
                 ) : filtered.map(s => (
-                  <tr key={s.id} className="group hover:bg-[#fcfaff] transition-all border-l-4 border-l-transparent hover:border-l-[#3b2063]">
+                  <tr key={s.id} className="group hover:bg-[#fcfaff] transition-all border-l-4 border-l-transparent hover:border-l-[#a020f0]">
                     <td className="px-7 py-4">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-[#f5f0ff] border border-[#e9d5ff] rounded-[0.625rem] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
-                          <Building2 size={16} className="text-[#3b2063] opacity-60" />
+                          <Building2 size={16} className="text-[#a020f0] opacity-60" />
                         </div>
                         <div>
                           <p className="font-black text-[#1a0f2e] text-sm leading-none">{s.name}</p>
@@ -558,7 +558,7 @@ const Supplier: React.FC = () => {
                     </td>
                     <td className="px-7 py-4">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black text-[#3b2063] bg-[#f5f0ff] px-2.5 py-1 rounded-[0.5rem] border border-[#e9d5ff] shadow-sm">
+                        <span className="text-[10px] font-black text-[#a020f0] bg-[#f5f0ff] px-2.5 py-1 rounded-[0.5rem] border border-[#e9d5ff] shadow-sm">
                           {(s.materials_count ?? s.materials?.length ?? 0).toString().padStart(2, '0')} PRODUCTS
                         </span>
                       </div>
@@ -571,8 +571,8 @@ const Supplier: React.FC = () => {
                     <td className="px-7 py-4">
                       <div className="flex items-center gap-2">
                         {[
-                          { icon: <Search size={14} />,   act: () => setViewTarget(s), color: 'hover:bg-[#3b2063] hover:text-white', tip: 'Audit' },
-                          { icon: <Edit2 size={14} />,    act: () => setEditTarget(s), color: 'hover:bg-[#3b2063] hover:text-white', tip: 'Specs' },
+                          { icon: <Search size={14} />,   act: () => setViewTarget(s), color: 'hover:bg-[#a020f0] hover:text-white', tip: 'Audit' },
+                          { icon: <Edit2 size={14} />,    act: () => setEditTarget(s), color: 'hover:bg-[#a020f0] hover:text-white', tip: 'Specs' },
                           { icon: <Trash2 size={14} />,   act: () => setDelTarget(s),  color: 'hover:bg-red-500 hover:text-white', tip: 'Erase' },
                         ].map((btn, bi) => (
                           <button key={bi} onClick={btn.act} title={btn.tip}
@@ -593,7 +593,7 @@ const Supplier: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="flex -space-x-2">
                 {[...Array(Math.min(3, filtered.length))].map((_, i) => (
-                  <div key={i} className="w-6 h-6 rounded-full bg-[#3b2063] border-2 border-white flex items-center justify-center text-[8px] font-black text-white">BR</div>
+                  <div key={i} className="w-6 h-6 rounded-full bg-[#a020f0] border-2 border-white flex items-center justify-center text-[8px] font-black text-white">BR</div>
                 ))}
               </div>
               <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Global Vendor Network</p>

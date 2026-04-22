@@ -142,7 +142,7 @@ const SupplierFormModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <Building2 size={15} className="text-[#3b2063]" />
+              <Building2 size={15} className="text-[#a020f0]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Supplier' : 'Add Supplier'}</p>
@@ -188,7 +188,7 @@ const SupplierFormModal: React.FC<{
 
           {/* Active toggle */}
           <label className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:bg-[#faf9ff] transition-colors">
-            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_active ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}
+            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_active ? 'bg-[#a020f0]' : 'bg-zinc-300'}`}
               onClick={() => setForm(p => ({ ...p, is_active: !p.is_active }))}>
               <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${form.is_active ? 'translate-x-4' : ''}`} />
             </div>
@@ -203,7 +203,7 @@ const SupplierFormModal: React.FC<{
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
               Items Supplied
               {form.material_ids.length > 0 && (
-                <span className="ml-2 text-[9px] font-black text-[#3b2063] bg-[#f5f0ff] px-1.5 py-0.5 rounded border border-[#e9d5ff]">
+                <span className="ml-2 text-[9px] font-black text-[#a020f0] bg-[#f5f0ff] px-1.5 py-0.5 rounded border border-[#e9d5ff]">
                   {form.material_ids.length} selected
                 </span>
               )}
@@ -225,7 +225,7 @@ const SupplierFormModal: React.FC<{
                   return (
                     <label key={m.id}
                       className="flex items-center gap-3 px-3 py-2.5 hover:bg-[#faf9ff] cursor-pointer transition-colors border-b border-zinc-50 last:border-0">
-                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${checked ? 'bg-[#3b2063] border-[#3b2063]' : 'border-zinc-300'}`}
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${checked ? 'bg-[#a020f0] border-[#a020f0]' : 'border-zinc-300'}`}
                         onClick={() => toggleMaterial(m.id)}>
                         {checked && <CheckCircle size={10} className="text-white" />}
                       </div>
@@ -248,7 +248,7 @@ const SupplierFormModal: React.FC<{
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 bg-[#a020f0] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Add Supplier'}
           </button>
         </div>
@@ -269,7 +269,7 @@ const ViewSupplierModal: React.FC<{ supplier: Supplier; onClose: () => void }> =
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#f5f0ff] border border-[#e9d5ff] rounded-xl flex items-center justify-center">
-              <Building2 size={18} className="text-[#3b2063]" />
+              <Building2 size={18} className="text-[#a020f0]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{supplier.name}</p>
@@ -302,7 +302,7 @@ const ViewSupplierModal: React.FC<{ supplier: Supplier; onClose: () => void }> =
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Items Supplied ({supplier.materials.length})</p>
               <div className="flex flex-wrap gap-1.5">
                 {supplier.materials.map(m => (
-                  <span key={m.id} className="text-[10px] font-semibold bg-[#f5f0ff] text-[#3b2063] border border-[#e9d5ff] px-2 py-0.5 rounded-full">
+                  <span key={m.id} className="text-[10px] font-semibold bg-[#f5f0ff] text-[#a020f0] border border-[#e9d5ff] px-2 py-0.5 rounded-full">
                     {m.name}
                   </span>
                 ))}
@@ -423,7 +423,7 @@ const SupplierTab: React.FC = () => {
       {/* Stat Cards */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
-          { label: 'Total Suppliers', value: suppliers.length, color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Total Suppliers', value: suppliers.length, color: '#a020f0', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Active', value: activeCount, color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
           { label: 'Inactive', value: suppliers.length - activeCount, color: '#71717a', bg: '#f4f4f5', border: '#e4e4e7' },
         ].map(s => (
@@ -452,7 +452,7 @@ const SupplierTab: React.FC = () => {
           </select>
           <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">{filtered.length} results</span>
           <button onClick={() => setAddOpen(true)}
-            className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all ml-auto shrink-0">
+            className="bg-[#a020f0] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all ml-auto shrink-0">
             <Plus size={13} /> Add Supplier
           </button>
         </div>
@@ -491,7 +491,7 @@ const SupplierTab: React.FC = () => {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                        <Building2 size={14} className="text-[#3b2063]" />
+                        <Building2 size={14} className="text-[#a020f0]" />
                       </div>
                       <div>
                         <p className="font-bold text-[#1a0f2e] text-xs">{s.name}</p>
@@ -507,7 +507,7 @@ const SupplierTab: React.FC = () => {
                       : <span className="text-xs text-zinc-300">—</span>}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className="text-xs font-bold text-[#3b2063] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff]">
+                    <span className="text-xs font-bold text-[#a020f0] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff]">
                       {s.materials_count ?? s.materials?.length ?? 0} items
                     </span>
                   </td>
@@ -519,11 +519,11 @@ const SupplierTab: React.FC = () => {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1">
                       <button onClick={() => setViewTarget(s)} title="View"
-                        className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                        className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#a020f0] transition-colors">
                         <Mail size={13} />
                       </button>
                       <button onClick={() => setEditTarget(s)} title="Edit"
-                        className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                        className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#a020f0] transition-colors">
                         <Edit2 size={13} />
                       </button>
                       <button onClick={() => setDelTarget(s)} title="Delete"

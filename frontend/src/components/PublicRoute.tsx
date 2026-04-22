@@ -30,7 +30,7 @@ export const PublicRoute = () => {
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #3b2063;
+            background-color: #a020f0;
             background-image:
               radial-gradient(ellipse 80% 60% at 50% 50%, #8b1fe0 0%, #6a0ec0 100%),
               repeating-linear-gradient(
@@ -97,7 +97,7 @@ export const PublicRoute = () => {
             position: absolute; inset: 0;
             border-radius: 50%;
             border: 3px solid transparent;
-            border-top-color: #3b2063;
+            border-top-color: #a020f0;
             animation: lb-spin 0.7s linear infinite;
           }
 
@@ -112,7 +112,7 @@ export const PublicRoute = () => {
           .lb-auth-dot {
             width: 6px; height: 6px;
             border-radius: 50%;
-            background: #3b2063;
+            background: #a020f0;
             animation: lb-pulse-dot 1.2s ease infinite;
           }
           .lb-auth-dot:nth-child(2) { animation-delay: 0.2s; background: #6d28d9; }

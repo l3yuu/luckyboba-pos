@@ -39,9 +39,9 @@ const STYLES = `
   }
 
   .sv-filter-active {
-    background: #3b2063;
+    background: #a020f0;
     color: white;
-    box-shadow: 0 4px 12px #3b206340;
+    box-shadow: 0 4px 12px #a020f040;
   }
 
   .sv-badge-critical { background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; }
@@ -115,8 +115,8 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
   if (loading) return (
     <div className="h-full min-h-[60vh] flex flex-col items-center justify-center gap-4">
       <style>{STYLES}</style>
-      <div className="w-10 h-10 border-4 border-[#3b2063] border-t-transparent rounded-full sv-spin" />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#3b2063]/50">Querying Logistics Nodes</p>
+      <div className="w-10 h-10 border-4 border-[#a020f0] border-t-transparent rounded-full sv-spin" />
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#a020f0]/50">Querying Logistics Nodes</p>
     </div>
   );
 
@@ -125,15 +125,15 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
       <style>{STYLES}</style>
 
       {/* ── COMMAND HEADER ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12 pb-10 border-b border-[#3b2063]/20/50">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12 pb-10 border-b border-[#a020f0]/20/50">
         <div>
            <div className="flex items-center gap-3 mb-3">
-             <div className="w-2.5 h-2.5 rounded-full bg-[#3b2063]" />
-             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3b2063]">Stock Integrity Hub</p>
+             <div className="w-2.5 h-2.5 rounded-full bg-[#a020f0]" />
+             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#a020f0]">Stock Integrity Hub</p>
            </div>
            <h1 className="text-[2.6rem] font-black text-slate-900 tracking-tight leading-none">Inventory Audit</h1>
            <p className="text-[0.8rem] font-bold text-slate-400 mt-4 flex items-center gap-2">
-            <Layers size={14} className="text-[#3b2063]" />
+            <Layers size={14} className="text-[#a020f0]" />
             Monitoring {items.length} material tokens across regional grid
            </p>
         </div>
@@ -141,8 +141,8 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => loadInventory(true)} 
-            style={{ backgroundColor: '#3b2063' }}
-            className="group flex items-center gap-3 px-6 py-4 text-white hover:opacity-90 rounded-2xl transition-all shadow-xl shadow-[#3b2063]/20 font-black text-xs uppercase tracking-widest"
+            style={{ backgroundColor: '#a020f0' }}
+            className="group flex items-center gap-3 px-6 py-4 text-white hover:opacity-90 rounded-2xl transition-all shadow-xl shadow-[#a020f0]/20 font-black text-xs uppercase tracking-widest"
           >
             <RefreshCw size={14} className={refreshing ? 'sv-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
             {refreshing ? 'Syncing...' : 'Sync Logs'}
@@ -151,7 +151,7 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
       </div>
 
       {/* ── SECURITY ADVISORY ── */}
-      <div className="p-6 mb-12 bg-[#3b2063] rounded-[2rem] text-white shadow-2xl shadow-[#3b2063]/20 relative overflow-hidden">
+      <div className="p-6 mb-12 bg-[#a020f0] rounded-[2rem] text-white shadow-2xl shadow-[#a020f0]/20 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
         <div className="flex items-start gap-5 relative z-10">
           <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-[#ddd5ff]">
@@ -169,7 +169,7 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
       {/* ── INVENTORY STATUS HUD ── */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
         {[
-          { label: 'Network Entities', count: items.length, color: '#3b2063', icon: LayoutGrid },
+          { label: 'Network Entities', count: items.length, color: '#a020f0', icon: LayoutGrid },
           { label: 'Optimal Sync', count: normalCount, color: '#10b981', icon: CheckCircle2 },
           { label: 'Low Threshold', count: lowCount, color: '#f59e0b', icon: AlertTriangle },
           { label: 'Critical Alert', count: criticalCount, color: '#ef4444', icon: ArrowDown },
@@ -189,7 +189,7 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
 
       {/* ── SEARCH & FILTER ENGINE ── */}
       <div className="flex flex-col lg:flex-row gap-6 mb-8">
-        <div className="flex-1 sv-card border-none shadow-xl shadow-slate-900/5 px-6 py-4 flex items-center gap-4 bg-white focus-within:ring-8 focus-within:ring-[#3b2063]/5 transition-all">
+        <div className="flex-1 sv-card border-none shadow-xl shadow-slate-900/5 px-6 py-4 flex items-center gap-4 bg-white focus-within:ring-8 focus-within:ring-[#a020f0]/5 transition-all">
           <Search size={18} className="text-slate-300" />
           <input
             type="text"
@@ -204,7 +204,7 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
             <button
               key={s}
               onClick={() => setFilter(s)}
-              style={filter === s ? { backgroundColor: '#3b2063' } : {}}
+              style={filter === s ? { backgroundColor: '#a020f0' } : {}}
               className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${filter === s ? 'sv-filter-active' : 'text-slate-500 hover:text-slate-900'}`}
             >
               {s} Metrics
@@ -214,16 +214,16 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
       </div>
 
       {/* ── DATA GRID ── */}
-      <div className="sv-card border-none overflow-hidden shadow-2xl shadow-[#3b2063]/5 bg-white">
+      <div className="sv-card border-none overflow-hidden shadow-2xl shadow-[#a020f0]/5 bg-white">
         <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
-              <Package size={16} className="text-[#3b2063]" /> Logistics Ledger
+              <Package size={16} className="text-[#a020f0]" /> Logistics Ledger
             </h3>
             <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest italic">Validated regional stock positions</p>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-widest">
-            <RefreshCw size={10} className="text-[#3b2063]" /> Real-time Link
+            <RefreshCw size={10} className="text-[#a020f0]" /> Real-time Link
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -240,7 +240,7 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredItems.map((item) => (
-                <tr key={item.id} className="group hover:bg-[#3b2063]/10/20 transition-all duration-300">
+                <tr key={item.id} className="group hover:bg-[#a020f0]/10/20 transition-all duration-300">
                   <td className="px-10 py-6">
                      <div className="flex items-center gap-3">
                         <div className={`w-1.5 h-1.5 rounded-full ${item.status === 'critical' ? 'bg-rose-500 shadow-lg shadow-rose-500/50' : item.status === 'low' ? 'bg-amber-500' : 'bg-slate-200'}`} />
@@ -248,7 +248,7 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
                      </div>
                   </td>
                   <td className="px-10 py-6">
-                    <span className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest group-hover:bg-white group-hover:text-[#3b2063] transition-colors">{item.category}</span>
+                    <span className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest group-hover:bg-white group-hover:text-[#a020f0] transition-colors">{item.category}</span>
                   </td>
                   <td className="px-10 py-6 font-black text-slate-700 tabular-nums text-sm">
                     {item.current_stock} <span className="text-[10px] text-slate-300 font-bold ml-1 uppercase">{item.unit}</span>
@@ -266,7 +266,7 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
                   <td className="px-10 py-6">
                     <div className="flex items-center justify-between gap-4">
                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter tabular-nums">{item.last_updated}</span>
-                       <ChevronRight size={14} className="text-slate-200 group-hover:text-[#3b2063] group-hover:translate-x-2 transition-all" />
+                       <ChevronRight size={14} className="text-slate-200 group-hover:text-[#a020f0] group-hover:translate-x-2 transition-all" />
                     </div>
                   </td>
                 </tr>

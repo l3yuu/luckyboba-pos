@@ -93,7 +93,7 @@ const InventoryList = () => {
           <TopNavbar />
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3b2063] mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#a020f0] mx-auto mb-4"></div>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Loading...</p>
             </div>
           </div>
@@ -117,7 +117,7 @@ const InventoryList = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="h-11 px-7 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm"
+                className="h-11 px-7 bg-[#a020f0] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm"
               >
                 ADD NEW ITEM
               </button>
@@ -129,7 +129,7 @@ const InventoryList = () => {
             <input
               type="text" placeholder="Search by name or barcode..."
               value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-[#e9d5ff] rounded-[0.625rem] px-12 py-3 text-sm font-bold text-[#1c1c1e] outline-none focus:border-[#3b2063] transition-all shadow-sm placeholder:text-zinc-400"
+              className="w-full bg-white border border-[#e9d5ff] rounded-[0.625rem] px-12 py-3 text-sm font-bold text-[#1c1c1e] outline-none focus:border-[#a020f0] transition-all shadow-sm placeholder:text-zinc-400"
             />
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-zinc-300 absolute left-4 top-1/2 -translate-y-1/2">
               <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -152,7 +152,7 @@ const InventoryList = () => {
                   filteredInventory.map((item) => (
                     <tr key={item.id} className="hover:bg-[#f5f0ff] transition-colors">
                       <td className="px-7 py-3.5">
-                        <span className="text-[13px] font-extrabold text-[#3b2063]">{item.name}</span>
+                        <span className="text-[13px] font-extrabold text-[#a020f0]">{item.name}</span>
                       </td>
                       <td className="px-7 py-3.5">
                         <span className="text-[15px] font-semibold text-black font-mono">{item.barcode || '—'}</span>
@@ -163,7 +163,7 @@ const InventoryList = () => {
                       <td className="px-7 py-3.5 text-center">
                         <button
                           onClick={() => openUpdateModal(item)}
-                          className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#6a12b8] text-white transition-colors rounded-[0.625rem]"
+                          className="h-9 w-9 inline-flex items-center justify-center bg-[#a020f0] hover:bg-[#6a12b8] text-white transition-colors rounded-[0.625rem]"
                           title="Edit"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -198,7 +198,7 @@ const InventoryList = () => {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
-              <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#3b2063] rounded-t-[0.625rem]">
+              <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#a020f0] rounded-t-[0.625rem]">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-purple-200">Inventory</p>
                   <h2 className="text-sm font-extrabold text-white mt-0.5">Restock Item</h2>
@@ -210,7 +210,7 @@ const InventoryList = () => {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Product Name</label>
                   <div className="text-sm font-semibold text-[#1c1c1e]">{selectedItem?.name}</div>
-                  <div className="text-xs text-zinc-400">Current Stock: <span className="font-bold text-[#3b2063]">{selectedItem?.quantity}</span></div>
+                  <div className="text-xs text-zinc-400">Current Stock: <span className="font-bold text-[#a020f0]">{selectedItem?.quantity}</span></div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Add Quantity</label>
@@ -220,7 +220,7 @@ const InventoryList = () => {
                     onChange={(e) => setAddQty(e.target.value)}
                     autoFocus
                     onFocus={(e) => e.target.select()}
-                    className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white"
+                    className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#a020f0] focus:bg-white"
                     placeholder="Enter quantity to add"
                     min="1"
                   />
@@ -237,7 +237,7 @@ const InventoryList = () => {
                 <button
                   onClick={handleUpdateStock}
                   disabled={updating || !addQty || parseInt(addQty) <= 0}
-                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
+                  className="flex-1 h-11 bg-[#a020f0] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
                 >
                   {updating ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Updating...</> : 'Confirm'}
                 </button>
@@ -249,7 +249,7 @@ const InventoryList = () => {
         {isAddModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
-              <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#3b2063] rounded-t-[0.625rem]">
+              <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#a020f0] rounded-t-[0.625rem]">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-purple-200">Inventory</p>
                   <h2 className="text-sm font-extrabold text-white mt-0.5">Create New Product</h2>
@@ -266,7 +266,7 @@ const InventoryList = () => {
                       type="text"
                       value={newItem.name}
                       onChange={e => setNewItem({...newItem, name: e.target.value})}
-                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white"
+                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#a020f0] focus:bg-white"
                       placeholder="e.g. Boba Milk Tea"
                     />
                   </div>
@@ -276,7 +276,7 @@ const InventoryList = () => {
                       required
                       value={newItem.category_id}
                       onChange={e => setNewItem({...newItem, category_id: e.target.value})}
-                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#a020f0] focus:bg-white cursor-pointer"
                     >
                       <option value="" disabled>Select a category</option>
                       {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
@@ -288,7 +288,7 @@ const InventoryList = () => {
                       type="text"
                       value={newItem.barcode}
                       onChange={e => setNewItem({...newItem, barcode: e.target.value})}
-                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white"
+                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#a020f0] focus:bg-white"
                       placeholder="Optional"
                     />
                   </div>
@@ -299,7 +299,7 @@ const InventoryList = () => {
                       type="number"
                       value={newItem.quantity}
                       onChange={e => setNewItem({...newItem, quantity: e.target.value})}
-                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white"
+                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#a020f0] focus:bg-white"
                       min="0"
                     />
                   </div>
@@ -311,7 +311,7 @@ const InventoryList = () => {
                       step="0.01"
                       value={newItem.cost}
                       onChange={e => setNewItem({...newItem, cost: e.target.value})}
-                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white"
+                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#a020f0] focus:bg-white"
                       min="0"
                     />
                   </div>
@@ -323,7 +323,7 @@ const InventoryList = () => {
                       step="0.01"
                       value={newItem.price}
                       onChange={e => setNewItem({...newItem, price: e.target.value})}
-                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white"
+                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#a020f0] focus:bg-white"
                       min="0"
                     />
                   </div>
@@ -339,7 +339,7 @@ const InventoryList = () => {
                   <button
                     type="submit"
                     disabled={updating}
-                    className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
+                    className="flex-1 h-11 bg-[#a020f0] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
                   >
                     {updating ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : 'Save Item'}
                   </button>

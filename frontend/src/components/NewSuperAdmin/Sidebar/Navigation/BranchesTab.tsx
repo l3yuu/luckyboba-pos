@@ -174,7 +174,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -257,7 +257,7 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
     ["Status", <Badge status={branch.status} />],
     ["Staff Count", branch.staff || "—"],
     ["Today's Sales", <span className="font-bold text-emerald-600">{branch.status === "active" ? fmt(branch.today) : "—"}</span>],
-    ["Total Sales", <span className="font-bold text-[#3b2063]">{fmt(branch.total)}</span>],
+    ["Total Sales", <span className="font-bold text-[#a020f0]">{fmt(branch.total)}</span>],
     // Receipt / BIR fields
     ["Brand", branch.brand || "—"],
     ["Company Name", branch.company_name || "—"],
@@ -954,7 +954,7 @@ const BranchesTab: React.FC = () => {
                     <VatBadge type={b.vat_type} />
                   </td>
                   <td className="px-5 py-3.5 font-bold text-emerald-600">{b.status === "active" ? fmt(b.today) : "—"}</td>
-                  <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(b.total)}</td>
+                  <td className="px-5 py-3.5 font-bold text-[#a020f0]">{fmt(b.total)}</td>
                   <td className="px-5 py-3.5 text-zinc-600">{b.staff || "—"}</td>
                   <td className="px-5 py-3.5"><Badge status={b.status} /></td>
                   <td className="px-5 py-3.5">

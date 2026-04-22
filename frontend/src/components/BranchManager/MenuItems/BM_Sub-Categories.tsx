@@ -105,13 +105,13 @@ const BM_SubCategories: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0]" size={15} />
             <input
               type="text"
               placeholder="Search sub-categories..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all shadow-sm"
             />
           </div>
 
@@ -162,7 +162,7 @@ const BM_SubCategories: React.FC = () => {
           {Object.values(grouped).map(({ cat, children }) => (
             <div key={cat.id} className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
               <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-100 bg-zinc-50/50">
-                <div className="w-2 h-6 rounded-full bg-[#3b2063] shrink-0" />
+                <div className="w-2 h-6 rounded-full bg-[#a020f0] shrink-0" />
                 <p className="text-xs font-black text-[#1a0f2e] uppercase tracking-widest">{cat.name}</p>
                 <span className="text-[10px] font-bold text-zinc-400 ml-auto">{children.length} sub-categories</span>
               </div>
@@ -199,7 +199,7 @@ const BM_SubCategories: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5">
                         {sub.is_active
-                          ? <ToggleRight size={22} className="text-[#3b2063]" />
+                          ? <ToggleRight size={22} className="text-[#a020f0]" />
                           : <ToggleLeft  size={22} className="text-zinc-300"  />}
                       </td>
                     </tr>
@@ -235,7 +235,7 @@ const BM_SubCategories: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5">
                         {sub.is_active
-                          ? <ToggleRight size={22} className="text-[#3b2063]" />
+                          ? <ToggleRight size={22} className="text-[#a020f0]" />
                           : <ToggleLeft  size={22} className="text-zinc-300"  />}
                       </td>
                     </tr>

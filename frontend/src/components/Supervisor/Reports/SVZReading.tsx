@@ -80,16 +80,16 @@ const Divider = () => <div className="border-t border-dashed border-black my-1.5
 
 // ─── Menu card config ─────────────────────────────────────────────────────────
 const MENU_CARDS = [
-  { label: 'Report',      title: 'Hourly Sales',   type: 'hourly_sales', icon: <BarChart3 size={15} />,   iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Overview',    title: 'Sales Summary',  type: 'summary',      icon: <Activity size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Audit',       title: 'Void Logs',      type: 'void_logs',    icon: <AlertCircle size={15} />, iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Transaction', title: 'Search Receipt', type: 'search',       icon: <Search size={15} />,      iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Export',      title: 'Export Sales',   type: 'export_sales', icon: <FileText size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Analysis',    title: 'Sales Detailed', type: 'detailed',     icon: <CreditCard size={15} />,  iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Inventory',   title: 'Export Items',   type: 'export_items', icon: <ShoppingBag size={15} />, iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Inventory',   title: 'Qty Items',      type: 'qty_items',    icon: <Hash size={15} />,        iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Z-Reading',   title: 'Z-Reading',      type: 'z_reading',    icon: <FileText size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Cash',        title: 'Cash Count',     type: 'cash_count',   icon: <Banknote size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Report',      title: 'Hourly Sales',   type: 'hourly_sales', icon: <BarChart3 size={15} />,   iconBg: '#a020f010', iconColor: '#a020f0' },
+  { label: 'Overview',    title: 'Sales Summary',  type: 'summary',      icon: <Activity size={15} />,    iconBg: '#a020f010', iconColor: '#a020f0' },
+  { label: 'Audit',       title: 'Void Logs',      type: 'void_logs',    icon: <AlertCircle size={15} />, iconBg: '#a020f010', iconColor: '#a020f0' },
+  { label: 'Transaction', title: 'Search Receipt', type: 'search',       icon: <Search size={15} />,      iconBg: '#a020f010', iconColor: '#a020f0' },
+  { label: 'Export',      title: 'Export Sales',   type: 'export_sales', icon: <FileText size={15} />,    iconBg: '#a020f010', iconColor: '#a020f0' },
+  { label: 'Analysis',    title: 'Sales Detailed', type: 'detailed',     icon: <CreditCard size={15} />,  iconBg: '#a020f010', iconColor: '#a020f0' },
+  { label: 'Inventory',   title: 'Export Items',   type: 'export_items', icon: <ShoppingBag size={15} />, iconBg: '#a020f010', iconColor: '#a020f0' },
+  { label: 'Inventory',   title: 'Qty Items',      type: 'qty_items',    icon: <Hash size={15} />,        iconBg: '#a020f010', iconColor: '#a020f0' },
+  { label: 'Z-Reading',   title: 'Z-Reading',      type: 'z_reading',    icon: <FileText size={15} />,    iconBg: '#a020f010', iconColor: '#a020f0' },
+  { label: 'Cash',        title: 'Cash Count',     type: 'cash_count',   icon: <Banknote size={15} />,    iconBg: '#a020f010', iconColor: '#a020f0' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -758,7 +758,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
               <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: '#dcfce7', color: '#16a34a' }}>
                 <FileText size={13} strokeWidth={2.5} />
               </div>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#3b2063', letterSpacing: '-0.025em', margin: 0 }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#a020f0', letterSpacing: '-0.025em', margin: 0 }}>
                 Report Controls
               </h2>
             </div>
@@ -770,7 +770,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="flex items-center gap-2 h-11 px-5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
-                  style={{ background: isMenuOpen ? '#3b2063' : '#f5f4f8', color: isMenuOpen ? '#fff' : '#3b2063', border: `1px solid ${isMenuOpen ? '#3b2063' : '#e4e4e7'}` }}
+                  style={{ background: isMenuOpen ? '#a020f0' : '#f5f4f8', color: isMenuOpen ? '#fff' : '#a020f0', border: `1px solid ${isMenuOpen ? '#a020f0' : '#e4e4e7'}` }}
                 >
                   <Menu size={14} strokeWidth={2.5} />
                   Select Report
@@ -807,9 +807,9 @@ const ccData   = ccRes.data as Record<string, unknown>;
                     <label className="zr-label flex items-center gap-1.5 ml-1"><ToggleLeft size={11} /> Date Mode</label>
                     <div className="flex rounded-xl overflow-hidden border border-gray-100">
                       <button onClick={() => setDateMode('single')} className="px-4 h-11 text-xs font-bold uppercase tracking-widest transition-all"
-                        style={{ background: dateMode === 'single' ? '#3b2063' : '#f5f4f8', color: dateMode === 'single' ? '#fff' : '#a1a1aa' }}>Day</button>
+                        style={{ background: dateMode === 'single' ? '#a020f0' : '#f5f4f8', color: dateMode === 'single' ? '#fff' : '#a1a1aa' }}>Day</button>
                       <button onClick={() => setDateMode('range')} className="px-4 h-11 text-xs font-bold uppercase tracking-widest transition-all border-l border-gray-100"
-                        style={{ background: dateMode === 'range' ? '#3b2063' : '#f5f4f8', color: dateMode === 'range' ? '#fff' : '#a1a1aa' }}>Range</button>
+                        style={{ background: dateMode === 'range' ? '#a020f0' : '#f5f4f8', color: dateMode === 'range' ? '#fff' : '#a1a1aa' }}>Range</button>
                     </div>
                   </div>
                 </div>
@@ -866,14 +866,14 @@ const ccData   = ccRes.data as Record<string, unknown>;
                 <button 
                   onClick={() => fetchReportData(reportData?.report_type ?? 'z_reading')} 
                   disabled={loading}
-                  style={{ backgroundColor: '#3b2063' }}
+                  style={{ backgroundColor: '#a020f0' }}
                   className="flex-1 lg:flex-none px-5 h-11 rounded-xl text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
                   {loading ? 'Loading…' : 'Generate'}
                 </button>
                 <button onClick={() => window.print()}
-                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#3b2063] hover:border-[#ddd6f7] flex items-center justify-center transition-all">
+                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#a020f0] hover:border-[#ddd6f7] flex items-center justify-center transition-all">
                   <Printer size={16} />
                 </button>
               </div>
@@ -916,7 +916,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
             <div className="flex-1 flex items-start justify-center py-8 px-4 bg-[#f5f4f8] overflow-y-auto min-h-0">
               {loading ? (
                 <div className="flex flex-col items-center gap-3 py-16">
-                  <div className="w-9 h-9 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
+                  <div className="w-9 h-9 border-2 border-[#a020f0] border-t-transparent animate-spin rounded-full" />
                   <p className="zr-label" style={{ color: '#a1a1aa' }}>Generating report…</p>
                 </div>
               ) : reportData ? (

@@ -58,7 +58,7 @@ const STYLES = `
     transition: all 0.2s; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;
   }
   .sdb-filter-btn.active { 
-    background: #ffffff; color: #3b2063; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background: #ffffff; color: #a020f0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
 
   .sdb-label { font-size: 0.62rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.12em; }
@@ -168,7 +168,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
 
       {/* ── HIGH-DENSITY KPI TILES ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <SalesTile label="Fiscal Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#3b2063" trend={12} />
+        <SalesTile label="Fiscal Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#a020f0" trend={12} />
         <SalesTile label="Operational Volume" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#0891b2" trend={5} />
         <SalesTile label="Efficiency (AOV)" value={fmtS(avgOrderValue)} icon={Activity} color="#d97706" />
         <SalesTile label="Peak Liquidity" value={bestDay ? fmtS(bestDay.sales) : '—'} icon={PhilippinePeso} color="#059669" />
@@ -176,7 +176,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
 
       {/* ── TREND VISUALIZATION ── */}
       <div className="sdb-tile bg-white p-8 mb-10 overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-1 h-full bg-[#3b2063]" />
+        <div className="absolute top-0 left-0 w-1 h-full bg-[#a020f0]" />
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
           <div>
@@ -193,7 +193,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
             </div>
             <div className="flex items-center gap-6 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#3b2063]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#a020f0]" />
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Gross Sales</span>
               </div>
               <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
@@ -226,17 +226,17 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
                 contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 20px 40px -8px rgba(0,0,0,0.2)', background: '#0f172a', padding: '12px 16px' }}
                 itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 700, padding: 0 }}
                 labelStyle={{ fontSize: '9px', color: '#6366f1', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.08em' }}
-                cursor={{ stroke: '#3b206320', strokeWidth: 1 }}
+                cursor={{ stroke: '#a020f020', strokeWidth: 1 }}
                 formatter={(v) => [fmt(Number(v)), 'DAILY TOTAL']}
               />
               <ReferenceLine y={avgOrderValue} stroke="#e2e8f0" strokeWidth={1.5} strokeDasharray="8 4" />
               <Line 
                 type="monotone" 
                 dataKey="sales" 
-                stroke="#3b2063" 
+                stroke="#a020f0" 
                 strokeWidth={3.5} 
-                dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#3b2063' }}
-                activeDot={{ r: 7, strokeWidth: 3, fill: '#fff', stroke: '#3b2063' }}
+                dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#a020f0' }}
+                activeDot={{ r: 7, strokeWidth: 3, fill: '#fff', stroke: '#a020f0' }}
                 isAnimationActive={false}
               />
             </LineChart>
@@ -248,7 +248,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
       <div className="sdb-tile bg-white overflow-hidden shadow-sm">
         <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[#3b2063]"><FileText size={16}/></div>
+            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[#a020f0]"><FileText size={16}/></div>
             <h3 className="font-black text-slate-800 tracking-tight uppercase text-xs">Detailed Transaction Log</h3>
           </div>
           <p className="sdb-label">Page 1 of 1</p>
@@ -268,7 +268,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
               {data.slice().reverse().map((row, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-8 py-5 font-bold text-slate-900">{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                  <td className="px-8 py-5 font-black text-[#3b2063] tabular-nums">{fmt(row.sales)}</td>
+                  <td className="px-8 py-5 font-black text-[#a020f0] tabular-nums">{fmt(row.sales)}</td>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
                       <span className="font-bold text-slate-600 w-6">{row.orders}</span>

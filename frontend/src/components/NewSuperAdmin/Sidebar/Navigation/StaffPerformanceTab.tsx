@@ -41,7 +41,7 @@ const StatCardSkeleton = () => (
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: "violet" | "emerald" | "red" | "amber" }> = ({ icon, label, value, sub, color = "violet" }) => {
   const colors = {
-    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#3b2063]" },
+    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#a020f0]" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
     red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
     amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
@@ -147,13 +147,13 @@ const StaffPerformanceTab = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex-1 min-w-[200px]">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0] transition-colors" size={14} />
             <input
               type="text"
               placeholder="Search staff..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-[0.7rem] font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all w-full max-w-sm shadow-sm"
+              className="pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-[0.7rem] font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all w-full max-w-sm shadow-sm"
             />
           </div>
         </div>
@@ -161,7 +161,7 @@ const StaffPerformanceTab = () => {
         <div className="flex items-center gap-2">
           {(["daily", "weekly", "monthly"] as const).map(p => (
             <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#a020f0] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
               {p}
             </button>
           ))}
@@ -218,7 +218,7 @@ const StaffPerformanceTab = () => {
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
         <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/30">
           <div className="flex items-center gap-2">
-            <TrendingUp size={14} className="text-[#3b2063]" />
+            <TrendingUp size={14} className="text-[#a020f0]" />
             <h3 className="text-[10px] font-black text-[#1a0f2e] uppercase tracking-widest">Performance Leaderboard</h3>
           </div>
           <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest bg-white border border-zinc-100 px-2 py-1 rounded">
@@ -249,7 +249,7 @@ const StaffPerformanceTab = () => {
                         #{idx + 1}
                       </div>
                       <div>
-                        <p className="text-[0.75rem] font-black text-[#1a0f2e] group-hover:text-[#3b2063] transition-colors">{s.name}</p>
+                        <p className="text-[0.75rem] font-black text-[#1a0f2e] group-hover:text-[#a020f0] transition-colors">{s.name}</p>
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">{s.branch_name || s.branch} • {s.role}</p>
                       </div>
                     </div>
@@ -279,7 +279,7 @@ const StaffPerformanceTab = () => {
                   <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => setSelectedStaff(s)}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-[0.7rem] font-black text-[#3b2063] bg-white border border-zinc-200 hover:bg-[#3b2063] hover:text-white rounded-xl transition-all active:scale-95 shadow-sm"
+                      className="inline-flex items-center gap-2 px-4 py-2 text-[0.7rem] font-black text-[#a020f0] bg-white border border-zinc-200 hover:bg-[#a020f0] hover:text-white rounded-xl transition-all active:scale-95 shadow-sm"
                     >
                       VIEW SCORECARD
                       <ChevronRight size={14} strokeWidth={3} />
@@ -300,7 +300,7 @@ const StaffPerformanceTab = () => {
             {/* Modal Header */}
             <div className="p-6 border-b border-zinc-100 flex items-start justify-between bg-zinc-50/50">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[#3b2063] shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[#a020f0] shadow-sm">
                   <Users size={20} />
                 </div>
                 <div>
@@ -323,7 +323,7 @@ const StaffPerformanceTab = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-4 bg-zinc-50/50 border border-zinc-100 rounded-xl">
                   <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                    <DollarSign size={12} className="text-[#3b2063] shrink-0" /> <span className="truncate">Revenue</span>
+                    <DollarSign size={12} className="text-[#a020f0] shrink-0" /> <span className="truncate">Revenue</span>
                   </p>
                   <p className="text-xl font-black text-[#1a0f2e] truncate">{fmt(selectedStaff.revenue)}</p>
                 </div>
@@ -352,11 +352,11 @@ const StaffPerformanceTab = () => {
               {/* Enhanced Integrity Meter */}
               <div className={`p-5 rounded-xl border ${selectedStaff.void_rate > 5
                   ? 'bg-rose-50 border-rose-100 text-rose-700'
-                  : 'bg-[#f5f0ff]/50 border-[#ede8ff] text-[#3b2063]'
+                  : 'bg-[#f5f0ff]/50 border-[#ede8ff] text-[#a020f0]'
                 }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-md flex items-center justify-center ${selectedStaff.void_rate > 5 ? 'bg-rose-200 text-rose-700' : 'bg-white text-[#3b2063] shadow-sm'}`}>
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center ${selectedStaff.void_rate > 5 ? 'bg-rose-200 text-rose-700' : 'bg-white text-[#a020f0] shadow-sm'}`}>
                       {selectedStaff.void_rate > 5 ? <ShieldAlert size={12} /> : <Award size={12} />}
                     </div>
                     <div>
@@ -369,7 +369,7 @@ const StaffPerformanceTab = () => {
                 {/* Progress Bar */}
                 <div className="h-1.5 w-full bg-zinc-200/50 rounded-full overflow-hidden mb-3">
                   <div
-                    className={`h-full rounded-full transition-all duration-1000 ${selectedStaff.void_rate > 5 ? 'bg-rose-500' : 'bg-[#3b2063]'}`}
+                    className={`h-full rounded-full transition-all duration-1000 ${selectedStaff.void_rate > 5 ? 'bg-rose-500' : 'bg-[#a020f0]'}`}
                     style={{ width: `${100 - (selectedStaff.void_rate / 15) * 100}%` }}
                   />
                 </div>

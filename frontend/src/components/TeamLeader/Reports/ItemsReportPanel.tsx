@@ -20,7 +20,7 @@ const fmtS = (v?: number | string) => {
   return `₱${n.toFixed(0)}`;
 };
 
-const purples = ['#3b2063', '#6d28d9', '#7c3aed', '#a78bfa', '#c4b5fd', '#ede9fe'];
+const purples = ['#a020f0', '#6d28d9', '#7c3aed', '#a78bfa', '#c4b5fd', '#ede9fe'];
 
 const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
   const [data, setData] = useState<ItemReport[]>([]);
@@ -141,13 +141,13 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
         <div className="flex gap-1.5 p-1 bg-zinc-100 rounded-lg">
           <button
             onClick={() => setSortBy('quantity')}
-            className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'quantity' ? 'bg-[#3b2063] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+            className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'quantity' ? 'bg-[#a020f0] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
           >
             By Quantity
           </button>
           <button
             onClick={() => setSortBy('revenue')}
-            className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'revenue' ? 'bg-[#3b2063] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+            className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'revenue' ? 'bg-[#a020f0] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
           >
             By Revenue
           </button>
@@ -200,7 +200,7 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
               <div key={i}>
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black shrink-0 ${i === 0 ? 'bg-[#3b2063] text-white' : 'bg-zinc-100 text-zinc-500'}`}>{i + 1}</span>
+                    <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black shrink-0 ${i === 0 ? 'bg-[#a020f0] text-white' : 'bg-zinc-100 text-zinc-500'}`}>{i + 1}</span>
                     <span className="text-[11px] font-bold text-[#1a0f2e] truncate">{item.name}</span>
                   </div>
                   <span className="text-[10px] font-black text-zinc-500 shrink-0 ml-2">{sortBy === 'quantity' ? item.quantity : fmtS(item.revenue)}</span>
@@ -245,8 +245,8 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
                 <tr key={index} className="hover:bg-[#faf9ff] transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black shrink-0 ${index < 3 ? 'bg-[#3b2063] text-white' : 'bg-zinc-100 text-zinc-400'}`}>{index + 1}</span>
-                      <span className="text-xs font-black text-[#1a0f2e] group-hover:text-[#3b2063] transition-colors">{item.name}</span>
+                      <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-black shrink-0 ${index < 3 ? 'bg-[#a020f0] text-white' : 'bg-zinc-100 text-zinc-400'}`}>{index + 1}</span>
+                      <span className="text-xs font-black text-[#1a0f2e] group-hover:text-[#a020f0] transition-colors">{item.name}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -258,7 +258,7 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
                     <span className="text-xs font-black text-[#1a0f2e] tabular-nums">{item.quantity}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <span className="text-xs font-black text-[#3b2063] tabular-nums">{fmt(item.revenue)}</span>
+                    <span className="text-xs font-black text-[#a020f0] tabular-nums">{fmt(item.revenue)}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="text-xs font-bold text-zinc-400 tabular-nums">{fmt(item.revenue / item.quantity)}</span>

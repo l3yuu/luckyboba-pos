@@ -47,7 +47,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -180,9 +180,9 @@ const LogDetailModal: React.FC<{ log: AuditLog; onClose: () => void }> = ({ log,
           
           {/* Action Focus */}
           <div className="relative overflow-hidden group">
-            <div className="absolute inset-0 bg-[#3b2063] opacity-[0.03]"></div>
-            <div className="relative p-6 rounded-2xl border border-[#3b2063]/10">
-              <p className="text-sm font-black text-[#3b2063] leading-snug tracking-tight">{log.action}</p>
+            <div className="absolute inset-0 bg-[#a020f0] opacity-[0.03]"></div>
+            <div className="relative p-6 rounded-2xl border border-[#a020f0]/10">
+              <p className="text-sm font-black text-[#a020f0] leading-snug tracking-tight">{log.action}</p>
               <div className="flex items-center gap-2 mt-3">
                 <span className={`inline-flex px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${moduleStyle(log.module)}`}>
                   {log.module}
@@ -495,7 +495,7 @@ const AuditLogsTab: React.FC = () => {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#3b2063] shrink-0">
+                      <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#a020f0] shrink-0">
                         {initials(log.user?.name)}
                       </div>
                       <span className="font-medium text-[#1a0f2e] text-xs whitespace-nowrap">
@@ -514,7 +514,7 @@ const AuditLogsTab: React.FC = () => {
                   <td className="px-5 py-3.5 text-zinc-400 text-xs whitespace-nowrap">{formatDate(log.created_at)}</td>
                   <td className="px-5 py-3.5 text-zinc-400 text-xs tabular-nums whitespace-nowrap">{formatTime(log.created_at)}</td>
                   <td className="px-5 py-3.5">
-                    <button onClick={() => setSelectedLog(log)} className="p-1.5 hover:bg-[#ede8ff] text-[#3b2063] rounded-lg transition-all" title="View Detail">
+                    <button onClick={() => setSelectedLog(log)} className="p-1.5 hover:bg-[#ede8ff] text-[#a020f0] rounded-lg transition-all" title="View Detail">
                       <Eye size={14} />
                     </button>
                   </td>
@@ -543,7 +543,7 @@ const AuditLogsTab: React.FC = () => {
                       : page - 2 + i;
                 return (
                   <button key={p} onClick={() => handlePage(p)}
-                    className={`w-7 h-7 text-xs font-bold rounded-[0.4rem] transition-colors ${p === page ? "bg-[#3b2063] text-white" : "text-zinc-400 hover:bg-zinc-100"}`}>
+                    className={`w-7 h-7 text-xs font-bold rounded-[0.4rem] transition-colors ${p === page ? "bg-[#a020f0] text-white" : "text-zinc-400 hover:bg-zinc-100"}`}>
                     {p}
                   </button>
                 );

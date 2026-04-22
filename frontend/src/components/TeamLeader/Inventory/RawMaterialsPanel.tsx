@@ -24,7 +24,7 @@ const STYLES = `
   .tl-table-head { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
   .tl-label-caps { font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
   .tl-search-input { background: #f1f5f9; border: 1px solid transparent; transition: all 0.2s; }
-  .tl-search-input:focus { background: #fff; border-color: #3b2063; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
+  .tl-search-input:focus { background: #fff; border-color: #a020f0; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
   
   .adjustment-modal-overlay {
     position: fixed; inset: 0; background: rgba(0, 0, 0, 0.3);
@@ -41,7 +41,7 @@ const STYLES = `
   @keyframes modal-up { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
   
   .tl-btn-primary { 
-    background: #3b2063; color: #fff; border-radius: 0.75rem; 
+    background: #a020f0; color: #fff; border-radius: 0.75rem; 
     font-weight: 800; font-size: 0.75rem; text-transform: uppercase; 
     letter-spacing: 0.05em; transition: all 0.2s;
   }
@@ -51,7 +51,7 @@ const STYLES = `
     width: 100%; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 0.75rem;
     padding: 0.75rem 1rem; font-size: 0.875rem; font-weight: 600; outline: none; transition: all 0.2s;
   }
-  .tl-input:focus { border-color: #3b2063; background: #fff; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
+  .tl-input:focus { border-color: #a020f0; background: #fff; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
 
   @keyframes tl-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .animate-tl-fade { animation: tl-fade-in 0.4s ease-out forwards; }
@@ -201,7 +201,7 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
       {/* Header */}
       <div className="mb-8">
         <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#a020f0] transition-colors" size={14} />
           <input 
             type="text" 
             placeholder="Search items..."
@@ -221,7 +221,7 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
             onClick={() => setCategoryFilter(cat)}
             className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
               categoryFilter === cat 
-                ? 'bg-[#3b2063] text-white shadow-lg shadow-[#3b206320]' 
+                ? 'bg-[#a020f0] text-white shadow-lg shadow-[#a020f020]' 
                 : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300'
             }`}
           >
@@ -251,7 +251,7 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
                   <tr key={m.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#3b206310] group-hover:text-[#3b2063] transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#a020f010] group-hover:text-[#a020f0] transition-colors">
                           <Package size={14} />
                         </div>
                         <div>
@@ -289,7 +289,7 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
                     <td className="px-6 py-4 text-center">
                       <button 
                         onClick={() => setAdjModal(m)}
-                        className="p-2 text-slate-300 hover:text-[#3b2063] hover:bg-[#3b206308] rounded-lg transition-all"
+                        className="p-2 text-slate-300 hover:text-[#a020f0] hover:bg-[#a020f008] rounded-lg transition-all"
                         title="Adjust Stock"
                       >
                         <Sliders size={16} />
@@ -328,7 +328,7 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
                 <h2 className="text-sm font-black text-slate-900 uppercase tracking-tight">Adjust Stock Level</h2>
-                <p className="text-[10px] font-bold text-[#3b2063] uppercase mt-0.5">{adjModal.name}</p>
+                <p className="text-[10px] font-bold text-[#a020f0] uppercase mt-0.5">{adjModal.name}</p>
               </div>
               <button onClick={() => setAdjModal(null)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-xl transition-all">
                 <X size={18} />

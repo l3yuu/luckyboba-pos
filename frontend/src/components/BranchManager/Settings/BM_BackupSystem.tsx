@@ -73,7 +73,7 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
               <ArrowLeft size={15} strokeWidth={2.5} />
             </button>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#3b2063] rounded-xl flex items-center justify-center shadow-sm shrink-0">
+              <div className="w-10 h-10 bg-[#a020f0] rounded-xl flex items-center justify-center shadow-sm shrink-0">
                 <Database size={17} className="text-white" strokeWidth={2.5} />
               </div>
               <div>
@@ -101,14 +101,14 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 min-w-0">
               <div className="w-11 h-11 bg-[#f5f4f8] rounded-xl flex items-center justify-center shrink-0">
-                <Database size={20} className="text-[#3b2063]" strokeWidth={2} />
+                <Database size={20} className="text-[#a020f0]" strokeWidth={2} />
               </div>
               <div className="min-w-0">
                 <p style={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a1a1aa' }}>
                   Database Status
                 </p>
                 <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a0f2e', marginTop: 3 }}>
-                  Last backup: <span className="text-[#3b2063]">{lastBackup}</span>
+                  Last backup: <span className="text-[#a020f0]">{lastBackup}</span>
                 </p>
               </div>
             </div>
@@ -116,7 +116,7 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
             <button
               onClick={handleRunBackup}
               disabled={isProcessing}
-              className="h-11 px-6 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-[10px] uppercase tracking-[0.18em] transition-all rounded-xl shadow-sm flex items-center gap-2 disabled:opacity-50 active:scale-[0.98] shrink-0"
+              className="h-11 px-6 bg-[#a020f0] hover:bg-[#2a1647] text-white font-bold text-[10px] uppercase tracking-[0.18em] transition-all rounded-xl shadow-sm flex items-center gap-2 disabled:opacity-50 active:scale-[0.98] shrink-0"
             >
               {isProcessing
                 ? <Loader2 size={14} className="animate-spin" />
@@ -137,7 +137,7 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
                 ['Recommended frequency','Run a backup at least once daily, or before any major system changes.'],
               ].map(([title, desc], i) => (
                 <div key={i} className="flex gap-3 p-3 bg-[#f5f4f8] rounded-xl">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#3b2063] mt-1.5 shrink-0" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#a020f0] mt-1.5 shrink-0" />
                   <div>
                     <p style={{ fontSize: '0.68rem', fontWeight: 800, color: '#1a0f2e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</p>
                     <p style={{ fontSize: '0.7rem', fontWeight: 500, color: '#71717a', marginTop: 2, lineHeight: 1.5 }}>{desc}</p>
