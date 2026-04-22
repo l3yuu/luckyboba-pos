@@ -1450,7 +1450,11 @@ const SalesOrder = () => {
 
     if (navigator.onLine) {
       try {
-        await api.post('/sales', orderData);
+        const res = await api.post('/sales', orderData);
+        if (res.data?.si_number) {
+          finalOrNumber = res.data.si_number;
+          setOrNumber(finalOrNumber);
+        }
         localStorage.removeItem('pos_cart_cache');
         const currentSeq = parseInt(finalOrNumber.split('-').pop() ?? '0', 10)
         if (!isNaN(currentSeq)) {

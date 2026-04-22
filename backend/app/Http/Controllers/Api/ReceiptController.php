@@ -21,10 +21,12 @@ class ReceiptController extends Controller
     {
         $branchId = $request->user()?->branch_id ?? $request->query('branch_id');
 
+        $source = $request->query('source', 'pos'); // 'kiosk' or 'pos'
+
         if (!$branchId) {
             return response()->json([
                 'next_sequence' => 1,
-                'next_queue'    => 1
+                'next_queue'    => $source === 'kiosk' ? 100 : 1
             ], 200)->header('Cache-Control', 'no-cache, no-store, must-revalidate');
         }
 
@@ -55,13 +57,14 @@ class ReceiptController extends Controller
 
         $queueQuery = Sale::where('branch_id', $branchId);
         
-        // 2. Daily Queue logic — count sales since last closed Z-Reading
-        $lastZReading = ZReading::where('branch_id', $branchId)
-            ->where('is_closed', true)
-            ->latest('closed_at')
-            ->first();
-
-        $queueQuery = Sale::where('branch_id', $branchId);
+        // Filter by source to maintain separate queue sequences
+        if ($source === 'kiosk') {
+            $queueQuery->where('source', 'kiosk');
+        } else {
+            $queueQuery->where(function($q) {
+                $q->where('source', 'pos')->orWhereNull('source')->orWhere('source', '!=', 'kiosk');
+            });
+        }
         
         if ($lastZReading && $lastZReading->closed_at) {
             $queueQuery->where('created_at', '>', $lastZReading->closed_at);
@@ -71,7 +74,7 @@ class ReceiptController extends Controller
         }
 
         $count = $queueQuery->count();
-        $nextQueue = $count + 1;
+        $nextQueue = $source === 'kiosk' ? $count + 100 : $count + 1;
 
         // Diagnostic Logging for Production Troubleshooting
         \Log::info("Queue Investigation [Branch: {$branchId}]:", [

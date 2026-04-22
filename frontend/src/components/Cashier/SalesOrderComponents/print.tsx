@@ -846,7 +846,7 @@ const StickerHeader = ({
       {branchName.toUpperCase()}
     </div>
     <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${cls.isVeryCrowded ? 'text-[8px] pb-0 mb-0 mt-0' : 'text-[9px] pb-0.5 mb-0 mt-0.5'}`}>
-      <span>Q:{queueNumber} SI:{orNumber.slice(-5)}</span>
+      <span>Q:{queueNumber} SI:{orNumber.replace('SI-', '')}</span>
       <span>{drinkIndex}/{totalDrinks}</span>
     </div>
     {(customerName || orderType) && (
