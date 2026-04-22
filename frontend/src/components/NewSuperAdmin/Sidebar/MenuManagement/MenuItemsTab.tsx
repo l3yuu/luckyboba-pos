@@ -1894,7 +1894,7 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
         showToast(`${addon.name} is now ${next ? "active" : "deactivated"}.`, next ? "success" : "warning");
         triggerSync();
       }
-    } catch { }
+    } catch (e) { console.error("Toggle add-on failed", e); }
   };
   const fi = (key: keyof typeof form) => ({
     value: String(form[key]),
