@@ -578,7 +578,7 @@ const KioskPage = () => {
       const todayKey = new Date().toISOString().split('T')[0];
 
       try {
-        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&t=${Date.now()}`);
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=kiosk&t=${Date.now()}`);
         const serverSeq = parseInt(data.next_sequence, 10);
         const serverQueue = parseInt(data.next_queue, 10);
 
@@ -650,12 +650,13 @@ const KioskPage = () => {
         }))
       };
 
-      await api.post('/kiosk-sales', payload);
+      const response = await api.post('/kiosk-sales', payload);
+      const finalSiNumber = response.data?.si_number || siNumber;
 
       const formattedQueue = String(nextQueue).padStart(3, '0');
       setOrderNumber(formattedQueue);
       setPrintData({
-        invoice: siNumber,
+        invoice: finalSiNumber,
         cart: [...cart],
         queueNumber: formattedQueue
       });
