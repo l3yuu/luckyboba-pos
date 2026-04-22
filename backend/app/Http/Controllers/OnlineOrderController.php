@@ -44,11 +44,26 @@ class OnlineOrderController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'status'         => ['required', 'in:pending,preparing,completed'],
-            'branch_name'    => 'required|string|exists:branches,name',
-            'invoice_number' => 'nullable|string',
-            'payment_method' => 'nullable|string',
-            'cash_tendered'  => 'nullable|numeric',
+            'status'              => ['required', 'in:pending,preparing,completed'],
+            'branch_name'         => 'required|string|exists:branches,name',
+            'invoice_number'      => 'nullable|string',
+            'payment_method'      => 'nullable|string',
+            'cash_tendered'       => 'nullable|numeric',
+            'reference_number'    => 'nullable|string|max:255',
+            // Discount
+            'discount_id'         => 'nullable|integer|exists:discounts,id',
+            'discount_amount'     => 'nullable|numeric|min:0',
+            'sc_discount_amount'  => 'nullable|numeric|min:0',
+            'pwd_discount_amount' => 'nullable|numeric|min:0',
+            'discount_remarks'    => 'nullable|string|max:500',
+            'senior_id'           => 'nullable|string|max:255',
+            'pwd_id'              => 'nullable|string|max:255',
+            'pax_senior'          => 'nullable|integer|min:0',
+            'pax_pwd'             => 'nullable|integer|min:0',
+            // VAT
+            'vatable_sales'       => 'nullable|numeric|min:0',
+            'vat_amount'          => 'nullable|numeric|min:0',
+            'vat_exempt_sales'    => 'nullable|numeric|min:0',
         ]);
 
         $user  = $request->user();
@@ -75,15 +90,26 @@ class OnlineOrderController extends Controller
         $sale         = $query->firstOrFail();
         $sale->status = $request->status;
 
-        if ($request->filled('invoice_number')) {
-            $sale->invoice_number = $request->input('invoice_number');
-        }
-        if ($request->filled('payment_method')) {
-            $sale->payment_method = $request->input('payment_method');
-        }
-        if ($request->filled('cash_tendered')) {
-            $sale->cash_tendered = $request->input('cash_tendered');
-        }
+        if ($request->filled('invoice_number'))      $sale->invoice_number   = $request->input('invoice_number');
+        if ($request->filled('payment_method'))      $sale->payment_method   = $request->input('payment_method');
+        if ($request->filled('cash_tendered'))       $sale->cash_tendered    = $request->input('cash_tendered');
+        if ($request->filled('reference_number'))    $sale->reference_number = $request->input('reference_number');
+
+        // Discount fields
+        if ($request->filled('discount_id'))         $sale->discount_id          = $request->input('discount_id');
+        if ($request->filled('discount_amount'))     $sale->discount_amount      = $request->input('discount_amount');
+        if ($request->filled('sc_discount_amount'))  $sale->sc_discount_amount   = $request->input('sc_discount_amount');
+        if ($request->filled('pwd_discount_amount')) $sale->pwd_discount_amount  = $request->input('pwd_discount_amount');
+        if ($request->filled('discount_remarks'))    $sale->discount_remarks     = $request->input('discount_remarks');
+        if ($request->filled('senior_id'))           $sale->senior_id            = $request->input('senior_id');
+        if ($request->filled('pwd_id'))              $sale->pwd_id               = $request->input('pwd_id');
+        if ($request->filled('pax_senior'))          $sale->pax_senior           = $request->input('pax_senior');
+        if ($request->filled('pax_pwd'))             $sale->pax_pwd              = $request->input('pax_pwd');
+
+        // VAT / tax fields
+        if ($request->has('vatable_sales'))          $sale->vatable_sales        = $request->input('vatable_sales');
+        if ($request->has('vat_amount'))             $sale->vat_amount           = $request->input('vat_amount');
+        if ($request->has('vat_exempt_sales'))       $sale->vat_exempt_sales     = $request->input('vat_exempt_sales');
 
         $sale->save();
 
