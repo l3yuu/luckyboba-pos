@@ -39,17 +39,56 @@ class SalesDashboardService
         $dailyEnd     = $today->copy()->endOfDay();
         $weeklyStart  = Carbon::now()->subDays(6)->startOfDay();
         $weeklyEnd    = Carbon::now()->endOfDay();
-        $monthlyStart = Carbon::now()->subDays(29)->startOfDay();
-        $monthlyEnd   = Carbon::now()->endOfDay();
+
+        // 1. Weekly Sales
+        $weeklyDataPoints = $this->saleRepo->getSalesChartData($weeklyStart, $weeklyEnd, 'daily', $branchId)
+            ->map(fn($row) => [
+                'day'       => $row->day,
+                'date'      => Carbon::parse($row->date)->format('M d'),
+                'value'     => (float) $row->value,
+                'full_date' => Carbon::parse($row->date)->toFormattedDateString(),
+            ]);
+        
+        $totalWeeklyRevenue = $weeklyDataPoints->sum('value');
+
+        // 2. Today's Hourly Sales
+        $todayHourly = $this->saleRepo->getHourlySalesBreakdown($dailyStart, $dailyEnd, $branchId)
+            ->map(fn($item) => [
+                'time'  => Carbon::createFromTime($item->hour)->format('g A'),
+                'value' => (float) $item->total,
+            ]);
+
+        // 3. Statistics (Matching X-Reading logic)
+        $voidToday          = $this->saleRepo->getVoidSalesBetween($dailyStart, $dailyEnd, $branchId);
+        $grossOrdered       = $this->saleRepo->getGrossItemSalesBetween($dailyStart, $dailyEnd, $branchId);
+        $grossSalesToday    = round($grossOrdered + $voidToday, 2);
+        
+        $previousAccumulated = $this->saleRepo->getSalesAccumulatedUpTo($dailyStart, $branchId);
+        $presentAccumulated  = round($previousAccumulated + $grossSalesToday, 2);
+        
+        $stats = [
+            'beginning_sales' => (float) $previousAccumulated,
+            'today_sales'     => (float) $grossSalesToday,
+            'ending_sales'    => (float) $presentAccumulated,
+            'cancelled_sales' => (float) $voidToday,
+            'beginning_or'    => $this->saleRepo->getFirstSiNumberBetween($dailyStart, $dailyEnd, $branchId),
+            'ending_or'       => $this->saleRepo->getLastSiNumberBetween($dailyStart, $dailyEnd, $branchId),
+        ];
 
         return [
-            'daily_sales'   => $this->assemblePeriodData($dailyStart, $dailyEnd, 'daily', $branchId),
-            'weekly_sales'  => $this->assemblePeriodData($weeklyStart, $weeklyEnd, 'daily', $branchId),
-            'monthly_sales' => $this->assemblePeriodData($monthlyStart, $monthlyEnd, 'monthly', $branchId),
-            'statistics'    => [
-                'top_seller_today' => $this->saleRepo->getTopSellers($dailyStart, $dailyEnd, 5, $branchId),
+            'weekly_sales' => [
+                'data'               => $weeklyDataPoints->values()->all(),
+                'total_revenue'      => (float) $totalWeeklyRevenue,
+                'start_date'         => $weeklyStart->toDateString(),
+                'end_date'           => $weeklyEnd->toDateString(),
+                'current_week_start' => $weeklyStart->toDateString(),
             ],
-            'generated_at'  => now()->toDateTimeString(),
+            'today_sales'  => [
+                'data' => $todayHourly->values()->all(),
+                'date' => $today->toDateString(),
+            ],
+            'statistics'   => $stats,
+            'generated_at' => now()->toDateTimeString(),
         ];
     }
 
