@@ -95,6 +95,8 @@ export const ReceiptPrint = ({
   pwd_discount_amount = 0,
   itemPaxAssignments = {},
   posFooter = {},
+  contactEmail,
+  contactPhone,
 }: ReceiptPrintProps) => {
 
   // FIX #6 + #7 — removed dead coveredUnitMap / itemCoverageMap computation that
@@ -589,8 +591,8 @@ export const ReceiptPrint = ({
         {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
   FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />
-  {posFooter.contact_email ? posFooter.contact_email : 'luckyboba.franchise@gmail.com'}<br />
-  {posFooter.contact_phone ? posFooter.contact_phone : '09171699894'}
+  {contactEmail || posFooter.contact_email || 'luckyboba.franchise@gmail.com'}<br />
+  {contactPhone || posFooter.contact_phone || '09171699894'}
 </div>
 
         {/* ── POS Supplier Footer ── */}
@@ -692,12 +694,15 @@ export const KioskTicketPrint = ({
         </div>
 
         {/* Queue Number */}
-        <div className="text-center mb-1">
+        <div className="text-center mb-1 pb-1">
           <p className="text-[8px] font-black uppercase tracking-widest text-gray-500">Your Number:</p>
           <h2 className="font-black tracking-tighter italic font-mono border-y border-black py-0.5 my-0.5"
             style={{ fontSize: '28pt', lineHeight: 1, maxWidth: '100%' }}>
             #{queueNumber}
           </h2>
+          <p className="!text-[9px] !font-bold !mt-1 !text-gray-800 !tracking-wider">
+            {formattedDate} • {formattedTime}
+          </p>
         </div>
 
         {/* Items Table Header */}
