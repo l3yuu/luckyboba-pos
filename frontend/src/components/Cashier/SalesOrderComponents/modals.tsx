@@ -430,22 +430,22 @@ export const BundleModal = ({
   const isLastStep = currentStep === totalSteps - 1;
   const component = flattenedBundleItems[currentStep];
   const selection = bundleSelections[currentStep];
-  
+
   if (!selection || !component) return null;
 
   const itemDetail = component.menuItem;
   const itemName = (selection.name || '').toLowerCase();
-  const hasSugar = (itemDetail?.sugar_levels?.length ?? 0) > 0 || 
-                  itemDetail?.category_id != null ||
-                  itemName.includes('tea') || 
-                  itemName.includes('drink') || 
-                  itemName.includes('coffee') ||
-                  itemName.includes('boba') ||
-                  itemName.includes('milk') ||
-                  itemName.includes('latte') ||
-                  itemName.includes('cooler') ||
-                  itemName.includes('punch');
-  
+  const hasSugar = (itemDetail?.sugar_levels?.length ?? 0) > 0 ||
+    itemDetail?.category_id != null ||
+    itemName.includes('tea') ||
+    itemName.includes('drink') ||
+    itemName.includes('coffee') ||
+    itemName.includes('boba') ||
+    itemName.includes('milk') ||
+    itemName.includes('latte') ||
+    itemName.includes('cooler') ||
+    itemName.includes('punch');
+
   const itemOpts = itemDetail?.options ?? [];
   const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
     const pearlOpts = ['NO PRL', 'W/ PRL'];
@@ -543,8 +543,8 @@ export const BundleModal = ({
         </div>
       </div>
       {addonModalOpen && activeAddOnIndex !== null && (
-        <AddOnModalShell title={`Add-ons: ${bundleSelections[activeAddOnIndex]?.name}`} 
-          addOns={filteredAddOns} 
+        <AddOnModalShell title={`Add-ons: ${bundleSelections[activeAddOnIndex]?.name}`}
+          addOns={filteredAddOns}
           selected={bundleSelections[activeAddOnIndex]?.addOns || []}
           onToggle={onToggleAddOn} onClose={onCloseAddOns} zIndex="z-[110]" orderCharge={orderCharge} />
       )}
@@ -1417,7 +1417,7 @@ interface CustomerNameModalProps {
   submitting?: boolean;
 }
 
-export const CustomerNameModal = ({ customerName, onChange, onConfirm, onSkip, submitting }: CustomerNameModalProps) => (
+export const CustomerNameModal = ({ customerName, onChange, onConfirm, submitting }: CustomerNameModalProps) => (
   <div className="fixed inset-0 z-140 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
     <div className="bg-white w-full max-w-sm rounded-[0.625rem] shadow-2xl overflow-hidden">
       <div className="bg-[#6a12b8] px-6 pt-6 pb-5 text-white text-center">
@@ -1435,10 +1435,6 @@ export const CustomerNameModal = ({ customerName, onChange, onConfirm, onSkip, s
           className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#6a12b8] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#6a12b8]/30 disabled:opacity-50" />
 
         <div className="flex gap-3">
-          <button onClick={onSkip} disabled={submitting}
-            className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors disabled:opacity-40">
-            Skip
-          </button>
           <button onClick={onConfirm} disabled={customerName.trim() === '' || submitting}
             className={`flex-2 py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md ${customerName.trim() !== '' && !submitting ? 'bg-[#6a12b8] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}>
             {submitting ? 'Processing...' : 'Confirm'}

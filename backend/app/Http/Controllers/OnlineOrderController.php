@@ -369,6 +369,15 @@ class OnlineOrderController extends Controller
         $queueQuery = Sale::where('branch_id', $sale->branch_id)
             ->where('id', '<=', $sale->id);
 
+        // Partition by source so kiosk and POS have independent queues
+        if ($sale->source === 'kiosk') {
+            $queueQuery->where('source', 'kiosk');
+        } else {
+            $queueQuery->where(function ($q) {
+                $q->where('source', '!=', 'kiosk')->orWhereNull('source');
+            });
+        }
+
         if ($lastZReading) {
             $queueQuery->where('created_at', '>', $lastZReading->closed_at);
         } else {
@@ -376,6 +385,9 @@ class OnlineOrderController extends Controller
         }
 
         $dailyNo = $queueQuery->count();
+        if ($sale->source === 'kiosk') {
+            $dailyNo += 99; // 1 becomes 100, 2 becomes 101, etc.
+        }
         $code = str_pad($dailyNo, 3, '0', STR_PAD_LEFT);
 
         return [
