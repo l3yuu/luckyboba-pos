@@ -76,7 +76,7 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const variants: Record<ButtonVariant, string> = {
-    primary: 'bg-[#a020f0] hover:bg-[#2a1647] text-white',
+    primary: 'bg-[#6a12b8] hover:bg-[#2a1647] text-white',
     secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
     danger: 'bg-red-600 hover:bg-red-700 text-white',
     ghost: 'bg-transparent text-zinc-500 hover:bg-zinc-100',
@@ -102,7 +102,7 @@ interface AvatarProps {
 }
 
 export const Avatar: React.FC<AvatarProps> = ({ name, size = 'w-7 h-7 text-[10px]' }) => (
-  <div className={`${size} rounded-full bg-[#ede8ff] flex items-center justify-center font-bold text-[#a020f0] shrink-0`}>
+  <div className={`${size} rounded-full bg-[#ede8ff] flex items-center justify-center font-bold text-[#6a12b8] shrink-0`}>
     {name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
   </div>
 );
@@ -288,7 +288,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             onClick={action}
             className={`w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white transition-all rounded-[0.625rem] active:scale-[0.98] ${
-              danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#a020f0] hover:bg-[#2a1647]'
+              danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#6a12b8] hover:bg-[#2a1647]'
             }`}
           >
             {btnText}

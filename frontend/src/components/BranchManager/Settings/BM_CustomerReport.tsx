@@ -89,7 +89,7 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-xl font-black text-[#a020f0] uppercase tracking-widest">
+            <h1 className="text-xl font-black text-[#6a12b8] uppercase tracking-widest">
               LUCKY BOBA MILKTEA
             </h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">
@@ -107,7 +107,7 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-5">
             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Total Customers</p>
-            <p className="text-2xl font-black text-[#a020f0] mt-2">{stats?.total ?? 0}</p>
+            <p className="text-2xl font-black text-[#6a12b8] mt-2">{stats?.total ?? 0}</p>
             <div className="flex items-center gap-1 mt-2">
               <span className="text-[10px] font-bold text-green-600">+{stats?.new_this_month ?? 0}</span>
               <span className="text-[10px] text-zinc-400">new this month</span>
@@ -122,7 +122,7 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
           
           <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-5">
             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Avg. Spend</p>
-            <p className="text-2xl font-black text-[#a020f0] mt-2">{fmt(stats?.avg_order_value ?? 0)}</p>
+            <p className="text-2xl font-black text-[#6a12b8] mt-2">{fmt(stats?.avg_order_value ?? 0)}</p>
             <p className="text-[10px] text-zinc-400 mt-2">Per unique customer</p>
           </div>
           
@@ -144,7 +144,7 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
                     type="text" 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all" 
+                    className="w-full pl-9 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all" 
                     placeholder="Search by name or email"
                   />
                 </div>
@@ -154,7 +154,7 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
                 <select 
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all"
+                  className="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all"
                 >
                   <option value="all">All Status</option>
                   <option value="active">Active Only</option>
@@ -166,7 +166,7 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
               <button className="flex-1 md:flex-none px-6 py-2 bg-[#1e40af] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] flex items-center justify-center gap-2 shadow-md">
                 <Search size={14} strokeWidth={3} />Search
               </button>
-              <button className="flex-1 md:flex-none px-6 py-2 bg-[#a020f0] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-md">
+              <button className="flex-1 md:flex-none px-6 py-2 bg-[#6a12b8] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-md">
                 <Printer size={14} strokeWidth={3} />Print
               </button>
               <button className="flex-1 md:flex-none px-6 py-2 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center justify-center gap-2 shadow-md">
@@ -192,7 +192,7 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
                   <tr>
                     <td colSpan={6} className="py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <Loader2 className="animate-spin text-[#a020f0]" size={24} />
+                        <Loader2 className="animate-spin text-[#6a12b8]" size={24} />
                         <p className="text-zinc-400 font-bold text-[10px] uppercase tracking-widest">Loading Customer Data...</p>
                       </div>
                     </td>
@@ -211,7 +211,7 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
                   <tr key={customer.id} className="hover:bg-zinc-50/80 transition-colors cursor-pointer group">
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="text-xs font-black text-[#a020f0]">{customer.name}</span>
+                        <span className="text-xs font-black text-[#6a12b8]">{customer.name}</span>
                         <span className="text-[10px] font-bold text-zinc-400">{customer.email}</span>
                       </div>
                     </td>

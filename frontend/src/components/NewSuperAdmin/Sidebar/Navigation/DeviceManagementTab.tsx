@@ -70,7 +70,7 @@ const Btn: React.FC<{
   className?: string;
 }> = ({ children, variant = "primary", size = "sm", onClick, disabled, className = "" }) => {
   const v = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",

@@ -137,7 +137,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -365,14 +365,14 @@ const XReadingTab: React.FC = () => {
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
   const menuCards = [
-    { label: "REPORT", title: "HOURLY SALES", type: "hourly_sales", color: "border-[#a020f0]" },
+    { label: "REPORT", title: "HOURLY SALES", type: "hourly_sales", color: "border-[#6a12b8]" },
     { label: "OVERVIEW", title: "SALES SUMMARY", type: "summary", color: "border-amber-400" },
-    { label: "AUDIT", title: "VOID LOGS", type: "void_logs", color: "border-[#a020f0]" },
-    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search", color: "border-[#a020f0]" },
-    { label: "ANALYSIS", title: "SALES DETAILED", type: "detailed", color: "border-[#a020f0]" },
-    { label: "INVENTORY", title: "QTY ITEMS", type: "qty_items", color: "border-[#a020f0]" },
+    { label: "AUDIT", title: "VOID LOGS", type: "void_logs", color: "border-[#6a12b8]" },
+    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search", color: "border-[#6a12b8]" },
+    { label: "ANALYSIS", title: "SALES DETAILED", type: "detailed", color: "border-[#6a12b8]" },
+    { label: "INVENTORY", title: "QTY ITEMS", type: "qty_items", color: "border-[#6a12b8]" },
     { label: "X-READING", title: "X-READING", type: "x_reading", color: "border-emerald-500" },
-    { label: "CASH COUNT", title: "CASH COUNT", type: "cash_count", color: "border-[#a020f0]" },
+    { label: "CASH COUNT", title: "CASH COUNT", type: "cash_count", color: "border-[#6a12b8]" },
   ];
 
   // ── Receipt render functions (ported from cashier) ────────────────────────
@@ -851,7 +851,7 @@ const XReadingTab: React.FC = () => {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${isMenuOpen ? "bg-[#a020f0] text-white border-[#a020f0]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+              className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${isMenuOpen ? "bg-[#6a12b8] text-white border-[#6a12b8]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
                 }`}
             >
               <Menu size={13} /> Menu
@@ -957,11 +957,11 @@ const XReadingTab: React.FC = () => {
         <>
           <div className="bg-violet-50 border border-violet-200 rounded-[0.625rem] px-5 py-3.5 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#a020f0] rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-[#6a12b8] rounded-lg flex items-center justify-center">
                 <TrendingUp size={14} className="text-white" />
               </div>
               <div>
-                <p className="text-xs font-black text-[#a020f0] uppercase tracking-widest">X Reading Report</p>
+                <p className="text-xs font-black text-[#6a12b8] uppercase tracking-widest">X Reading Report</p>
                 <p className="text-[10px] text-violet-500 font-medium">{selectedBranchName} · {date} · {shift === "all" ? "All Shifts" : shift.toUpperCase() + " Shift"}</p>
               </div>
             </div>
@@ -1009,7 +1009,7 @@ const XReadingTab: React.FC = () => {
                 ].map(row => (
                   <div key={row.label} className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-zinc-600">{row.label}</span>
-                    <span className={`text-sm font-black tabular-nums ${row.isPos ? "text-[#a020f0]" : "text-red-500"}`}>
+                    <span className={`text-sm font-black tabular-nums ${row.isPos ? "text-[#6a12b8]" : "text-red-500"}`}>
                       {row.isPos ? "" : "−"}{fmt(row.value)}
                     </span>
                   </div>
@@ -1041,14 +1041,14 @@ const XReadingTab: React.FC = () => {
                       <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#a020f0] shrink-0">
+                            <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#6a12b8] shrink-0">
                               {row.cashier_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                             </div>
                             <span className="font-semibold text-[#1a0f2e] text-xs">{row.cashier_name}</span>
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-zinc-600 text-xs">{row.orders}</td>
-                        <td className="px-5 py-3.5 font-bold text-[#a020f0] text-xs">{fmt(row.gross)}</td>
+                        <td className="px-5 py-3.5 font-bold text-[#6a12b8] text-xs">{fmt(row.gross)}</td>
                         <td className="px-5 py-3.5 text-red-500 text-xs">−{fmt(row.discount)}</td>
                         <td className="px-5 py-3.5 font-bold text-emerald-600 text-xs">{fmt(row.net)}</td>
                       </tr>
@@ -1056,7 +1056,7 @@ const XReadingTab: React.FC = () => {
                     <tr className="bg-zinc-50 border-t border-zinc-200">
                       <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest">Total</td>
                       <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs">{data.cashier_breakdown.reduce((s, r) => s + r.orders, 0)}</td>
-                      <td className="px-5 py-3.5 font-black text-[#a020f0] text-xs">{fmt(data.gross_sales)}</td>
+                      <td className="px-5 py-3.5 font-black text-[#6a12b8] text-xs">{fmt(data.gross_sales)}</td>
                       <td className="px-5 py-3.5 font-black text-red-500 text-xs">−{fmt(data.discount)}</td>
                       <td className="px-5 py-3.5 font-black text-emerald-600 text-xs">{fmt(data.net_sales)}</td>
                     </tr>

@@ -47,7 +47,7 @@ const getToken = () =>
 interface StatCardProps { icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: "violet" | "emerald" | "amber" }
 const StatCard = ({ icon, label, value, sub, color = "violet" }: StatCardProps) => {
   const colors: Record<string, { bg: string; border: string; icon: string }> = {
-    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#a020f0]" },
+    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#6a12b8]" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
     amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
   };
@@ -131,7 +131,7 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
         <div className="flex items-center gap-4">
           <div className="text-right">
             <p className="text-[0.55rem] font-bold uppercase tracking-widest text-zinc-400">Last Sync</p>
-            <p className="text-[0.7rem] font-black text-[#a020f0] tabular-nums">
+            <p className="text-[0.7rem] font-black text-[#6a12b8] tabular-nums">
               {lastPulseSync.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </p>
           </div>
@@ -181,7 +181,7 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
         <div className="xl:col-span-8 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm flex flex-col min-h-[400px]">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#f5f0ff] flex items-center justify-center text-[#a020f0]">
+              <div className="w-8 h-8 rounded-lg bg-[#f5f0ff] flex items-center justify-center text-[#6a12b8]">
                 <Clock size={16} />
               </div>
               <div>
@@ -207,15 +207,15 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
               pulse.recent_sales.map((sale) => (
                 <div key={sale.id} className="ticker-item bg-white hover:bg-zinc-50/50 border border-zinc-100 hover:border-[#ede8ff] hover:shadow-md p-4 rounded-xl transition-all flex items-center justify-between group">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:border-[#a020f0] transition-colors">
-                      <DollarSign size={18} className="text-[#a020f0]" />
+                    <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:border-[#6a12b8] transition-colors">
+                      <DollarSign size={18} className="text-[#6a12b8]" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-[0.85rem] font-black text-[#1a0f2e]">{sale.invoice_number}</span>
                         <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[0.6rem] font-black rounded uppercase">Completed</span>
                       </div>
-                      <p className="text-[0.7rem] font-bold text-zinc-500 mt-1">Processed by <span className="text-[#a020f0]">{sale.cashier_name}</span></p>
+                      <p className="text-[0.7rem] font-bold text-zinc-500 mt-1">Processed by <span className="text-[#6a12b8]">{sale.cashier_name}</span></p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
@@ -253,7 +253,7 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
                 <div key={staff.id} className="flex items-center justify-between p-3.5 rounded-xl border border-zinc-50 hover:border-emerald-100 hover:bg-emerald-50/20 transition-all group">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="relative">
-                      <div className="w-9 h-9 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-black text-[#a020f0] group-hover:border-emerald-300 transition-colors">
+                      <div className="w-9 h-9 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-black text-[#6a12b8] group-hover:border-emerald-300 transition-colors">
                         {staff.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-white rounded-full flex items-center justify-center border-2 border-white">

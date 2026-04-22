@@ -53,7 +53,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -441,7 +441,7 @@ const BM_Settings = () => {
             <div className="px-8 py-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-white border border-zinc-200 rounded-2xl flex items-center justify-center shadow-sm">
-                  <Activity size={20} className="text-[#a020f0]" />
+                  <Activity size={20} className="text-[#6a12b8]" />
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-[#1a0f2e]">Activity Log</h3>
@@ -459,7 +459,7 @@ const BM_Settings = () => {
                   <Activity size={14} className="text-zinc-400 group-hover:text-violet-600" />
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-0.5">
-                      <p className="text-[0.65rem] font-bold uppercase tracking-widest text-[#a020f0]">{log.user?.name}</p>
+                      <p className="text-[0.65rem] font-bold uppercase tracking-widest text-[#6a12b8]">{log.user?.name}</p>
                       <span className="text-[10px] font-bold text-zinc-400">{new Date(log.created_at).toLocaleString()}</span>
                     </div>
                     <p className="text-sm font-bold text-[#1a0f2e]">{log.action}</p>

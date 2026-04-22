@@ -998,8 +998,8 @@ const KioskPage = () => {
           {/* Category Header */}
           <div className="px-5 pt-5 pb-2">
             <div className="relative h-6">
-              <h3 className="text-base font-black text-[#a020f0] tracking-tight invisible" aria-hidden="true">Categories</h3>
-              <h3 className="text-base font-black text-[#a020f0] tracking-tight absolute inset-0">{t.categories}</h3>
+              <h3 className="text-base font-black text-[#6a12b8] tracking-tight invisible" aria-hidden="true">Categories</h3>
+              <h3 className="text-base font-black text-[#6a12b8] tracking-tight absolute inset-0">{t.categories}</h3>
             </div>
             <div className="relative h-4 mt-0.5">
               <p className="text-[10px] font-semibold text-zinc-400 tracking-wide invisible" aria-hidden="true">Pick your vibe</p>
@@ -1012,8 +1012,8 @@ const KioskPage = () => {
             <button
               onClick={() => { setActiveCategory(''); setSearchQuery(''); }}
               className={`w-full px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5 ${activeCategory === '' && searchQuery === ''
-                ? 'bg-[#a020f0] text-white font-bold shadow-lg shadow-purple-200'
-                : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#a020f0]'
+                ? 'bg-[#6a12b8] text-white font-bold shadow-lg shadow-purple-200'
+                : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#6a12b8]'
                 }`}
             >
               <span className="text-sm truncate">{t.allMenu}</span>
@@ -1024,8 +1024,8 @@ const KioskPage = () => {
                 key={cat}
                 onClick={() => { setActiveCategory(cat); setSearchQuery(''); }}
                 className={`w-full px-3 py-2.5 rounded-xl text-left transition-all flex items-center gap-2.5 ${activeCategory === cat
-                  ? 'bg-[#a020f0] text-white font-bold shadow-lg shadow-purple-200'
-                  : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#a020f0]'
+                  ? 'bg-[#6a12b8] text-white font-bold shadow-lg shadow-purple-200'
+                  : 'text-zinc-500 font-semibold hover:bg-purple-50 hover:text-[#6a12b8]'
                   }`}
               >
                 <span className="text-sm truncate capitalize">{cat}</span>
@@ -1067,7 +1067,7 @@ const KioskPage = () => {
                 onClick={() => setShowCartDrawer(!showCartDrawer)}
                 className="relative w-10 h-10 bg-white border border-purple-100 rounded-full flex items-center justify-center hover:bg-purple-50 transition-colors shadow-sm"
               >
-                <ShoppingBag size={18} className="text-[#a020f0]" />
+                <ShoppingBag size={18} className="text-[#6a12b8]" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-sm">
                     {cartCount}
@@ -1102,7 +1102,7 @@ const KioskPage = () => {
                       >
                         {t.pickYourHappiness1}<br />
                         <span
-                          className="italic text-[#a020f0]"
+                          className="italic text-[#6a12b8]"
                           style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                         >
                           {t.pickYourHappiness2}
@@ -1142,7 +1142,7 @@ const KioskPage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       <div className="absolute bottom-0 left-0 p-6">
                         <div className="flex gap-2 mb-2">
-                          <span className="px-3 py-1 bg-[#a020f0] text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{t.bestseller}</span>
+                          <span className="px-3 py-1 bg-[#6a12b8] text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{t.bestseller}</span>
                           <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{featuredItems[0].category}</span>
                         </div>
                         <h3
@@ -1221,7 +1221,7 @@ const KioskPage = () => {
                         <div className="p-3 flex flex-col flex-1">
                           <h3 className="font-bold text-xs text-zinc-800 leading-tight mb-1 h-8 overflow-hidden line-clamp-2">
                             {item.name}
-                            {sizeLabel && <span className="text-[#a020f0] ml-1 font-bold">({sizeLabel})</span>}
+                            {sizeLabel && <span className="text-[#6a12b8] ml-1 font-bold">({sizeLabel})</span>}
                           </h3>
                           <div className="flex items-center justify-between mt-auto pt-1.5">
                             <span className="text-orange-600 font-black text-base tracking-tight">
@@ -1262,7 +1262,7 @@ const KioskPage = () => {
               {/* Header */}
               <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-2">
-                  <ShoppingBag size={18} className="text-[#a020f0]" />
+                  <ShoppingBag size={18} className="text-[#6a12b8]" />
                   <h2 className="text-base font-black text-zinc-900">{t.myOrder} ({cartCount})</h2>
                 </div>
                 <button
@@ -1297,7 +1297,7 @@ const KioskPage = () => {
                         <div className="flex-1 min-w-0">
                           <h4 className="font-bold text-zinc-800 text-xs leading-tight line-clamp-1">
                             {item.name}
-                            {sizeLabel && <span className="text-[#a020f0] ml-1">({sizeLabel})</span>}
+                            {sizeLabel && <span className="text-[#6a12b8] ml-1">({sizeLabel})</span>}
                           </h4>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {item.selectedSugarLevel && <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} {t.sugar}</span>}
@@ -1393,7 +1393,7 @@ const KioskPage = () => {
                   {mixMatchStep === 'customize_drink' && (
                     <button
                       onClick={() => setMixMatchStep('select_drink')}
-                      className="px-6 py-3 bg-white border border-purple-200 text-[#a020f0] rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
+                      className="px-6 py-3 bg-white border border-purple-200 text-[#6a12b8] rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"
                     >
                       <ChevronRight className="rotate-180" size={16} />
                       {t.backToSelection}
@@ -1436,7 +1436,7 @@ const KioskPage = () => {
                           </div>
                           <div>
                             <h4 className="font-black text-zinc-800 uppercase text-sm tracking-tight leading-tight mb-1">{drink.name}</h4>
-                            {drink.size && <span className="text-[10px] font-black bg-purple-50 text-[#a020f0] px-2 py-0.5 rounded-full">{drink.size}</span>}
+                            {drink.size && <span className="text-[10px] font-black bg-purple-50 text-[#6a12b8] px-2 py-0.5 rounded-full">{drink.size}</span>}
                           </div>
                         </div>
                       ))
@@ -1447,7 +1447,7 @@ const KioskPage = () => {
                     {/* Sugar Level */}
                     <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
                       <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
-                        <span className="w-8 h-8 rounded-full bg-[#a020f0] text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">1</span>
+                        <span className="w-8 h-8 rounded-full bg-[#6a12b8] text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">1</span>
                         {t.selectSugarLevel}
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -1456,7 +1456,7 @@ const KioskPage = () => {
                             key={sl.id}
                             onClick={() => setMixMatchSugar(sl.value)}
                             className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchSugar === sl.value
-                              ? 'bg-[#a020f0] border-[#a020f0] text-white shadow-lg shadow-purple-200'
+                              ? 'bg-[#6a12b8] border-[#6a12b8] text-white shadow-lg shadow-purple-200'
                               : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
                               }`}
                           >

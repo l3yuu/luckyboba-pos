@@ -91,12 +91,12 @@ const STYLES = `
     border-radius: 0.5rem; border: none; cursor: pointer;
     background: transparent; transition: background 0.1s, color 0.1s;
   }
-  .sa-tab.active { background: #ede8ff; color: #a020f0; font-weight: 600; }
+  .sa-tab.active { background: #ede8ff; color: #6a12b8; font-weight: 600; }
   .sa-tab.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-    width: 2.5px; background: #a020f0; border-radius: 0 2px 2px 0;
+    width: 2.5px; background: #6a12b8; border-radius: 0 2px 2px 0;
   }
-  .ops-topbar-header { background: linear-gradient(135deg, #a020f0 0%, #4c2b7d 100%); }
+  .ops-topbar-header { background: linear-gradient(135deg, #6a12b8 0%, #4c2b7d 100%); }
 `;
 
 const TeamLeaderSidebar: React.FC<TeamLeaderSidebarProps> = ({
@@ -181,7 +181,7 @@ const TeamLeaderSidebar: React.FC<TeamLeaderSidebarProps> = ({
                       if (window.innerWidth < 768) setSidebarOpen(false);
                     }}
                     className={`sa-tab flex items-center gap-2.5 w-full px-2.5 py-1.5 text-[0.8rem] font-medium text-left relative transition-all ${
-                      currentTab === item.id ? 'active text-[#a020f0]' : 'text-zinc-500 hover:bg-[#f5f3ff] hover:text-[#a020f0]'
+                      currentTab === item.id ? 'active text-[#6a12b8]' : 'text-zinc-500 hover:bg-[#f5f3ff] hover:text-[#6a12b8]'
                     }`}
                   >
                     <div className={`shrink-0 w-8 h-8 rounded-[0.45rem] flex items-center justify-center transition-colors ${

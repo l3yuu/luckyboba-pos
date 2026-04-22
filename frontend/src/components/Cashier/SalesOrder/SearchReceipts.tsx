@@ -548,11 +548,11 @@ return {
             )}
           </div>
           <button onClick={() => handleSearch()} disabled={isLoading}
-            className="bg-[#a020f0] hover:bg-[#6a12b8] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem]">
+            className="bg-[#6a12b8] hover:bg-[#6a12b8] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem]">
             {isLoading ? '...' : 'Search'}
           </button>
           <button onClick={handleRefresh}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#a020f0] hover:border-[#a020f0] px-4 h-12 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]">
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#6a12b8] hover:border-[#6a12b8] px-4 h-12 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]">
             <RotateCcw size={16} />
           </button>
         </div>
@@ -567,7 +567,7 @@ return {
         {/* Table */}
         <div className="w-full max-w-6xl bg-white border border-zinc-200 overflow-hidden flex-1 flex flex-col shadow-sm rounded-[0.625rem]">
           <div className="px-6 py-4 border-b border-[#e9d5ff] bg-[#f5f0ff] flex items-center gap-3">
-            <div className="bg-[#a020f0] p-2 text-white rounded">
+            <div className="bg-[#6a12b8] p-2 text-white rounded">
               <Terminal size={15} className="text-white" />
             </div>
             <div>
@@ -657,7 +657,7 @@ return {
                         <div className="flex gap-2">
 
                           <button onClick={() => openReprintModal(item)}
-                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-[#e9d5ff] text-zinc-400 hover:bg-[#a020f0] hover:text-white hover:border-[#a020f0] transition-all rounded-[0.625rem]">
+                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-[#e9d5ff] text-zinc-400 hover:bg-[#6a12b8] hover:text-white hover:border-[#6a12b8] transition-all rounded-[0.625rem]">
                             <Printer size={14} />
                           </button>
                         </div>
@@ -675,7 +675,7 @@ return {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-[0.625rem] shadow-2xl w-full max-w-md mx-4">
-            <div className="bg-[#a020f0] p-4 text-white rounded-t-[0.625rem]">
+            <div className="bg-[#6a12b8] p-4 text-white rounded-t-[0.625rem]">
               <h3 className="font-bold text-lg">Manager Approval Required</h3>
             </div>
 <div className="p-5">
@@ -688,13 +688,13 @@ return {
         value={managerPin}
         onChange={e => setManagerPin(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && handleManagerApprove()}
-        className="w-full p-3 border border-[#e9d5ff] rounded-[0.625rem] text-sm focus:outline-none focus:border-[#a020f0]"
+        className="w-full p-3 border border-[#e9d5ff] rounded-[0.625rem] text-sm focus:outline-none focus:border-[#6a12b8]"
         placeholder="Enter branch manager PIN..."
       />
       {pinError && <p className="text-red-500 text-sm mt-2">{pinError}</p>}
       <div className="flex gap-3 mt-4">
         <button onClick={handleManagerApprove} disabled={isVoiding || !managerPin.trim()}
-          className="flex-1 bg-[#a020f0] hover:bg-[#6a12b8] text-white py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest disabled:opacity-50 transition-all">
+          className="flex-1 bg-[#6a12b8] hover:bg-[#6a12b8] text-white py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest disabled:opacity-50 transition-all">
           {isVoiding ? 'Processing...' : 'Approve'}
         </button>
         <button onClick={closeVoidModal}
@@ -719,7 +719,7 @@ return {
       {reprintSale && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-[0.625rem] shadow-2xl w-full max-w-md mx-4">
-            <div className="bg-[#a020f0] p-4 text-white rounded-t-[0.625rem]">
+            <div className="bg-[#6a12b8] p-4 text-white rounded-t-[0.625rem]">
               <h3 className="font-bold text-lg">Reprint Receipt</h3>
             </div>
             <div className="p-5">
@@ -731,8 +731,8 @@ return {
                     <button key={type} onClick={() => handleReprint(type)} disabled={isActive}
                       className={`w-full py-3 px-4 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest transition-all flex items-center justify-between
                         ${isActive
-                          ? 'bg-[#a020f0] text-white'
-                          : 'bg-[#f5f0ff] border border-[#e9d5ff] text-black hover:bg-[#a020f0] hover:text-white hover:border-[#a020f0]'
+                          ? 'bg-[#6a12b8] text-white'
+                          : 'bg-[#f5f0ff] border border-[#e9d5ff] text-black hover:bg-[#6a12b8] hover:text-white hover:border-[#6a12b8]'
                         } disabled:opacity-50`}
                     >
                       <span>{label}</span>

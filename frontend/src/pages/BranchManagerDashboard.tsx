@@ -74,7 +74,7 @@ const STYLES = `
   .bm-tab { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 13px; border-radius: 0.4rem; border: none; cursor: pointer; transition: background 0.12s, color 0.12s; }
   .bm-tab-on  { background: #1a0f2e; color: #fff; }
   .bm-tab-off { background: transparent; color: #a1a1aa; }
-  .bm-tab-off:hover { background: #ede8ff; color: #a020f0; }
+  .bm-tab-off:hover { background: #ede8ff; color: #6a12b8; }
   .bm-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
   .card { transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease; }
   .card:hover { box-shadow: 0 8px 32px rgba(59,32,99,0.12); transform: translateY(-1px); border-color: #ddd6f7; }

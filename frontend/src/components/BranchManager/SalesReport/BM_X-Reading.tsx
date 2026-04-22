@@ -86,7 +86,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#a020f0] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -279,14 +279,14 @@ const fetchReading = useCallback(async () => {
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
   const menuCards = [
-    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#a020f0]"   },
+    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#6a12b8]"   },
     { label: "OVERVIEW",    title: "SALES SUMMARY",  type: "summary",      color: "border-amber-400"   },
-    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#a020f0]"   },
-    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#a020f0]"   },
-    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#a020f0]"   },
-    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#a020f0]"   },
+    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#6a12b8]"   },
+    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#6a12b8]"   },
+    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#6a12b8]"   },
+    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#6a12b8]"   },
     { label: "X-READING",   title: "X-READING",      type: "x_reading",    color: "border-emerald-500" },
-    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#a020f0]"   },
+    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#6a12b8]"   },
   ];
 
   // ── Receipt render functions (ported from cashier) ────────────────────────
@@ -774,7 +774,7 @@ const fetchReading = useCallback(async () => {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${
-                isMenuOpen ? "bg-[#a020f0] text-white border-[#a020f0]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                isMenuOpen ? "bg-[#6a12b8] text-white border-[#6a12b8]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
               }`}
             >
               <Menu size={13} /> Menu

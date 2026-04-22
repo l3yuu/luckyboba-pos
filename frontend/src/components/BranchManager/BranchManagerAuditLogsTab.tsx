@@ -47,7 +47,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -281,13 +281,13 @@ const BranchManagerAuditLogsTab: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
             <input
               type="text"
               placeholder="Search user, action, or module..."
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
             />
           </div>
 
@@ -368,7 +368,7 @@ const BranchManagerAuditLogsTab: React.FC = () => {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#a020f0] shrink-0">
+                      <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#6a12b8] shrink-0">
                         {initials(log.user?.name)}
                       </div>
                       <span className="font-semibold text-[#1a0f2e] text-xs whitespace-nowrap">
@@ -386,7 +386,7 @@ const BranchManagerAuditLogsTab: React.FC = () => {
                   <td className="px-5 py-3.5 text-zinc-500 text-xs whitespace-nowrap font-medium">{formatDate(log.created_at)}</td>
                   <td className="px-5 py-3.5 text-zinc-400 text-xs tabular-nums whitespace-nowrap">{formatTime(log.created_at)}</td>
                   <td className="px-5 py-3.5 text-center">
-                    <button onClick={() => setSelectedLog(log)} className="p-1.5 hover:bg-[#ede8ff] text-[#a020f0] rounded-lg transition-all" title="View Detail">
+                    <button onClick={() => setSelectedLog(log)} className="p-1.5 hover:bg-[#ede8ff] text-[#6a12b8] rounded-lg transition-all" title="View Detail">
                       <Eye size={14} />
                     </button>
                   </td>
@@ -414,7 +414,7 @@ const BranchManagerAuditLogsTab: React.FC = () => {
                       : page - 2 + i;
                 return (
                   <button key={p} onClick={() => handlePage(p)}
-                    className={`w-7 h-7 text-xs font-bold rounded-[0.4rem] transition-colors ${p === page ? "bg-[#a020f0] text-white" : "text-zinc-400 hover:bg-zinc-100"}`}>
+                    className={`w-7 h-7 text-xs font-bold rounded-[0.4rem] transition-colors ${p === page ? "bg-[#6a12b8] text-white" : "text-zinc-400 hover:bg-zinc-100"}`}>
                     {p}
                   </button>
                 );

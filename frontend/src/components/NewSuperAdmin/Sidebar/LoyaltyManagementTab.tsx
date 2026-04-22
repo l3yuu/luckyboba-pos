@@ -79,7 +79,7 @@ const Btn: React.FC<{
 }> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
   const sizes = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
   const variants = {
-    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white shadow-sm",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white shadow-sm",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-50 text-red-600 border border-red-100 hover:bg-red-500 hover:text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -257,7 +257,7 @@ const LoyaltyManagementTab: React.FC = () => {
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id as "settings" | "rewards" | "users")}
               className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeSubTab === tab.id
-                ? "bg-white text-[#a020f0] shadow-sm ring-1 ring-zinc-200/50"
+                ? "bg-white text-[#6a12b8] shadow-sm ring-1 ring-zinc-200/50"
                 : "text-zinc-500 hover:text-zinc-700 hover:bg-white/50"
                 }`}
             >
@@ -290,7 +290,7 @@ const LoyaltyManagementTab: React.FC = () => {
                     type="number" step="0.1"
                     value={settings.points_per_currency}
                     onChange={e => setSettings({ ...settings, points_per_currency: e.target.value })}
-                    className={`${inputCls()} pl-20 pr-16 font-mono font-black text-[#a020f0] text-lg h-14`}
+                    className={`${inputCls()} pl-20 pr-16 font-mono font-black text-[#6a12b8] text-lg h-14`}
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-400 uppercase tracking-widest">Points</div>
                 </div>
@@ -307,7 +307,7 @@ const LoyaltyManagementTab: React.FC = () => {
                     type="number" step="0.1"
                     value={settings.card_point_multiplier}
                     onChange={e => setSettings({ ...settings, card_point_multiplier: e.target.value })}
-                    className={`${inputCls()} pl-10 pr-16 font-mono font-black text-[#a020f0] text-lg h-14`}
+                    className={`${inputCls()} pl-10 pr-16 font-mono font-black text-[#6a12b8] text-lg h-14`}
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-400 uppercase tracking-widest">Boost</div>
                 </div>
@@ -573,7 +573,7 @@ const LoyaltyManagementTab: React.FC = () => {
               <Field label="Point Cost (Priced in Pts)" required>
                 <div className="relative">
                   <Tag size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <input name="point_cost" type="number" defaultValue={editingReward?.point_cost} className={`${inputCls()} pl-11 font-black text-[#a020f0]`} placeholder="50" required />
+                  <input name="point_cost" type="number" defaultValue={editingReward?.point_cost} className={`${inputCls()} pl-11 font-black text-[#6a12b8]`} placeholder="50" required />
                 </div>
               </Field>
               <Field label="Perk Category">
