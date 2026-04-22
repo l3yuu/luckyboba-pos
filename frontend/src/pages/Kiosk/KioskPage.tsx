@@ -532,7 +532,7 @@ const KioskPage = () => {
       const todayKey = new Date().toISOString().split('T')[0];
 
       try {
-        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}`);
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&t=${Date.now()}`);
         const serverSeq = parseInt(data.next_sequence, 10);
         const serverQueue = parseInt(data.next_queue, 10);
 
@@ -1314,15 +1314,15 @@ const KioskPage = () => {
 
         {/* Mix and Match Overlay */}
         {isMixMatchViewOpen && pendingMixMatchItem && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/60">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-sm bg-zinc-900/60">
             <div className="absolute inset-0" onClick={() => setIsMixMatchViewOpen(false)} />
-            <div className="relative bg-[#fdf8ff] w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-300 border border-purple-100">
+            <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200 border border-zinc-100">
 
               {/* Header */}
-              <div className="p-10 border-b border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
+              <div className="p-6 border-b border-zinc-100 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl flex items-center justify-center shadow-inner">
-                    <ShoppingBag size={40} className="text-[#7c14d4]" />
+                  <div className="w-14 h-14 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl flex items-center justify-center shadow-inner">
+                    <ShoppingBag size={32} className="text-[#7c14d4]" />
                   </div>
                   <div>
                     <div className="relative">
@@ -1355,9 +1355,9 @@ const KioskPage = () => {
                   )}
                   <button
                     onClick={() => setIsMixMatchViewOpen(false)}
-                    className="w-14 h-14 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                    className="w-12 h-12 bg-zinc-100 border border-zinc-200 text-zinc-500 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all"
                   >
-                    <X size={28} strokeWidth={3} />
+                    <X size={22} strokeWidth={3} />
                   </button>
                 </div>
               </div>
@@ -1399,7 +1399,7 @@ const KioskPage = () => {
                 ) : (
                   <div className="space-y-10 max-w-2xl mx-auto">
                     {/* Sugar Level */}
-                    <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
+                    <div className="bg-white p-8 rounded-2xl border border-purple-50 shadow-sm">
                       <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
                         <span className="w-8 h-8 rounded-full bg-[#7c14d4] text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">1</span>
                         {t.selectSugarLevel}
@@ -1421,7 +1421,7 @@ const KioskPage = () => {
                     </div>
 
                     {/* Options (Ice/Pearl) */}
-                    <div className="bg-white p-8 rounded-[2rem] border border-orange-50 shadow-sm">
+                    <div className="bg-white p-8 rounded-2xl border border-orange-50 shadow-sm">
                       <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
                         <span className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm shadow-md shadow-orange-200">2</span>
                         {t.drinkOptions}
@@ -1465,7 +1465,7 @@ const KioskPage = () => {
                     </div>
 
                     {/* Add-ons */}
-                    <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
+                    <div className="bg-white p-8 rounded-2xl border border-purple-50 shadow-sm">
                       <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
                         <span className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">3</span>
                         {t.extraToppings}
@@ -1505,7 +1505,7 @@ const KioskPage = () => {
               </div>
 
               {/* Footer */}
-              <div className="p-10 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
+              <div className="p-6 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
                 <div className="flex items-center gap-8">
                   <div className="bg-zinc-50 px-6 py-4 rounded-2xl border border-zinc-100">
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
@@ -1524,7 +1524,7 @@ const KioskPage = () => {
                 {mixMatchStep === 'customize_drink' && (
                   <button
                     onClick={confirmMixAndMatch}
-                    className="bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
+                    className="bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white px-12 py-5 rounded-xl font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
                   >
                     {t.addToTray}
                     <Plus size={24} strokeWidth={3} />
@@ -1537,14 +1537,13 @@ const KioskPage = () => {
 
         {/* Customization Modal */}
         {showCustomizer && customizingItem && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-xl bg-zinc-900/60">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-sm bg-zinc-900/60">
             <div className="absolute inset-0" onClick={() => setShowCustomizer(false)} />
-            <div className="relative bg-[#fdf8ff] w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200 border border-purple-100">
+            <div className="relative bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-zinc-100">
 
-              {/* Header */}
-              <div className="p-10 border-b border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
+              <div className="p-6 border-b border-zinc-100 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl overflow-hidden border border-purple-100 flex items-center justify-center shadow-inner">
+                  <div className="w-16 h-16 bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl overflow-hidden border border-orange-100 flex items-center justify-center shadow-inner">
                     {customizingItem.image ? (
                       <img src={getImageUrl(customizingItem.image)} className="w-full h-full object-cover" />
                     ) : (
@@ -1552,37 +1551,37 @@ const KioskPage = () => {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-4xl font-black text-zinc-900 tracking-tight uppercase line-clamp-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{customizingItem.name}</h3>
-                    <div className="inline-block px-3 py-1 bg-purple-50 border border-purple-200 text-[#7c14d4] rounded-lg text-xs font-black uppercase tracking-widest mt-2">{customizingItem.category}</div>
+                    <h3 className="text-xl font-black text-zinc-900 tracking-tight uppercase line-clamp-1">{customizingItem.name}</h3>
+                    <div className="inline-block px-2 py-0.5 bg-purple-50 border border-purple-200 text-[#7c14d4] rounded-md text-xs font-bold uppercase tracking-widest mt-1">{customizingItem.category}</div>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCustomizer(false)}
-                  className="w-14 h-14 bg-white border border-zinc-200 text-zinc-400 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                  className="w-12 h-12 bg-zinc-100 border border-zinc-200 text-zinc-500 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all"
                 >
-                  <X size={28} strokeWidth={3} />
+                  <X size={22} strokeWidth={3} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-10 space-y-10 scrollbar-hide">
+              <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-hide">
                 {(customizingItem.category?.toLowerCase().includes('milk tea') ||
                   customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
-                    <div className="bg-white/95 p-8 rounded-[2rem] border border-purple-50 shadow-sm">
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="w-10 h-10 bg-[#7c14d4] text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 shadow-md shadow-purple-200">1</div>
-                        <div className="relative flex-1 h-8">
-                          <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase invisible" aria-hidden="true">Select Sugar</h4>
-                          <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.selectSugar}</h4>
+                    <div className="bg-white/95 p-5 rounded-2xl border border-purple-100 shadow-sm">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white rounded-full flex items-center justify-center font-black text-sm shrink-0">1</div>
+                        <div className="relative flex-1 h-6">
+                          <h4 className="font-black text-zinc-900 text-lg tracking-tight uppercase invisible" aria-hidden="true">Select Sugar</h4>
+                          <h4 className="font-black text-zinc-900 text-lg tracking-tight uppercase absolute inset-0">{t.selectSugar}</h4>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      <div className="grid grid-cols-5 gap-2">
                         {sugarLevels.map((sl) => (
                           <button
                             key={sl.id}
                             onClick={() => setSelectedSugarLevel(sl.value)}
-                            className={`py-5 rounded-2xl font-black text-sm transition-all border-2 ${selectedSugarLevel === sl.value
-                              ? 'bg-[#7c14d4] border-[#7c14d4] text-white shadow-lg shadow-purple-200'
-                              : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
+                            className={`py-3 rounded-xl font-bold text-sm transition-all border-2 ${selectedSugarLevel === sl.value
+                              ? 'bg-gradient-to-r from-[#7c14d4] to-purple-500 border-[#7c14d4] text-white scale-105 shadow-[0_8px_16px_rgba(124,20,212,0.3)]'
+                              : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300'
                               }`}
                           >
                             {sl.label}
@@ -1592,17 +1591,17 @@ const KioskPage = () => {
                     </div>
                   )}
 
-                <div className="bg-white/95 p-8 rounded-[2rem] border border-purple-50 shadow-sm">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 shadow-md shadow-purple-100">
+                <div className="bg-white/95 p-5 rounded-2xl border border-orange-100 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full flex items-center justify-center font-black text-sm shrink-0 border border-orange-300/50">
                       {((customizingItem.category?.toLowerCase().includes('milk') || customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0) ? '2' : '1'}
                     </div>
-                    <div className="relative flex-1 h-8">
-                      <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase invisible" aria-hidden="true">Add Toppings</h4>
-                      <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.addToppings}</h4>
+                    <div className="relative flex-1 h-6">
+                      <h4 className="font-black text-zinc-900 text-lg tracking-tight uppercase invisible" aria-hidden="true">Add Toppings</h4>
+                      <h4 className="font-black text-zinc-900 text-lg tracking-tight uppercase absolute inset-0">{t.addToppings}</h4>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     {allAddOns
                       .filter(ao => {
                         const itemCat = customizingItem.category?.toLowerCase() || '';
@@ -1621,21 +1620,19 @@ const KioskPage = () => {
                                   : [...prev, ao]
                               );
                             }}
-                            className={`p-4 rounded-2xl border-2 flex flex-col transition-all text-left ${isSelected
-                              ? 'border-purple-500 bg-purple-50 shadow-md'
-                              : 'border-zinc-100 bg-white hover:border-purple-200'
+                            className={`p-3 rounded-xl border-2 flex items-center gap-3 transition-all text-left ${isSelected
+                              ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 shadow-md'
+                              : 'border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300'
                               }`}
                           >
-                            <div className="flex justify-between items-center mb-1 w-full">
-                              <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-zinc-400'}`}>
-                                +₱{Number(ao.price).toFixed(0)}
-                              </span>
-                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'bg-purple-500 border-purple-500 text-white' : 'bg-white border-zinc-200'}`}>
-                                {isSelected && <Check size={10} strokeWidth={4} />}
-                              </div>
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-orange-500 bg-gradient-to-r from-orange-500 to-amber-500 text-white' : 'border-zinc-300 bg-zinc-50'}`}>
+                              {isSelected && <CheckCircle2 size={14} strokeWidth={3} />}
                             </div>
-                            <span className={`font-bold text-xs uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-600'}`}>
+                            <span className={`font-bold text-sm leading-tight uppercase flex-1 ${isSelected ? 'text-orange-900' : 'text-zinc-700'}`}>
                               {ao.name}
+                            </span>
+                            <span className={`font-black text-sm shrink-0 ${isSelected ? 'text-orange-600' : 'text-zinc-500'}`}>
+                              +₱{Number(ao.price).toFixed(0)}
                             </span>
                           </button>
                         );
@@ -1644,16 +1641,14 @@ const KioskPage = () => {
                 </div>
               </div>
 
-              <div className="p-10 border-t border-purple-50 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-10">
-                <div className="flex items-center gap-8">
-                  <div className="bg-zinc-50 px-6 py-4 rounded-2xl border border-zinc-100">
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">{t.total}</p>
-                    <p className="text-3xl font-black text-zinc-900 tracking-tighter">
-                      ₱{(
-                        Number(customizingItem.sellingPrice) +
-                        selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
-                      ).toFixed(0)}
-                    </p>
+              <div className="p-4 border-t border-zinc-100 bg-white flex items-center justify-between shrink-0 shadow-[0_-10px_30px_rgb(0,0,0,0.03)] z-10">
+                <div>
+                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-0.5">{t.total}</p>
+                  <div className="text-2xl font-black text-orange-600 tracking-tighter">
+                    ₱{(
+                      Number(customizingItem.sellingPrice) +
+                      selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0)
+                    ).toFixed(0)}
                   </div>
                   {selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0) > 0 && (
                     <div className="text-orange-600 font-bold">
@@ -1664,7 +1659,7 @@ const KioskPage = () => {
                 </div>
                 <button
                   onClick={confirmCustomization}
-                  className="bg-gradient-to-r from-[#7c14d4] to-purple-500 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-wider text-xl flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-200"
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-8 py-4 rounded-xl font-black uppercase tracking-wider text-base flex items-center gap-3 hover:from-orange-600 hover:to-amber-600 transition-all shadow-[0_8px_20px_rgba(234,88,12,0.3)] hover:shadow-[0_12px_25px_rgba(234,88,12,0.4)] hover:-translate-y-[1px] active:scale-95"
                 >
                   <span>{t.addToTray}</span>
                   <Plus size={24} strokeWidth={3} />
@@ -1679,7 +1674,7 @@ const KioskPage = () => {
 
 
   const ConfirmView = () => (
-    <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fdf8ff]">
+    <div className="flex-1 flex flex-col relative overflow-hidden bg-[#fdf8ff] scrollbar-hide">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-100/30 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-50/40 rounded-full blur-[100px] translate-y-1/4 -translate-x-1/4 pointer-events-none" />
@@ -1687,8 +1682,8 @@ const KioskPage = () => {
       {/* Top Bar (Unified) */}
       <div className="h-20 px-12 flex items-center justify-between shrink-0 relative z-50">
         <div className="flex items-center gap-4">
-          <img src={logo} alt="Lucky Boba" className="h-12 w-auto drop-shadow-sm" />
-          <span className="text-2xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
+          <img src={logo} alt="Lucky Boba" className="h-14 w-auto drop-shadow-sm" />
+          <span className="text-3xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Lucky Boba</span>
         </div>
         <div className="flex items-center gap-6">
           <div className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md flex items-center justify-center text-zinc-400 border border-white shadow-sm">
@@ -1698,49 +1693,48 @@ const KioskPage = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-10 px-12 relative z-10 py-12">
-        <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_15px_40px_rgba(16,185,129,0.3)] animate-bounce relative shrink-0">
-          <div className="absolute inset-0 border-4 border-emerald-400 rounded-full animate-ping opacity-50"></div>
-          <CheckCircle2 size={48} strokeWidth={3} className="relative z-10" />
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-4 px-8 sm:px-12 relative z-10 py-2 sm:py-4 w-full">
+        <div className="w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_10px_25px_rgba(16,185,129,0.2)] animate-bounce relative shrink-0">
+          <Check size={32} strokeWidth={4} />
         </div>
 
-        <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="relative">
-            <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-              Order <span className="italic text-[#7c3aed]">Received</span>
+            <h2 className="text-4xl sm:text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight invisible" aria-hidden="true" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              ORDER <span className="italic text-[#7c3aed]">RECEIVED</span>
             </h2>
-            <h2 className="text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+            <h2 className="text-4xl sm:text-5xl font-bold text-[#2e0a4e] tracking-tighter uppercase leading-tight absolute inset-0" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
               {t.confirmTitle1} <span className="text-[#7c3aed] italic">{t.confirmTitle2}</span>
             </h2>
           </div>
-          <div className="relative h-5">
-            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em] invisible" aria-hidden="true">Please proceed to counter to pay</p>
-            <p className="text-sm font-semibold text-emerald-600 uppercase tracking-[0.2em] absolute inset-0 text-center">{t.proceedToCounter}</p>
+          <div className="relative h-4">
+            <p className="text-[10px] sm:text-xs font-semibold text-emerald-600 uppercase tracking-[0.2em] invisible" aria-hidden="true">Please proceed to counter to pay</p>
+            <p className="text-[10px] sm:text-xs font-semibold text-emerald-600 uppercase tracking-[0.2em] absolute inset-0 text-center">{t.proceedToCounter}</p>
           </div>
         </div>
 
-        <div className="bg-white p-10 rounded-[3rem] w-full max-w-lg shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
-          <p className="text-zinc-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-5">{t.yourTicketNumber}</p>
+        <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] w-full max-w-lg shadow-[0_30px_80px_rgba(0,0,0,0.04)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
+          <p className="text-zinc-400 font-bold uppercase tracking-[0.3em] text-[9px] mb-4">{t.yourTicketNumber}</p>
 
-          <div className="bg-purple-50/50 px-12 py-8 rounded-[2.5rem] mb-10 border border-purple-100/50 shadow-inner w-full text-center">
-            <h3 className="text-7xl font-bold text-[#7c3aed] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
-              #{orderNumber}
+          <div className="bg-purple-50/20 px-10 py-6 rounded-[2rem] mb-6 border border-purple-100/20 shadow-inner w-full text-center">
+            <h3 className="text-5xl sm:text-6xl font-bold text-[#3b0764] tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <span className="text-[#7c3aed]/40 font-medium mr-1">#</span>{orderNumber}
             </h3>
           </div>
 
-          <div className="w-full flex items-center justify-between pt-8 border-t border-dashed border-purple-100">
-            <span className="text-zinc-400 font-bold uppercase text-xs tracking-widest">{t.totalDue}</span>
+          <div className="w-full flex items-center justify-between pt-6 border-t border-dashed border-purple-100/60">
+            <span className="text-zinc-400 font-bold uppercase text-[9px] tracking-[0.2em]">{t.totalDue}</span>
             <span className="text-4xl font-bold text-[#3b0764] tracking-tighter">₱{calculateTotal().toFixed(0)}</span>
           </div>
         </div>
 
         <button
           onClick={handleReset}
-          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-12 pr-8 py-5 rounded-full font-bold text-xl tracking-[0.15em] uppercase shadow-[0_25px_60px_rgba(124,58,237,0.35)] flex items-center gap-8 transition-all hover:scale-[1.02] active:scale-95 mt-4"
+          className="group relative overflow-hidden bg-[#7c3aed] text-white pl-7 pr-3 py-2.5 rounded-[1.25rem] font-bold text-sm tracking-[0.12em] uppercase shadow-[0_12px_30px_rgba(124,58,237,0.25)] flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95 mt-4"
         >
           <span className="relative z-10">{t.newOrder}</span>
-          <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
-            <ChevronRight size={24} strokeWidth={4} />
+          <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center text-[#7c3aed] group-hover:translate-x-1 transition-transform shadow-md relative z-10">
+            <ChevronRight size={16} strokeWidth={4} />
           </div>
         </button>
       </div>
@@ -1923,7 +1917,7 @@ const KioskPage = () => {
 
       {selectedBranchToConfirm && step === 'select_branch' && (
         <div className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center print:hidden animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-xl animate-in zoom-in-95 duration-200 border border-zinc-100">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-xl animate-in zoom-in-95 duration-200 border border-zinc-100">
             <div className="w-14 h-14 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <MapPin size={28} />
             </div>
@@ -1952,8 +1946,8 @@ const KioskPage = () => {
       {/* Admin Security PIN Modal */}
       {isPinModalOpen && (
         <div className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm z-[100] flex items-center justify-center print:hidden p-6 animate-in fade-in duration-200">
-          <div className={`bg-white rounded-3xl p-8 max-w-sm w-full shadow-xl transition-all duration-300 border border-zinc-100 ${pinError ? 'animate-shake' : ''}`}>
-            <div className="w-16 h-16 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <div className={`bg-white rounded-2xl p-8 max-w-sm w-full shadow-xl transition-all duration-300 border border-zinc-100 ${pinError ? 'animate-shake' : ''}`}>
+            <div className="w-14 h-14 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <Lock size={32} />
             </div>
 
@@ -2037,8 +2031,8 @@ const KioskPage = () => {
 
       {/* Admin Settings Modal */}
       {isAdminModalOpen && (
-        <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center print:hidden animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-10 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col items-center">
+        <div className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 text-center print:hidden animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-10 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col items-center border border-zinc-100">
             <h2 className="text-3xl font-black text-[#3b2063] uppercase italic mb-8 shrink-0">{t.adminSettings}</h2>
 
             <div className="w-full flex-1 overflow-y-auto pr-2 space-y-6 text-left shrink">
@@ -2196,8 +2190,8 @@ const KioskPage = () => {
       {/* Error Modal */}
       {showErrorModal && (
         <div className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm z-[110] flex items-center justify-center print:hidden animate-in fade-in duration-200 px-6">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-auto shadow-xl animate-in zoom-in-95 duration-200 border border-zinc-100">
-            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-auto shadow-xl animate-in zoom-in-95 duration-200 border border-zinc-100">
+            <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <X size={32} strokeWidth={3} />
             </div>
             <h2 className="text-xl font-bold text-zinc-900 text-center mb-2 tracking-tight">{t.orderFailed}</h2>

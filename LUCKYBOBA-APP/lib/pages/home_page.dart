@@ -36,7 +36,7 @@ final List<Map<String, dynamic>> _kAllCategories = [
 ];
 
 // Store locations are now fetched dynamically from the backend API.
-List<Map<String, dynamic>> _kStoreLocations = [];
+// Moved into _HomePageState to avoid global mutable state issues.
 
 // ── Purple + orange palette ──────────────────────────────────────────────────
 const Color _kPurple      = Color(0xFF7C3AED);
@@ -70,7 +70,9 @@ class _HomePageState extends State<HomePage> {
   double? _nearestDist;
   String _userName       = '';
   Position? _currentPosition;
+  bool   _locationDenied = false;
 
+  List<Map<String, dynamic>> _storeLocations = [];
   List<Map<String, dynamic>> _featuredDrinks = [];
   bool _loadingFeaturedDrinks = true;
 
@@ -81,6 +83,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadAll() async {
+    // Get location FIRST so branch distances are accurate
+    await _acquireLocation();
     await Future.wait([
       _fetchBranches(),
       _checkActiveCard(),
@@ -88,8 +92,41 @@ class _HomePageState extends State<HomePage> {
       _loadUserName(),
       _fetchFeaturedDrinks(),
     ]);
-    await _loadNearestStore();
+    _findNearestStore();
     _checkInitialBranchSelection();
+  }
+
+  Future<void> _refreshAll() async {
+    await _loadAll();
+  }
+
+  Future<void> _acquireLocation() async {
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.deniedForever) {
+        if (mounted) setState(() => _locationDenied = true);
+        return;
+      }
+      if (perm == LocationPermission.whileInUse ||
+          perm == LocationPermission.always) {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        ).timeout(const Duration(seconds: 5));
+        if (mounted) {
+          setState(() {
+            _currentPosition = pos;
+            _locationDenied = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _locationDenied = true);
+      }
+    } catch (_) {
+      // Use defaults if location unavailable
+    }
   }
 
   Future<void> _fetchBranches() async {
@@ -98,37 +135,30 @@ class _HomePageState extends State<HomePage> {
           .get(Uri.parse('${AppConfig.apiUrl}/branches/available'))
           .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+        final Map<String, dynamic> body = jsonDecode(response.body);
+        final List<dynamic> data = body['data'] ?? [];
         if (mounted) {
+          final double userLat = _currentPosition?.latitude ?? 14.7040;
+          final double userLng = _currentPosition?.longitude ?? 121.0340;
           setState(() {
-            _kStoreLocations = data.map((b) {
+            _storeLocations = data.map((b) {
               final lat = double.tryParse(b['latitude']?.toString() ?? '0') ?? 0;
               final lng = double.tryParse(b['longitude']?.toString() ?? '0') ?? 0;
-              double distance = 0.0;
-              if (_currentPosition != null && lat != 0 && lng != 0) {
-                distance = _calcDistance(
-                  _currentPosition!.latitude,
-                  _currentPosition!.longitude,
-                  lat,
-                  lng,
-                );
-              }
+              final distance = (lat != 0 && lng != 0)
+                  ? _calcDistance(userLat, userLng, lat, lng)
+                  : 0.0;
               return {
                 'name': b['name'],
                 'branch_id': b['id'],
-                'address': b['address'] ?? '',
+                'address': b['store_address'] ?? b['location'] ?? '',
                 'image': b['image'] ?? 'assets/images/vipra_branch.png',
                 'lat': lat,
                 'lng': lng,
                 'distance': distance,
               };
             }).toList();
-
-            // Sort by distance if current position is available
-            if (_currentPosition != null) {
-              _kStoreLocations.sort((a, b) => 
+            _storeLocations.sort((a, b) =>
                 (a['distance'] as double).compareTo(b['distance'] as double));
-            }
           });
         }
       }
@@ -213,34 +243,12 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _loadNearestStore() async {
-    double userLat = 14.7040, userLng = 121.0340;
-    try {
-      LocationPermission perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.whileInUse ||
-          perm == LocationPermission.always) {
-        final pos = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-        ).timeout(const Duration(seconds: 5));
-        userLat = pos.latitude;
-        userLng = pos.longitude;
-        if (mounted) setState(() => _currentPosition = pos);
-      }
-    } catch (_) {}
-
-    final sorted = List<Map<String, dynamic>>.from(_kStoreLocations);
-    for (var s in sorted) {
-      s['_dist'] = _calcDistance(userLat, userLng, s['lat'], s['lng']);
-    }
-    sorted.sort((a, b) => (a['_dist'] as double).compareTo(b['_dist'] as double));
+  void _findNearestStore() {
     if (mounted) {
       setState(() {
-        if (sorted.isNotEmpty) {
-          _nearestStore = sorted.first;
-          _nearestDist = sorted.first['_dist'];
+        if (_storeLocations.isNotEmpty) {
+          _nearestStore = _storeLocations.first;
+          _nearestDist = _storeLocations.first['distance'] as double;
         } else {
           _nearestStore = null;
           _nearestDist = null;
@@ -253,7 +261,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _showBranchPicker(String categoryLabel) async {
     final String? menuCategory = _kCategoryMap[categoryLabel];
     if (menuCategory == null) return;
-    final sorted = List<Map<String, dynamic>>.from(_kStoreLocations);
+    final sorted = List<Map<String, dynamic>>.from(_storeLocations);
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -275,170 +283,246 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
+    final bottomPad = MediaQuery.of(context).padding.bottom + kBottomNavigationBarHeight + 24;
 
     return Container(
       color: _kBg,
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Purple header ──────────────────────────────────────────────
-            _buildPurpleHeader(topPad),
+      child: RefreshIndicator(
+        color: _kPurple,
+        onRefresh: _refreshAll,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Purple header ──────────────────────────────────────────────
+              _buildPurpleHeader(topPad),
 
-            // ── White content area ─────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 28),
+              // ── White content area ─────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 28),
 
-                  // What's Hot / Featured
-                  Row(
-                    children: [
-                      const Icon(PhosphorIconsFill.fire,
-                          color: _kOrange, size: 20),
-                      const SizedBox(width: 8),
-                      Text('Featured Drinks',
-                          style: GoogleFonts.outfit(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF1A1A2E))),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Hero banner
-                  if (_loadingFeaturedDrinks)
-                    const SizedBox(
-                      height: 190,
-                      child: Center(
-                        child: CircularProgressIndicator(color: _kPurple),
-                      ),
-                    )
-                  else if (_featuredDrinks.isEmpty)
-                    _HeroBannerLight(
-                      onTap: () => _showBranchPicker('Cheese'),
-                      imagePath: 'assets/images/cheese_series.png',
-                      title: 'Cheese Series',
-                      subTitle: 'Premium Collection',
-                      cta: 'ORDER NOW',
-                    )
-                  else
-                    SizedBox(
-                      height: 190,
-                      child: PageView.builder(
-                        itemCount: _featuredDrinks.length,
-                        itemBuilder: (context, index) {
-                          final item = _featuredDrinks[index];
-                          return _HeroBannerLight(
-                            onTap: () => _showBranchPicker('Classic'),
-                            imagePath: item['image_url'] ?? 'assets/images/cheese_series.png',
-                            title: item['title'] ?? '',
-                            subTitle: item['subtitle'] ?? '',
-                            cta: item['cta_text'] ?? 'ORDER NOW',
-                          );
-                        },
-                      ),
-                    ),
-
-                  const SizedBox(height: 28),
-
-                  // Categories
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Categories',
-                          style: GoogleFonts.outfit(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF1A1A2E))),
-                      GestureDetector(
-                        child: Text('See All',
+                    // What's Hot / Featured
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Icon(PhosphorIconsFill.fire,
+                            color: _kOrange, size: 18),
+                        const SizedBox(width: 8),
+                        Text('Featured Drinks',
                             style: GoogleFonts.outfit(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: _kPurple)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  SizedBox(
-                    height: 120,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      padding: EdgeInsets.zero,
-                      itemCount: _kAllCategories.length,
-                      itemBuilder: (context, index) {
-                        final cat = _kAllCategories[index];
-                        return _CategoryCard(
-                          label: cat['label'] as String,
-                          imagePath: cat['imagePath'] as String,
-                          color: cat['color'] as Color,
-                          onTap: () => _showBranchPicker(cat['label'] as String),
-                        );
-                      },
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF1A1A2E),
+                                height: 1.0)),
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 14),
 
-                  const SizedBox(height: 28),
+                    // Hero banner
+                    if (_loadingFeaturedDrinks)
+                      const SizedBox(
+                        height: 190,
+                        child: Center(
+                          child: CircularProgressIndicator(color: _kPurple),
+                        ),
+                      )
+                    else if (_featuredDrinks.isEmpty)
+                      _HeroBannerLight(
+                        onTap: () => _showBranchPicker('Cheese'),
+                        imagePath: 'assets/images/cheese_series.png',
+                        title: 'Cheese Series',
+                        subTitle: 'Premium Collection',
+                        cta: 'ORDER NOW',
+                      )
+                    else
+                      SizedBox(
+                        height: 190,
+                        child: PageView.builder(
+                          itemCount: _featuredDrinks.length,
+                          itemBuilder: (context, index) {
+                            final item = _featuredDrinks[index];
+                            final String category = item['category'] as String? ?? 'Classic';
+                            return _HeroBannerLight(
+                              onTap: () => _showBranchPicker(category),
+                              imagePath: item['image_url'] ?? 'assets/images/cheese_series.png',
+                              title: item['title'] ?? '',
+                              subTitle: item['subtitle'] ?? '',
+                              cta: item['cta_text'] ?? 'ORDER NOW',
+                            );
+                          },
+                        ),
+                      ),
 
-                  // Nearest branch
-                  Text('Visit Us',
-                      style: GoogleFonts.outfit(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF1A1A2E))),
-                  const SizedBox(height: 14),
+                    const SizedBox(height: 28),
 
-                  _loadingNearby
-                      ? Container(
-                          height: 180,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: const Center(
-                              child: CircularProgressIndicator(
+                    // Categories
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Categories',
+                            style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF1A1A2E))),
+                        GestureDetector(
+                          child: Text('See All',
+                              style: GoogleFonts.outfit(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
                                   color: _kPurple)),
-                        )
-                      : (_nearestStore == null || _nearestDist == null)
-                          ? Container(
-                              height: 180,
-                              decoration: AppTheme.glassDecoration(
-                                borderRadius: 22,
-                                opacity: 0.1,
-                                shadowColor: _kOrange,
-                                shadowBlur: 20,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'No nearby store available yet.',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.textMid,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : _NearbyStoreBanner(
-                              store: _nearestStore!, dist: _nearestDist!),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
 
-                  const SizedBox(height: 120),
-                ],
+                    ShaderMask(
+                      shaderCallback: (Rect bounds) {
+                        return const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Colors.black, Colors.black, Colors.transparent],
+                          stops: [0.0, 0.82, 1.0],
+                        ).createShader(bounds);
+                      },
+                      blendMode: BlendMode.dstIn,
+                      child: SizedBox(
+                        height: 120,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          clipBehavior: Clip.none,
+                          padding: const EdgeInsets.only(right: 40),
+                          itemCount: _kAllCategories.length,
+                          itemBuilder: (context, index) {
+                            final cat = _kAllCategories[index];
+                            return _CategoryCard(
+                              label: cat['label'] as String,
+                              imagePath: cat['imagePath'] as String,
+                              color: cat['color'] as Color,
+                              onTap: () => _showBranchPicker(cat['label'] as String),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // Nearest branch
+                    Text('Visit Us',
+                        style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF1A1A2E))),
+                    const SizedBox(height: 14),
+
+                    _loadingNearby
+                        ? Container(
+                            height: 180,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                                child: CircularProgressIndicator(
+                                    color: _kPurple)),
+                          )
+                        : (_nearestStore == null || _nearestDist == null)
+                            ? _buildEmptyStoreState()
+                            : _NearbyStoreBanner(
+                                store: _nearestStore!,
+                                dist: _nearestDist!,
+                                onTap: () => _showBranchPicker('Lucky Classic'),
+                              ),
+
+                    SizedBox(height: bottomPad),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyStoreState() {
+    return Container(
+      height: 180,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _locationDenied ? Icons.location_off_rounded : Icons.store_mall_directory_rounded,
+              color: Colors.grey[400],
+              size: 36,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              _locationDenied
+                  ? 'Location access denied'
+                  : 'No nearby stores found',
+              style: GoogleFonts.outfit(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textMid,
               ),
             ),
+            const SizedBox(height: 4),
+            Text(
+              _locationDenied
+                  ? 'Enable location in Settings to find stores near you'
+                  : 'Pull down to refresh',
+              style: GoogleFonts.outfit(
+                fontSize: 11,
+                color: Colors.grey[500],
+              ),
+            ),
+            if (_locationDenied) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () => Geolocator.openLocationSettings(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _kPurple.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Open Settings',
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: _kPurple,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -489,16 +573,21 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   // Search button
-                  GestureDetector(
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
+                  Semantics(
+                    label: 'Search drinks',
+                    button: true,
+                    child: GestureDetector(
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        margin: const EdgeInsets.only(right: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.search_rounded,
+                            color: _kWhite, size: 22),
                       ),
-                      child: const Icon(Icons.search_rounded,
-                          color: _kWhite, size: 22),
                     ),
                   ),
                 ],
@@ -529,8 +618,10 @@ class _HomePageState extends State<HomePage> {
                         value: _loadingPoints
                             ? '...'
                             : '$_luckyPoints Points',
+                        subValue: 'View History',
                         icon: PhosphorIconsFill.sparkle,
                         iconColor: _kOrange,
+                        isPrimary: true,
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -543,11 +634,11 @@ class _HomePageState extends State<HomePage> {
                     Expanded(
                       child: _StatCardLight(
                         label: 'Active Rewards',
-                        value: _hasActiveCard ? 'Active' : 'None',
-                        subValue: _hasActiveCard ? 'Available' : null,
+                        value: _hasActiveCard ? 'Active' : 'No Card',
+                        subValue: _hasActiveCard ? 'Card Active' : 'Tap to get a card',
                         icon: PhosphorIconsFill.gift,
                         iconColor: const Color(0xFF10B981),
-                        badge: _hasActiveCard ? null : 'GET',
+                        badge: _hasActiveCard ? null : 'GET CARD',
                         onTap: _goToCards,
                       ),
                     ),
@@ -610,6 +701,7 @@ class _StatCardLight extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final VoidCallback? onTap;
+  final bool isPrimary;
 
   const _StatCardLight({
     required this.label,
@@ -619,6 +711,7 @@ class _StatCardLight extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     this.onTap,
+    this.isPrimary = false,
   });
 
   @override
@@ -630,6 +723,9 @@ class _StatCardLight extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
+          border: isPrimary
+              ? const Border(left: BorderSide(color: _kOrange, width: 3))
+              : null,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.10),
@@ -659,7 +755,7 @@ class _StatCardLight extends StatelessWidget {
                 if (badge != null)
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: _kPurple.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
@@ -692,7 +788,7 @@ class _StatCardLight extends StatelessWidget {
                 style: GoogleFonts.outfit(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: Colors.grey[500],
+                  color: isPrimary ? _kOrange : Colors.grey[500],
                 ),
               ),
             ],
@@ -777,8 +873,8 @@ class _HeroBannerLight extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.75),
+                        Colors.black.withValues(alpha: 0.15),
+                        Colors.black.withValues(alpha: 0.85),
                       ],
                     ),
                   ),
@@ -936,12 +1032,13 @@ class _CategoryCard extends StatelessWidget {
 class _NearbyStoreBanner extends StatelessWidget {
   final Map<String, dynamic> store;
   final double dist;
-  const _NearbyStoreBanner({required this.store, required this.dist});
+  final VoidCallback? onTap;
+  const _NearbyStoreBanner({required this.store, required this.dist, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return TappableCard(
-      onTap: () {}, // Handled by outer logic or can be added
+      onTap: onTap,
       child: Container(
         width: double.infinity,
         height: 180,
@@ -1156,6 +1253,51 @@ class _BranchTile extends StatelessWidget {
   const _BranchTile(
       {required this.store, required this.isNearest, required this.onTap});
 
+  static const List<Color> _tileColors = [
+    Color(0xFF7C3AED), Color(0xFFEC4899), Color(0xFF10B981),
+    Color(0xFFF59E0B), Color(0xFF6366F1), Color(0xFFEF4444),
+    Color(0xFF8B5CF6), Color(0xFF14B8A6),
+  ];
+
+  Widget _buildBranchImage(Map<String, dynamic> s) {
+    final String img = s['image'] ?? '';
+    if (img.startsWith('http')) {
+      return Image.network(
+        img,
+        width: 50,
+        height: 50,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _initialAvatar(s['name']),
+      );
+    }
+    return _initialAvatar(s['name']);
+  }
+
+  Widget _initialAvatar(String name) {
+    final color = _tileColors[name.hashCode.abs() % _tileColors.length];
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color, color.withValues(alpha: 0.6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: GoogleFonts.outfit(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -1168,23 +1310,7 @@ class _BranchTile extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                store['image'],
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, trace) => Container(
-                  width: 50,
-                  height: 50,
-                  color: Colors.white10,
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.storefront_rounded,
-                    color: Colors.white70,
-                    size: 20,
-                  ),
-                ),
-              ),
+              child: _buildBranchImage(store),
             ),
             const SizedBox(width: 16),
             Expanded(
