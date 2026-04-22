@@ -368,7 +368,7 @@ export const ItemSelectionModal = ({
                 return (
                   <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
                     className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2
-                      ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40'
+                        ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40'
                         : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700'
                           : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
                     <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
@@ -431,22 +431,22 @@ export const BundleModal = ({
   const isLastStep = currentStep === totalSteps - 1;
   const component = flattenedBundleItems[currentStep];
   const selection = bundleSelections[currentStep];
-  
+
   if (!selection || !component) return null;
 
   const itemDetail = component.menuItem;
   const itemName = (selection.name || '').toLowerCase();
-  const hasSugar = (itemDetail?.sugar_levels?.length ?? 0) > 0 || 
-                  itemDetail?.category_id != null ||
-                  itemName.includes('tea') || 
-                  itemName.includes('drink') || 
-                  itemName.includes('coffee') ||
-                  itemName.includes('boba') ||
-                  itemName.includes('milk') ||
-                  itemName.includes('latte') ||
-                  itemName.includes('cooler') ||
-                  itemName.includes('punch');
-  
+  const hasSugar = (itemDetail?.sugar_levels?.length ?? 0) > 0 ||
+    itemDetail?.category_id != null ||
+    itemName.includes('tea') ||
+    itemName.includes('drink') ||
+    itemName.includes('coffee') ||
+    itemName.includes('boba') ||
+    itemName.includes('milk') ||
+    itemName.includes('latte') ||
+    itemName.includes('cooler') ||
+    itemName.includes('punch');
+
   const itemOpts = itemDetail?.options ?? [];
   const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
     const pearlOpts = ['NO PRL', 'W/ PRL'];
@@ -544,8 +544,8 @@ export const BundleModal = ({
         </div>
       </div>
       {addonModalOpen && activeAddOnIndex !== null && (
-        <AddOnModalShell title={`Add-ons: ${bundleSelections[activeAddOnIndex]?.name}`} 
-          addOns={filteredAddOns} 
+        <AddOnModalShell title={`Add-ons: ${bundleSelections[activeAddOnIndex]?.name}`}
+          addOns={filteredAddOns}
           selected={bundleSelections[activeAddOnIndex]?.addOns || []}
           onToggle={onToggleAddOn} onClose={onCloseAddOns} zIndex="z-[110]" orderCharge={orderCharge} />
       )}
@@ -831,7 +831,7 @@ interface ConfirmOrderModalProps {
   onClose: () => void;
   onResetOrder?: () => void;
   vatType?: 'vat' | 'non_vat';
-  orderType?: 'dine-in' | 'take-out' | 'delivery'; // ← ADD
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
   addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
 }
 
@@ -1049,7 +1049,7 @@ export const ConfirmOrderModal = ({
                 ] as const).map(tab => (
                   <button key={tab.id} onClick={() => onTabChange(tab.id)}
                     className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] transition-all border-2 relative
-                      ${activeTab === tab.id ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-md' : 'bg-white text-black border-[#e9d5ff] hover:border-[#6a12b8]/40 hover:bg-[#f5f0ff]'}`}>
+                        ${activeTab === tab.id ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-md' : 'bg-white text-black border-[#e9d5ff] hover:border-[#6a12b8]/40 hover:bg-[#f5f0ff]'}`}>
                     {tab.label}
                     {tab.dot && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />}
                   </button>
@@ -1349,7 +1349,7 @@ export const ConfirmOrderModal = ({
                                         <button key={opt}
                                           onClick={() => setUnitAssignment(cartIndex, unitIndex, opt)}
                                           className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border-2
-                                            ${assignment === opt
+                                              ${assignment === opt
                                               ? opt === 'none'
                                                 ? 'bg-zinc-500 text-white border-zinc-500'
                                                 : opt === 'sc'
@@ -1477,8 +1477,6 @@ export const SuccessModal = ({
     ...(hasStickers ? [{ label: 'Stickers', done: printedStickers, onPrint: onPrintStickers, icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg> }] : []),
   ];
   const pending = printItems.filter(p => !p.done);
-  // Requirement: User must print at least Receipt and Kitchen once before "New Order" unlocks
-  // Allow skip print is now default behavior so we omit allRequiredPrinted check entirely.
 
   return (
     <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -1679,6 +1677,7 @@ interface OnlineOrder {
   status: 'pending' | 'preparing' | 'completed' | 'cancelled';
   created_at: string;
   total_amount?: number;
+  source?: string;
   items: Array<{
     name: string;
     quantity: number;
@@ -1726,8 +1725,8 @@ const KioskPaymentModal = ({ order, onClose, onConfirm }: {
               <h3 className="font-black text-sm text-black uppercase mb-4 tracking-wider">Order Items</h3>
               <div className="space-y-4">
                 {(order.items || []).map((item, i) => {
-                  const qty = item.qty ?? item.quantity ?? 1;
-                  const price = Number(item.price ?? 0);
+                  const qty = (item as { qty?: number; quantity?: number }).qty ?? item.quantity ?? 1;
+                  const price = Number((item as { price?: number }).price ?? 0);
                   const total = price * qty;
                   const addOns = Array.isArray(item.add_ons) ? item.add_ons : [];
                   const sugarLevel = item.sugar_level;
@@ -1735,12 +1734,12 @@ const KioskPaymentModal = ({ order, onClose, onConfirm }: {
                     <div key={i} className="pb-3 border-b border-[#e9d5ff] last:border-0 mb-2 rounded-lg px-2 -mx-2">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-black text-sm text-black shrink-0 ml-2">{qty}x {item.product_name ?? 'Item'}</p>
+                          <p className="font-black text-sm text-black shrink-0 ml-2">{qty}x {(item as { product_name?: string }).product_name ?? 'Item'}</p>
                           {(sugarLevel != null || addOns.length > 0) && (
                             <div className="text-[10px] text-zinc-500 mt-1 ml-2">
                               {sugarLevel != null && <p>• Sugar {sugarLevel}</p>}
                               {addOns.map((add, ai) => (
-                                <p key={ai}>• {typeof add === 'string' ? add : (add as any).name}</p>
+                                <p key={ai}>• {typeof add === 'string' ? add : (add as { name: string }).name}</p>
                               ))}
                             </div>
                           )}
@@ -1853,7 +1852,7 @@ export const KioskQueueManagementModal = ({
 
   // Payment flow states
   const [activePaymentOrder, setActivePaymentOrder] = React.useState<OnlineOrder | null>(null);
-  const [activeNameOrder, setActiveNameOrder] = React.useState<{order: OnlineOrder, paymentMethod: string, cashTendered: number | '', referenceNumber: string} | null>(null);
+  const [activeNameOrder, setActiveNameOrder] = React.useState<{ order: OnlineOrder, paymentMethod: string, cashTendered: number | '', referenceNumber: string } | null>(null);
   const [activeSuccessOrder, setActiveSuccessOrder] = React.useState<{
     order: OnlineOrder; seqNumber: string;
     printedReceipt: boolean; printedKitchen: boolean; printedStickers: boolean;
@@ -1864,9 +1863,9 @@ export const KioskQueueManagementModal = ({
       const res = await api.get('/online-orders');
       const data = res.data;
       const raw = Array.isArray(data) ? data : (data.data ?? []);
-      setOrders(raw.filter((o: OnlineOrder) => 
-        o.invoice_number?.startsWith('KSK-') || 
-        (o as any).source === 'kiosk'
+      setOrders(raw.filter((o: OnlineOrder) =>
+        o.invoice_number?.startsWith('KSK-') ||
+        o.source === 'kiosk'
       ));
     } catch (e) {
       console.error(e);
@@ -1905,8 +1904,8 @@ export const KioskQueueManagementModal = ({
     setUpdatingId(order.id);
     try {
       const branchName = localStorage.getItem('lucky_boba_user_branch') || 'Main Branch';
-      await api.patch(`/online-orders/${order.id}/status`, { 
-        status: 'preparing', 
+      await api.patch(`/online-orders/${order.id}/status`, {
+        status: 'preparing',
         branch_name: branchName,
         payment_method: paymentMethod,
         cash_tendered: cashTendered !== '' ? cashTendered : undefined,
@@ -1942,7 +1941,7 @@ export const KioskQueueManagementModal = ({
     }
   };
 
-  const filteredOrders = orders.filter(o => 
+  const filteredOrders = orders.filter(o =>
     o.customer_code?.toLowerCase().includes(search.toLowerCase()) ||
     o.invoice_number?.toLowerCase().includes(search.toLowerCase())
   );
@@ -2055,11 +2054,10 @@ export const KioskQueueManagementModal = ({
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-black text-[#1a0f2e]">{order.customer_name || 'Guest'}</span>
-                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                        order.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                        order.status === 'preparing' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                        'bg-emerald-50 text-emerald-600 border-emerald-200'
-                      }`}>{order.status}</span>
+                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${order.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                          order.status === 'preparing' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                            'bg-emerald-50 text-emerald-600 border-emerald-200'
+                        }`}>{order.status}</span>
                     </div>
                     <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                       {order.items.length} items • ₱{(order.total_amount ?? 0).toFixed(2)} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -2088,5 +2086,3 @@ export const KioskQueueManagementModal = ({
     </div>
   );
 };
-
-
