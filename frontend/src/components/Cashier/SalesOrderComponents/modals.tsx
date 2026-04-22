@@ -13,6 +13,7 @@ import {
   getItemSurcharge,
 } from './shared';
 import { useToast } from '../../../context/ToastContext';
+import api from '../../../services/api';
 
 // ── Exported type for item-level PAX assignments ──────────────────────────────
 // Key = cart item index (string), Value = array of per-unit assignments
@@ -367,7 +368,7 @@ export const ItemSelectionModal = ({
                 return (
                   <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
                     className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2
-                      ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40'
+                        ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40'
                         : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700'
                           : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
                     <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
@@ -830,7 +831,7 @@ interface ConfirmOrderModalProps {
   onClose: () => void;
   onResetOrder?: () => void;
   vatType?: 'vat' | 'non_vat';
-  orderType?: 'dine-in' | 'take-out' | 'delivery'; // ← ADD
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
   addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
 }
 
@@ -1048,7 +1049,7 @@ export const ConfirmOrderModal = ({
                 ] as const).map(tab => (
                   <button key={tab.id} onClick={() => onTabChange(tab.id)}
                     className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] transition-all border-2 relative
-                      ${activeTab === tab.id ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-md' : 'bg-white text-black border-[#e9d5ff] hover:border-[#6a12b8]/40 hover:bg-[#f5f0ff]'}`}>
+                        ${activeTab === tab.id ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-md' : 'bg-white text-black border-[#e9d5ff] hover:border-[#6a12b8]/40 hover:bg-[#f5f0ff]'}`}>
                     {tab.label}
                     {tab.dot && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />}
                   </button>
@@ -1348,7 +1349,7 @@ export const ConfirmOrderModal = ({
                                         <button key={opt}
                                           onClick={() => setUnitAssignment(cartIndex, unitIndex, opt)}
                                           className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border-2
-                                            ${assignment === opt
+                                              ${assignment === opt
                                               ? opt === 'none'
                                                 ? 'bg-zinc-500 text-white border-zinc-500'
                                                 : opt === 'sc'
@@ -1472,8 +1473,6 @@ export const SuccessModal = ({
     ...(hasStickers ? [{ label: 'Stickers', done: printedStickers, onPrint: onPrintStickers, icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg> }] : []),
   ];
   const pending = printItems.filter(p => !p.done);
-  // Requirement: User must print at least Receipt and Kitchen once before "New Order" unlocks
-  // Allow skip print is now default behavior so we omit allRequiredPrinted check entirely.
 
   return (
     <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -1661,3 +1660,425 @@ export const OrderTypeModal = ({ onSelect, onClose }: OrderTypeModalProps) => (
 );
 
 export { AddOnModalShell };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KioskQueueManagementModal
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface OnlineOrder {
+  id: number;
+  invoice_number: string;
+  customer_code?: string;
+  customer_name?: string;
+  status: 'pending' | 'preparing' | 'completed' | 'cancelled';
+  created_at: string;
+  total_amount?: number;
+  source?: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unit_price: number;
+    cup_size_label?: string;
+    sugar_level?: string;
+    add_ons?: string[];
+    options?: string[];
+  }>;
+}
+
+// ── Kiosk Payment Modal (same as OnlineOrderPaymentModal) ─────────────────────
+const KioskPaymentModal = ({ order, onClose, onConfirm }: {
+  order: OnlineOrder | null;
+  onClose: () => void;
+  onConfirm: (paymentMethod: string, cashTendered: number | '', referenceNumber: string) => void;
+}) => {
+  const [paymentMethod, setPaymentMethod] = React.useState('cash');
+  const [cashTendered, setCashTendered] = React.useState<number | ''>('');
+  const [referenceNumber, setReferenceNumber] = React.useState('');
+
+  if (!order) return null;
+
+  const amtDue = Number(order.total_amount ?? 0);
+  const change = cashTendered === '' ? 0 : Math.max(0, Number(cashTendered) - amtDue);
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white w-full max-w-6xl rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] relative">
+        <div className="bg-[#6a12b8] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center">
+          <div className="w-1/3" />
+          <div className="w-1/3">
+            <h2 className="text-xl font-black uppercase tracking-widest">Payment Details</h2>
+            <p className="text-white/60 text-xs mt-1 uppercase">Kiosk Order</p>
+          </div>
+          <div className="w-1/3 text-right">
+            <button onClick={onClose} className="text-white/50 hover:text-white transition-colors"><CloseIcon size={6} /></button>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row flex-1 min-h-[50vh] max-h-[85vh] overflow-hidden bg-zinc-50">
+          {/* Left: Order Items */}
+          <div className="flex-1 flex flex-col bg-white border-r border-zinc-200 overflow-hidden">
+            <div className="flex-1 p-6 overflow-y-auto">
+              <h3 className="font-black text-sm text-black uppercase mb-4 tracking-wider">Order Items</h3>
+              <div className="space-y-4">
+                {(order.items || []).map((item, i) => {
+                  const qty = (item as { qty?: number; quantity?: number }).qty ?? item.quantity ?? 1;
+                  const price = Number((item as { price?: number }).price ?? 0);
+                  const total = price * qty;
+                  const addOns = Array.isArray(item.add_ons) ? item.add_ons : [];
+                  const sugarLevel = item.sugar_level;
+                  return (
+                    <div key={i} className="pb-3 border-b border-[#e9d5ff] last:border-0 mb-2 rounded-lg px-2 -mx-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-black text-sm text-black shrink-0 ml-2">{qty}x {(item as { product_name?: string }).product_name ?? 'Item'}</p>
+                          {(sugarLevel != null || addOns.length > 0) && (
+                            <div className="text-[10px] text-zinc-500 mt-1 ml-2">
+                              {sugarLevel != null && <p>• Sugar {sugarLevel}</p>}
+                              {addOns.map((add, ai) => (
+                                <p key={ai}>• {typeof add === 'string' ? add : (add as { name: string }).name}</p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <p className="font-black text-sm text-black shrink-0 ml-2">₱ {total.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="p-6 bg-[#f5f0ff] shrink-0 border-t border-[#e9d5ff]">
+              <div className="space-y-1.5 text-[11px] font-bold text-zinc-600">
+                <div className="flex justify-between"><span>Items Count</span><span>{order.items?.length ?? 0}</span></div>
+                <div className="flex justify-between font-black text-lg text-[#6a12b8] mt-2 pt-2 border-t border-[#e9d5ff]">
+                  <span>Total Due</span><span>₱ {amtDue.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Payment */}
+          <div className="flex-1 flex flex-col bg-white overflow-hidden">
+            <div className="flex border-b border-[#e9d5ff] shrink-0 bg-[#f5f0ff] p-2 gap-2">
+              <button className="flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] bg-[#6a12b8] text-white border-2 border-[#6a12b8] shadow-md">Payment</button>
+            </div>
+            <div className="flex-1 p-6 overflow-y-auto">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-black text-sm text-black uppercase mb-3 tracking-wider">Payment Method</h3>
+                  <div className="grid grid-cols-3 gap-2 mb-5">
+                    {PAYMENT_METHODS.map(({ id, label }) => (
+                      <button key={id} onClick={() => { setPaymentMethod(id); setReferenceNumber(''); setCashTendered(''); }}
+                        className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${paymentMethod === id ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#6a12b8]/40'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {paymentMethod === 'cash' ? (
+                    <>
+                      <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase mb-2">Cash Tendered</h3>
+                      <div className="relative mb-3">
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#6a12b8]/30">₱</span>
+                        <input type="number" value={cashTendered} onChange={e => setCashTendered(e.target.value ? Number(e.target.value) : '')}
+                          className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#6a12b8] focus:bg-white transition-colors" placeholder="0.00" />
+                      </div>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+                        <button onClick={() => setCashTendered(amtDue)} className="col-span-2 lg:col-span-4 bg-[#6a12b8] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest shadow-md border-2 border-[#6a12b8]">
+                          Exact Amount (₱ {amtDue.toFixed(2)})
+                        </button>
+                        {[100, 200, 500, 1000].map(amount => (
+                          <button key={amount} onClick={() => setCashTendered(amount)}
+                            className="bg-[#f5f0ff] hover:bg-[#6a12b8] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#6a12b8]">
+                            ₱ {amount}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex justify-between items-center mt-4 bg-[#f5f0ff] border border-[#e9d5ff] p-4 rounded-[0.625rem]">
+                        <span className="font-black text-zinc-400 uppercase text-xs tracking-widest">Change</span>
+                        <span className="text-2xl font-black text-green-600">₱ {change.toFixed(2)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Reference Number</h3>
+                        <input type="text" value={referenceNumber}
+                          onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 13); setReferenceNumber(v); }}
+                          maxLength={13}
+                          className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#6a12b8] focus:bg-white transition-colors uppercase" placeholder="REF#" />
+                        {['gcash', 'paymaya', 'credit', 'debit'].includes(paymentMethod) && referenceNumber.length < 13 && (
+                          <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1 ml-1">
+                            ⚠ Reference number must be 13 digits ({referenceNumber.length}/13)
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-white border-t border-zinc-200 shrink-0 mt-auto">
+              <button onClick={() => onConfirm(paymentMethod, cashTendered, referenceNumber)}
+                disabled={
+                  (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
+                  (['gcash', 'paymaya', 'credit', 'debit'].includes(paymentMethod) && referenceNumber.length < 13)
+                }
+                className="w-full bg-[#6a12b8] text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
+                Next: Capture Name
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const KioskQueueManagementModal = ({
+  onClose,
+}: {
+  onClose: () => void;
+}) => {
+  const [orders, setOrders] = React.useState<OnlineOrder[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [search, setSearch] = React.useState('');
+  const [updatingId, setUpdatingId] = React.useState<number | null>(null);
+
+  // Payment flow states
+  const [activePaymentOrder, setActivePaymentOrder] = React.useState<OnlineOrder | null>(null);
+  const [activeNameOrder, setActiveNameOrder] = React.useState<{ order: OnlineOrder, paymentMethod: string, cashTendered: number | '', referenceNumber: string } | null>(null);
+  const [activeSuccessOrder, setActiveSuccessOrder] = React.useState<{
+    order: OnlineOrder; seqNumber: string;
+    printedReceipt: boolean; printedKitchen: boolean; printedStickers: boolean;
+  } | null>(null);
+
+  const fetchOrders = React.useCallback(async () => {
+    try {
+      const res = await api.get('/online-orders');
+      const data = res.data;
+      const raw = Array.isArray(data) ? data : (data.data ?? []);
+      setOrders(raw.filter((o: OnlineOrder) =>
+        o.invoice_number?.startsWith('KSK-') ||
+        o.source === 'kiosk'
+      ));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 5000);
+    return () => clearInterval(interval);
+  }, [fetchOrders]);
+
+  const handleStartPreparing = (order: OnlineOrder) => {
+    setActivePaymentOrder(order);
+  };
+
+  const handlePaymentConfirm = (paymentMethod: string, cashTendered: number | '', referenceNumber: string) => {
+    if (activePaymentOrder) {
+      setActiveNameOrder({ order: activePaymentOrder, paymentMethod, cashTendered, referenceNumber });
+      setActivePaymentOrder(null);
+    }
+  };
+
+  const triggerPrint = React.useCallback((type: string, _order: OnlineOrder, _seq: string) => {
+    // Trigger browser print
+    setTimeout(() => { window.print(); }, 150);
+    void type;
+  }, []);
+
+  const completeWorkflow = async (nameObj: typeof activeNameOrder, finalName: string) => {
+    if (!nameObj) return;
+    const { order, paymentMethod, cashTendered } = nameObj;
+    setActiveNameOrder(null);
+    setUpdatingId(order.id);
+    try {
+      const branchName = localStorage.getItem('lucky_boba_user_branch') || 'Main Branch';
+      await api.patch(`/online-orders/${order.id}/status`, {
+        status: 'preparing',
+        branch_name: branchName,
+        payment_method: paymentMethod,
+        cash_tendered: cashTendered !== '' ? cashTendered : undefined,
+        customer_name: finalName,
+      });
+      const updatedOrder = { ...order, status: 'preparing' as const, customer_name: finalName, payment_method: paymentMethod };
+      const seqNumber = updatedOrder.customer_code || '001';
+      setActiveSuccessOrder({
+        order: updatedOrder,
+        seqNumber,
+        printedReceipt: false,
+        printedKitchen: false,
+        printedStickers: false,
+      });
+      fetchOrders();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const updateStatus = async (id: number, status: string) => {
+    setUpdatingId(id);
+    try {
+      const branchName = localStorage.getItem('lucky_boba_user_branch') || 'Main Branch';
+      await api.patch(`/online-orders/${id}/status`, { status, branch_name: branchName });
+      fetchOrders();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const filteredOrders = orders.filter(o =>
+    o.customer_code?.toLowerCase().includes(search.toLowerCase()) ||
+    o.invoice_number?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // If success/receipt modal is active, render it on top
+  if (activeSuccessOrder) {
+    return (
+      <SuccessModal
+        orNumber={activeSuccessOrder.seqNumber}
+        hasStickers={true}
+        printedReceipt={activeSuccessOrder.printedReceipt}
+        printedKitchen={activeSuccessOrder.printedKitchen}
+        printedStickers={activeSuccessOrder.printedStickers}
+        onPrintReceipt={() => {
+          triggerPrint('receipt', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
+          setActiveSuccessOrder(prev => prev ? { ...prev, printedReceipt: true } : null);
+        }}
+        onPrintKitchen={() => {
+          triggerPrint('kitchen', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
+          setActiveSuccessOrder(prev => prev ? { ...prev, printedKitchen: true } : null);
+        }}
+        onPrintStickers={() => {
+          triggerPrint('stickers', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
+          setActiveSuccessOrder(prev => prev ? { ...prev, printedStickers: true } : null);
+        }}
+        onNewOrder={() => setActiveSuccessOrder(null)}
+        allowSkipPrint={true}
+      />
+    );
+  }
+
+  // If payment modal is active, render it on top
+  if (activePaymentOrder) {
+    return (
+      <KioskPaymentModal
+        order={activePaymentOrder}
+        onClose={() => setActivePaymentOrder(null)}
+        onConfirm={handlePaymentConfirm}
+      />
+    );
+  }
+
+  // If name capture is active, render it on top
+  if (activeNameOrder) {
+    return (
+      <CustomerNameModal
+        customerName={activeNameOrder.order.customer_name ?? ''}
+        onChange={(name) => setActiveNameOrder(prev => prev ? { ...prev, order: { ...prev.order, customer_name: name } } : null)}
+        onSkip={() => completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
+        onConfirm={() => completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
+        submitting={updatingId === activeNameOrder.order.id}
+      />
+    );
+  }
+
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#f4f2fb] w-full max-w-4xl h-[80vh] rounded-[1.25rem] shadow-2xl flex flex-col overflow-hidden">
+        <div className="bg-[#6a12b8] p-6 text-white flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-black uppercase tracking-widest leading-none">Kiosk Queue</h2>
+              <p className="text-[10px] font-bold opacity-60 uppercase mt-1 tracking-wider">Manage Kiosk Orders</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-all">
+            <CloseIcon size={6} />
+          </button>
+        </div>
+
+        <div className="p-4 bg-white border-b border-[#e9d5ff]">
+          <div className="relative">
+            <input type="text" placeholder="Search Queue Number..." value={search} onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-xl py-3 px-12 font-black text-[#6a12b8] outline-none focus:border-[#6a12b8] transition-all uppercase placeholder:text-[#6a12b8]/30" />
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6a12b8]/40">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {loading ? (
+            <div className="h-full flex flex-col items-center justify-center text-[#6a12b8]/30 gap-3">
+              <div className="w-8 h-8 border-4 border-current border-t-transparent rounded-full animate-spin" />
+              <p className="text-[10px] font-black uppercase tracking-widest">Loading orders...</p>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-[#6a12b8]/20 gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+              </svg>
+              <p className="text-[10px] font-black uppercase tracking-widest">No orders found</p>
+            </div>
+          ) : (
+            filteredOrders.map(order => (
+              <div key={order.id} className="bg-white rounded-2xl p-4 border-2 border-[#e9d5ff] flex justify-between items-center group hover:border-[#6a12b8]/30 transition-all shadow-sm">
+                <div className="flex gap-4 items-center">
+                  <div className="bg-[#f5f0ff] p-3 rounded-xl border-2 border-[#e9d5ff] text-center min-w-[80px]">
+                    <div className="text-[10px] font-bold text-[#6a12b8]/40 leading-none mb-1">NO.</div>
+                    <div className="text-2xl font-black text-[#6a12b8] leading-none">#{order.customer_code}</div>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-black text-[#1a0f2e]">{order.customer_name || 'Guest'}</span>
+                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${order.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                          order.status === 'preparing' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                            'bg-emerald-50 text-emerald-600 border-emerald-200'
+                        }`}>{order.status}</span>
+                    </div>
+                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                      {order.items.length} items • ₱{(order.total_amount ?? 0).toFixed(2)} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {order.status === 'pending' && (
+                    <button onClick={() => handleStartPreparing(order)} disabled={updatingId === order.id}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all disabled:opacity-50">
+                      {updatingId === order.id ? '...' : 'Start Preparing'}
+                    </button>
+                  )}
+                  {order.status === 'preparing' && (
+                    <button onClick={() => updateStatus(order.id, 'completed')} disabled={updatingId === order.id}
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-50">
+                      {updatingId === order.id ? '...' : 'Mark as Done'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

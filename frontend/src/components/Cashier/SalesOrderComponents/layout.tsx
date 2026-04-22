@@ -16,11 +16,12 @@ interface HeaderProps {
   searchQuery: string;
   onSearchChange: (v: string) => void;
   onHomeClick: () => void;
+  onKioskClick?: () => void;
 }
 
 export const Header = ({
   branchName, formattedDate, formattedTime,
-  searchQuery, onSearchChange, onHomeClick,
+  searchQuery, onSearchChange, onHomeClick, onKioskClick: _onKioskClick,
 }: HeaderProps) => (
   <div className="flex gap-3 px-4 py-3 bg-white border-b border-[#e9d5ff] items-center h-20 shrink-0 shadow-sm z-20">
     <button
@@ -85,12 +86,12 @@ interface MenuAreaProps {
 
 export const MenuArea = ({
   menuAvailable, selectedCategory, categorySize, searchQuery,
-  filteredCategories, isWings, 
+  filteredCategories, isWings,
   getFilteredItems, onCategoryClick, onItemClick, onSizeSelect, onBack,
 }: MenuAreaProps) => {
   const SUB_LABEL: Record<string, string> = {
     SM: 'Medium', UM: 'Medium', PCM: 'Medium',
-    SL: 'Large',  UL: 'Large',  PCL: 'Large',
+    SL: 'Large', UL: 'Large', PCL: 'Large',
     JR: 'Junior',
   };
 
@@ -136,8 +137,8 @@ export const MenuArea = ({
                   item.name.toLowerCase().includes(searchQuery.toLowerCase())
                 )
               ).map(item => (
-                <button 
-                  key={item.id} 
+                <button
+                  key={item.id}
                   onClick={() => onItemClick(item)}
                   className={`${BASE_CARD} hover:border-[#6a12b8] group flex-col py-3 px-2 justify-center`}
                 >
@@ -255,11 +256,11 @@ export const MenuArea = ({
         // ── Category grid ─────────────────────────────────────────────────
         <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-7">
           {[
-            { label: 'Drinks',       types: ['drink'],                        colorKey: 'drink' },
-            { label: 'Bundles',      types: ['bundle'],                       colorKey: 'drink' },
-            { label: 'Food',         types: ['food', 'wings', 'waffle', 'combo'], colorKey: 'food' },
-            { label: 'Mix & Match',  types: ['mix_and_match'],                colorKey: 'promo' },
-            { label: 'Promo',        types: ['promo'],                        colorKey: 'promo' },
+            { label: 'Drinks', types: ['drink'], colorKey: 'drink' },
+            { label: 'Bundles', types: ['bundle'], colorKey: 'drink' },
+            { label: 'Food', types: ['food', 'wings', 'waffle', 'combo'], colorKey: 'food' },
+            { label: 'Mix & Match', types: ['mix_and_match'], colorKey: 'promo' },
+            { label: 'Promo', types: ['promo'], colorKey: 'promo' },
           ].map(({ label, types, colorKey }) => {
             const groupCats = filteredCategories.filter(cat => types.includes(cat.type));
             if (groupCats.length === 0) return null;
@@ -284,7 +285,7 @@ export const MenuArea = ({
 
           {/* Other categories */}
           {(() => {
-            const known  = ['food', 'wings', 'waffle', 'combo', 'drink', 'bundle', 'mix_and_match', 'promo'];
+            const known = ['food', 'wings', 'waffle', 'combo', 'drink', 'bundle', 'mix_and_match', 'promo'];
             const others = filteredCategories.filter(cat => !known.includes(cat.type));
             if (others.length === 0) return null;
             return (
@@ -331,25 +332,25 @@ export const CartSidebar = ({
 }: CartSidebarProps) => (
   <div className="w-96 bg-white border-l-2 border-[#e9d5ff] flex flex-col shrink-0 shadow-2xl z-30">
 
-{/* Cart header */}
-<div className="bg-[#6a12b8] p-4 text-white flex items-center justify-between shrink-0">
-  <div>
-    <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Cashier</div>
-    <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{cashierName ?? 'Admin'}</div>
-  </div>
-  <div className="text-center">
-    <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">SI#</div>
-    <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{orNumber}</div>
-  </div>
-  <div className="text-center">
-    <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Terminal</div>
-    <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{terminalNumber}</div>
-  </div>
-  <div className="text-right">
-    <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Items</div>
-    <div className="text-[15px] font-black leading-tight mt-0.5">{totalCount}</div>
-  </div>
-</div>
+    {/* Cart header */}
+    <div className="bg-[#6a12b8] p-4 text-white flex items-center justify-between shrink-0">
+      <div>
+        <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Cashier</div>
+        <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{cashierName ?? 'Admin'}</div>
+      </div>
+      <div className="text-center">
+        <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">SI#</div>
+        <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{orNumber}</div>
+      </div>
+      <div className="text-center">
+        <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Terminal</div>
+        <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{terminalNumber}</div>
+      </div>
+      <div className="text-right">
+        <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Items</div>
+        <div className="text-[15px] font-black leading-tight mt-0.5">{totalCount}</div>
+      </div>
+    </div>
 
     {/* Cart items */}
     <div className="flex-1 overflow-y-auto p-4 bg-white">
@@ -374,9 +375,9 @@ export const CartSidebar = ({
                 </p>
                 <div className="flex flex-wrap gap-1 mt-1.5">
                   {item.sugarLevel != null && <span className="bg-[#6a12b8]/10 text-black text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🍬 {item.sugarLevel}</span>}
-                  {item.options?.map(opt    => <span key={opt}   className="bg-blue-100  text-blue-700  text-[9px] px-1.5 py-0.5 rounded-lg font-bold">{opt}</span>)}
-                  {item.addOns?.map(addon   => <span key={addon} className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">+{addon}</span>)}
-                  {item.charges?.grab  && <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🛵 Grab</span>}
+                  {item.options?.map(opt => <span key={opt} className="bg-blue-100  text-blue-700  text-[9px] px-1.5 py-0.5 rounded-lg font-bold">{opt}</span>)}
+                  {item.addOns?.map(addon => <span key={addon} className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">+{addon}</span>)}
+                  {item.charges?.grab && <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🛵 Grab</span>}
                   {item.charges?.panda && <span className="bg-pink-100  text-pink-700  text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🐼 Panda</span>}
                   {item.remarks && <span className="bg-zinc-200 text-zinc-600 text-[9px] px-1.5 py-0.5 rounded-lg font-bold italic">📝 {item.remarks}</span>}
                 </div>
