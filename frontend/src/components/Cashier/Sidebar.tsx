@@ -73,7 +73,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     api.get('/discounts').then(r => {
       if (Array.isArray(r.data)) localStorage.setItem('pos_discounts_cache', JSON.stringify(r.data));
     }).catch(() => {});
-  }, []);
+  }, [user?.branch_id]);
 
   useEffect(() => {
     const channel = new BroadcastChannel('pos-updates');

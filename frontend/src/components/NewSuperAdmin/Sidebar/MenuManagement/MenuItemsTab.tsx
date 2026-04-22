@@ -1817,6 +1817,7 @@ const DeleteAddOnModal: React.FC<DeleteAddOnModalProps> = ({ addon, onClose, onD
 };
 
 const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
+  const { showToast } = useToast();
   const [addOns, setAddOns] = useState<AddOnItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1874,10 +1875,27 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
 
   const handleEdit = (addon: AddOnItem) => {
     setEditingId(addon.id);
-    setForm({ name: addon.name, price: String(addon.price), grab_price: String(addon.grab_price), panda_price: String(addon.panda_price), barcode: addon.barcode ?? "", category: addon.category, is_available: addon.is_available });
+    setForm({ name: addon.name, price: String(addon.price), grab_price: String(addon.grab_price), panda_price: String(addon.panda_price), barcode: addon.barcode ?? "", category: addon.category, is_available: !!addon.is_available });
     setFormErrors({});
   };
   const cancelEdit = () => { setEditingId(null); setForm(blank()); setFormErrors({}); };
+
+  const toggleAddOnAvailable = async (addon: AddOnItem) => {
+    const next = !addon.is_available;
+    try {
+      const res = await fetch(`/api/add-ons/${addon.id}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({ is_available: next }),
+      });
+      if (res.ok) {
+        setAddOns(prev => prev.map(a => a.id === addon.id ? { ...a, is_available: next } : a));
+        if (editingId === addon.id) setForm(p => ({ ...p, is_available: next }));
+        showToast(`${addon.name} is now ${next ? "active" : "deactivated"}.`, next ? "success" : "warning");
+        triggerSync();
+      }
+    } catch (e) { console.error("Toggle add-on failed", e); }
+  };
   const fi = (key: keyof typeof form) => ({
     value: String(form[key]),
     onChange: (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -1974,7 +1992,9 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
         ) : (
           addOns.filter(a => filterTab === "all" || a.category === filterTab).map(addon => (
             <div key={addon.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${editingId === addon.id ? "bg-violet-50 border-violet-300" : "bg-white border-zinc-200 hover:border-zinc-300"}`}>
-              <div className={`w-2 h-2 rounded-full shrink-0 ${addon.is_available ? "bg-emerald-400" : "bg-zinc-300"}`} />
+              <button onClick={() => toggleAddOnAvailable(addon)} className="transition-colors shrink-0" title={addon.is_available ? "Deactivate (Hide from POS)" : "Activate (Show on POS)"}>
+                {addon.is_available ? <ToggleRight size={22} className="text-[#6a12b8]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
+              </button>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-zinc-700 truncate">{addon.name}</p>
                 <p className="text-[10px] text-zinc-400 capitalize">{addon.category}</p>
