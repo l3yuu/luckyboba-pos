@@ -37,6 +37,7 @@ import {
   AddOnModalShell,
   MixAndMatchDrinkModal,
   PaymentSelectModal,
+  KioskQueueManagementModal,
   type ItemPaxAssignments,
 } from '../components/Cashier/SalesOrderComponents/modals'
 
@@ -285,6 +286,7 @@ const SalesOrder = () => {
   const [printedReceipt, setPrintedReceipt] = useState(false)
   const [printedKitchen, setPrintedKitchen] = useState(false)
   const [printedStickers, setPrintedStickers] = useState(false)
+  const [isKioskQueueModalOpen, setIsKioskQueueModalOpen] = useState(false)
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
@@ -1926,6 +1928,7 @@ const SalesOrder = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onHomeClick={() => handleNavClick('Home')}
+          onKioskClick={() => setIsKioskQueueModalOpen(true)}
         />
 
         <OfflineQueueBanner
@@ -2009,6 +2012,21 @@ const SalesOrder = () => {
                 </button>
               );
             })}
+
+            {!selectedCategory && (
+              <div className="flex items-center gap-2 ml-auto">
+                <div className="w-px h-4 bg-zinc-200 mx-1 shrink-0" />
+                <button
+                  onClick={() => setIsKioskQueueModalOpen(true)}
+                  className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-black transition-all bg-amber-500 text-white hover:bg-amber-600 shadow-sm active:scale-95 uppercase tracking-wider"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                  </svg>
+                  <span>Kiosk</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -2091,6 +2109,10 @@ const SalesOrder = () => {
             setSyncRequired(false);
           }}
         />
+      )}
+
+      {isKioskQueueModalOpen && (
+        <KioskQueueManagementModal onClose={() => setIsKioskQueueModalOpen(false)} />
       )}
     </>
   )

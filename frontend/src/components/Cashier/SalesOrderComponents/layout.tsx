@@ -16,11 +16,12 @@ interface HeaderProps {
   searchQuery: string;
   onSearchChange: (v: string) => void;
   onHomeClick: () => void;
+  onKioskClick: () => void;
 }
 
 export const Header = ({
   branchName, formattedDate, formattedTime,
-  searchQuery, onSearchChange, onHomeClick,
+  searchQuery, onSearchChange, onHomeClick, onKioskClick,
 }: HeaderProps) => (
   <div className="flex gap-3 px-4 py-3 bg-white border-b border-[#e9d5ff] items-center h-20 shrink-0 shadow-sm z-20">
     <button
@@ -53,7 +54,7 @@ export const Header = ({
           <div className="text-[11px] font-black text-[#6a12b8] uppercase leading-tight mt-0.5">{branchName}</div>
         </div>
       </div>
-      <div className="bg-[#6a12b8] rounded-[0.625rem] flex items-center justify-center px-4 min-w-22.5 shadow-md">
+      <div className="bg-[#6a12b8] rounded-[0.625rem] flex items-center justify-center px-4 min-w-22.5 shadow-md h-full">
         <div className="text-center text-white">
           <div className="text-[9px] font-bold uppercase opacity-60 leading-none">{formattedDate}</div>
           <div className="text-[13px] font-black leading-tight mt-0.5">{formattedTime}</div>

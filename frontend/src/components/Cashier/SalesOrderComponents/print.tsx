@@ -679,12 +679,17 @@ export const KioskTicketPrint = ({
           }
         }
       `}</style>
-      <div className="receipt-area bg-white text-black leading-none">
+      <div className="receipt-area bg-white text-black leading-snug antialiased" style={{ 
+        fontFamily: 'Arial, Helvetica, sans-serif',
+        WebkitFontSmoothing: 'antialiased',
+        fontSmooth: 'always',
+        textRendering: 'optimizeLegibility'
+      }}>
         {/* Store header */}
         <div className="text-center mb-1 pb-1 border-b border-dashed border-black">
           <img src={logo} alt="Lucky Boba Logo" className="w-16 h-auto mx-auto mb-1" style={{ filter: 'grayscale(100%)', maxWidth: '30mm' }} />
-          <h1 className="uppercase font-black text-sm tracking-tighter">LUCKY BOBA</h1>
-          <p className="text-[8px] uppercase font-bold tracking-widest">{branchName}</p>
+          <h1 className="uppercase font-black text-lg tracking-tighter">LUCKY BOBA</h1>
+          <p className="text-[10px] uppercase font-black tracking-widest">{branchName}</p>
         </div>
 
         {/* Payment Instruction */}
@@ -700,13 +705,13 @@ export const KioskTicketPrint = ({
             style={{ fontSize: '28pt', lineHeight: 1, maxWidth: '100%' }}>
             #{queueNumber}
           </h2>
-          <p className="!text-[9px] !font-bold !mt-1 !text-gray-800 !tracking-wider">
+          <p className="!text-[11px] !font-black !mt-1 !text-black !tracking-wider">
             {formattedDate} • {formattedTime}
           </p>
         </div>
 
         {/* Items Table Header */}
-        <div className="flex justify-between text-[8px] font-black uppercase border-b border-black pb-0.5 mb-1">
+        <div className="flex justify-between text-[10px] font-black uppercase border-b-2 border-black pb-0.5 mb-1">
           <span>Item / Qty</span>
           <span>Price</span>
         </div>
@@ -723,7 +728,7 @@ export const KioskTicketPrint = ({
                   </div>
                   {item.cupSizeLabel && <div className="pl-3 text-[7px] font-bold uppercase text-gray-600 italic mt-0.5">{item.cupSizeLabel} SIZE</div>}
                 </div>
-                <div className="font-black text-[10px]" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                <div className="font-black text-[11px]" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
                   ₱{((item.itemTotal || Number(item.sellingPrice || item.price || item.finalPrice)) * item.qty).toFixed(2)}
                 </div>
               </div>
@@ -747,9 +752,9 @@ export const KioskTicketPrint = ({
         </div>
 
         {/* Totals Section */}
-        <div className="border-t border-black pt-1 mb-1">
+        <div className="border-t-2 border-black pt-1 mb-1">
           <div className="flex justify-between items-baseline">
-            <span className="text-[8px] font-black uppercase">TOTAL DUE</span>
+            <span className="text-[11px] font-black uppercase">TOTAL DUE</span>
             <div className="flex items-baseline gap-1 font-black">
               <span className="text-[10px]">₱</span>
               <span className="tracking-tighter" style={{ fontSize: '14pt' }}>{totalAmount.toFixed(2)}</span>
