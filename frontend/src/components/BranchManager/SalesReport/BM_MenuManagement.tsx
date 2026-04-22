@@ -68,9 +68,9 @@ const Toggle = ({
     title={checked ? 'Disable item' : 'Enable item'}
   >
     {loading
-      ? <div style={{ width: 20, height: 20, border: '2px solid #d4d4d8', borderTopColor: '#3b2063', borderRadius: '50%' }} className="mm-spin" />
+      ? <div style={{ width: 20, height: 20, border: '2px solid #d4d4d8', borderTopColor: '#a020f0', borderRadius: '50%' }} className="mm-spin" />
       : checked
-        ? <ToggleRight size={30} color="#3b2063" strokeWidth={1.8} />
+        ? <ToggleRight size={30} color="#a020f0" strokeWidth={1.8} />
         : <ToggleLeft  size={30} color="#d4d4d8" strokeWidth={1.8} />
     }
   </button>
@@ -117,7 +117,7 @@ const MenuItemRow = ({
         <span
           style={{
             fontSize: '0.56rem', fontWeight: 700, letterSpacing: '0.14em',
-            textTransform: 'uppercase', background: '#ede9fe', color: '#3b2063',
+            textTransform: 'uppercase', background: '#ede9fe', color: '#a020f0',
             borderRadius: '100px', padding: '2px 7px',
           }}
         >
@@ -129,7 +129,7 @@ const MenuItemRow = ({
 
     {/* Price */}
     <div className="text-right shrink-0 hidden sm:block">
-      <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#3b2063', margin: 0 }}>
+      <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#a020f0', margin: 0 }}>
         {fmt(item.sellingPrice)}
       </p>
     </div>
@@ -259,13 +259,13 @@ const BM_MenuManagement = () => {
         <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
           <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
             <div className="relative group flex-1 w-full md:w-auto">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#a020f0]" size={15} />
               <input
                 type="text"
                 placeholder="Search items or category..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+                className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#a020f0] transition-all shadow-sm"
               />
             </div>
             
@@ -291,7 +291,7 @@ const BM_MenuManagement = () => {
               { label: 'Total Items',   value: items.length,        bg: '#f4f4f5', color: '#52525b' },
               { label: 'Available',     value: availableCount,      bg: '#dcfce7', color: '#166534' },
               { label: 'Unavailable',   value: unavailableCount,    bg: '#fee2e2', color: '#991b1b' },
-              { label: 'Categories',    value: categories.length - 1, bg: '#ede9fe', color: '#3b2063' },
+              { label: 'Categories',    value: categories.length - 1, bg: '#ede9fe', color: '#a020f0' },
             ].map(({ label, value, bg, color }) => (
               <div key={label} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -323,7 +323,7 @@ const BM_MenuManagement = () => {
         {/* ── Content ── */}
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20">
-            <div style={{ width: 36, height: 36, border: '2.5px solid #3b2063', borderTopColor: 'transparent', borderRadius: '50%' }} className="mm-spin" />
+            <div style={{ width: 36, height: 36, border: '2.5px solid #a020f0', borderTopColor: 'transparent', borderRadius: '50%' }} className="mm-spin" />
             <p className="mm-label" style={{ color: '#a1a1aa' }}>Loading menu…</p>
           </div>
 
@@ -335,7 +335,7 @@ const BM_MenuManagement = () => {
             <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#dc2626' }}>{error}</p>
             <button
               onClick={() => fetchMenu()}
-              style={{ padding: '8px 20px', background: '#3b2063', color: '#fff', border: 'none', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}
+              style={{ padding: '8px 20px', background: '#a020f0', color: '#fff', border: 'none', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}
             >
               Try Again
             </button>
@@ -373,7 +373,7 @@ const BM_MenuManagement = () => {
                       </span>
                       <span style={{
                         fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.14em',
-                        textTransform: 'uppercase', background: '#ede9fe', color: '#3b2063',
+                        textTransform: 'uppercase', background: '#ede9fe', color: '#a020f0',
                         borderRadius: '100px', padding: '2px 8px',
                       }}>
                         {avCount}/{catItems.length} available

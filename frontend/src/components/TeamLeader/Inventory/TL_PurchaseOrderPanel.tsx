@@ -261,7 +261,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="h-10 px-5 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg shadow-sm flex items-center gap-2 whitespace-nowrap"
+            className="h-10 px-5 bg-[#a020f0] hover:bg-[#2a1647] text-white font-bold text-xs uppercase tracking-widest transition-all rounded-lg shadow-sm flex items-center gap-2 whitespace-nowrap"
           >
             <Plus size={14} /> Create New P.O.
           </button>
@@ -294,7 +294,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                 filteredOrders.map((po) => (
                   <tr key={po.id} className="hover:bg-[#faf9ff] transition-colors">
                     <td className="px-6 py-4">
-                      <span className="text-xs font-black text-[#3b2063] font-mono">{po.poNumber}</span>
+                      <span className="text-xs font-black text-[#a020f0] font-mono">{po.poNumber}</span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs font-bold text-zinc-700">{po.supplier}</span>
@@ -320,7 +320,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => openUpdateModal(po)}
-                        className="h-8 w-8 inline-flex items-center justify-center bg-white border border-zinc-200 hover:border-[#3b2063] hover:text-[#3b2063] text-zinc-400 transition-all rounded-lg shadow-sm"
+                        className="h-8 w-8 inline-flex items-center justify-center bg-white border border-zinc-200 hover:border-[#a020f0] hover:text-[#a020f0] text-zinc-400 transition-all rounded-lg shadow-sm"
                       >
                         <FileText size={14} />
                       </button>
@@ -383,7 +383,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                       type="text"
                       value={formData.supplier}
                       onChange={(e) => setFormData({...formData, supplier: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none transition-all placeholder:text-zinc-300 focus:border-[#3b2063] focus:bg-white"
+                      className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none transition-all placeholder:text-zinc-300 focus:border-[#a020f0] focus:bg-white"
                       placeholder="e.g. Boba Supply Co."
                     />
                   </div>
@@ -394,7 +394,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                       type="date"
                       value={formData.date_ordered}
                       onChange={(e) => setFormData({...formData, date_ordered: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none transition-all focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                      className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold outline-none transition-all focus:border-[#a020f0] focus:bg-white cursor-pointer"
                     />
                   </div>
                 </div>
@@ -406,7 +406,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                     <button 
                       type="button" 
                       onClick={addFormItem} 
-                      className="text-[#3b2063] font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e9d5ff] rounded-lg hover:bg-[#f5f0ff] transition-all shadow-sm"
+                      className="text-[#a020f0] font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e9d5ff] rounded-lg hover:bg-[#f5f0ff] transition-all shadow-sm"
                     >
                       <Plus size={12} /> Add Material
                     </button>
@@ -419,7 +419,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                           required
                           value={item.menu_item_id}
                           onChange={(e) => updateFormItem(index, 'menu_item_id', e.target.value)}
-                          className="flex-1 bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-bold text-zinc-700 outline-none focus:border-[#3b2063] transition-all"
+                          className="flex-1 bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-bold text-zinc-700 outline-none focus:border-[#a020f0] transition-all"
                         >
                           <option value="" disabled>Select Item</option>
                           {menuItems.map(mi => <option key={mi.id} value={mi.id}>{mi.name}</option>)}
@@ -427,14 +427,14 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                         <input
                           required type="number" min="1" placeholder="Qty"
                           value={item.quantity} onChange={(e) => updateFormItem(index, 'quantity', e.target.value)}
-                          className="w-20 bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-black text-right outline-none focus:border-[#3b2063] transition-all tabular-nums"
+                          className="w-20 bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-black text-right outline-none focus:border-[#a020f0] transition-all tabular-nums"
                         />
                         <div className="relative w-28">
                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-300">₱</span>
                            <input
                              required type="number" step="0.01" min="0" placeholder="Cost"
                              value={item.unit_cost} onChange={(e) => updateFormItem(index, 'unit_cost', e.target.value)}
-                             className="w-full bg-white border border-zinc-200 rounded-lg pl-6 pr-3 py-2 text-xs font-black text-right outline-none focus:border-[#3b2063] transition-all tabular-nums"
+                             className="w-full bg-white border border-zinc-200 rounded-lg pl-6 pr-3 py-2 text-xs font-black text-right outline-none focus:border-[#a020f0] transition-all tabular-nums"
                            />
                         </div>
                         {formItems.length > 1 && (
@@ -452,7 +452,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
 
                   <div className="mt-4 pt-4 border-t border-zinc-200 flex justify-between items-center px-1">
                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Estimated Total:</span>
-                    <span className="text-xl font-black text-[#3b2063] tabular-nums">₱{calculatedTotal.toLocaleString()}</span>
+                    <span className="text-xl font-black text-[#a020f0] tabular-nums">₱{calculatedTotal.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -468,7 +468,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 h-11 bg-[#3b2063] text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#2a1647] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-xl shadow-lg shadow-violet-200/50"
+                  className="flex-1 h-11 bg-[#a020f0] text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#2a1647] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-xl shadow-lg shadow-violet-200/50"
                 >
                   {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" />Processing...</> : 'Send Purchase Order'}
                 </button>
@@ -501,7 +501,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
             <div className="px-7 pt-6 pb-2">
                <div className="p-3 bg-zinc-50 border border-zinc-100 rounded-xl text-center">
                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Supplier</p>
-                  <p className="text-sm font-black text-[#3b2063] truncate">{selectedPO.supplier}</p>
+                  <p className="text-sm font-black text-[#a020f0] truncate">{selectedPO.supplier}</p>
                </div>
             </div>
 
@@ -511,7 +511,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value as POStatus)}
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold text-[#1a0f2e] outline-none transition-all focus:border-[#3b2063] focus:bg-white cursor-pointer appearance-none"
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-bold text-[#1a0f2e] outline-none transition-all focus:border-[#a020f0] focus:bg-white cursor-pointer appearance-none"
                 >
                   <option value="Pending">Pending Approval</option>
                   <option value="Received">Confirmed Received</option>
@@ -530,7 +530,7 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 h-11 bg-[#3b2063] text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#2a1647] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-xl shadow-lg shadow-violet-200/50"
+                  className="flex-1 h-11 bg-[#a020f0] text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#2a1647] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-xl shadow-lg shadow-violet-200/50"
                 >
                   {isSubmitting ? <><Loader2 className="w-3 h-3 animate-spin" />Saving</> : 'Apply Update'}
                 </button>

@@ -63,7 +63,7 @@ const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
 const STYLES = `
   @keyframes ops-topbar-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
   .ops-topbar-pulse { animation: ops-topbar-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-  .ops-topbar-header { background: #3b2063; }
+  .ops-topbar-header { background: #a020f0; }
 `;
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -217,14 +217,14 @@ const OpsTopBar: React.FC<OpsTopBarProps> = ({
               onClick={handleBellClick}
               className={`relative p-2 rounded-[0.5rem] transition-all border ${
                 isNotifOpen 
-                  ? 'bg-white text-[#3b2063] border-white shadow-lg' 
+                  ? 'bg-white text-[#a020f0] border-white shadow-lg' 
                   : 'bg-[#ffffff10] text-[#ffffff90] border-[#ffffff10] hover:bg-[#ffffff20]'
               }`}
             >
-              <Bell size={14} className={isNotifOpen ? 'text-[#3b2063]' : 'text-[#ffffff90]'} />
+              <Bell size={14} className={isNotifOpen ? 'text-[#a020f0]' : 'text-[#ffffff90]'} />
               
               {notifications.length > 0 && (
-                <span className={`absolute -top-1 -right-1 flex flex-col items-center justify-center min-w-[1rem] h-[1rem] px-[3px] bg-amber-400 rounded-full border-[1.5px] border-[#3b2063] text-[9px] font-black text-[#1a0f2e] ${hasNew ? 'ops-topbar-pulse' : ''} ${isNotifOpen ? 'border-white' : ''}`}>
+                <span className={`absolute -top-1 -right-1 flex flex-col items-center justify-center min-w-[1rem] h-[1rem] px-[3px] bg-amber-400 rounded-full border-[1.5px] border-[#a020f0] text-[9px] font-black text-[#1a0f2e] ${hasNew ? 'ops-topbar-pulse' : ''} ${isNotifOpen ? 'border-white' : ''}`}>
                   {notifications.length > 9 ? '9+' : notifications.length}
                 </span>
               )}
@@ -269,7 +269,7 @@ const OpsTopBar: React.FC<OpsTopBarProps> = ({
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-1">
-                              <p className="text-[0.75rem] font-semibold text-[#1a0f2e] truncate group-hover:text-[#3b2063] transition-colors">
+                              <p className="text-[0.75rem] font-semibold text-[#1a0f2e] truncate group-hover:text-[#a020f0] transition-colors">
                                 {notif.title}
                               </p>
                               <span className="text-[10px] font-medium text-zinc-400 shrink-0">
@@ -301,7 +301,7 @@ const OpsTopBar: React.FC<OpsTopBarProps> = ({
                       Updated {timeAgo(lastFetched.toISOString())}
                     </span>
                   )}
-                  <button onClick={() => fetchNotifications()} disabled={fetching} className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-500 hover:text-[#3b2063] transition-colors disabled:opacity-50">
+                  <button onClick={() => fetchNotifications()} disabled={fetching} className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-500 hover:text-[#a020f0] transition-colors disabled:opacity-50">
                     <RefreshCw size={11} className={fetching ? 'animate-spin' : ''} />
                     Refresh
                   </button>

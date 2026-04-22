@@ -71,7 +71,7 @@ const StatusBadge: React.FC<{ status: VoidStatus }> = ({ status }) => {
   const map: Record<string, string> = {
     pending:   'bg-amber-50 text-amber-700 border border-amber-200',
     approved:  'bg-emerald-50 text-emerald-700 border border-emerald-200',
-    completed: 'bg-[#3b206308] text-[#3b2063] border border-[#3b206320]',
+    completed: 'bg-[#a020f008] text-[#a020f0] border border-[#a020f020]',
     cancelled: 'bg-red-50 text-red-600 border border-red-200',
   };
   return (
@@ -84,7 +84,7 @@ const StatusBadge: React.FC<{ status: VoidStatus }> = ({ status }) => {
 const StatBox: React.FC<{ label: string; value: number; isDanger?: boolean }> = ({ label, value, isDanger }) => (
   <div className={`bg-white border rounded-lg p-4 text-center shadow-sm ${isDanger ? 'border-red-200' : 'border-zinc-200'}`}>
     <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isDanger ? 'text-red-400' : 'text-zinc-400'}`}>{label}</div>
-    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#3b2063]'}`}>
+    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#a020f0]'}`}>
       ₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
     </div>
   </div>
@@ -201,7 +201,7 @@ const SV_VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
       {/* ── Table ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
         <div className="px-5 py-4 border-b border-zinc-100">
-          <div className="flex items-center gap-3 bg-[#3b2063]/5 border border-[#3b2063]/10 rounded-lg px-3 py-2 focus-within:ring-4 focus-within:ring-[#3b2063]/5 transition-all">
+          <div className="flex items-center gap-3 bg-[#a020f0]/5 border border-[#a020f0]/10 rounded-lg px-3 py-2 focus-within:ring-4 focus-within:ring-[#a020f0]/5 transition-all">
             <Search size={13} className="text-zinc-400" />
             <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               className="flex-1 bg-transparent text-sm outline-none"
@@ -211,14 +211,14 @@ const SV_VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
                 <X size={13} />
               </button>
             )}
-            <div className="border-l border-[#3b2063]/20 pl-3 flex gap-2 ml-auto">
+            <div className="border-l border-[#a020f0]/20 pl-3 flex gap-2 ml-auto">
               <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
                 className="bg-white border border-zinc-200 rounded-lg px-3 py-1 text-xs font-bold outline-none" />
               <button 
                 onClick={fetchLogs} 
                 disabled={loading}
-                style={{ backgroundColor: '#3b2063' }}
-                className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-4 py-1.5 text-xs text-white hover:opacity-90 shadow-xl shadow-[#3b2063]/20 disabled:opacity-50"
+                style={{ backgroundColor: '#a020f0' }}
+                className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-4 py-1.5 text-xs text-white hover:opacity-90 shadow-xl shadow-[#a020f0]/20 disabled:opacity-50"
               >
                 <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Sync Records
               </button>

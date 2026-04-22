@@ -93,7 +93,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#a020f0] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -110,8 +110,8 @@ const Btn: React.FC<BtnProps> = ({
 const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ col, active, dir }) => {
   if (col !== active) return <ChevronDown size={11} className="text-zinc-300 ml-0.5" />;
   return dir === "asc"
-    ? <ChevronUp size={11} className="text-[#3b2063] ml-0.5" />
-    : <ChevronDown size={11} className="text-[#3b2063] ml-0.5" />;
+    ? <ChevronUp size={11} className="text-[#a020f0] ml-0.5" />
+    : <ChevronDown size={11} className="text-[#a020f0] ml-0.5" />;
 };
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -427,12 +427,12 @@ const ItemsReportTab: React.FC = () => {
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
                         <div className="w-12 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-[#3b2063]" style={{ width: `${qtyPct}%` }} />
+                          <div className="h-full rounded-full bg-[#a020f0]" style={{ width: `${qtyPct}%` }} />
                         </div>
                         <span className="text-zinc-700 font-medium text-xs">{item.total_quantity.toLocaleString()}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.total_revenue)}</td>
+                    <td className="px-5 py-3.5 font-bold text-[#a020f0] text-xs">{fmt(item.total_revenue)}</td>
                     <td className="px-5 py-3.5 text-zinc-600 text-xs">{item.avg_price > 0 ? fmt(item.avg_price) : "—"}</td>
                     <td className="px-5 py-3.5 text-zinc-600 text-xs">{item.times_ordered > 0 ? item.times_ordered.toLocaleString() : "—"}</td>
                     <td className="px-5 py-3.5">
@@ -455,7 +455,7 @@ const ItemsReportTab: React.FC = () => {
                     Total ({filtered.length} items)
                   </td>
                   <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs">{totalQty.toLocaleString()}</td>
-                  <td className="px-5 py-3.5 font-black text-[#3b2063] text-xs">{fmt(totalRevenue)}</td>
+                  <td className="px-5 py-3.5 font-black text-[#a020f0] text-xs">{fmt(totalRevenue)}</td>
                   <td className="px-5 py-3.5" />
                   <td className="px-5 py-3.5" />
                   <td className="px-5 py-3.5 font-black text-zinc-600 text-xs">100%</td>

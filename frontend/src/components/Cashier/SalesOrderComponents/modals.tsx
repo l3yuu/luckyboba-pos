@@ -76,7 +76,7 @@ const AdminPinOverlay = ({
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-[0.625rem]">
       <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden">
-        <div className="bg-[#3b2063] px-6 py-5 text-white text-center">
+        <div className="bg-[#a020f0] px-6 py-5 text-white text-center">
           <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
           <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
           <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to cancel this order</p>
@@ -89,7 +89,7 @@ const AdminPinOverlay = ({
             onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             placeholder="••••"
             autoFocus
-            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#3b2063] transition-colors"
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#a020f0] transition-colors"
           />
           {error && (
             <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest text-center">{error}</p>
@@ -146,7 +146,7 @@ export const CartItemEditModal = ({
   return (
     <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="bg-[#3b2063] px-6 pt-5 pb-5 text-white relative shrink-0">
+        <div className="bg-[#a020f0] px-6 pt-5 pb-5 text-white relative shrink-0">
           <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Edit Item</p>
           <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
             {editingCartItem.name}
@@ -161,7 +161,7 @@ export const CartItemEditModal = ({
             (editingCartItem.addOns?.length ?? 0) > 0 || editingCartItem.charges?.grab ||
             editingCartItem.charges?.panda || editingCartItem.remarks) && (
               <div className="flex flex-wrap gap-1.5 pb-1">
-                {editingCartItem.sugarLevel != null && <span className="inline-flex items-center bg-[#3b2063]/10 text-black border border-[#3b2063]/20 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>}
+                {editingCartItem.sugarLevel != null && <span className="inline-flex items-center bg-[#a020f0]/10 text-black border border-[#a020f0]/20 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>}
                 {editingCartItem.options?.map(opt => <span key={opt} className="inline-flex items-center bg-sky-50 text-sky-700 border border-sky-200 text-[10px] px-2 py-1 rounded-md font-semibold">{opt}</span>)}
                 {editingCartItem.addOns?.map(a => <span key={a} className="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-1 rounded-md font-semibold">+{a}</span>)}
                 {editingCartItem.charges?.grab && <span className="inline-flex items-center bg-green-50 text-green-700 border border-green-200 text-[10px] px-2 py-1 rounded-md font-semibold">🛵 Grab</span>}
@@ -182,10 +182,10 @@ export const CartItemEditModal = ({
                 return (
                   <button key={String(option.id)}
                     onClick={() => { onSetDiscountId(option.id); onSetDiscountType(option.type); onSetDiscountValue(option.value || ''); }}
-                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${isSelected ? isNone ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50'}`}>
+                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${isSelected ? isNone ? 'bg-red-500 text-white' : 'bg-[#a020f0] text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50'}`}>
                     <div className="flex items-center gap-3">
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-white bg-white' : 'border-zinc-300'}`}>
-                        {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#3b2063]'}`} />}
+                        {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#a020f0]'}`} />}
                       </div>
                       <span className="text-xs font-black uppercase tracking-wider">{option.label}</span>
                     </div>
@@ -216,7 +216,7 @@ export const CartItemEditModal = ({
             </svg>
             Remove
           </button>
-          <button onClick={onSave} className="flex-2 py-3 rounded-[0.625rem] bg-[#3b2063] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-all shadow-sm">
+          <button onClick={onSave} className="flex-2 py-3 rounded-[0.625rem] bg-[#a020f0] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-all shadow-sm">
             Save Changes
           </button>
         </div>
@@ -277,7 +277,7 @@ export const ItemSelectionModal = ({
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
+        <div className="bg-[#a020f0] p-5 text-white text-center relative shrink-0">
           <h2 className="text-lg font-black uppercase tracking-wider">{selectedItem.name}</h2>
           {isCombo && <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Includes Classic Pearl</div>}
           <button onClick={onClose} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors"><CloseIcon size={6} /></button>
@@ -286,7 +286,7 @@ export const ItemSelectionModal = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white p-3 rounded-[0.625rem] border-2 border-zinc-200">
               <span className="text-sm font-bold text-zinc-900 uppercase tracking-widest block mb-1">Barcode</span>
-              <span className="text-sm font-black text-[#3b2063]">{selectedItem.barcode}</span>
+              <span className="text-sm font-black text-[#a020f0]">{selectedItem.barcode}</span>
             </div>
             <div className="bg-white p-3 rounded-[0.625rem] border-2 border-zinc-200">
               <span className="text-sm font-bold text-zinc-900 uppercase tracking-widest block mb-1">Unit Price</span>
@@ -298,7 +298,7 @@ export const ItemSelectionModal = ({
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
             </button>
             <input type="text" value={qty} readOnly className="bg-transparent text-center font-black text-2xl text-black w-20 outline-none" />
-            <button onClick={() => onQtyChange(qty + 1)} className="w-12 h-12 bg-[#3b2063] rounded-[0.625rem] shadow-lg text-white transition-colors flex items-center justify-center">
+            <button onClick={() => onQtyChange(qty + 1)} className="w-12 h-12 bg-[#a020f0] rounded-[0.625rem] shadow-lg text-white transition-colors flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             </button>
           </div>
@@ -308,7 +308,7 @@ export const ItemSelectionModal = ({
               <div className="flex gap-2">
                 {sugarLevels.map(lvl => (
                   <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
-                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === lvl.value ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === lvl.value ? 'bg-[#a020f0] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                     {lvl.label}
                   </button>
                 ))}
@@ -340,7 +340,7 @@ export const ItemSelectionModal = ({
               <div className="flex flex-wrap gap-2">
                 {visibleOpts.map((opt: string) => (
                   <button key={opt} onClick={() => onToggleOption(opt)}
-                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#a020f0] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                     {opt}
                   </button>
                 ))}
@@ -379,10 +379,10 @@ export const ItemSelectionModal = ({
           <div>
             <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Remarks</label>
             <textarea value={remarks} onChange={e => onRemarksChange(e.target.value)} placeholder="Additional notes..."
-              className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#3b2063] focus:bg-white transition-all" />
+              className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#a020f0] focus:bg-white transition-all" />
           </div>
           <button onClick={onAddToOrder} disabled={!canAdd}
-            className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canAdd ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
+            className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canAdd ? 'bg-[#a020f0] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
             {isCombo ? 'Next: Customize Drink →' : !sugarSelected && hasSugarLevels ? '⚠ Select Sugar Level First' : canAdd ? 'Add Order' : 'Select Pearl Option First'}
           </button>
         </div>
@@ -459,7 +459,7 @@ export const BundleModal = ({
     <>
       <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
-          <div className="bg-[#3b2063] p-5 text-white relative shrink-0">
+          <div className="bg-[#a020f0] p-5 text-white relative shrink-0">
             <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Bundle Configuration — {activeBundleItem.display_name ?? activeBundleItem.name}</div>
             <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
               Drink {currentStep + 1} of {totalSteps}: {selection.name}
@@ -485,7 +485,7 @@ export const BundleModal = ({
                   <div className="flex gap-1.5 flex-wrap">
                     {sugarLevels.map((lvl) => (
                       <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
-                        className={`flex-1 min-w-[50px] py-2.5 rounded-xl text-[11px] font-black transition-all ${selection.sugarLevel === lvl.value ? 'bg-[#3b2063] text-white shadow-md' : 'bg-[#f5f0ff] text-zinc-600 border border-[#e9d5ff] hover:bg-white'}`}>
+                        className={`flex-1 min-w-[50px] py-2.5 rounded-xl text-[11px] font-black transition-all ${selection.sugarLevel === lvl.value ? 'bg-[#a020f0] text-white shadow-md' : 'bg-[#f5f0ff] text-zinc-600 border border-[#e9d5ff] hover:bg-white'}`}>
                         {lvl.label}
                       </button>
                     ))}
@@ -500,7 +500,7 @@ export const BundleModal = ({
                   <div className="flex flex-wrap gap-1.5">
                     {visibleOpts.map((opt: string) => (
                       <button key={opt} onClick={() => onToggleOption(opt)}
-                        className={`px-3.5 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selection.options.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-[#f5f0ff] text-zinc-600 border border-[#e9d5ff] hover:bg-white'}`}>
+                        className={`px-3.5 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selection.options.includes(opt) ? 'bg-[#a020f0] text-white shadow-md' : 'bg-[#f5f0ff] text-zinc-600 border border-[#e9d5ff] hover:bg-white'}`}>
                         {opt}
                       </button>
                     ))}
@@ -523,7 +523,7 @@ export const BundleModal = ({
                       const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
                       return (
                         <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
-                          className={`p-3 rounded-xl border-2 transition-all flex items-center justify-center ${isDisabled ? 'border-zinc-100 bg-zinc-50 text-zinc-300 opacity-40' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : 'border-zinc-200 bg-white text-zinc-500 hover:border-[#3b2063] hover:text-[#3b2063]'}`}>
+                          className={`p-3 rounded-xl border-2 transition-all flex items-center justify-center ${isDisabled ? 'border-zinc-100 bg-zinc-50 text-zinc-300 opacity-40' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : 'border-zinc-200 bg-white text-zinc-500 hover:border-[#a020f0] hover:text-[#a020f0]'}`}>
                           <span className="font-bold text-[10px] uppercase">{type === 'grab' ? '🛵 Grab Food' : '🐼 Food Panda'}</span>
                         </button>
                       );
@@ -536,7 +536,7 @@ export const BundleModal = ({
 
           <div className="p-5 bg-zinc-50 border-t border-zinc-100 shrink-0">
             <button onClick={onConfirm}
-              className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-all bg-[#3b2063] text-white hover:bg-[#6a12b8] active:scale-[0.98]`}>
+              className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-all bg-[#a020f0] text-white hover:bg-[#6a12b8] active:scale-[0.98]`}>
               {isLastStep ? '✓ Add Bundle to Order' : `Next: Item ${currentStep + 2} of ${totalSteps} →`}
             </button>
           </div>
@@ -582,7 +582,7 @@ export const ComboDrinkModal = ({
   <>
     <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
+        <div className="bg-[#a020f0] p-5 text-white text-center relative shrink-0">
           <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">Step 2 of 2 — Combo Drink for</div>
           <h2 className="text-base font-black uppercase tracking-wider leading-tight">{pendingComboCart.name}</h2>
           <div className="mt-2 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">
@@ -597,7 +597,7 @@ export const ComboDrinkModal = ({
               <div className="flex gap-2">
                 {sugarLevels.map((lvl: { id: number; label: string; value: string }) => (
                   <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
-                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === lvl.value ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === lvl.value ? 'bg-[#a020f0] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                     {lvl.label}
                   </button>
                 ))}
@@ -619,13 +619,13 @@ export const ComboDrinkModal = ({
                 return true;
               }).map((opt: string) => (
                 <button key={opt} onClick={() => onToggleOption(opt)}
-                  className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                  className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#a020f0] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                   {opt}
                 </button>
               ))}
             </div>
           </div>
-          <button onClick={onConfirm} className="w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors bg-[#3b2063] text-white hover:bg-[#6a12b8]">
+          <button onClick={onConfirm} className="w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors bg-[#a020f0] text-white hover:bg-[#6a12b8]">
             🧋 Confirm & Add to Order
           </button>
         </div>
@@ -681,7 +681,7 @@ export const MixAndMatchDrinkModal = ({
     <>
       <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-white w-full max-w-2xl rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-          <div className="bg-[#3b2063] p-5 text-white relative shrink-0">
+          <div className="bg-[#a020f0] p-5 text-white relative shrink-0">
             <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">Step 2 of 2 — Choose Your Drink</div>
             <h2 className="text-base font-black uppercase tracking-wider leading-tight">{pendingMixMatchCart.name}</h2>
             <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Select a drink to complete your Mix & Match</div>
@@ -694,22 +694,22 @@ export const MixAndMatchDrinkModal = ({
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {drinkItems.map(drink => (
                     <button key={drink.id} onClick={() => onSelectDrink(drink)}
-                      className="p-4 rounded-[0.625rem] border-2 border-[#e9d5ff] bg-white hover:border-[#3b2063] hover:bg-[#f5f0ff] transition-all text-left flex flex-col gap-1">
+                      className="p-4 rounded-[0.625rem] border-2 border-[#e9d5ff] bg-white hover:border-[#a020f0] hover:bg-[#f5f0ff] transition-all text-left flex flex-col gap-1">
                       <span className="text-xs font-black uppercase leading-tight text-black">{drink.name}</span>
                       {drink.size && drink.size !== 'none' && <span className="text-[10px] font-bold text-zinc-400 uppercase">{drink.size}</span>}
-                      <span className="text-sm font-black text-[#3b2063] mt-1">₱{Number(drink.price).toFixed(2)}</span>
+                      <span className="text-sm font-black text-[#a020f0] mt-1">₱{Number(drink.price).toFixed(2)}</span>
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
               <div className="p-6 space-y-5">
-                <div className="flex items-center justify-between bg-[#f5f0ff] border-2 border-[#3b2063]/30 rounded-[0.625rem] px-4 py-3">
+                <div className="flex items-center justify-between bg-[#f5f0ff] border-2 border-[#a020f0]/30 rounded-[0.625rem] px-4 py-3">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Selected Drink</p>
                     <p className="font-black text-sm text-black uppercase">{selectedDrink.name}</p>
                   </div>
-                  <button onClick={() => onSelectDrink(null as unknown as MenuItem)} className="text-[10px] font-black uppercase text-[#3b2063] hover:text-red-500 transition-colors">Change</button>
+                  <button onClick={() => onSelectDrink(null as unknown as MenuItem)} className="text-[10px] font-black uppercase text-[#a020f0] hover:text-red-500 transition-colors">Change</button>
                 </div>
                 {drinkSugarLevels && drinkSugarLevels.length > 0 && (
                   <div>
@@ -717,7 +717,7 @@ export const MixAndMatchDrinkModal = ({
                     <div className="flex gap-2">
                       {drinkSugarLevels.map((lvl: { id: number; label: string; value: string }) => (
                         <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
-                          className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === lvl.value ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                          className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === lvl.value ? 'bg-[#a020f0] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                           {lvl.label}
                         </button>
                       ))}
@@ -740,7 +740,7 @@ export const MixAndMatchDrinkModal = ({
                       <div className="flex flex-wrap gap-2">
                         {visibleOpts.map((opt: string) => (
                           <button key={opt} onClick={() => onToggleOption(opt)}
-                            className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${drinkOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                            className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${drinkOptions.includes(opt) ? 'bg-[#a020f0] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                             {opt}
                           </button>
                         ))}
@@ -769,7 +769,7 @@ export const MixAndMatchDrinkModal = ({
                   </div>
                 </div>
                 <button onClick={onConfirm} disabled={!canConfirm}
-                  className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canConfirm ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
+                  className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canConfirm ? 'bg-[#a020f0] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
                   {hasDrinkSugarLevels && !drinkSugar ? '⚠ Select Sugar Level First' : hasPearlOption && !hasPearlSelected ? 'Select Pearl Option First' : '✓ Add Mix & Match to Order'}
                 </button>
               </div>
@@ -891,7 +891,7 @@ export const ConfirmOrderModal = ({
           )}
 
           {/* Header */}
-          <div className="bg-[#3b2063] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center">
+          <div className="bg-[#a020f0] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center">
             <div className="w-1/3" />
             <div className="w-1/3">
               <h2 className="text-xl font-black uppercase tracking-widest">Payment Details</h2>
@@ -1048,7 +1048,7 @@ export const ConfirmOrderModal = ({
                 ] as const).map(tab => (
                   <button key={tab.id} onClick={() => onTabChange(tab.id)}
                     className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] transition-all border-2 relative
-                      ${activeTab === tab.id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-white text-black border-[#e9d5ff] hover:border-[#3b2063]/40 hover:bg-[#f5f0ff]'}`}>
+                      ${activeTab === tab.id ? 'bg-[#a020f0] text-white border-[#a020f0] shadow-md' : 'bg-white text-black border-[#e9d5ff] hover:border-[#a020f0]/40 hover:bg-[#f5f0ff]'}`}>
                     {tab.label}
                     {tab.dot && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />}
                   </button>
@@ -1077,7 +1077,7 @@ export const ConfirmOrderModal = ({
 
                           return (
                             <button key={id} onClick={() => { if (!finalLocked) { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); } }} disabled={finalLocked}
-                              className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${finalLocked ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40' : paymentMethod === id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#3b2063]/40'}`}>
+                              className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${finalLocked ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40' : paymentMethod === id ? 'bg-[#a020f0] text-white border-[#a020f0] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#a020f0]/40'}`}>
                               {label}
                             </button>
                           );
@@ -1087,17 +1087,17 @@ export const ConfirmOrderModal = ({
                         <>
                           <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase mb-2">Cash Tendered</h3>
                           <div className="relative mb-3">
-                            <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#3b2063]/30">₱</span>
+                            <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#a020f0]/30">₱</span>
                             <input type="number" value={cashTendered} onChange={e => onCashTenderedChange(e.target.value ? Number(e.target.value) : '')}
-                              className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors" placeholder="0.00" />
+                              className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#a020f0] focus:bg-white transition-colors" placeholder="0.00" />
                           </div>
                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
-                            <button onClick={() => onCashTenderedChange(amtDue)} className="col-span-2 lg:col-span-4 bg-[#3b2063] hover:bg-[#6a12b8] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest transition-all shadow-md border-2 border-[#3b2063]">
+                            <button onClick={() => onCashTenderedChange(amtDue)} className="col-span-2 lg:col-span-4 bg-[#a020f0] hover:bg-[#6a12b8] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest transition-all shadow-md border-2 border-[#a020f0]">
                               Exact Amount (₱ {amtDue.toFixed(2)})
                             </button>
                             {[100, 200, 500, 1000].map(amount => (
                               <button key={amount} onClick={() => onCashTenderedChange(amount)}
-                                className="bg-[#f5f0ff] hover:bg-[#3b2063] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#3b2063]">
+                                className="bg-[#f5f0ff] hover:bg-[#a020f0] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#a020f0]">
                                 ₱ {amount}
                               </button>
                             ))}
@@ -1119,7 +1119,7 @@ export const ConfirmOrderModal = ({
                                 onReferenceNumberChange(v);
                               }}
                               maxLength={13}
-                              className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
+                              className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#a020f0] focus:bg-white transition-colors"
                               placeholder={paymentMethod === 'grab' ? 'GRAB-XXXXXX' : paymentMethod === 'food_panda' ? 'FP-XXXXXX' : 'REF#'} />
 
                             {['gcash', 'paymaya', 'credit', 'debit'].includes(paymentMethod) && referenceNumber.length < 13 && (
@@ -1132,17 +1132,17 @@ export const ConfirmOrderModal = ({
                             <div className="space-y-2">
                               <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Cash Sent to {paymentMethod === 'grab' ? 'GrabFood' : 'FoodPanda'} Credits</h3>
                               <div className="relative">
-                                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#3b2063]/30">₱</span>
+                                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#a020f0]/30">₱</span>
                                 <input type="number" value={cashTendered} onChange={e => onCashTenderedChange(e.target.value ? Number(e.target.value) : '')}
-                                  className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors" placeholder="0.00" />
+                                  className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#a020f0] focus:bg-white transition-colors" placeholder="0.00" />
                               </div>
                               <div className="grid grid-cols-4 gap-2">
-                                <button onClick={() => onCashTenderedChange(amtDue)} className="col-span-4 bg-[#3b2063] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest">
+                                <button onClick={() => onCashTenderedChange(amtDue)} className="col-span-4 bg-[#a020f0] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest">
                                   Exact Amount (₱ {amtDue.toFixed(2)})
                                 </button>
                                 {[100, 200, 500, 1000].map(amount => (
                                   <button key={amount} onClick={() => onCashTenderedChange(amount)}
-                                    className="bg-[#f5f0ff] hover:bg-[#3b2063] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#3b2063]">
+                                    className="bg-[#f5f0ff] hover:bg-[#a020f0] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#a020f0]">
                                     ₱{amount}
                                   </button>
                                 ))}
@@ -1165,7 +1165,7 @@ export const ConfirmOrderModal = ({
                 {activeTab === 'discount' && (
                   <div className="space-y-6">
                     <div className="space-y-3">
-                      <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Select Promo</h3>
+                      <h3 className="font-black text-sm text-[#a020f0] uppercase tracking-wider">Select Promo</h3>
                       <div className="grid grid-cols-2 gap-2">
                         <button onClick={() => onDiscountChange(null)}
                           className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center ${!selectedDiscount ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-zinc-50 text-red-500 border-red-100 hover:border-red-300'}`}>
@@ -1183,7 +1183,7 @@ export const ConfirmOrderModal = ({
                       <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Discount Remarks</h3>
                       <textarea value={discountRemarks} onChange={e => onDiscountRemarksChange(e.target.value)}
                         placeholder="Enter notes (e.g., Manager's Approval, Birthday Promo)"
-                        className="w-full text-sm font-bold p-4 bg-zinc-50 border-2 border-zinc-200 rounded-[0.625rem] outline-none focus:border-[#3b2063] focus:bg-white transition-colors h-24 resize-none" />
+                        className="w-full text-sm font-bold p-4 bg-zinc-50 border-2 border-zinc-200 rounded-[0.625rem] outline-none focus:border-[#a020f0] focus:bg-white transition-colors h-24 resize-none" />
                     </div>
                   </div>
                 )}
@@ -1289,7 +1289,7 @@ export const ConfirmOrderModal = ({
                     {/* Per-item per-unit dropdowns */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Assign Discount Per Item</h3>
+                        <h3 className="font-black text-sm text-[#a020f0] uppercase tracking-wider">Assign Discount Per Item</h3>
                         {hasAnyAssignment && (
                           <button onClick={clearAllAssignments}
                             className="text-[10px] font-black uppercase text-red-500 hover:text-red-700 transition-colors border border-red-200 px-2 py-1 rounded-lg hover:bg-red-50">
@@ -1304,10 +1304,10 @@ export const ConfirmOrderModal = ({
 
                         return (
                           <div key={cartIndex}
-                            className={`border-2 rounded-xl overflow-hidden transition-colors ${itemHasDiscount ? 'border-[#3b2063]/40 bg-[#f5f0ff]/50' : 'border-zinc-200 bg-white'}`}>
+                            className={`border-2 rounded-xl overflow-hidden transition-colors ${itemHasDiscount ? 'border-[#a020f0]/40 bg-[#f5f0ff]/50' : 'border-zinc-200 bg-white'}`}>
 
                             {/* Item header */}
-                            <div className={`px-4 py-2.5 flex items-center justify-between ${itemHasDiscount ? 'bg-[#3b2063]/10' : 'bg-zinc-50'}`}>
+                            <div className={`px-4 py-2.5 flex items-center justify-between ${itemHasDiscount ? 'bg-[#a020f0]/10' : 'bg-zinc-50'}`}>
                               <div className="flex items-center gap-2">
                                 <span className="font-black text-xs text-black uppercase">
                                   {item.name}{item.cupSizeLabel ? ` (${item.cupSizeLabel})` : ''}
@@ -1331,7 +1331,7 @@ export const ConfirmOrderModal = ({
                                   <div key={unitIndex} className="px-4 py-2.5 flex items-center justify-between gap-3">
                                     {/* Unit label */}
                                     <div className="flex items-center gap-2 min-w-0">
-                                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${assignment !== 'none' ? 'bg-[#3b2063] text-white' : 'bg-zinc-100 text-zinc-500'}`}>
+                                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${assignment !== 'none' ? 'bg-[#a020f0] text-white' : 'bg-zinc-100 text-zinc-500'}`}>
                                         {unitIndex + 1}
                                       </span>
                                       <span className="text-xs font-bold text-zinc-600 truncate">
@@ -1393,7 +1393,7 @@ export const ConfirmOrderModal = ({
                     (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
                     (['gcash', 'paymaya', 'credit', 'debit'].includes(paymentMethod) && referenceNumber.length < 13)
                   }
-                  className="w-full bg-[#3b2063] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
+                  className="w-full bg-[#a020f0] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
                   {submitting ? 'Processing...' : 'Complete Transaction'}
                 </button>
               </div>
@@ -1420,7 +1420,7 @@ interface CustomerNameModalProps {
 export const CustomerNameModal = ({ customerName, onChange, onConfirm, onSkip, submitting }: CustomerNameModalProps) => (
   <div className="fixed inset-0 z-140 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
     <div className="bg-white w-full max-w-sm rounded-[0.625rem] shadow-2xl overflow-hidden">
-      <div className="bg-[#3b2063] px-6 pt-6 pb-5 text-white text-center">
+      <div className="bg-[#a020f0] px-6 pt-6 pb-5 text-white text-center">
         <div className="w-12 h-12 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center mx-auto mb-3">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
         </div>
@@ -1432,7 +1432,7 @@ export const CustomerNameModal = ({ customerName, onChange, onConfirm, onSkip, s
         <input type="text" value={customerName} onChange={e => onChange(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !submitting && customerName.trim() !== '') onConfirm(); }}
           placeholder="e.g. Juan" autoFocus disabled={submitting}
-          className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#3b2063] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#3b2063]/30 disabled:opacity-50" />
+          className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#a020f0] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#a020f0]/30 disabled:opacity-50" />
 
         <div className="flex gap-3">
           <button onClick={onSkip} disabled={submitting}
@@ -1440,7 +1440,7 @@ export const CustomerNameModal = ({ customerName, onChange, onConfirm, onSkip, s
             Skip
           </button>
           <button onClick={onConfirm} disabled={customerName.trim() === '' || submitting}
-            className={`flex-2 py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md ${customerName.trim() !== '' && !submitting ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}>
+            className={`flex-2 py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md ${customerName.trim() !== '' && !submitting ? 'bg-[#a020f0] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}>
             {submitting ? 'Processing...' : 'Confirm'}
           </button>
         </div>
@@ -1468,7 +1468,7 @@ interface SuccessModalProps {
 
 export const SuccessModal = ({
   orNumber, hasStickers, printedReceipt, printedKitchen, printedStickers,
-  onPrintReceipt, onPrintKitchen, onPrintStickers, onNewOrder, allowSkipPrint = false,
+  onPrintReceipt, onPrintKitchen, onPrintStickers, onNewOrder,
 }: SuccessModalProps) => {
   const printItems = [
     { label: 'Customer Receipt', done: printedReceipt, onPrint: onPrintReceipt, icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.398c0 .796.604 1.48 1.389 1.554a41.349 41.349 0 0 1 7.722 0c.785.074 1.389-.758 1.389-1.554V7.034Z" /></svg> },
@@ -1476,14 +1476,13 @@ export const SuccessModal = ({
     ...(hasStickers ? [{ label: 'Stickers', done: printedStickers, onPrint: onPrintStickers, icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg> }] : []),
   ];
   const pending = printItems.filter(p => !p.done);
-
   // Requirement: User must print at least Receipt and Kitchen once before "New Order" unlocks
-  const allRequiredPrinted = allowSkipPrint || (printedReceipt && printedKitchen);
+  // Allow skip print is now default behavior so we omit allRequiredPrinted check entirely.
 
   return (
     <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
-        <div className="bg-[#3b2063] px-9 pt-10 pb-9 text-white relative overflow-hidden">
+        <div className="bg-[#a020f0] px-9 pt-10 pb-9 text-white relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-28 h-28 border-2 border-white/10 rounded-[0.625rem] rotate-12" />
           <div className="absolute -bottom-4 -left-4 w-16 h-16 border border-white/10 rounded-[0.625rem] -rotate-6" />
           <div className="relative flex items-center gap-5">
@@ -1504,9 +1503,9 @@ export const SuccessModal = ({
           </div>
           {printItems.map(({ label, done, onPrint, icon }) => (
             <button key={label} onClick={onPrint}
-              className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem] active:scale-[0.98] ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-[#e9d5ff] text-black hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'}`}>
+              className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem] active:scale-[0.98] ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-[#e9d5ff] text-black hover:border-[#a020f0] hover:text-[#a020f0] hover:bg-[#f5f0ff]'}`}>
               <div className="flex items-center gap-3">
-                <div className={`${done ? 'text-emerald-500' : 'text-[#3b2063]'}`}>{icon}</div>
+                <div className={`${done ? 'text-emerald-500' : 'text-[#a020f0]'}`}>{icon}</div>
                 <span>{label}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -1520,16 +1519,16 @@ export const SuccessModal = ({
           <div className="mt-1 mb-6">
             <div className="flex justify-between items-center mb-2">
               <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{pending.length === 0 ? 'All prints done' : `${printItems.length - pending.length} / ${printItems.length} printed`}</span>
-              {pending.length > 0 && <span className="text-[9px] font-bold text-[#3b2063] uppercase tracking-widest animate-pulse">Required: {pending.filter(x => x.label !== 'Stickers').map(p => p.label).join(', ')}</span>}
+              {pending.length > 0 && <span className="text-[9px] font-bold text-[#a020f0] uppercase tracking-widest">Unprinted: {pending.map(p => p.label).join(', ')}</span>}
             </div>
             <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-              <div className={`h-full transition-all duration-700 rounded-full ${allRequiredPrinted ? 'bg-emerald-400' : 'bg-[#3b2063]'}`}
+              <div className={`h-full transition-all duration-700 rounded-full ${pending.length === 0 ? 'bg-emerald-400' : 'bg-[#a020f0]'}`}
                 style={{ width: `${((printItems.length - pending.length) / printItems.length) * 100}%` }} />
             </div>
           </div>
-          <button onClick={onNewOrder} disabled={!allRequiredPrinted}
-            className={`w-full h-16 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] ${allRequiredPrinted ? 'bg-[#3b2063] hover:bg-[#2d184d] text-white cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed shadow-none'}`}>
-            {allRequiredPrinted ? <><span>Start New Order</span><ArrowRightIcon size={20} /></> : `Printing Required...`}
+          <button onClick={onNewOrder}
+            className={`w-full h-16 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] bg-[#a020f0] hover:bg-[#2d184d] text-white cursor-pointer`}>
+            <span>Start New Order</span><ArrowRightIcon size={20} />
           </button>
         </div>
       </div>
@@ -1543,7 +1542,7 @@ export const SuccessModal = ({
 
 export const AddOnTriggerButton = ({ count, onClick }: { count: number; onClick: () => void }) => (
   <button onClick={onClick}
-    className="w-full py-4 rounded-[0.625rem] border-2 border-dashed border-[#3b2063]/40 bg-[#f5f0ff] hover:bg-[#e4dbff] text-black font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group">
+    className="w-full py-4 rounded-[0.625rem] border-2 border-dashed border-[#a020f0]/40 bg-[#f5f0ff] hover:bg-[#e4dbff] text-black font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group">
     <span className="mr-2">{count > 0 ? `${count} Add-on(s) Selected` : 'Select Add-ons'}</span>
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -1573,7 +1572,7 @@ export const PaymentSelectModal = ({ onSelect, onClose, orderCharge }: PaymentSe
       <div className="bg-white w-full max-w-sm rounded-[1.25rem] shadow-2xl overflow-hidden border border-zinc-200">
         <div className="px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff] flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#3b2063] rounded-lg flex items-center justify-center">
+            <div className="w-9 h-9 bg-[#a020f0] rounded-lg flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
               </svg>
@@ -1583,7 +1582,7 @@ export const PaymentSelectModal = ({ onSelect, onClose, orderCharge }: PaymentSe
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Choose how to pay</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#3b2063]/10 flex items-center justify-center transition-colors">
+          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#a020f0]/10 flex items-center justify-center transition-colors">
             <CloseIcon size={4} />
           </button>
         </div>
@@ -1592,9 +1591,9 @@ export const PaymentSelectModal = ({ onSelect, onClose, orderCharge }: PaymentSe
             <button
               key={method.id}
               onClick={() => onSelect(method.id)}
-              className="group flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#3b2063] hover:border-[#3b2063] transition-all duration-200 active:scale-95"
+              className="group flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#a020f0] hover:border-[#a020f0] transition-all duration-200 active:scale-95"
             >
-              <div className="text-[#3b2063] group-hover:text-white mb-3 transition-colors">
+              <div className="text-[#a020f0] group-hover:text-white mb-3 transition-colors">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   {method.id === 'cash' ? <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /> : <path d="M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM12 12h.01" />}
                 </svg>
@@ -1624,7 +1623,7 @@ export const OrderTypeModal = ({ onSelect, onClose }: OrderTypeModalProps) => (
     <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl overflow-hidden">
       <div className="relative px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#3b2063] rounded-lg flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 bg-[#a020f0] rounded-lg flex items-center justify-center shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="2" /><path d="M9 12h6M9 16h4" />
             </svg>
@@ -1635,18 +1634,18 @@ export const OrderTypeModal = ({ onSelect, onClose }: OrderTypeModalProps) => (
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#3b2063]/20 transition-colors text-[#1a0f2e] hover:text-[#3b2063]">
+          <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#a020f0]/20 transition-colors text-[#1a0f2e] hover:text-[#a020f0]">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         )}
       </div>
       <div className="p-5 flex flex-col gap-3">
         {[
-          { type: 'dine-in' as const, label: 'Dine In', sub: 'Customer eats here', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b2063" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><circle cx="12" cy="12" r="9" /><path d="M8 7v4a2 2 0 0 0 4 0V7" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="16" y1="7" x2="16" y2="17" /></svg> },
-          { type: 'take-out' as const, label: 'Take Out', sub: 'Order to go', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b2063" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg> },
+          { type: 'dine-in' as const, label: 'Dine In', sub: 'Customer eats here', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a020f0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><circle cx="12" cy="12" r="9" /><path d="M8 7v4a2 2 0 0 0 4 0V7" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="16" y1="7" x2="16" y2="17" /></svg> },
+          { type: 'take-out' as const, label: 'Take Out', sub: 'Order to go', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a020f0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg> },
         ].map(({ type, label, sub, icon }) => (
           <button key={type} onClick={() => onSelect(type)}
-            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#3b2063] hover:border-[#3b2063] transition-all duration-200 active:scale-[0.98]">
+            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#a020f0] hover:border-[#a020f0] transition-all duration-200 active:scale-[0.98]">
             <div className="w-12 h-12 rounded-xl bg-white border border-[#e9d5ff] group-hover:bg-white/20 group-hover:border-white/30 flex items-center justify-center shrink-0 transition-all">{icon}</div>
             <div className="text-left">
               <p className="text-sm font-black uppercase tracking-widest text-[#1a0f2e] group-hover:text-white transition-colors">{label}</p>

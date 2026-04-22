@@ -44,10 +44,10 @@ interface Recipe {
 const STYLES = `
   .tl-item-checker { font-family: 'DM Sans', sans-serif; }
   .tl-stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem; transition: all 0.2s; }
-  .tl-stat-card:hover { border-color: #3b2063; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
+  .tl-stat-card:hover { border-color: #a020f0; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
   .tl-search-container { position: relative; }
   .tl-search-input { background: #f8fafc; border: 2px solid transparent; border-radius: 1rem; width: 100%; padding: 0.875rem 1rem 0.875rem 3rem; font-weight: 700; font-size: 0.875rem; transition: all 0.2s; }
-  .tl-search-input:focus { background: #fff; border-color: #3b2063; outline: none; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
+  .tl-search-input:focus { background: #fff; border-color: #a020f0; outline: none; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
   .tl-caps { font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
   .tl-badge { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; padding: 0.25rem 0.625rem; border-radius: 0.5rem; letter-spacing: 0.025em; }
 `;
@@ -168,7 +168,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeFilter === f ? 'bg-[#3b2063] text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeFilter === f ? 'bg-[#a020f0] text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
             >
               {f === 'all' ? 'All' : f}
             </button>
@@ -238,7 +238,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
                   <td className="px-6 py-5 text-right">
                     <button
                       onClick={() => handleViewRecipe(item)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#3b2063] hover:border-[#3b2063] transition-all group-hover:bg-white"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#a020f0] hover:border-[#a020f0] transition-all group-hover:bg-white"
                     >
                       <FlaskConical size={12} />
                       View Recipe
@@ -280,7 +280,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
             {/* Modal Header */}
             <div className="p-8 pb-6 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-[#f5f0ff] rounded-2xl flex items-center justify-center text-[#3b2063] shadow-sm shrink-0">
+                <div className="w-14 h-14 bg-[#f5f0ff] rounded-2xl flex items-center justify-center text-[#a020f0] shadow-sm shrink-0">
                   <FlaskConical size={24} />
                 </div>
                 <div>
@@ -310,7 +310,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
                   {recipeData.map(recipe => (
                     <div key={recipe.id} className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-[#3b206310] text-[#3b2063] rounded-lg">
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-[#a020f010] text-[#a020f0] rounded-lg">
                           Size: {recipe.size || 'Standard'}
                         </span>
                         {recipe.notes && (

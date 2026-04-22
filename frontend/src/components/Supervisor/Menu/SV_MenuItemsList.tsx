@@ -136,7 +136,7 @@ const SV_MenuItemsList = () => {
                         {i.category_type}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs font-extrabold text-[#3b2063]">₱{i.price.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-xs font-extrabold text-[#a020f0]">₱{i.price.toFixed(2)}</td>
                     <td className="px-6 py-4 text-xs font-mono text-zinc-500">{i.barcode ?? '—'}</td>
                     <td className="px-6 py-4">
                       <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded-full border ${

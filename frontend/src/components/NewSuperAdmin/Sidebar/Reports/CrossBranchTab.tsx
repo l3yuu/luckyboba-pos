@@ -96,7 +96,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#a020f0] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -201,7 +201,7 @@ const CrossBranchTab: React.FC = () => {
         <div className="flex rounded-lg overflow-hidden border border-zinc-200">
           {(["daily", "weekly", "monthly"] as const).map(p => (
             <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-              className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+              className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#a020f0] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
               {p}
             </button>
           ))}
@@ -246,8 +246,8 @@ const CrossBranchTab: React.FC = () => {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="rg2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b2063" stopOpacity={0.18} />
-                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#a020f0" stopOpacity={0.18} />
+                    <stop offset="95%" stopColor="#a020f0" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" />
@@ -255,7 +255,7 @@ const CrossBranchTab: React.FC = () => {
                 <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
                 <Tooltip formatter={(v) => [`₱${Number(v ?? 0).toLocaleString()}`, ""] as [string, string]}
                   contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
-                <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={2.5} fill="url(#rg2)" name="Revenue" />
+                <Area type="monotone" dataKey="revenue" stroke="#a020f0" strokeWidth={2.5} fill="url(#rg2)" name="Revenue" />
               </AreaChart>
             </ResponsiveContainer>
           )}
@@ -269,7 +269,7 @@ const CrossBranchTab: React.FC = () => {
             <div className="flex flex-col gap-4">{[...Array(4)].map((_, i) => <SkeletonBar key={i} h="h-8" />)}</div>
           ) : (
             [
-              { label: "Gross Revenue", value: fmt(grandTotal), pct: 100, color: "#3b2063" },
+              { label: "Gross Revenue", value: fmt(grandTotal), pct: 100, color: "#a020f0" },
               { label: "Cost of Goods (est)", value: `−${fmt(cogs)}`, pct: Math.round(cogsPct * 100), color: "#ef4444" },
               { label: "Operating Exp (est)", value: `−${fmt(opex)}`, pct: Math.round(opexPct * 100), color: "#f59e0b" },
               { label: "Net Profit (est)", value: fmt(netProfit), pct: Math.round((netProfit / (grandTotal || 1)) * 100), color: "#10b981" },
@@ -332,12 +332,12 @@ const CrossBranchTab: React.FC = () => {
                     </td>
                     <td className="px-5 py-3.5 font-semibold text-[#1a0f2e]">{shortName}</td>
                     <td className="px-5 py-3.5 text-zinc-600">{Number(b.total_orders).toLocaleString()}</td>
-                    <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(Number(b.total_revenue))}</td>
+                    <td className="px-5 py-3.5 font-bold text-[#a020f0]">{fmt(Number(b.total_revenue))}</td>
                     <td className="px-5 py-3.5 text-zinc-600">{fmt(Number(b.avg_order_value))}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-zinc-100 rounded-full overflow-hidden max-w-16">
-                          <div className="h-full rounded-full bg-[#3b2063]" style={{ width: `${share}%` }} />
+                          <div className="h-full rounded-full bg-[#a020f0]" style={{ width: `${share}%` }} />
                         </div>
                         <span className="text-xs font-bold text-zinc-600">{share}%</span>
                       </div>
@@ -371,7 +371,7 @@ const CrossBranchTab: React.FC = () => {
                       <span className="text-[10px] font-bold text-zinc-500 ml-2 shrink-0">{p.total_quantity}x</span>
                     </div>
                     <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-[#3b2063] rounded-full" style={{ width: `${pct}%` }} />
+                      <div className="h-full bg-[#a020f0] rounded-full" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                   <span className="text-[10px] font-bold text-emerald-600 shrink-0">{fmt(p.total_revenue)}</span>

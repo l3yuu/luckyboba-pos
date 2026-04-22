@@ -102,7 +102,7 @@ const CategoryList = () => {
                 <select
                   value={entriesLimit}
                   onChange={(e) => setEntriesLimit(Number(e.target.value))}
-                  className="border border-[#e9d5ff] bg-white px-3 py-1.5 outline-none text-[#1a0f2e] font-semibold text-sm focus:border-[#3b2063] transition-colors rounded-[0.625rem]"
+                  className="border border-[#e9d5ff] bg-white px-3 py-1.5 outline-none text-[#1a0f2e] font-semibold text-sm focus:border-[#a020f0] transition-colors rounded-[0.625rem]"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -118,7 +118,7 @@ const CategoryList = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search categories..."
-                  className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm font-semibold text-[#1a0f2e] outline-none focus:border-[#3b2063] focus:bg-white w-56 transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
+                  className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm font-semibold text-[#1a0f2e] outline-none focus:border-[#a020f0] focus:bg-white w-56 transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
                 />
               </div>
             </div>
@@ -143,7 +143,7 @@ const CategoryList = () => {
                       <tr key={cat.id} className="hover:bg-[#f5f0ff] transition-colors">
                         <td className="px-7 py-3.5">
                           <div className="flex items-center gap-2">
-                            <Tag size={13} className="text-[#3b2063] shrink-0" />
+                            <Tag size={13} className="text-[#a020f0] shrink-0" />
                             <span className="text-sm font-bold text-[#1a0f2e]">{cat.name}</span>
                           </div>
                         </td>

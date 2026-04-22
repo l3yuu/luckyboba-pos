@@ -93,7 +93,7 @@ const handleSubmit = async () => {
       {isLoading && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center bg-white/90 backdrop-blur-sm">
           <div className="bg-white px-12 py-10 border border-[#e9d5ff] flex flex-col items-center gap-5 shadow-2xl rounded-[0.625rem]">
-            <RefreshCw className="w-10 h-10 text-[#3b2063] animate-spin" strokeWidth={1.5} />
+            <RefreshCw className="w-10 h-10 text-[#a020f0] animate-spin" strokeWidth={1.5} />
             <div className="text-center">
               <p className="text-sm font-bold text-black uppercase tracking-widest">Terminal Syncing</p>
               <p className="text-[11px] font-medium text-zinc-400 mt-1">Finalizing End of Day Journal...</p>
@@ -192,7 +192,7 @@ const handleSubmit = async () => {
             {/* Card Header */}
             <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
+                <div className="w-9 h-9 bg-[#a020f0] flex items-center justify-center">
                   <Calculator size={17} className="text-white" />
                 </div>
                 <div>
@@ -256,7 +256,7 @@ const handleSubmit = async () => {
                         className={`w-full text-center font-bold text-sm py-2 border outline-none transition-all tabular-nums ${
                           (isEodLocked || latestTx !== null)
                             ? 'bg-zinc-50 text-zinc-300 border-transparent'
-                            : 'bg-[#f5f0ff] border-zinc-200 focus:border-[#3b2063] focus:bg-white'
+                            : 'bg-[#f5f0ff] border-zinc-200 focus:border-[#a020f0] focus:bg-white'
                         }`}
                       />
                     </div>
@@ -300,7 +300,7 @@ const handleSubmit = async () => {
               {!latestTx && !isEodLocked ? (
                 <button
                   onClick={handleSubmit} disabled={isLoading}
-                  className="w-full py-4 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50 rounded-[0.625rem]"
+                  className="w-full py-4 bg-[#a020f0] hover:bg-[#6a12b8] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50 rounded-[0.625rem]"
                 >
                   <CheckCircle2 size={16} />
                   {isLoading ? 'Finalizing...' : 'Submit EOD Count'}
@@ -311,7 +311,7 @@ const handleSubmit = async () => {
                   className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all rounded-[0.625rem] ${
                     isEodLocked
                       ? 'bg-zinc-100 text-zinc-400 border border-zinc-200'
-                      : 'bg-white border border-[#3b2063] text-[#3b2063] hover:bg-[#f4f2fb] active:scale-[0.99]'
+                      : 'bg-white border border-[#a020f0] text-[#a020f0] hover:bg-[#f4f2fb] active:scale-[0.99]'
                   }`}
                 >
                   <RefreshCw size={16} />
