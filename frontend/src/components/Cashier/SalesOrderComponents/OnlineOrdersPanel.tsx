@@ -825,6 +825,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
       {/* Payment workflow modals */}
       <OnlineOrderPaymentModal
+        key={activePaymentOrder?.id ?? 'none'}
         order={activePaymentOrder}
         discounts={discounts}
         vatType={vatType}

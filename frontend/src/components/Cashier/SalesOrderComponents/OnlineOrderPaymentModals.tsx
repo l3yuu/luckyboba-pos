@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { CloseIcon, PAYMENT_METHODS, getItemSurcharge } from './shared';
 import type { Discount } from './shared';
 
@@ -34,6 +34,24 @@ interface OrderForPayment {
 interface ItemPaxAssignments {
   [key: string]: ('none' | 'sc' | 'pwd')[];
 }
+
+/** Matches what getItemSurcharge() requires. */
+interface CartItemForCalc {
+  qty: number;
+  price: number;
+  grab_price?: number | string;
+  panda_price?: number | string;
+  charges: { grab: boolean; panda: boolean };
+}
+
+const buildInitialAssignments = (order: OrderForPayment | null): ItemPaxAssignments => {
+  const initial: ItemPaxAssignments = {};
+  (order?.items ?? []).forEach((item, i) => {
+    const qty = item.qty ?? item.quantity ?? 1;
+    initial[String(i)] = Array(qty).fill('none');
+  });
+  return initial;
+};
 
 interface PaymentModalProps {
   order: OrderForPayment | null;
@@ -71,34 +89,18 @@ export const OnlineOrderPaymentModal = ({
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [cashTendered, setCashTendered] = useState<number | ''>('');
   const [referenceNumber, setReferenceNumber] = useState('');
-  
+
   const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null);
-  const [itemPaxAssignments, setItemPaxAssignments] = useState<ItemPaxAssignments>({});
+  // Lazy-initialized from the order passed at mount time.
+  // The parent resets this component by changing its `key` prop when a new order is selected.
+  const [itemPaxAssignments, setItemPaxAssignments] = useState<ItemPaxAssignments>(
+    () => buildInitialAssignments(order)
+  );
   const [seniorIds, setSeniorIds] = useState<string[]>([]);
   const [pwdIds, setPwdIds] = useState<string[]>([]);
   const [discountRemarks, setDiscountRemarks] = useState('');
 
   const isVat = vatType === 'vat';
-
-  // ── Sync assignments when order changes ──────────────────────────────────
-  useEffect(() => {
-    if (!order) return;
-    const initial: ItemPaxAssignments = {};
-    (order.items || []).forEach((item, i) => {
-      const qty = item.qty ?? item.quantity ?? 1;
-      initial[String(i)] = Array(qty).fill('none');
-    });
-    setItemPaxAssignments(initial);
-    // Reset other states
-    setPaymentMethod('cash');
-    setCashTendered('');
-    setReferenceNumber('');
-    setSelectedDiscount(null);
-    setSeniorIds([]);
-    setPwdIds([]);
-    setDiscountRemarks('');
-    setActiveTab('payment');
-  }, [order]);
 
   // ── Calculations (Synced with SalesOrder.tsx) ─────────────────────────────
   const totals = useMemo(() => {
@@ -107,20 +109,21 @@ export const OnlineOrderPaymentModal = ({
     const isGrab = order.source === 'grab' || paymentMethod === 'grab';
     const isPanda = order.source === 'panda' || paymentMethod === 'food_panda';
 
-    const cartItems = items.map(item => ({
-      ...item,
+    const cartItems: CartItemForCalc[] = items.map(item => ({
       qty: item.qty ?? item.quantity ?? 1,
       price: item.unit_price ?? item.price ?? 0,
-      charges: { grab: isGrab, panda: isPanda }
+      grab_price: item.grab_price,
+      panda_price: item.panda_price,
+      charges: { grab: isGrab, panda: isPanda },
     }));
 
     const grossSubtotal = cartItems.reduce(
-      (acc, item) => acc + (Number(item.price) * item.qty) + getItemSurcharge(item as any),
+      (acc, item) => acc + (Number(item.price) * item.qty) + getItemSurcharge(item),
       0
     );
 
     const eligibleForPromo = cartItems.reduce(
-      (acc, item) => acc + Number(item.price) * item.qty + getItemSurcharge(item as any),
+      (acc, item) => acc + Number(item.price) * item.qty + getItemSurcharge(item),
       0
     );
 
@@ -314,7 +317,7 @@ export const OnlineOrderPaymentModal = ({
                 { id: 'discount', label: 'Promo', dot: !!selectedDiscount },
                 { id: 'pax', label: 'Senior/PWD', dot: hasAnyAssignment },
               ].map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+                <button key={tab.id} onClick={() => setActiveTab(tab.id as 'payment' | 'discount' | 'pax')}
                   className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] transition-all border-2 relative
                     ${activeTab === tab.id ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-md' : 'bg-white text-black border-[#e9d5ff] hover:border-[#6a12b8]/40 hover:bg-[#f5f0ff]'}`}>
                   {tab.label}
