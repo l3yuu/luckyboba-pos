@@ -609,9 +609,9 @@ const KioskPage = () => {
         // Handle Queue Number fallback with Daily Reset
         const lastDate = localStorage.getItem(dateKey);
         if (lastDate !== todayKey) {
-          nextQueue = 1; // Reset for a new day
+          nextQueue = 100; // Reset for a new day (Kiosk starts at 100)
         } else {
-          nextQueue = parseInt(localStorage.getItem(queueKey) || '0', 10) + 1;
+          nextQueue = parseInt(localStorage.getItem(queueKey) || '99', 10) + 1;
         }
         localStorage.setItem(queueKey, String(nextQueue));
         localStorage.setItem(dateKey, todayKey);

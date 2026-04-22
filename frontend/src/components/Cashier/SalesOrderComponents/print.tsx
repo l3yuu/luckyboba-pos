@@ -169,6 +169,81 @@ export const ReceiptPrint = ({
 
   return (
     <div className="printable-receipt-container hidden print:block">
+      <style>{`
+        @media print {
+          @page { 
+            size: 80mm auto;
+            margin: 0 !important; 
+          }
+          html, body { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            width: 80mm !important;
+            height: auto !important;
+          }
+          .printable-receipt-container {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 76mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+          }
+          .receipt-area {
+            width: 66mm !important;
+            margin: 0 auto !important;
+            padding: 1mm 0 !important;
+            box-sizing: border-box !important;
+            color: #000 !important;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+            font-size: 11px !important;
+            line-height: 1.1 !important;
+            font-weight: 500 !important;
+            text-rendering: geometricPrecision !important;
+            -webkit-font-smoothing: none !important;
+            font-smooth: never !important;
+            letter-spacing: 0 !important;
+            font-kerning: none !important;
+            font-variant-ligatures: none !important;
+            text-shadow: none !important;
+            transform: none !important;
+            zoom: 1 !important;
+          }
+          .receipt-area * {
+            font-family: inherit !important;
+            font-weight: inherit !important;
+            line-height: inherit !important;
+            text-rendering: inherit !important;
+            -webkit-font-smoothing: inherit !important;
+            font-smooth: inherit !important;
+            letter-spacing: inherit !important;
+            font-kerning: inherit !important;
+            font-variant-ligatures: inherit !important;
+            text-shadow: none !important;
+            transform: none !important;
+            color: #000 !important;
+          }
+          .receipt-area strong,
+          .receipt-area b,
+          .receipt-area .font-semibold,
+          .receipt-area .font-bold,
+          .receipt-area .font-black {
+            font-weight: 700 !important;
+          }
+          /* Compact spacing */
+          .receipt-area .mb-4 { margin-bottom: 0.5rem !important; }
+          .receipt-area .mb-3 { margin-bottom: 0.35rem !important; }
+          .receipt-area .mt-6 { margin-top: 0.6rem !important; }
+          .receipt-area .mt-5 { margin-top: 0.5rem !important; }
+          .receipt-area .mt-3 { margin-top: 0.35rem !important; }
+          .receipt-area .mt-2 { margin-top: 0.25rem !important; }
+          .receipt-area .py-4 { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; }
+          .receipt-area .pb-3 { padding-bottom: 0.35rem !important; }
+          .receipt-area .pt-3 { padding-top: 0.35rem !important; }
+        }
+      `}</style>
       <div className="receipt-area bg-white text-black">
 
         {/* Store header */}
@@ -182,14 +257,14 @@ export const ReceiptPrint = ({
               <span className="font-bold">{ownerName}</span>
             </div>
           )}
-          {companyName && <p className="text-xs mt-0.5 font-semibold">{companyName}</p>}
-          <p className="text-base mt-1">{branchName}</p>
+          {companyName && <p className="text-xs mt-0.5 font-bold">{companyName}</p>}
+          <p className="text-base mt-1 font-bold">{branchName}</p>
           {storeAddress && <p className="text-xs mt-0.5">{storeAddress}</p>}
           {vatRegTin && <p className="text-xs mt-0.5">VAT Reg TIN: {vatRegTin}</p>}
           {minNumber && <p className="text-xs mt-0.5">MIN: {minNumber}</p>}
           {serialNumber && <p className="text-xs mt-0.5">SN: {serialNumber}</p>}
-          <h2 className="text-sm mt-2">{orNumber}</h2>
-          {terminalNumber && <p className="text-[10px] uppercase font-bold text-zinc-500">Terminal: {terminalNumber}</p>}
+          <h2 className="text-sm mt-2 font-bold">{orNumber}</h2>
+          {terminalNumber && <p className="text-[10px] uppercase font-bold">Terminal: {terminalNumber}</p>}
           <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
         </div>
 
@@ -711,6 +786,64 @@ export const KitchenPrint = ({
   customerName,
 }: KitchenPrintProps) => (
   <div className="printable-receipt-container hidden print:block">
+    <style>{`
+      @media print {
+        @page { 
+          size: 80mm auto;
+          margin: 0 !important; 
+        }
+        html, body { 
+          margin: 0 !important; 
+          padding: 0 !important; 
+          width: 80mm !important;
+          height: auto !important;
+        }
+        .printable-receipt-container {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          max-width: 76mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          height: auto !important;
+        }
+        .receipt-area {
+          width: 66mm !important;
+          margin: 0 auto !important;
+          padding: 1mm 0 !important;
+          box-sizing: border-box !important;
+          color: #000 !important;
+          font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+          font-size: 11px !important;
+          line-height: 1.1 !important;
+          font-weight: 500 !important;
+          text-rendering: geometricPrecision !important;
+          -webkit-font-smoothing: none !important;
+          font-smooth: never !important;
+          letter-spacing: 0 !important;
+          font-kerning: none !important;
+          font-variant-ligatures: none !important;
+          text-shadow: none !important;
+          transform: none !important;
+          zoom: 1 !important;
+        }
+        .receipt-area * {
+          font-family: inherit !important;
+          font-weight: inherit !important;
+          line-height: inherit !important;
+          text-rendering: inherit !important;
+          -webkit-font-smoothing: inherit !important;
+          font-smooth: inherit !important;
+          letter-spacing: inherit !important;
+          font-kerning: inherit !important;
+          font-variant-ligatures: inherit !important;
+          text-shadow: none !important;
+          transform: none !important;
+          color: #000 !important;
+        }
+      }
+    `}</style>
     <div className="receipt-area bg-white text-black">
       <div className="text-center mb-4 border-b-4 border-black pb-3">
         <h1 className="uppercase leading-tight font-black text-3xl mb-1">ORDER TICKET</h1>
@@ -881,13 +1014,22 @@ export const StickerPrint = ({
     if (item.isBundle) {
       return acc + (item.bundleComponents?.reduce((s, c) => s + c.quantity, 0) ?? 0) * item.qty;
     }
+
+    const comboMatch = item.remarks?.match(/^(.+?) \[(.+)\]/);
+    const isCombo = !!comboMatch && !item.remarks?.startsWith('[Drink:');
+    if (isCombo) {
+      return acc + (orderType !== 'dine-in' ? 2 : 1) * item.qty;
+    }
+
     const isDrinkSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L' || !!item.cupSizeLabel;
-    const isMixMatch = item.remarks?.startsWith('[Drink:') ?? false;
-    const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
-    
     if (isDrinkSticker) return acc + item.qty;
+
+    const isMixMatch = item.remarks?.startsWith('[Drink:') ?? false;
     if (isMixMatch) return acc + item.qty;
+
+    const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
     if (waffleCount > 0) return acc + waffleCount;
+
     if (orderType !== 'dine-in') return acc + item.qty;
     return acc;
   }, 0);
@@ -981,6 +1123,76 @@ export const StickerPrint = ({
             <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
               <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
                 Mix & Match — {item.name}
+              </div>
+              <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
+                {drinkName}
+              </div>
+              <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
+                {sugarPart && <div>Sugar: {sugarPart}</div>}
+                {options.map(opt => <div key={opt}>{opt}</div>)}
+                {addOns.map(a => <div key={a}>+ {a}</div>)}
+              </div>
+            </div>
+            <StickerFooter cls={cls} formattedDate={formattedDate} formattedTime={formattedTime} />
+          </div>
+        );
+        drinkIndex++;
+      }
+      return;
+    }
+
+    // ── Combo meal stickers (Food + Drink split for take-out) ────────────────
+    const comboMatch = item.remarks?.match(/^(.+?) \[(.+)\]/);
+    const isCombo = !!comboMatch && !item.remarks?.startsWith('[Drink:');
+
+    if (isCombo) {
+      for (let i = 0; i < item.qty; i++) {
+        const drinkName = comboMatch[1];
+        const drinkDetailsStr = comboMatch[2];
+        const parts = drinkDetailsStr.split(' | ');
+        const sugarPart = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
+        const options = parts.filter(p => !p.startsWith('Sugar:') && !p.startsWith('+'));
+        const addOns = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
+        const extraCount = options.length + addOns.length;
+        const cls = getStickerClasses(extraCount);
+
+        // 1. Food Sticker (only for take-out/delivery)
+        if (orderType !== 'dine-in') {
+          // Try to get food name by removing the drink part if it's "Pizza + Drink" style
+          const foodName = item.name.replace(new RegExp(` \\+ ${drinkName}$`, 'i'), '').replace(/ \+ DRINK$/i, '').trim();
+          const foodCls = getStickerClasses(0, foodName.length);
+          stickers.push(
+            <div
+              key={`sticker-combo-food-${cartIndex}-${i}`}
+              className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${foodCls.paddingClass}`}
+              style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+            >
+              <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={foodCls} />
+              <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+                <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
+                  Combo — Food Part
+                </div>
+                <div className={`w-full font-black uppercase leading-tight ${foodCls.nameSize} ${foodCls.marginClass}`}>
+                  {foodName}
+                </div>
+              </div>
+              <StickerFooter cls={foodCls} formattedDate={formattedDate} formattedTime={formattedTime} />
+            </div>
+          );
+          drinkIndex++;
+        }
+
+        // 2. Drink Sticker
+        stickers.push(
+          <div
+            key={`sticker-combo-drink-${cartIndex}-${i}`}
+            className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
+            style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+          >
+            <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
+            <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+              <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
+                Combo Drink — {item.name}
               </div>
               <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
                 {drinkName}

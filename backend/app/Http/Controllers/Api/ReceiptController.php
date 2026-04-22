@@ -139,13 +139,24 @@ class ReceiptController extends Controller
             ) as has_stickers
         ")
         ->selectRaw("
-            (
-                SELECT COUNT(*)
-                FROM sales s2
-                WHERE s2.branch_id  = sales.branch_id
-                AND DATE(s2.created_at) = DATE(sales.created_at)
-                AND s2.id <= sales.id
-            ) as daily_order_number
+            CASE 
+                WHEN sales.source = 'kiosk' THEN (
+                    SELECT COUNT(*) + 100
+                    FROM sales s2
+                    WHERE s2.branch_id = sales.branch_id
+                    AND DATE(s2.created_at) = DATE(sales.created_at)
+                    AND s2.source = 'kiosk'
+                    AND s2.id < sales.id
+                )
+                ELSE (
+                    SELECT COUNT(*) + 1
+                    FROM sales s2
+                    WHERE s2.branch_id = sales.branch_id
+                    AND DATE(s2.created_at) = DATE(sales.created_at)
+                    AND (s2.source != 'kiosk' OR s2.source IS NULL)
+                    AND s2.id < sales.id
+                )
+            END as daily_order_number
         ");
 
     // Branch restriction — include APP- orders for all branches
@@ -294,11 +305,20 @@ public function voidRequest(Request $request, $id)
         // Normalize items → sale_items using Resource for consistent formatting
         $saleArray['sale_items'] = SaleItemResource::collection($sale->items)->resolve();
 
-        // Queue number (from SI)
-        $saleArray['queue_number'] = ltrim(
-            str_replace('SI-', '', $sale->invoice_number),
-            '0'
-        ) ?: '0';
+        // Queue number (re-calculate based on same-day count for that source)
+        $saleDayCount = Sale::where('branch_id', $sale->branch_id)
+            ->whereDate('created_at', $sale->created_at->toDateString())
+            ->where('id', '<', $sale->id)
+            ->where(function($q) use ($sale) {
+                if ($sale->source === 'kiosk') {
+                    $q->where('source', 'kiosk');
+                } else {
+                    $q->where('source', '!=', 'kiosk')->orWhereNull('source');
+                }
+            })
+            ->count();
+            
+        $saleArray['queue_number'] = $sale->source === 'kiosk' ? ($saleDayCount + 100) : ($saleDayCount + 1);
 
         // ✅ BIR fields from the related branch
         $branch = $sale->branch;
