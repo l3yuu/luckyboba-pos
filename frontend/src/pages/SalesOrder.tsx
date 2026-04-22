@@ -268,8 +268,16 @@ const SalesOrder = () => {
   const [selectedDiscounts, setSelectedDiscounts] = useState<Discount[]>([])
 
   // OR / Queue
-  const [orNumber, setOrNumber] = useState(generateORNumber(1))
+  const [orNumber, setOrNumber] = useState(() => {
+    const last = localStorage.getItem(seqKey)
+    return generateORNumber(last ? parseInt(last, 10) : 1)
+  })
   const [queueNumber, setQueueNumber] = useState(generateQueueNumber(1))
+
+  useEffect(() => {
+    const last = localStorage.getItem(seqKey)
+    if (last) setOrNumber(generateORNumber(parseInt(last, 10)))
+  }, [seqKey])
 
   // Success / print
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
@@ -433,9 +441,11 @@ const SalesOrder = () => {
 
   // ── FIX #1 — Define syncNextSequence BEFORE the boot useEffect so it is
   // not in the temporal dead zone when the effect runs on mount. ─────────────
-  const syncNextSequence = async () => {
+  const syncNextSequence = useCallback(async () => {
+    if (!branchId) return;
+
     try {
-      const { data } = await api.get('/receipts/next-sequence')
+      const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&t=${Date.now()}`)
       const serverSeq = parseInt(data.next_sequence, 10)
       if (!isNaN(serverSeq)) {
         localStorage.setItem(seqKey, String(serverSeq))
@@ -448,17 +458,18 @@ const SalesOrder = () => {
           setQueueNumber(generateQueueNumber(serverQueue))
         }
       }
-    } catch {
+    } catch (err) {
+      console.error('[Sequence Sync] Failed:', err);
       // ── Offline fallback ───────────────────────────────────────────────────
-      const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1
-      localStorage.setItem(seqKey, String(lastSeq))
+      const lastSeqStr = localStorage.getItem(seqKey);
+      const lastSeq = lastSeqStr ? parseInt(lastSeqStr, 10) : 1;
       setOrNumber(generateORNumber(lastSeq))
 
-      // Offline fallback: Increment existing or default to 1
-      const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
+      const lastQueueStr = localStorage.getItem(queueKey);
+      const lastQueue = lastQueueStr ? parseInt(lastQueueStr, 10) : 1;
       setQueueNumber(generateQueueNumber(lastQueue))
     }
-  }
+  }, [branchId, seqKey, queueKey]);
 
   // ── Sync Logic ─────────────────────────────────────────────────────────────
 
