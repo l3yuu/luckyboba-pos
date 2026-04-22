@@ -15,7 +15,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { CustomerNameModal, SuccessModal } from './modals';
 import { OnlineOrderPaymentModal } from './OnlineOrderPaymentModals';
 import { ReceiptPrint, KitchenPrint, StickerPrint } from './print';
-import { generateTerminalNumber } from './shared';
+import { generateTerminalNumber, generateORNumber } from './shared';
 import type { CartItem } from '../../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -147,6 +147,8 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
   const meta = STATUS_META[order.status as Status];
   const invoice = orderInvoice(order);
   const seqNumber = order.customer_code || '???';
+  // Only show SI# if it's a real receipt number (not a temporary KSK-/APP- placeholder)
+  const hasRealInvoice = invoice && !invoice.startsWith('KSK-') && !invoice.startsWith('APP-');
 
   const nextStatus: Record<Status, Status | null> = {
     pending: 'preparing',
@@ -164,7 +166,9 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
         <div className="flex items-center gap-2">
           {meta.icon}
           <span className="font-black text-sm text-zinc-900">#{seqNumber}</span>
-          <span className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest">{invoice}</span>
+          {hasRealInvoice && (
+            <span className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest">{invoice}</span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {order.invoice_number?.startsWith('KSK-') ? (
@@ -486,9 +490,9 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       // If it's a kiosk or app order awaiting an official receipt number
       if (invoice_number.startsWith('KSK-') || invoice_number.startsWith('APP-')) {
         try {
-          const res = await api.get(`/receipts/next-sequence?branch_id=${user?.branch_id || ''}`);
-          if (res.data?.sequence) {
-            invoice_number = res.data.sequence;
+          const res = await api.get(`/receipts/next-sequence?branch_id=${user?.branch_id || ''}&source=pos&t=${Date.now()}`);
+          if (res.data?.sequence || res.data?.next_sequence) {
+            invoice_number = res.data.sequence || generateORNumber(res.data.next_sequence);
           }
         } catch (e) {
           console.error("Failed to fetch next sequence for online order", e);
