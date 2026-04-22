@@ -98,7 +98,7 @@ const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: Si
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white shadow-sm",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white shadow-sm",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm",
     danger:    "bg-red-600 hover:bg-red-700 text-white shadow-sm",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -113,7 +113,7 @@ const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: Si
 
 const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ col, active, dir }) => {
   if (col !== active) return <ChevronDown size={11} className="text-zinc-300 ml-0.5" />;
-  return dir === "asc" ? <ChevronUp size={11} className="text-[#3b2063] ml-0.5" /> : <ChevronDown size={11} className="text-[#3b2063] ml-0.5" />;
+  return dir === "asc" ? <ChevronUp size={11} className="text-[#6a12b8] ml-0.5" /> : <ChevronDown size={11} className="text-[#6a12b8] ml-0.5" />;
 };
 
 const StatusBadge: React.FC<{ status: TransferStatus }> = ({ status }) => {
@@ -233,7 +233,7 @@ const CreateTransferModal: React.FC<{
           <div className="grid grid-cols-[1fr_40px_1fr] items-center gap-4">
             <div className="space-y-1.5 opacity-60">
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 px-0.5">Source (Your Branch)</label>
-              <div className="w-full text-sm font-black text-[#3b2063] bg-violet-50 border border-violet-100 rounded-lg px-4 py-3 min-h-[46px] flex items-center">
+              <div className="w-full text-sm font-black text-[#6a12b8] bg-violet-50 border border-violet-100 rounded-lg px-4 py-3 min-h-[46px] flex items-center">
                  {currentBranch?.name ?? 'Loading...'}
               </div>
             </div>
@@ -386,16 +386,16 @@ const ViewTransferModal: React.FC<{
           </div>
 
           <div className="relative flex items-center justify-between gap-4 p-5 bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden mt-1">
-             <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#3b2063]" />
+             <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#6a12b8]" />
              <div className="flex-1 text-center">
-                <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">Source</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-[#6a12b8] mb-1">Source</p>
                 <div className="bg-white border border-zinc-200 rounded-lg p-2 min-h-[40px] flex items-center justify-center">
                   <span className="text-xs font-black text-[#1a0f2e] leading-tight line-clamp-2">{transfer.from_branch?.name ?? transfer.from_branch_name ?? '—'}</span>
                 </div>
              </div>
              <ArrowRight size={16} className="text-violet-300 pt-4 shrink-0" />
              <div className="flex-1 text-center">
-                <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">Target</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-[#6a12b8] mb-1">Target</p>
                 <div className="bg-white border border-zinc-200 rounded-lg p-2 min-h-[40px] flex items-center justify-center shadow-sm">
                   <span className="text-xs font-black text-[#1a0f2e] leading-tight line-clamp-2">{transfer.to_branch?.name ?? transfer.to_branch_name ?? '—'}</span>
                 </div>
@@ -410,7 +410,7 @@ const ViewTransferModal: React.FC<{
           )}
           <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
             <span>Initiated By:</span>
-            <span className="text-[#3b2063]">{transfer.created_by?.name ?? 'Unknown'}</span>
+            <span className="text-[#6a12b8]">{transfer.created_by?.name ?? 'Unknown'}</span>
           </div>
 
           <div className="space-y-3">
@@ -422,7 +422,7 @@ const ViewTransferModal: React.FC<{
                       <tr key={i} className="hover:bg-zinc-50/50 transition-colors">
                         <td className="px-4 py-3 font-bold text-zinc-700 text-xs">{item.material_name}</td>
                         <td className="px-4 py-3 text-right">
-                           <span className="font-black text-[#3b2063] text-sm tabular-nums">{item.quantity}</span>
+                           <span className="font-black text-[#6a12b8] text-sm tabular-nums">{item.quantity}</span>
                            <span className="ml-1.5 text-[9px] font-black text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full uppercase">{item.unit}</span>
                         </td>
                       </tr>
@@ -633,17 +633,17 @@ const TL_StockTransferPanel: React.FC<{ branchId?: number | null }> = ({ branchI
                                     </span>
                                 </td>
                                 <td className="px-5 py-4">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black text-white bg-[#3b2063] uppercase tracking-widest">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black text-white bg-[#6a12b8] uppercase tracking-widest">
                                     {items.length} units
                                 </span>
                                 </td>
                                 <td className="px-5 py-4"><StatusBadge status={t.status} /></td>
                                 <td className="px-7 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
-                                    <button onClick={() => setExpanded(isExp ? null : t.id)} className="p-1.5 hover:bg-white border hover:border-zinc-200 rounded-lg text-zinc-300 hover:text-[#3b2063] transition-all">
+                                    <button onClick={() => setExpanded(isExp ? null : t.id)} className="p-1.5 hover:bg-white border hover:border-zinc-200 rounded-lg text-zinc-300 hover:text-[#6a12b8] transition-all">
                                         <ChevronDown size={14} className={`transition-transform duration-300 ${isExp ? 'rotate-180' : ''}`} />
                                     </button>
-                                    <button onClick={() => setViewTarget(t)} className="h-8 px-3 bg-white border border-zinc-200 rounded-lg text-zinc-500 hover:border-[#3b2063] hover:text-[#3b2063] font-black text-[9px] uppercase tracking-widest transition-all shadow-sm">
+                                    <button onClick={() => setViewTarget(t)} className="h-8 px-3 bg-white border border-zinc-200 rounded-lg text-zinc-500 hover:border-[#6a12b8] hover:text-[#6a12b8] font-black text-[9px] uppercase tracking-widest transition-all shadow-sm">
                                         View
                                     </button>
                                     </div>

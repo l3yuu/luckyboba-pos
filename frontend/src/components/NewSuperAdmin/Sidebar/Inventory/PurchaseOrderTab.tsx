@@ -222,7 +222,7 @@ const CreatePOModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <ShoppingCart size={15} className="text-[#3b2063]" />
+              <ShoppingCart size={15} className="text-[#6a12b8]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">Create Purchase Order</p>
@@ -263,7 +263,7 @@ const CreatePOModal: React.FC<{
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Items <span className="text-red-400">*</span></label>
-              <button onClick={addRow} className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#3b2063] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
+              <button onClick={addRow} className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#6a12b8] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
                 <Plus size={11} /> Add Row
               </button>
             </div>
@@ -327,7 +327,7 @@ const CreatePOModal: React.FC<{
               {poItems.length > 0 && (
                 <div className="flex items-center justify-between px-3 py-2.5 bg-zinc-50 border-t border-zinc-200">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Total</span>
-                  <span className="text-sm font-black text-[#3b2063]">₱{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="text-sm font-black text-[#6a12b8]">₱{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
             </div>
@@ -336,7 +336,7 @@ const CreatePOModal: React.FC<{
 
         <div className="flex items-center gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
           <button onClick={onClose} disabled={saving} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{saving ? 'Creating...' : 'Create PO'}</button>
+          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#6a12b8] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{saving ? 'Creating...' : 'Create PO'}</button>
         </div>
       </div>
     </div>,
@@ -491,7 +491,7 @@ const ViewPOModal: React.FC<{ po: PurchaseOrder; onClose: () => void; onStatusCh
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <ShoppingCart size={15} className="text-[#3b2063]" />
+              <ShoppingCart size={15} className="text-[#6a12b8]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{po.po_number}</p>
@@ -527,7 +527,7 @@ const ViewPOModal: React.FC<{ po: PurchaseOrder; onClose: () => void; onStatusCh
                 <p className="text-xs font-semibold text-zinc-700">{item.material_name}</p>
                 <p className="text-xs font-bold text-zinc-700 tabular-nums">{item.quantity} {item.unit}</p>
                 <p className="text-xs text-zinc-500 tabular-nums">₱{Number(item.unit_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-                <p className="text-xs font-bold text-[#3b2063] tabular-nums">₱{((Number(item.quantity) || 0) * (Number(item.unit_cost) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                <p className="text-xs font-bold text-[#6a12b8] tabular-nums">₱{((Number(item.quantity) || 0) * (Number(item.unit_cost) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
               </div>
             ))}
           </div>
@@ -635,7 +635,7 @@ const PurchaseOrderTab: React.FC = () => {
         {(Object.entries(counts) as [POStatus, number][]).map(([status, count]) => {
           const c = STATUS_CONFIG[status];
           return (
-            <div key={status} className="bg-white border rounded-[0.625rem] px-4 py-4 shadow-sm cursor-pointer hover:border-[#3b2063] transition-colors" style={{ borderColor: statusFilter === status ? '#3b2063' : c.border }}
+            <div key={status} className="bg-white border rounded-[0.625rem] px-4 py-4 shadow-sm cursor-pointer hover:border-[#6a12b8] transition-colors" style={{ borderColor: statusFilter === status ? '#6a12b8' : c.border }}
               onClick={() => setStatusFilter(statusFilter === status ? '' : status)}>
               <div className="flex items-center gap-2 mb-1">
                 <span style={{ color: c.text }}>{c.icon}</span>
@@ -665,7 +665,7 @@ const PurchaseOrderTab: React.FC = () => {
             <option value="">All Status</option>
             {PO_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <button onClick={() => setAddOpen(true)} className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
+          <button onClick={() => setAddOpen(true)} className="bg-[#6a12b8] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
             <Plus size={13} /> New PO
           </button>
           <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">{filtered.length} results</span>
@@ -700,7 +700,7 @@ const PurchaseOrderTab: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                            <ShoppingCart size={12} className="text-[#3b2063]" />
+                            <ShoppingCart size={12} className="text-[#6a12b8]" />
                           </div>
                           <span className="font-black text-[#1a0f2e] text-xs tabular-nums">{po.po_number}</span>
                         </div>
@@ -708,14 +708,14 @@ const PurchaseOrderTab: React.FC = () => {
                       <td className="px-5 py-3.5 text-xs font-semibold text-zinc-700">{po.supplier?.name ?? po.supplier_name ?? '—'}</td>
                       <td className="px-5 py-3.5 text-xs text-zinc-500">{po.branch?.name ?? po.branch_name ?? '—'}</td>
                       <td className="px-5 py-3.5 text-xs text-zinc-500">{po.expected_date ? new Date(po.expected_date).toLocaleDateString() : '—'}</td>
-                      <td className="px-5 py-3.5 font-bold text-xs text-[#3b2063] tabular-nums">₱{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td className="px-5 py-3.5 font-bold text-xs text-[#6a12b8] tabular-nums">₱{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                       <td className="px-5 py-3.5"><StatusBadge status={po.status} /></td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => setExpanded(isExp ? null : po.id)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                          <button onClick={() => setExpanded(isExp ? null : po.id)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                             <ChevronDown size={13} className={`transition-transform ${isExp ? 'rotate-180' : ''}`} />
                           </button>
-                          <button onClick={() => setViewTarget(po)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                          <button onClick={() => setViewTarget(po)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                             <Eye size={13} />
                           </button>
                         </div>
@@ -728,7 +728,7 @@ const PurchaseOrderTab: React.FC = () => {
                             {/* Items List with Delivery Progress */}
                             <div className="border border-[#e9d5ff] rounded-xl overflow-hidden shadow-sm bg-white">
                               <div className="grid grid-cols-[1fr_80px_100px_100px_100px] bg-[#f5f0ff] px-4 py-2 border-b border-[#e9d5ff]">
-                                {['Material', 'Ordered', 'Received', 'Pending', 'Progress'].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#3b2063] text-center first:text-left">{h}</p>)}
+                                {['Material', 'Ordered', 'Received', 'Pending', 'Progress'].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#6a12b8] text-center first:text-left">{h}</p>)}
                               </div>
                               {items.map((item, i) => {
                                 const prog = Math.min(100, (Number(item.quantity_received || 0) / Number(item.quantity)) * 100);

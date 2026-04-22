@@ -67,7 +67,7 @@ const timeStr = (iso: string) =>
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; border: string }> = {
   pending: { label: 'Pending', bg: '#fef9c3', color: '#92400e', border: '#fde68a' },
-  preparing: { label: 'Preparing', bg: '#ede9fe', color: '#3b2063', border: '#ddd6f7' },
+  preparing: { label: 'Preparing', bg: '#ede9fe', color: '#6a12b8', border: '#ddd6f7' },
   completed: { label: 'Completed', bg: '#dcfce7', color: '#166534', border: '#bbf7d0' },
   cancelled: { label: 'Cancelled', bg: '#fee2e2', color: '#991b1b', border: '#fecaca' },
 };
@@ -121,7 +121,7 @@ interface BtnProps {
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
   };
   return (
@@ -199,7 +199,7 @@ const OrderRow = ({ order, onStatusChange }: {
 
         {/* Total */}
         <div className="text-right shrink-0 px-4">
-          <p className="text-base font-bold text-[#3b2063] tracking-tight">
+          <p className="text-base font-bold text-[#6a12b8] tracking-tight">
             {fmt(order.total_amount)}
           </p>
         </div>
@@ -236,7 +236,7 @@ const OrderRow = ({ order, onStatusChange }: {
             {order.items.map(item => (
               <div key={item.id} className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#3b2063] mt-2 shrink-0" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#6a12b8] mt-2 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-[#1a0f2e]">
                       {item.qty}× {item.name}
@@ -261,7 +261,7 @@ const OrderRow = ({ order, onStatusChange }: {
           {/* Receipt footer */}
           <div className="mt-4 pt-4 border-t border-zinc-200 flex justify-between items-center">
             <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Total</span>
-            <span className="text-base font-bold text-[#3b2063]">
+            <span className="text-base font-bold text-[#6a12b8]">
               {fmt(order.total_amount)}
             </span>
           </div>
@@ -345,13 +345,13 @@ const BM_AppOrders = () => {
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
             <input
               type="text"
               placeholder="Search orders or items..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
             />
           </div>
 

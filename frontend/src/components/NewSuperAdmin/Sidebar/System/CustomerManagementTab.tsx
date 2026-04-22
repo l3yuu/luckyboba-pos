@@ -107,7 +107,7 @@ const Btn: React.FC<{
 }> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
   const sizes = { sm: "px-3 py-1.5 text-[10px]", md: "px-4 py-2.5 text-xs" };
   const variants = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white shadow-sm",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white shadow-sm",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300",
     danger: "bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -250,7 +250,7 @@ const CustomerDetailModal: React.FC<DetailModalProps> = ({ customerId, onClose, 
         <>
           {/* Header Info */}
           <div className="flex items-center gap-5">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#7c3aed] to-[#3b2063] flex items-center justify-center shrink-0 shadow-xl shadow-violet-200/50">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#7c3aed] to-[#6a12b8] flex items-center justify-center shrink-0 shadow-xl shadow-violet-200/50">
               <span className="text-2xl font-black text-white">{initials(detail.name)}</span>
             </div>
             <div className="flex-1 min-w-0">
@@ -547,7 +547,7 @@ const CustomerManagementTab: React.FC = () => {
                 <tr key={c.id} className="hover:bg-violet-50/20 transition-colors group cursor-pointer" onClick={() => setSelectedId(c.id)}>
                   <td className="px-4 py-1.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-black text-[#3b2063] group-hover:border-violet-300 transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-[10px] font-black text-[#6a12b8] group-hover:border-violet-300 transition-colors">
                         {initials(c.name)}
                       </div>
                       <div className="min-w-0">
@@ -602,7 +602,7 @@ const CustomerManagementTab: React.FC = () => {
                 const p = meta.last_page <= 5 ? i + 1 : page <= 3 ? i + 1 : page >= meta.last_page - 2 ? meta.last_page - 4 + i : page - 2 + i;
                 return (
                   <button key={p} onClick={() => handlePage(p)}
-                    className={`w-7 h-7 text-[10px] font-black rounded-lg transition-all border ${p === page ? "bg-[#3b2063] text-white border-[#3b2063]" : "text-zinc-500 bg-white border-zinc-200 hover:border-violet-300 hover:text-violet-600"}`}>
+                    className={`w-7 h-7 text-[10px] font-black rounded-lg transition-all border ${p === page ? "bg-[#6a12b8] text-white border-[#6a12b8]" : "text-zinc-500 bg-white border-zinc-200 hover:border-violet-300 hover:text-violet-600"}`}>
                     {p}
                   </button>
                 );

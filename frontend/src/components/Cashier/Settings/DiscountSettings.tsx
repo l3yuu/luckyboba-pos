@@ -129,7 +129,7 @@ const DiscountSettings = ({ onBack, readOnly = false }: DiscountSettingsProps) =
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Search:</span>
                 <input
                   type="text"
-                  className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400"
+                  className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm outline-none focus:border-[#6a12b8] w-56 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search discounts..."
@@ -160,7 +160,7 @@ const DiscountSettings = ({ onBack, readOnly = false }: DiscountSettingsProps) =
                     {filteredDiscounts.length > 0 ? filteredDiscounts.map((discount) => (
                       <tr key={discount.id} className="hover:bg-[#f5f0ff] transition-colors">
                         <td className="px-7 py-3.5">
-                          <span className="text-[13px] font-extrabold text-[#3b2063]">{discount.name}</span>
+                          <span className="text-[13px] font-extrabold text-[#6a12b8]">{discount.name}</span>
                         </td>
                         <td className="px-7 py-3.5 text-center">
                           <span className="text-[13px] font-extrabold text-[#1c1c1e]">{discount.amount}</span>
@@ -217,14 +217,14 @@ const DiscountSettings = ({ onBack, readOnly = false }: DiscountSettingsProps) =
                 {!readOnly && (
                   <button
                     onClick={() => setIsModalOpen(true)}
-                    className="h-11 px-7 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center gap-2"
+                    className="h-11 px-7 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center gap-2"
                   >
                     + Add Discount
                   </button>
                 )}
                 <button
                   onClick={onBack}
-                  className="h-11 px-7 bg-white border border-[#e9d5ff] text-[#3b2063] font-bold text-xs uppercase tracking-widest hover:bg-[#f5f0ff] transition-colors rounded-[0.625rem] flex items-center gap-2"
+                  className="h-11 px-7 bg-white border border-[#e9d5ff] text-[#6a12b8] font-bold text-xs uppercase tracking-widest hover:bg-[#f5f0ff] transition-colors rounded-[0.625rem] flex items-center gap-2"
                 >
                   <ArrowLeft size={14} strokeWidth={2.5} /> Back
                 </button>
@@ -237,7 +237,7 @@ const DiscountSettings = ({ onBack, readOnly = false }: DiscountSettingsProps) =
         {!readOnly && isModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
-              <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-[#3b2063] rounded-t-[0.625rem]">
+              <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-[#6a12b8] rounded-t-[0.625rem]">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#e9d5ff]/70">Settings</p>
                   <h2 className="text-sm font-extrabold text-white mt-0.5">Add Discount</h2>
@@ -251,7 +251,7 @@ const DiscountSettings = ({ onBack, readOnly = false }: DiscountSettingsProps) =
                     type="text"
                     value={newDiscount.name}
                     onChange={e => setNewDiscount({...newDiscount, name: e.target.value})}
-                    className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white"
+                    className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#6a12b8] focus:bg-white"
                     placeholder="e.g. SENIOR20"
                   />
                 </div>
@@ -261,7 +261,7 @@ const DiscountSettings = ({ onBack, readOnly = false }: DiscountSettingsProps) =
                     type="number"
                     value={newDiscount.amount}
                     onChange={e => setNewDiscount({...newDiscount, amount: e.target.value})}
-                    className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white"
+                    className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#6a12b8] focus:bg-white"
                     placeholder="20"
                   />
                 </div>
@@ -270,7 +270,7 @@ const DiscountSettings = ({ onBack, readOnly = false }: DiscountSettingsProps) =
                   <select
                     value={newDiscount.type}
                     onChange={e => setNewDiscount({...newDiscount, type: e.target.value})}
-                    className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                    className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] focus:border-[#6a12b8] focus:bg-white cursor-pointer"
                   >
                     <option value="Global-Percent">Global-Percent</option>
                     <option value="Item-Percent">Item-Percent</option>
@@ -282,7 +282,7 @@ const DiscountSettings = ({ onBack, readOnly = false }: DiscountSettingsProps) =
                 <button
                   onClick={handleSave}
                   disabled={isSubmitting}
-                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
+                  className="flex-1 h-11 bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
                 >
                   {isSubmitting
                     ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</>

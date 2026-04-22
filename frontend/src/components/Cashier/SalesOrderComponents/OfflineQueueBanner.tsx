@@ -58,7 +58,7 @@ const OfflineQueueBanner: React.FC<Props> = ({
             <button
               onClick={syncNow}
               disabled={isSyncing}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white text-[10px] font-bold uppercase tracking-widest rounded-lg disabled:opacity-50 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#6a12b8] hover:bg-[#6a12b8] text-white text-[10px] font-bold uppercase tracking-widest rounded-lg disabled:opacity-50 transition-all"
             >
               <RefreshCw size={11} className={isSyncing ? 'animate-spin' : ''} />
               {isSyncing ? 'Syncing...' : 'Sync Now'}

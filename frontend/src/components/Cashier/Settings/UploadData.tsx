@@ -216,7 +216,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
         <button 
           onClick={() => setActiveTab('upload')}
           className={`pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-            activeTab === 'upload' ? 'border-b-2 border-[#3b2063] text-[#3b2063]' : 'text-zinc-400 hover:text-zinc-600'
+            activeTab === 'upload' ? 'border-b-2 border-[#6a12b8] text-[#6a12b8]' : 'text-zinc-400 hover:text-zinc-600'
           }`}
         >
           Upload New
@@ -224,7 +224,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
         <button 
           onClick={() => setActiveTab('history')}
           className={`pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-            activeTab === 'history' ? 'border-b-2 border-[#3b2063] text-[#3b2063]' : 'text-zinc-400 hover:text-zinc-600'
+            activeTab === 'history' ? 'border-b-2 border-[#6a12b8] text-[#6a12b8]' : 'text-zinc-400 hover:text-zinc-600'
           }`}
         >
           Import History
@@ -235,10 +235,10 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
         {activeTab === 'upload' ? (
           <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
             <div className="flex justify-between items-center">
-              <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Bulk Import</h1>
+              <h1 className="text-xl font-black text-[#6a12b8] uppercase tracking-widest">Bulk Import</h1>
               <button 
                 onClick={downloadTemplate} 
-                className="h-11 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
+                className="h-11 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
               >
                 <Download size={14} /> Download Template
               </button>
@@ -253,8 +253,8 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                 selectedFile 
                   ? 'border-emerald-400 bg-emerald-50/20' 
                   : isDragging 
-                    ? 'border-[#3b2063] bg-[#f5f0ff] scale-[1.01] shadow-md' 
-                    : 'border-[#e9d5ff] hover:border-[#3b2063] cursor-pointer'
+                    ? 'border-[#6a12b8] bg-[#f5f0ff] scale-[1.01] shadow-md' 
+                    : 'border-[#e9d5ff] hover:border-[#6a12b8] cursor-pointer'
               } flex flex-col items-center gap-4`}
             >
               <input 
@@ -280,7 +280,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                 </div>
               ) : (
                 <>
-                  <div className={`p-4 rounded-full transition-colors ${isDragging ? 'bg-[#f5f0ff] text-[#3b2063]' : 'bg-zinc-50 text-zinc-300'}`}>
+                  <div className={`p-4 rounded-full transition-colors ${isDragging ? 'bg-[#f5f0ff] text-[#6a12b8]' : 'bg-zinc-50 text-zinc-300'}`}>
                     <Upload size={32} />
                   </div>
                   <div className="text-center">
@@ -315,7 +315,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                     <tbody className="divide-y divide-zinc-50">
                       {preview.map((row, idx) => (
                         <tr key={idx} className="hover:bg-[#f5f0ff]">
-                          <td className="px-4 py-2 text-[10px] font-bold text-[#3b2063] uppercase tracking-tighter">{row.name}</td>
+                          <td className="px-4 py-2 text-[10px] font-bold text-[#6a12b8] uppercase tracking-tighter">{row.name}</td>
                           <td className="px-4 py-2 text-[10px] font-bold text-slate-600">{row.amount}</td>
                           <td className={`px-4 py-2 text-[10px] font-black uppercase ${row.status === 'ON' ? 'text-emerald-600' : 'text-red-500'}`}>{row.status}</td>
                           <td className="px-4 py-2 text-[10px] font-bold text-zinc-400 italic text-right">{row.type}</td>
@@ -329,7 +329,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
           </div>
         ) : (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-            <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest flex items-center gap-2">
+            <h1 className="text-xl font-black text-[#6a12b8] uppercase tracking-widest flex items-center gap-2">
               <History size={20} /> System Import Logs
             </h1>
 
@@ -345,13 +345,13 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
                     {isLoadingHistory ? (
-                      <tr><td colSpan={3} className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-[#3b2063]" /></td></tr>
+                      <tr><td colSpan={3} className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-[#6a12b8]" /></td></tr>
                     ) : history.length > 0 ? history.map((log) => (
                       <tr key={log.id} className="hover:bg-[#f5f0ff] transition-colors">
                         <td className="px-6 py-4 flex items-center gap-2 text-[11px] font-bold text-slate-500">
                           <Calendar size={12} /> {new Date(log.created_at).toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 text-[11px] font-black text-[#3b2063] uppercase tracking-tighter">
+                        <td className="px-6 py-4 text-[11px] font-black text-[#6a12b8] uppercase tracking-tighter">
                           {log.action}
                         </td>
                         <td className="px-6 py-4 text-[10px] font-bold text-zinc-400 text-right italic">
@@ -373,7 +373,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
             <button 
               onClick={handleUpload} 
               disabled={isUploading || !selectedFile} 
-              className="h-11 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6 disabled:opacity-50"
+              className="h-11 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6 disabled:opacity-50"
             >
               {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
               {isUploading ? 'Importing...' : 'Confirm & Process'}
@@ -381,7 +381,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
           )}
           <button
             onClick={onBack}
-            className="h-11 bg-white border border-[#e9d5ff] text-[#3b2063] hover:bg-[#f5f0ff] font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
+            className="h-11 bg-white border border-[#e9d5ff] text-[#6a12b8] hover:bg-[#f5f0ff] font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
           >
             <ArrowLeft size={14} /> Back
           </button>
@@ -391,7 +391,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
       {summary && (
         <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden">
-            <div className="bg-[#3b2063] p-4 flex justify-between items-center text-white rounded-t-[0.625rem]">
+            <div className="bg-[#6a12b8] p-4 flex justify-between items-center text-white rounded-t-[0.625rem]">
               <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                 <ClipboardCheck size={14} /> Import Summary
               </span>
@@ -415,7 +415,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Error Logs</p>
                     <button 
                       onClick={downloadErrorLog}
-                      className="text-[9px] font-black text-[#3b2063] uppercase hover:underline flex items-center gap-1"
+                      className="text-[9px] font-black text-[#6a12b8] uppercase hover:underline flex items-center gap-1"
                     >
                       <FileWarning size={10} /> Download Log
                     </button>
@@ -430,7 +430,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
 
               <button 
                 onClick={() => setSummary(null)}
-                className="w-full h-11 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2"
+                className="w-full h-11 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2"
               >
                 Close Report
               </button>

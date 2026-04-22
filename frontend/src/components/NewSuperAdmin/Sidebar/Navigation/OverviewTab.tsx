@@ -78,7 +78,7 @@ const authHeaders = () => ({
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#3b2063]" },
+    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#6a12b8]" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
     red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
     amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
@@ -114,7 +114,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -317,7 +317,7 @@ const OverviewTab: React.FC = () => {
     revenue: r.revenue,
   }));
 
-  const PIE_COLORS = ["#3b2063", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
+  const PIE_COLORS = ["#6a12b8", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
   const totalRev = branchPerf.reduce((s, b) => s + Number(b.total_revenue), 0);
   const pieData = branchPerf.slice(0, 5).map((b, i) => ({
     name: b.branch_name,
@@ -357,7 +357,7 @@ const OverviewTab: React.FC = () => {
 
         <div className="text-left hidden sm:block">
           <p className="text-[0.55rem] font-bold uppercase tracking-widest text-zinc-400 leading-none">Live Pulse Sync</p>
-          <p className="text-[0.7rem] font-black text-[#3b2063] tabular-nums leading-none mt-1">
+          <p className="text-[0.7rem] font-black text-[#6a12b8] tabular-nums leading-none mt-1">
             {lastPulseSync.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
         </div>
@@ -365,7 +365,7 @@ const OverviewTab: React.FC = () => {
         <div className="flex items-center gap-2">
           {(["daily", "weekly", "monthly"] as const).map(p => (
             <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#6a12b8] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
               {p}
             </button>
           ))}
@@ -464,10 +464,10 @@ const OverviewTab: React.FC = () => {
         <div className="xl:col-span-8 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <ShoppingBag size={16} className="text-[#3b2063]" />
+              <ShoppingBag size={16} className="text-[#6a12b8]" />
               <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wider opacity-80">Live Sales Ticker</h3>
             </div>
-            <span className="text-[10px] font-black text-[#3b2063] uppercase bg-[#ede8ff] px-2 py-0.5 rounded-md">
+            <span className="text-[10px] font-black text-[#6a12b8] uppercase bg-[#ede8ff] px-2 py-0.5 rounded-md">
               {pulse?.recent_sales.length ?? 0} Transactions
             </span>
           </div>
@@ -509,7 +509,7 @@ const OverviewTab: React.FC = () => {
 
         <div className="xl:col-span-4 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <Activity size={16} className="text-[#3b2063]" />
+            <Activity size={16} className="text-[#6a12b8]" />
             <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wider opacity-80">Online Status</h3>
           </div>
           <div className="max-h-[220px] overflow-y-auto pr-1 custom-scroll space-y-1.5">
@@ -547,8 +547,8 @@ const OverviewTab: React.FC = () => {
                 <AreaChart data={revenueChartData}>
                   <defs>
                     <linearGradient id="unifGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b2063" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#6a12b8" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#6a12b8" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e1e9" vertical={false} />
@@ -558,7 +558,7 @@ const OverviewTab: React.FC = () => {
                     contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", fontSize: 11 }}
                     formatter={(v) => [fmt(Number(v)), "Revenue"]}
                   />
-                  <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={3} fill="url(#unifGrad)" />
+                  <Area type="monotone" dataKey="revenue" stroke="#6a12b8" strokeWidth={3} fill="url(#unifGrad)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -587,7 +587,7 @@ const OverviewTab: React.FC = () => {
                       <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
                       <span className="font-bold text-zinc-500 truncate">{d.name}</span>
                     </div>
-                    <span className="font-black text-[#3b2063] whitespace-nowrap">{d.value}%</span>
+                    <span className="font-black text-[#6a12b8] whitespace-nowrap">{d.value}%</span>
                   </div>
                 ))}
               </div>
@@ -610,7 +610,7 @@ const OverviewTab: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
-                  <Bar dataKey="sales" fill="#3b2063" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sales" fill="#6a12b8" radius={[4, 4, 0, 0]} />
                   <Tooltip cursor={{ fill: '#f4f2ff' }} />
                 </ReBarChart>
               </ResponsiveContainer>
@@ -632,7 +632,7 @@ const OverviewTab: React.FC = () => {
                 return (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0">
-                      <span className="text-[10px] font-black text-[#3b2063]">{i + 1}</span>
+                      <span className="text-[10px] font-black text-[#6a12b8]">{i + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
@@ -640,10 +640,10 @@ const OverviewTab: React.FC = () => {
                         <span className="text-[10px] font-bold text-zinc-400 shrink-0 uppercase tracking-tighter">{p.total_quantity} sold</span>
                       </div>
                       <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#3b2063] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-[#6a12b8] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
-                    <span className="text-[10px] font-black text-[#3b2063] shrink-0 w-20 text-right">₱{Number(p.total_revenue).toLocaleString()}</span>
+                    <span className="text-[10px] font-black text-[#6a12b8] shrink-0 w-20 text-right">₱{Number(p.total_revenue).toLocaleString()}</span>
                   </div>
                 );
               })

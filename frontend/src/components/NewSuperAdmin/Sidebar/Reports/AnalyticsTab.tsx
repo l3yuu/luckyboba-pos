@@ -79,7 +79,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -96,9 +96,9 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
   <div className={`w-full ${h} bg-zinc-100 rounded animate-pulse`} />
 );
 
-const BRANCH_COLORS = ["#3b2063", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
+const BRANCH_COLORS = ["#6a12b8", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
 const HOUR_COLORS = (hour: number) => {
-  if (hour >= 11 && hour <= 14) return "#3b2063"; // lunch peak
+  if (hour >= 11 && hour <= 14) return "#6a12b8"; // lunch peak
   if (hour >= 17 && hour <= 20) return "#6d3fa8"; // dinner peak
   return "#ede8ff";
 };
@@ -207,7 +207,7 @@ const AnalyticsTab: React.FC = () => {
           <div className="flex rounded-lg overflow-hidden border border-zinc-200">
             {(["daily", "weekly", "monthly"] as const).map(p => (
               <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#6a12b8] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
                 {p}
               </button>
             ))}
@@ -274,7 +274,7 @@ const AnalyticsTab: React.FC = () => {
                   : [v, name] as [number, string]}
                 contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
-              <Line yAxisId="rev" type="monotone" dataKey="revenue" name="Revenue" stroke="#3b2063" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+              <Line yAxisId="rev" type="monotone" dataKey="revenue" name="Revenue" stroke="#6a12b8" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
               <Line yAxisId="ord" type="monotone" dataKey="orders" name="Orders" stroke="#c4a8e8" strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="4 4" />
             </LineChart>
           </ResponsiveContainer>
@@ -307,9 +307,9 @@ const AnalyticsTab: React.FC = () => {
                   : [v, name] as [number, string]}
                   contentStyle={{ borderRadius: 10, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
-                <Bar dataKey="total_quantity" name="Qty Sold" fill="#3b2063" radius={[0, 4, 4, 0]}>
+                <Bar dataKey="total_quantity" name="Qty Sold" fill="#6a12b8" radius={[0, 4, 4, 0]}>
                   {topProducts.map((_, i) => (
-                    <Cell key={i} fill={i === 0 ? "#3b2063" : i === 1 ? "#6d3fa8" : i === 2 ? "#9b6bd4" : "#ede8ff"} />
+                    <Cell key={i} fill={i === 0 ? "#6a12b8" : i === 1 ? "#6d3fa8" : i === 2 ? "#9b6bd4" : "#ede8ff"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -349,7 +349,7 @@ const AnalyticsTab: React.FC = () => {
           {/* Legend */}
           <div className="flex items-center gap-4 mt-3">
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm bg-[#3b2063]" />
+              <div className="w-2.5 h-2.5 rounded-sm bg-[#6a12b8]" />
               <span className="text-[10px] font-medium text-zinc-500">Lunch peak</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -417,7 +417,7 @@ const AnalyticsTab: React.FC = () => {
                       {isTop && <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">Top</span>}
                       {isLow && <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">Low</span>}
                     </div>
-                    <p className="text-base font-black text-[#3b2063] tabular-nums">{fmt(Number(b.total_revenue))}</p>
+                    <p className="text-base font-black text-[#6a12b8] tabular-nums">{fmt(Number(b.total_revenue))}</p>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-[10px] text-zinc-400">{Number(b.total_orders).toLocaleString()} orders</span>
                       <span className="text-[10px] font-bold text-zinc-500">{share}%</span>

@@ -839,20 +839,20 @@ const StickerHeader = ({
   orderType: 'dine-in' | 'take-out' | 'delivery';
 }) => (
   <div className="w-full text-center flex flex-col items-center">
-    <div className={`font-black uppercase leading-none ${cls.isVeryCrowded ? 'text-[9px]' : 'text-[11px]'}`}>
+    <div className={`font-black uppercase leading-none tracking-tight ${cls.isVeryCrowded ? 'text-[9px]' : 'text-[11px]'}`}>
       LUCKY BOBA
     </div>
-    <div className={`font-bold uppercase leading-none tracking-widest ${cls.isVeryCrowded ? 'text-[4.5px] mt-0' : 'text-[6px] mt-0.5'}`}>
+    <div className={`font-bold uppercase leading-none tracking-widest ${cls.isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6px] mt-1'}`}>
       {branchName.toUpperCase()}
     </div>
-    <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${cls.isVeryCrowded ? 'text-[8px] pb-0 mb-0 mt-0' : 'text-[9px] pb-0.5 mb-0 mt-0.5'}`}>
-      <span>Q:{queueNumber} SI:{orNumber.slice(-5)}</span>
+    <div className={`w-full flex justify-between items-center font-black border-b-[1.5px] border-black px-1 ${cls.isVeryCrowded ? 'text-[8px] pb-0 mb-0 mt-0.5' : 'text-[9px] pb-0.5 mb-0.5 mt-1'}`}>
+      <span>Q:{queueNumber} SI:{orNumber.replace('SI-', '')}</span>
       <span>{drinkIndex}/{totalDrinks}</span>
     </div>
     {(customerName || orderType) && (
-      <div className={`w-full text-center font-black uppercase px-1 leading-none ${cls.isVeryCrowded ? 'text-[7px] mt-0' : 'text-[8px] mt-0.5'}`}>
-        {customerName && <div className="truncate">{customerName}</div>}
-        <div>{orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}</div>
+      <div className={`w-full text-center font-black uppercase px-1 leading-none ${cls.isVeryCrowded ? 'text-[7px] mt-0.5' : 'text-[8px] mt-1'}`}>
+        {customerName && <div className="truncate mb-0.5">{customerName}</div>}
+        <div className="text-[6px] font-bold opacity-80">{orderType === 'dine-in' ? 'DINE IN' : orderType === 'take-out' ? 'TAKE OUT' : 'DELIVERY'}</div>
       </div>
     )}
   </div>
@@ -881,10 +881,15 @@ export const StickerPrint = ({
     if (item.isBundle) {
       return acc + (item.bundleComponents?.reduce((s, c) => s + c.quantity, 0) ?? 0) * item.qty;
     }
-    const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isDrinkSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L' || !!item.cupSizeLabel;
     const isMixMatch = item.remarks?.startsWith('[Drink:') ?? false;
     const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
-    return acc + (isSticker ? item.qty : 0) + (!isSticker && isMixMatch ? item.qty : 0) + (!isSticker ? waffleCount : 0);
+    
+    if (isDrinkSticker) return acc + item.qty;
+    if (isMixMatch) return acc + item.qty;
+    if (waffleCount > 0) return acc + waffleCount;
+    if (orderType !== 'dine-in') return acc + item.qty;
+    return acc;
   }, 0);
 
   const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime, orderType };
@@ -926,10 +931,10 @@ export const StickerPrint = ({
     }
 
     // ── Waffle combo add-on stickers ──────────────────────────────────────────
-    const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isDrinkSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L' || !!item.cupSizeLabel;
     const waffleComboAddOns = item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')) ?? [];
 
-    if (!isSticker && waffleComboAddOns.length > 0) {
+    if (!isDrinkSticker && waffleComboAddOns.length > 0) {
       for (let i = 0; i < item.qty; i++) {
         waffleComboAddOns.forEach(addonName => {
           const cls = getStickerClasses(0);
@@ -955,7 +960,7 @@ export const StickerPrint = ({
 
     const isMixMatch = item.remarks?.startsWith('[Drink:') ?? false;
 
-    if (!isSticker && isMixMatch) {
+    if (!isDrinkSticker && isMixMatch) {
       for (let i = 0; i < item.qty; i++) {
         const remarksContent = item.remarks?.replace(/^\[|\]$/g, '') ?? '';
         const parts = remarksContent.split(' | ');
@@ -974,7 +979,7 @@ export const StickerPrint = ({
           >
             <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
             <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-              <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">
+              <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
                 Mix & Match — {item.name}
               </div>
               <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
@@ -995,7 +1000,7 @@ export const StickerPrint = ({
     }
 
     // ── Non-drink food stickers (take-out / delivery only) ────────────────────
-    if (!isSticker) {
+    if (!isDrinkSticker) {
       if (orderType === 'dine-in') return;
 
       const cls = getStickerClasses(0, item.name.length);
@@ -1009,7 +1014,7 @@ export const StickerPrint = ({
             <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
             <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
               {item.cupSizeLabel && (
-                <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">
+                <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
                   {item.cupSizeLabel}
                 </div>
               )}
@@ -1044,7 +1049,7 @@ export const StickerPrint = ({
           <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
           <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
             {item.cupSizeLabel && (
-              <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">
+              <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
                 {item.cupSizeLabel}
               </div>
             )}
@@ -1067,6 +1072,37 @@ export const StickerPrint = ({
 
   return (
     <div className="printable-receipt-container sticker-mode hidden print:block">
+      <style>{`
+        @page {
+          size: 38.5mm 50.8mm;
+          margin: 0;
+        }
+        @media print {
+          html, body {
+            width: 38.5mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .printable-receipt-container.sticker-mode {
+            width: 38.5mm !important;
+            height: auto !important;
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .sticker-area {
+            width: 38.5mm !important;
+            height: 50.8mm !important;
+            margin: 0 !important;
+            padding: 2mm !important;
+            box-sizing: border-box !important;
+          }
+          .sticker-area:not(:last-child) {
+            page-break-after: always !important;
+            break-after: page !important;
+          }
+        }
+      `}</style>
       {stickers}
     </div>
   );

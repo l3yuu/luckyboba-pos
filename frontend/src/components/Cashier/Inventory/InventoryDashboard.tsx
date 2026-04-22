@@ -39,7 +39,7 @@ interface Recipe { id: number; menu_item_id: number; menu_item: MenuItem; size: 
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const COLORS = ['#3b2063', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const COLORS = ['#6a12b8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 const RAW_MATERIALS_CACHE_KEY = 'luckyboba_raw_materials_cache';
 const UNITS = ['PC', 'PK', 'BAG', 'BTL', 'BX', 'ML', 'G', 'KG', 'L'];
 const CATEGORIES = ['Packaging', 'Ingredients', 'Intermediate', 'Equipment'];
@@ -63,8 +63,8 @@ function exportCSV(rows: ReportRow[], period: string) {
 }
 
 const inputCls = (hasError?: boolean) =>
-  `w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white ${hasError ? 'border-red-400' : 'border-[#e9d5ff]'}`;
-const selectCls = `w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-white text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#3b2063] cursor-pointer`;
+  `w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#6a12b8] focus:bg-white ${hasError ? 'border-red-400' : 'border-[#e9d5ff]'}`;
+const selectCls = `w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-white text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#6a12b8] cursor-pointer`;
 
 // ─── Toast ─────────────────────────────────────────────────────────────────────
 
@@ -105,7 +105,7 @@ function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (dat
   return (
     <div ref={overlayRef} onClick={(e) => { if (e.target === overlayRef.current) onClose(); }} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-lg flex flex-col overflow-hidden" style={dashboardFont}>
-        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#3b2063] rounded-t-[0.625rem]">
+        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#6a12b8] rounded-t-[0.625rem]">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-purple-200">Raw Materials</p>
             <h2 className="text-sm font-extrabold text-white mt-0.5">Add New Item</h2>
@@ -141,16 +141,16 @@ function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (dat
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Notes</label>
-            <textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-20 resize-none" placeholder="Optional notes..." />
+            <textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#6a12b8] h-20 resize-none" placeholder="Optional notes..." />
           </div>
           <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={form.is_intermediate} onChange={(e) => setForm(f => ({ ...f, is_intermediate: e.target.checked }))} className="w-4 h-4 accent-[#3b2063]" />
+            <input type="checkbox" checked={form.is_intermediate} onChange={(e) => setForm(f => ({ ...f, is_intermediate: e.target.checked }))} className="w-4 h-4 accent-[#6a12b8]" />
             <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Intermediate item (cooked / mixed)</span>
           </label>
         </div>
         <div className="flex gap-3 px-7 py-5 border-t border-[#e9d5ff]">
           <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all disabled:opacity-50 rounded-[0.625rem]">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
+          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
             {submitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : 'Save Item'}
           </button>
         </div>
@@ -199,7 +199,7 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
   return (
     <div ref={overlayRef} onClick={(e) => { if (e.target === overlayRef.current) onClose(); }} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-md flex flex-col overflow-hidden" style={dashboardFont}>
-        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#3b2063] rounded-t-[0.625rem]">
+        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#6a12b8] rounded-t-[0.625rem]">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-purple-200">Raw Materials</p>
             <h2 className="text-sm font-extrabold text-white mt-0.5">Adjust Stock</h2>
@@ -208,7 +208,7 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
         </div>
         <div className="px-7 py-6 flex flex-col gap-5">
           <div className="bg-[#f5f0ff] px-4 py-3 border border-[#e9d5ff] rounded-[0.625rem]">
-            <p className="text-[11px] font-bold text-[#3b2063] uppercase tracking-widest">{item.name}</p>
+            <p className="text-[11px] font-bold text-[#6a12b8] uppercase tracking-widest">{item.name}</p>
             <p className="text-xs text-zinc-500 font-semibold mt-0.5">Current Stock: <span className="text-[#1c1c1e] font-extrabold">{parseFloat(String(item.current_stock)).toFixed(2)} {item.unit}</span></p>
           </div>
           {error && <p className="text-[11px] text-red-500 font-semibold bg-red-50 border border-red-200 px-4 py-2">{error}</p>}
@@ -219,7 +219,7 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
                 <button key={t} onClick={() => {
                   setType(t);
                   setReasonSelect('');
-                }} className={`h-10 text-[10px] font-bold uppercase tracking-widest rounded-[0.625rem] border transition-all ${type === t ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'bg-white text-zinc-500 border-[#e9d5ff] hover:border-[#3b2063]'}`}>
+                }} className={`h-10 text-[10px] font-bold uppercase tracking-widest rounded-[0.625rem] border transition-all ${type === t ? 'bg-[#6a12b8] text-white border-[#6a12b8]' : 'bg-white text-zinc-500 border-[#e9d5ff] hover:border-[#6a12b8]'}`}>
                   {t === 'add' ? '+ Add' : t === 'subtract' ? '− Sub' : t === 'waste' ? 'Waste' : '= Set'}
                 </button>
               ))}
@@ -232,7 +232,7 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
           {quantity && (
             <div className="flex items-center justify-between bg-[#f5f0ff] border border-[#e9d5ff] px-4 py-3 rounded-[0.625rem]">
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">New Stock After Adjustment</span>
-              <span className={`text-sm font-extrabold ${previewStock < 0 ? 'text-red-500' : 'text-[#3b2063]'}`}>{previewStock.toFixed(4)} {item.unit}</span>
+              <span className={`text-sm font-extrabold ${previewStock < 0 ? 'text-red-500' : 'text-[#6a12b8]'}`}>{previewStock.toFixed(4)} {item.unit}</span>
             </div>
           )}
           <div className="space-y-1.5">
@@ -254,7 +254,7 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
               <textarea
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
-                className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-20 resize-none"
+                className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#6a12b8] h-20 resize-none"
                 placeholder="Enter custom reason..."
               />
             </div>
@@ -262,7 +262,7 @@ function AdjustModal({ item, onClose, onSuccess }: { item: RawMaterial; onClose:
         </div>
         <div className="flex gap-3 px-7 py-5 border-t border-[#e9d5ff]">
           <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-[0.625rem]">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting || !quantity} className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
+          <button onClick={handleSubmit} disabled={submitting || !quantity} className="flex-1 h-11 bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
             {submitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Updating...</> : 'Confirm'}
           </button>
         </div>
@@ -287,7 +287,7 @@ function DeleteModal({ item, onClose, onConfirm }: { item: RawMaterial; onClose:
           <div className="w-12 h-12 bg-red-50 border border-red-100 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-red-500"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
           </div>
-          <p className="text-sm font-bold text-[#1c1c1e]">Delete <span className="text-[#3b2063]">"{item.name}"</span>?</p>
+          <p className="text-sm font-bold text-[#1c1c1e]">Delete <span className="text-[#6a12b8]">"{item.name}"</span>?</p>
           <p className="text-[11px] text-zinc-400 font-semibold">This cannot be undone. Items used in recipes cannot be deleted.</p>
         </div>
         <div className="flex gap-3 px-7 py-5 border-t border-[#e9d5ff]">
@@ -320,7 +320,7 @@ function MovementDrawer({ row, onClose }: { row: ReportRow; onClose: () => void 
           {[
             { label: 'Beginning', value: fmt(row.beginning), color: 'text-zinc-700' },
             { label: 'Delivered', value: `+${fmt(row.delivered)}`, color: 'text-emerald-600' },
-            { label: 'Ending', value: fmt(row.ending), color: 'text-[#3b2063]' },
+            { label: 'Ending', value: fmt(row.ending), color: 'text-[#6a12b8]' },
             { label: 'Variance', value: fmt(row.variance), color: row.variance < 0 ? 'text-red-500' : row.variance > 0 ? 'text-amber-600' : 'text-emerald-600' },
           ].map(s => (
             <div key={s.label} className="px-4 py-3 text-center border-r last:border-r-0 border-zinc-100">
@@ -594,7 +594,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
               <div className="flex items-center gap-2">
                 <button onClick={() => fetchMaterials(true)} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">↻ Refresh</button>
                 <button onClick={() => setIsHistoryOpen(true)} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 hover:border-zinc-400 transition-all rounded-[0.625rem] shadow-sm">View History</button>
-                <button onClick={() => exportCSV(reportRows, periodLabel)} className="h-10 px-4 border border-[#3b2063] text-[#3b2063] font-bold text-xs uppercase tracking-widest hover:bg-[#f5f0ff] transition-all flex items-center gap-2">
+                <button onClick={() => exportCSV(reportRows, periodLabel)} className="h-10 px-4 border border-[#6a12b8] text-[#6a12b8] font-bold text-xs uppercase tracking-widest hover:bg-[#f5f0ff] transition-all flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
                   Export CSV
                 </button>
@@ -622,7 +622,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: 'Total Items', value: reportStats.totalItems, sub: 'tracked materials', color: 'text-[#3b2063]', bg: 'bg-white' },
+                  { label: 'Total Items', value: reportStats.totalItems, sub: 'tracked materials', color: 'text-[#6a12b8]', bg: 'bg-white' },
                   { label: 'Low Stock', value: reportStats.lowStock, sub: 'below reorder level', color: reportStats.lowStock > 0 ? 'text-red-600' : 'text-zinc-400', bg: reportStats.lowStock > 0 ? 'bg-red-50' : 'bg-white' },
                   { label: 'Negative Variance', value: reportStats.negativeVariance, sub: 'items with discrepancy', color: reportStats.negativeVariance > 0 ? 'text-amber-600' : 'text-zinc-400', bg: reportStats.negativeVariance > 0 ? 'bg-amber-50' : 'bg-white' },
                   { label: 'Deliveries This Month', value: fmt(reportStats.totalDelivered, 0), sub: 'total units received', color: 'text-emerald-700', bg: 'bg-emerald-50' },
@@ -649,7 +649,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                           <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} formatter={(value: ValueType | undefined) => formatPHP(Number(value) || 0)} />
                           <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
                           <Bar dataKey="profit" name="Profit" fill="#10b981" radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="total_cost" name="Cost" fill="#3b2063" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="total_cost" name="Cost" fill="#6a12b8" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     ) : <div className="flex items-center justify-center h-full text-zinc-300 text-xs italic">No data available</div>}
@@ -675,7 +675,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
 
               <div className="bg-white border border-zinc-200 overflow-hidden shadow-sm rounded-[0.625rem] mb-6">
                 <div className="bg-white px-7 py-5 border-b border-zinc-100 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <h2 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.15em]">TOP PRODUCTS ({start} - {end})</h2>
+                  <h2 className="text-[#6a12b8] font-black text-xs uppercase tracking-[0.15em]">TOP PRODUCTS ({start} - {end})</h2>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Search:</span>
                     <div className="relative">
@@ -684,7 +684,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                         value={dashboardSearch} 
                         onChange={e => setDashboardSearch(e.target.value)} 
                         placeholder="Search product..." 
-                        className="border border-[#e9d5ff] bg-white px-4 py-2 text-xs outline-none focus:border-[#3b2063] w-48 md:w-64 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-300 shadow-sm transition-all"
+                        className="border border-[#e9d5ff] bg-white px-4 py-2 text-xs outline-none focus:border-[#6a12b8] w-48 md:w-64 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-300 shadow-sm transition-all"
                       />
                     </div>
                   </div>
@@ -700,16 +700,16 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
                       {salesLoading ? (
-                        <tr><td colSpan={8} className="py-20 text-center"><div className="flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3b2063]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span></div></td></tr>
+                        <tr><td colSpan={8} className="py-20 text-center"><div className="flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#6a12b8]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span></div></td></tr>
                       ) : displaySalesData.length > 0 ? displaySalesData.map((item, index) => (
                         <tr key={index} className="hover:bg-[#f5f0ff] transition-colors">
                           <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#1c1c1e]">{index + 1}</span></td>
-                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#3b2063]">{item.qty}</span></td>
+                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#6a12b8]">{item.qty}</span></td>
                           <td className="px-7 py-3.5 text-center"><span className="text-[12px] font-semibold text-zinc-500">{formatPHP(item.unit_cost)}</span></td>
                           <td className="px-7 py-3.5 text-center"><span className="text-[12px] font-semibold text-zinc-500">{formatPHP(item.total_cost)}</span></td>
-                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#3b2063]">{formatPHP(item.sold_total)}</span></td>
+                          <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-[#6a12b8]">{formatPHP(item.sold_total)}</span></td>
                           <td className="px-7 py-3.5 text-center"><span className="text-[13px] font-extrabold text-emerald-500">{formatPHP(item.profit)}</span></td>
-                          <td className="px-7 py-3.5"><span className="text-[13px] font-extrabold text-[#3b2063] uppercase tracking-tight">{item.name}</span></td>
+                          <td className="px-7 py-3.5"><span className="text-[13px] font-extrabold text-[#6a12b8] uppercase tracking-tight">{item.name}</span></td>
                           <td className="px-7 py-3.5 text-right"><span className="text-[12px] font-semibold text-zinc-500">{item.barcode}</span></td>
                         </tr>
                       )) : (
@@ -719,7 +719,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                     <tfoot className="bg-white border-t-2 border-zinc-100">
                       <tr className="font-black">
                         <td colSpan={4} className="px-7 py-4 text-right text-[11px] font-bold text-zinc-500 uppercase tracking-widest">WEEKLY TOTAL</td>
-                        <td className="px-7 py-4 text-center"><span className="text-[13px] font-extrabold text-[#3b2063]">{formatPHP(totals.sold)}</span></td>
+                        <td className="px-7 py-4 text-center"><span className="text-[13px] font-extrabold text-[#6a12b8]">{formatPHP(totals.sold)}</span></td>
                         <td className="px-7 py-4 text-center"><span className="text-[13px] font-extrabold text-emerald-500">{formatPHP(totals.profit)}</span></td>
                         <td colSpan={2} />
                       </tr>
@@ -742,15 +742,15 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                 <div className="flex items-center gap-4">
                   <span className="text-zinc-300">Column guide:</span>
                   {[{ label: 'BEG', desc: 'Beginning stock (reconstructed)' }, { label: 'DEL', desc: 'Stock received/delivered this period' }, { label: 'COOKED', desc: 'Added as cooked or mixed' }, { label: 'OUT', desc: 'Manual deductions / used' }, { label: 'SPOIL', desc: 'Spoilage / waste' }, { label: 'END', desc: 'Current live stock' }, { label: 'USAGE', desc: 'Computed consumption' }, { label: 'VAR', desc: 'Variance (END − expected)' }]
-                    .map(c => <span key={c.label} title={c.desc} className="cursor-help border-b border-dashed border-zinc-300 hover:text-[#3b2063] hover:border-[#3b2063] transition-colors">{c.label}</span>)}
+                    .map(c => <span key={c.label} title={c.desc} className="cursor-help border-b border-dashed border-zinc-300 hover:text-[#6a12b8] hover:border-[#6a12b8] transition-colors">{c.label}</span>)}
                 </div>
 
                 <div className="flex items-center gap-2 px-2 py-0.5 bg-[#f5f0ff] border border-[#e9d5ff] rounded-full">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#3b2063]"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#6a12b8]"></span>
                   </span>
-                  <span className="text-[8px] font-black text-[#3b2063]">Live Sync</span>
+                  <span className="text-[8px] font-black text-[#6a12b8]">Live Sync</span>
                   <span className="text-[8px] text-zinc-400 tabular-nums">{lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </div>
@@ -760,33 +760,33 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Show</span>
-                      <select value={usageEntriesLimit} onChange={e => setUsageEntriesLimit(Number(e.target.value))} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs focus:border-[#3b2063] rounded-[0.625rem]">
+                      <select value={usageEntriesLimit} onChange={e => setUsageEntriesLimit(Number(e.target.value))} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs focus:border-[#6a12b8] rounded-[0.625rem]">
                         {[25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}<option value={-1}>All</option>
                       </select>
                       <span>entries</span>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Category</span>
-                      <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs focus:border-[#3b2063] rounded-[0.625rem]">
+                      <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs focus:border-[#6a12b8] rounded-[0.625rem]">
                         {usageCategories.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Variance</span>
-                      <select value={varianceFilter} onChange={e => setVarianceFilter(e.target.value as typeof varianceFilter)} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs focus:border-[#3b2063] rounded-[0.625rem]">
+                      <select value={varianceFilter} onChange={e => setVarianceFilter(e.target.value as typeof varianceFilter)} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs focus:border-[#6a12b8] rounded-[0.625rem]">
                         <option value="all">All</option><option value="negative">Negative ⚠</option><option value="positive">Positive</option><option value="zero">Zero / Match</option>
                       </select>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Search:</span>
-                    <input type="text" value={usageSearch} onChange={e => setUsageSearch(e.target.value)} placeholder="Find item..." className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-48 font-semibold text-[#1c1c1e] placeholder:text-zinc-400 rounded-[0.625rem]" />
+                    <input type="text" value={usageSearch} onChange={e => setUsageSearch(e.target.value)} placeholder="Find item..." className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm outline-none focus:border-[#6a12b8] w-48 font-semibold text-[#1c1c1e] placeholder:text-zinc-400 rounded-[0.625rem]" />
                   </div>
                 </div>
 
                 <div className="overflow-auto">
                   {reportLoading ? (
-                    <div className="py-16 flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3b2063]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading report...</span></div>
+                    <div className="py-16 flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#6a12b8]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading report...</span></div>
                   ) : (
                     <table className="w-full text-left border-collapse min-w-225">
                       <thead className="sticky top-0 bg-white z-10 border-b-2 border-[#e9d5ff]">
@@ -799,7 +799,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                           <th className="px-4 py-3.5 text-[9px] font-bold text-amber-600 uppercase tracking-widest text-right w-20 bg-[#f5f0ff]">COOKED</th>
                           <th className="px-4 py-3.5 text-[9px] font-bold text-zinc-400 uppercase tracking-widest text-right w-20 bg-[#f5f0ff]">OUT</th>
                           <th className="px-4 py-3.5 text-[9px] font-bold text-red-400 uppercase tracking-widest text-right w-20 bg-[#f5f0ff]">SPOIL</th>
-                          <th className="px-4 py-3.5 text-[9px] font-bold text-[#3b2063] uppercase tracking-widest text-right w-20 bg-[#f5f0ff] border-r border-[#e9d5ff]">END</th>
+                          <th className="px-4 py-3.5 text-[9px] font-bold text-[#6a12b8] uppercase tracking-widest text-right w-20 bg-[#f5f0ff] border-r border-[#e9d5ff]">END</th>
                           <th className="px-4 py-3.5 text-[9px] font-bold text-blue-500 uppercase tracking-widest text-right w-20">INCOMING</th>
                           <th className="px-4 py-3.5 text-[9px] font-bold text-zinc-500 uppercase tracking-widest text-right w-20">USAGE</th>
                           <th className="px-4 py-3.5 text-[9px] font-bold text-zinc-500 uppercase tracking-widest text-right w-20">VAR</th>
@@ -815,7 +815,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                               <td className="px-4 py-3 text-[10px] font-bold text-zinc-300 text-center">{idx + 1}</td>
                               <td className="px-5 py-3">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-[12px] font-extrabold text-[#3b2063]">{row.material.name}</span>
+                                  <span className="text-[12px] font-extrabold text-[#6a12b8]">{row.material.name}</span>
                                   {row.material.is_intermediate && <span className="text-[9px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 px-1.5 py-0.5">Intermediate</span>}
                                   {isLow && <span className="text-[9px] font-bold uppercase tracking-widest bg-red-100 text-red-600 px-1.5 py-0.5 animate-pulse">Low</span>}
                                 </div>
@@ -827,12 +827,12 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                               <td className="px-4 py-3 text-right bg-zinc-50/70"><span className={`text-[12px] font-bold ${row.cooked > 0 ? 'text-amber-600' : 'text-zinc-300'}`}>{row.cooked > 0 ? fmt(row.cooked) : '—'}</span></td>
                               <td className="px-4 py-3 text-right bg-zinc-50/70"><span className={`text-[12px] font-bold ${row.out > 0 ? 'text-zinc-600' : 'text-zinc-300'}`}>{row.out > 0 ? fmt(row.out) : '—'}</span></td>
                               <td className="px-4 py-3 text-right bg-zinc-50/70"><span className={`text-[12px] font-bold ${row.spoilage > 0 ? 'text-red-500' : 'text-zinc-300'}`}>{row.spoilage > 0 ? fmt(row.spoilage) : '—'}</span></td>
-                              <td className="px-4 py-3 text-right bg-zinc-50/70 border-r border-zinc-100"><span className={`text-[13px] font-extrabold ${isLow ? 'text-red-600' : 'text-[#3b2063]'}`}>{fmt(row.ending)}</span></td>
+                              <td className="px-4 py-3 text-right bg-zinc-50/70 border-r border-zinc-100"><span className={`text-[13px] font-extrabold ${isLow ? 'text-red-600' : 'text-[#6a12b8]'}`}>{fmt(row.ending)}</span></td>
                               <td className="px-4 py-3 text-right border-r border-zinc-50"><span className={`text-[12px] font-bold ${row.incoming > 0 ? 'text-blue-500' : 'text-zinc-300'}`}>{row.incoming > 0 ? fmt(row.incoming) : '—'}</span></td>
                               <td className="px-4 py-3 text-right"><span className="text-[12px] font-bold text-zinc-700">{fmt(row.usage)}</span></td>
                               <td className="px-4 py-3 text-right"><span className={`text-[12px] ${varClass}`}>{row.variance > 0 ? '+' : ''}{fmt(row.variance)}</span></td>
                               <td className="px-5 py-3 text-center">
-                                <button onClick={() => setDrawerRow(row)} title="View stock movements" className="h-8 w-8 inline-flex items-center justify-center border border-[#e9d5ff] text-zinc-400 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff] transition-all">
+                                <button onClick={() => setDrawerRow(row)} title="View stock movements" className="h-8 w-8 inline-flex items-center justify-center border border-[#e9d5ff] text-zinc-400 hover:border-[#6a12b8] hover:text-[#6a12b8] hover:bg-[#f5f0ff] transition-all">
                                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
                                 </button>
                               </td>
@@ -881,26 +881,26 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                     <span>Show</span>
-                    <select value={matEntriesLimit} onChange={e => setMatEntriesLimit(Number(e.target.value))} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
+                    <select value={matEntriesLimit} onChange={e => setMatEntriesLimit(Number(e.target.value))} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#6a12b8]">
                       <option value={10}>10</option><option value={25}>25</option><option value={50}>50</option><option value={-1}>All</option>
                     </select>
                     <span>entries</span>
                   </div>
                   <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                     <span>Category</span>
-                    <select value={matCategory} onChange={e => setMatCategory(e.target.value)} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
+                    <select value={matCategory} onChange={e => setMatCategory(e.target.value)} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#6a12b8]">
                       <option value="All">All</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Search:</span>
-                  <input type="text" value={matSearch} onChange={e => setMatSearch(e.target.value)} placeholder="Find item..." className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400" />
+                  <input type="text" value={matSearch} onChange={e => setMatSearch(e.target.value)} placeholder="Find item..." className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm outline-none focus:border-[#6a12b8] w-56 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400" />
                 </div>
               </div>
               <div className="flex-1 overflow-auto">
                 {materialsLoading && materials.length === 0 ? (
-                  <div className="py-16 flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3b2063]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span></div>
+                  <div className="py-16 flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#6a12b8]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span></div>
                 ) : (
                   <table className="w-full text-left border-collapse">
                     <thead className="sticky top-0 bg-white z-10 border-b-2 border-[#e9d5ff]">
@@ -921,7 +921,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                           <tr key={item.id} className={`transition-colors ${isLow ? 'bg-red-50 hover:bg-red-100/60' : 'hover:bg-[#f5f0ff]'}`}>
                             <td className="px-7 py-3.5">
                               <div className="flex items-center gap-2">
-                                <span className="text-[13px] font-extrabold text-[#3b2063]">{item.name}</span>
+                                <span className="text-[13px] font-extrabold text-[#6a12b8]">{item.name}</span>
                                 {item.is_intermediate && <span className="text-[9px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 px-1.5 py-0.5">Intermediate</span>}
                                 {isLow && <span className="text-[9px] font-bold uppercase tracking-widest bg-red-100 text-red-600 px-1.5 py-0.5">Low Stock</span>}
                               </div>
@@ -961,7 +961,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
             <>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'Total Rows', value: recipeStats.total, color: 'text-[#3b2063]' },
+                  { label: 'Total Rows', value: recipeStats.total, color: 'text-[#6a12b8]' },
                   { label: 'With Recipe', value: recipeStats.withRecipe, color: 'text-emerald-600' },
                   { label: 'Missing Recipe', value: recipeStats.without, color: recipeStats.without > 0 ? 'text-red-500' : 'text-zinc-400' },
                 ].map(s => (
@@ -977,33 +977,33 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Show</span>
-                      <select value={recipeEntriesLimit} onChange={e => setRecipeEntriesLimit(Number(e.target.value))} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
+                      <select value={recipeEntriesLimit} onChange={e => setRecipeEntriesLimit(Number(e.target.value))} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#6a12b8]">
                         <option value={25}>25</option><option value={50}>50</option><option value={100}>100</option><option value={-1}>All</option>
                       </select>
                       <span>entries</span>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Filter</span>
-                      <select value={recipeFilterStatus} onChange={e => setRecipeFilterStatus(e.target.value as 'all' | 'with' | 'without')} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
+                      <select value={recipeFilterStatus} onChange={e => setRecipeFilterStatus(e.target.value as 'all' | 'with' | 'without')} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#6a12b8]">
                         <option value="all">All Items</option><option value="with">Has Recipe</option><option value="without">Missing Recipe</option>
                       </select>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Category</span>
-                      <select value={recipeCategoryFilter} onChange={e => setRecipeCategoryFilter(e.target.value)} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
+                      <select value={recipeCategoryFilter} onChange={e => setRecipeCategoryFilter(e.target.value)} className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#6a12b8]">
                         {recipeCategoryList.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Search:</span>
-                    <input type="text" value={recipeSearch} onChange={e => setRecipeSearch(e.target.value)} placeholder="Find menu item..." className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400" />
+                    <input type="text" value={recipeSearch} onChange={e => setRecipeSearch(e.target.value)} placeholder="Find menu item..." className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm outline-none focus:border-[#6a12b8] w-56 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400" />
                   </div>
                 </div>
 
                 <div className="flex-1 overflow-auto">
                   {recipeLoading ? (
-                    <div className="py-16 flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3b2063]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span></div>
+                    <div className="py-16 flex flex-col items-center gap-2"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#6a12b8]" /><span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span></div>
                   ) : (
                     <table className="w-full text-left border-collapse">
                       <thead className="sticky top-0 bg-white z-10 border-b-2 border-[#e9d5ff]">
@@ -1018,7 +1018,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                         {displayRecipeRows.length > 0 ? displayRecipeRows.map((row, idx) => (
                           <tr key={`${row.menuItem.id}-${row.sizeLabel}-${idx}`} className={`transition-colors ${!row.hasRecipe ? 'bg-amber-50/40 hover:bg-amber-50' : 'hover:bg-[#f5f0ff]'}`}>
                             <td className="px-7 py-3.5">
-                              <span className="text-[13px] font-extrabold text-[#3b2063]">{row.menuItem.name}</span>
+                              <span className="text-[13px] font-extrabold text-[#6a12b8]">{row.menuItem.name}</span>
                               <span className="ml-2 text-[11px] text-zinc-400 font-semibold">₱{Number(row.menuItem.price).toFixed(2)}</span>
                             </td>
                             <td className="px-5 py-3.5 text-center">
@@ -1035,7 +1035,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                               {row.recipe ? (
                                 <div className="flex flex-wrap gap-1">
                                   {row.recipe.items.map((ri: RecipeItem) => (
-                                    <span key={ri.id} className="text-[10px] font-semibold bg-[#f5f0ff] text-[#3b2063] px-2 py-0.5 border border-[#e9d5ff]">
+                                    <span key={ri.id} className="text-[10px] font-semibold bg-[#f5f0ff] text-[#6a12b8] px-2 py-0.5 border border-[#e9d5ff]">
                                       {ri.raw_material?.name ?? `RM#${ri.raw_material_id}`} · {parseFloat(String(ri.quantity)).toFixed(2)}{ri.unit}
                                     </span>
                                   ))}

@@ -232,7 +232,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
               <div className="absolute w-full h-full bg-white border border-[#e9d5ff] p-8 flex flex-col rounded-[0.625rem]" style={{ backfaceVisibility: 'hidden' }}>
                 <div className="flex items-center justify-between pb-5 mb-6 border-b border-[#e9d5ff]">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
+                    <div className="w-9 h-9 bg-[#6a12b8] flex items-center justify-center">
                       <Wallet size={17} className="text-white" />
                     </div>
                     <div>
@@ -241,7 +241,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f5f0ff] border border-[#e9d5ff]">
-                    <Monitor size={12} className="text-[#3b2063]" />
+                    <Monitor size={12} className="text-[#6a12b8]" />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-black">Terminal 01</span>
                   </div>
                 </div>
@@ -268,8 +268,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                         disabled={isEodLocked}
                         className={`w-full text-black font-bold text-4xl pl-14 pr-5 py-5 border outline-none tabular-nums transition-all ${
                           isEodLocked
-                            ? 'bg-[#f5f0ff] border-[#e9d5ff] text-[#3b2063]/50'
-                            : 'bg-white border-[#e9d5ff] focus:border-[#3b2063]'
+                            ? 'bg-[#f5f0ff] border-[#e9d5ff] text-[#6a12b8]/50'
+                            : 'bg-white border-[#e9d5ff] focus:border-[#6a12b8]'
                         }`}
                       />
                     </div>
@@ -278,16 +278,16 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
 
                 {/* ── Preparing overlay ── */}
                 {isPreparing ? (
-                  <div className="mt-6 rounded-[0.625rem] bg-[#f5f0ff] border-2 border-[#3b2063]/20 p-5 space-y-3">
+                  <div className="mt-6 rounded-[0.625rem] bg-[#f5f0ff] border-2 border-[#6a12b8]/20 p-5 space-y-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#3b2063]">
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#6a12b8]">
                         {prepLabel}
                       </p>
-                      <span className="text-[11px] font-black text-[#3b2063] tabular-nums">{prepProgress}%</span>
+                      <span className="text-[11px] font-black text-[#6a12b8] tabular-nums">{prepProgress}%</span>
                     </div>
                     <div className="w-full bg-zinc-200 rounded-full h-2 overflow-hidden">
                       <div
-                        className="h-2 rounded-full bg-[#3b2063] transition-all duration-150 ease-out"
+                        className="h-2 rounded-full bg-[#6a12b8] transition-all duration-150 ease-out"
                         style={{ width: `${prepProgress}%` }}
                       />
                     </div>
@@ -301,8 +301,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                     disabled={!amount || isLoading || isEodLocked}
                     className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all mt-6 rounded-[0.625rem] ${
                       isEodLocked
-                        ? 'bg-[#f5f0ff] border-[#e9d5ff] text-[#3b2063]/50 cursor-not-allowed'
-                        : 'bg-[#3b2063] hover:bg-[#6a12b8] text-white active:scale-[0.99] disabled:opacity-50'
+                        ? 'bg-[#f5f0ff] border-[#e9d5ff] text-[#6a12b8]/50 cursor-not-allowed'
+                        : 'bg-[#6a12b8] hover:bg-[#6a12b8] text-white active:scale-[0.99] disabled:opacity-50'
                     }`}
                   >
                     {isLoading
@@ -317,10 +317,10 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
 
               {/* Back: Receipt Preview */}
               <div
-                className="absolute w-full h-full bg-white border border-[#3b2063] p-10 flex flex-col rounded-[0.625rem]"
+                className="absolute w-full h-full bg-white border border-[#6a12b8] p-10 flex flex-col rounded-[0.625rem]"
                 style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               >
-                <div className="text-center border-b-2 border-dashed border-[#3b2063] pb-6">
+                <div className="text-center border-b-2 border-dashed border-[#6a12b8] pb-6">
                   <h1 className="font-bold text-lg text-black uppercase tracking-tight">Lucky Boba</h1>
                   <p className="text-[11px] font-bold text-black uppercase tracking-widest">Transaction Success</p>
                 </div>
@@ -350,7 +350,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
           <div className="bg-white w-full max-w-sm border border-[#e9d5ff] p-7 flex flex-col gap-5 shadow-sm rounded-[0.625rem]">
             <div className="flex items-center gap-3 pb-4 border-b border-[#e9d5ff]">
               <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center">
-                <Printer size={17} className="text-[#3b2063]" />
+                <Printer size={17} className="text-[#6a12b8]" />
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-black">Terminal Output</p>
@@ -368,8 +368,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
               disabled={!isFlipped}
               className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${
                 isFlipped
-                  ? 'bg-[#3b2063] hover:bg-[#6a12b8] text-white'
-                  : 'bg-white border border-[#e9d5ff] text-black hover:bg-[#f5f0ff] hover:border-[#3b2063] cursor-not-allowed'
+                  ? 'bg-[#6a12b8] hover:bg-[#6a12b8] text-white'
+                  : 'bg-white border border-[#e9d5ff] text-black hover:bg-[#f5f0ff] hover:border-[#6a12b8] cursor-not-allowed'
               }`}
             >
               <Printer size={16} />

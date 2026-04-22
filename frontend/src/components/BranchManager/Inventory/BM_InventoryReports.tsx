@@ -81,7 +81,7 @@ const MovementDrawer: React.FC<{
   const typeColor = (t: string) => {
     if (t === 'add')      return '#16a34a';
     if (t === 'subtract') return '#dc2626';
-    return '#3b2063';
+    return '#6a12b8';
   };
   const typePrefix = (t: string) => t === 'add' ? '+' : t === 'subtract' ? '-' : '=';
 
@@ -92,7 +92,7 @@ const MovementDrawer: React.FC<{
       <div className="relative bg-white w-full max-w-sm h-full flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#3b2063] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#6a12b8] rounded-lg flex items-center justify-center">
               <Clock size={14} className="text-white" />
             </div>
             <div>
@@ -109,7 +109,7 @@ const MovementDrawer: React.FC<{
         <div className="grid grid-cols-3 border-b border-zinc-100">
           {[
             { label: 'BEG', value: row.beg, color: '#71717a' },
-            { label: 'USED', value: row.usage, color: '#3b2063' },
+            { label: 'USED', value: row.usage, color: '#6a12b8' },
             { label: 'END', value: row.end, color: '#1a0f2e' },
           ].map(s => (
             <div key={s.label} className="text-center py-3 border-r border-zinc-100 last:border-0">
@@ -140,7 +140,7 @@ const MovementDrawer: React.FC<{
                   ? <TrendingUp  size={12} color="#16a34a" />
                   : m.type === 'subtract'
                   ? <TrendingDown size={12} color="#dc2626" />
-                  : <Minus       size={12} color="#3b2063" />}
+                  : <Minus       size={12} color="#6a12b8" />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
@@ -274,13 +274,13 @@ const BM_InventoryReports: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
             <input
               type="text"
               placeholder="Search inventory items..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
             />
           </div>
 
@@ -297,7 +297,7 @@ const BM_InventoryReports: React.FC = () => {
 
           <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
             <button onClick={handleExport} disabled={exporting || loading}
-              className="w-full md:w-auto bg-[#3b2063] hover:bg-[#2d1851] text-white px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm">
+              className="w-full md:w-auto bg-[#6a12b8] hover:bg-[#2d1851] text-white px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm">
               <Download size={15} /> {exporting ? "Exporting..." : "Export CSV"}
             </button>
           </div>
@@ -307,7 +307,7 @@ const BM_InventoryReports: React.FC = () => {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {[
-          { label: 'Total Items',     value: rows.length,  color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Total Items',     value: rows.length,  color: '#6a12b8', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Total Usage',     value: totalUsage,   color: '#1a0f2e', bg: '#faf9ff', border: '#e9d5ff' },
           { label: 'Total Spoilage',  value: totalSpoil,   color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
           { label: 'Negative Var.',   value: negVar,       color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
@@ -332,7 +332,7 @@ const BM_InventoryReports: React.FC = () => {
               </span>
             </div>
           </div>
-          <button onClick={() => setShowGuide(!showGuide)} className="text-[10px] font-bold text-zinc-400 hover:text-[#3b2063] underline">
+          <button onClick={() => setShowGuide(!showGuide)} className="text-[10px] font-bold text-zinc-400 hover:text-[#6a12b8] underline">
             {showGuide ? "Hide Guide" : "Show Guide"}
           </button>
         </div>
@@ -341,7 +341,7 @@ const BM_InventoryReports: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5 py-4 bg-[#faf9ff] border-b border-zinc-100">
             {Object.entries(COLUMN_GUIDE).map(([col, desc]) => (
               <div key={col} className="flex items-start gap-2">
-                <span className="text-[9px] font-black text-[#3b2063] bg-[#f5f0ff] px-1.5 py-0.5 rounded border border-[#e9d5ff] shrink-0 mt-0.5">{col}</span>
+                <span className="text-[9px] font-black text-[#6a12b8] bg-[#f5f0ff] px-1.5 py-0.5 rounded border border-[#e9d5ff] shrink-0 mt-0.5">{col}</span>
                 <p className="text-[10px] text-zinc-500 leading-tight">{desc}</p>
               </div>
             ))}
@@ -380,10 +380,10 @@ const BM_InventoryReports: React.FC = () => {
                     <td className="px-4 py-3.5 text-right text-xs font-medium text-zinc-500 tabular-nums">{r.beg}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.del > 0 ? '#16a34a' : '#a1a1aa' }}>{r.del}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.cooked > 0 ? '#2563eb' : '#a1a1aa' }}>{r.cooked}</td>
-                    <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.out > 0 ? '#3b2063' : '#a1a1aa' }}>{r.out}</td>
+                    <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.out > 0 ? '#6a12b8' : '#a1a1aa' }}>{r.out}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.spoil > 0 ? '#dc2626' : '#a1a1aa' }}>{r.spoil}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-bold text-[#1a0f2e] tabular-nums">{r.end}</td>
-                    <td className="px-4 py-3.5 text-right text-xs font-bold tabular-nums" style={{ color: '#3b2063' }}>{r.usage}</td>
+                    <td className="px-4 py-3.5 text-right text-xs font-bold tabular-nums" style={{ color: '#6a12b8' }}>{r.usage}</td>
                     <td className="px-4 py-3.5 text-right">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold border tabular-nums"
                         style={{ background: vc.bg, color: vc.text, borderColor: vc.border }}>

@@ -61,7 +61,7 @@ const STYLES = `
   }
 
   .sv-filter-active {
-    background: #3b2063;
+    background: #6a12b8;
     color: white;
     box-shadow: 0 4px 12px rgba(67, 56, 202, 0.3);
   }
@@ -91,7 +91,7 @@ const SalesTile = ({ label, value, icon: Icon, color, trend }: SalesTileProps) =
   <div className="sv-tile sv-card p-6 flex flex-col justify-between min-h-[150px]">
     <div className="flex items-start justify-between">
       <div 
-        className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shadow-[#3b2063]/10 border" 
+        className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shadow-[#6a12b8]/10 border" 
         style={{ background: `linear-gradient(135deg, ${color}10 0%, ${color}05 100%)`, borderColor: `${color}20`, color }}
       >
         <Icon size={20} strokeWidth={2.5} />
@@ -181,17 +181,17 @@ const SalesAnalyticsPanel = ({ branchId }: SalesDashboardProps) => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 pb-10 border-b border-slate-100">
         <div>
            <div className="flex items-center gap-3 mb-3">
-             <div className="px-2 py-0.5 rounded bg-[#3b2063] text-white text-[10px] font-black uppercase tracking-widest">
+             <div className="px-2 py-0.5 rounded bg-[#6a12b8] text-white text-[10px] font-black uppercase tracking-widest">
                Fiscal Intelligence
              </div>
              <div className="h-1 w-1 rounded-full bg-slate-300" />
-             <p className="sv-label !text-[#3b2063] font-black tracking-widest">Global Sales Audit Hub</p>
+             <p className="sv-label !text-[#6a12b8] font-black tracking-widest">Global Sales Audit Hub</p>
            </div>
            <h1 className="text-[2.6rem] font-black text-slate-900 tracking-tight leading-none">
              Revenue Analytics
            </h1>
            <p className="text-[0.8rem] font-bold text-slate-400 mt-4 flex items-center gap-2">
-            <Calendar size={16} className="text-[#3b2063]" />
+            <Calendar size={16} className="text-[#6a12b8]" />
             Audit Scope: Last {period.replace('days',' days').replace('months',' months')} performance vectors
            </p>
         </div>
@@ -210,7 +210,7 @@ const SalesAnalyticsPanel = ({ branchId }: SalesDashboardProps) => {
           </div>
           <button 
             onClick={() => load(true)} 
-            className="p-3.5 bg-white border border-slate-200 text-slate-500 hover:text-[#3b2063] hover:border-[#3b2063]/30 rounded-2xl transition-all shadow-xl shadow-[#3b2063]/5 group"
+            className="p-3.5 bg-white border border-slate-200 text-slate-500 hover:text-[#6a12b8] hover:border-[#6a12b8]/30 rounded-2xl transition-all shadow-xl shadow-[#6a12b8]/5 group"
           >
             <RefreshCw size={18} strokeWidth={2.5} className={refreshing ? 'sv-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
           </button>
@@ -219,7 +219,7 @@ const SalesAnalyticsPanel = ({ branchId }: SalesDashboardProps) => {
 
       {/* ── PREMIUM FISCAL ARCHITECTURE ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-        <SalesTile label="Aggregate Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#3b2063" trend={+14.2} />
+        <SalesTile label="Aggregate Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#6a12b8" trend={+14.2} />
         <SalesTile label="Trading Volume" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#0ea5e9" trend={-2.4} />
         <SalesTile label="System Efficiency" value={fmtS(avgOrderValue)} icon={Activity} color="#f59e0b" />
         <SalesTile label="Saturation Peak" value={bestDay ? fmtS(bestDay.sales) : '—'} icon={PhilippinePeso} color="#10b981" />
@@ -230,15 +230,15 @@ const SalesAnalyticsPanel = ({ branchId }: SalesDashboardProps) => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-               <LineIcon size={16} className="text-[#3b2063]" />
+               <LineIcon size={16} className="text-[#6a12b8]" />
                <h3 className="font-black text-slate-800 tracking-tight uppercase text-xs">Revenue Flow Analysis</h3>
             </div>
             <p className="sv-label text-[10px]">Real-time reconciliation of trading cycles</p>
           </div>
-          <div className="flex items-center gap-6 px-6 py-3 bg-[#3b2063]/10/50 border border-[#3b2063]/20/50 rounded-2xl backdrop-blur-sm">
+          <div className="flex items-center gap-6 px-6 py-3 bg-[#6a12b8]/10/50 border border-[#6a12b8]/20/50 rounded-2xl backdrop-blur-sm">
             <div className="flex items-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#3b2063] shadow-lg shadow-[#3b2063]/40" />
-              <span className="text-[10px] font-black text-[#3b2063] uppercase tracking-widest">Gross Yield</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#6a12b8] shadow-lg shadow-[#6a12b8]/40" />
+              <span className="text-[10px] font-black text-[#6a12b8] uppercase tracking-widest">Gross Yield</span>
             </div>
             <div className="flex items-center gap-3 border-l border-slate-200 pl-6">
               <div className="w-6 h-px bg-slate-300 border-dashed border-t border-slate-400" />
@@ -252,8 +252,8 @@ const SalesAnalyticsPanel = ({ branchId }: SalesDashboardProps) => {
             <AreaChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorSalesAnalytics" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b2063" stopOpacity={0.15}/>
-                  <stop offset="95%" stopColor="#3b2063" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#6a12b8" stopOpacity={0.15}/>
+                  <stop offset="95%" stopColor="#6a12b8" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="6 6" />
@@ -275,19 +275,19 @@ const SalesAnalyticsPanel = ({ branchId }: SalesDashboardProps) => {
                 contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', background: '#1e293b', padding: '16px 24px' }}
                 itemStyle={{ color: '#fff', fontSize: '13px', fontWeight: 800, padding: 0 }}
                 labelStyle={{ fontSize: '10px', color: '#818cf8', marginBottom: '8px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.15em' }}
-                cursor={{ stroke: '#3b2063', strokeWidth: 1.5, strokeDasharray: '5 5' }}
+                cursor={{ stroke: '#6a12b8', strokeWidth: 1.5, strokeDasharray: '5 5' }}
                 formatter={(v) => [fmt(Number(v)), 'DAILY NET YIELD']}
               />
               <ReferenceLine y={avgOrderValue} stroke="#cbd5e1" strokeWidth={1.5} strokeDasharray="10 5" />
               <Area 
                 type="monotone" 
                 dataKey="sales" 
-                stroke="#3b2063" 
+                stroke="#6a12b8" 
                 strokeWidth={4} 
                 fillOpacity={1} 
                 fill="url(#colorSalesAnalytics)"
-                dot={{ r: 6, strokeWidth: 3, fill: '#fff', stroke: '#3b2063' }}
-                activeDot={{ r: 9, strokeWidth: 4, fill: '#3b2063', stroke: '#fff' }}
+                dot={{ r: 6, strokeWidth: 3, fill: '#fff', stroke: '#6a12b8' }}
+                activeDot={{ r: 9, strokeWidth: 4, fill: '#6a12b8', stroke: '#fff' }}
                 animationDuration={2500}
               />
             </AreaChart>
@@ -299,11 +299,11 @@ const SalesAnalyticsPanel = ({ branchId }: SalesDashboardProps) => {
       <div className="sv-card overflow-hidden border border-slate-100 bg-white">
         <div className="px-10 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#3b2063] flex items-center justify-center text-white shadow-lg shadow-[#3b2063]/20"><FileText size={18} strokeWidth={2.5}/></div>
+            <div className="w-10 h-10 rounded-2xl bg-[#6a12b8] flex items-center justify-center text-white shadow-lg shadow-[#6a12b8]/20"><FileText size={18} strokeWidth={2.5}/></div>
             <h3 className="font-black text-slate-800 tracking-tight uppercase text-xs">Certified Fiscal Journal</h3>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-slate-400 uppercase tracking-widest">
-            <RefreshCw size={10} className="text-[#3b2063]" /> Auto-Reconciled
+            <RefreshCw size={10} className="text-[#6a12b8]" /> Auto-Reconciled
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -319,20 +319,20 @@ const SalesAnalyticsPanel = ({ branchId }: SalesDashboardProps) => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {data.slice().reverse().map((row, idx) => (
-                <tr key={idx} className="hover:bg-[#3b2063]/10/30 transition-colors duration-300">
+                <tr key={idx} className="hover:bg-[#6a12b8]/10/30 transition-colors duration-300">
                   <td className="px-10 py-6">
                     <div className="flex flex-col">
                        <span className="text-[13px] font-black text-slate-900 tracking-tight">{new Date(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(row.date).toLocaleDateString('en-US', { weekday: 'long' })}</span>
                     </div>
                   </td>
-                  <td className="px-10 py-6 font-black text-[#3b2063] tabular-nums text-sm">{fmt(row.sales)}</td>
+                  <td className="px-10 py-6 font-black text-[#6a12b8] tabular-nums text-sm">{fmt(row.sales)}</td>
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-4">
                       <span className="font-black text-slate-700 w-8 tabular-nums">{row.orders}</span>
                       <div className="flex-1 h-2 bg-slate-100 rounded-full w-28 hidden sm:block overflow-hidden shadow-inner">
                         <div 
-                          className="h-full bg-gradient-to-r from-[#3b2063] to-[#3b2063] rounded-full transition-all duration-1000" 
+                          className="h-full bg-gradient-to-r from-[#6a12b8] to-[#6a12b8] rounded-full transition-all duration-1000" 
                           style={{ width: `${Math.min(100, (row.orders / 100) * 100)}%` }} 
                         />
                       </div>

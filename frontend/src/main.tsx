@@ -27,7 +27,7 @@ createRoot(document.getElementById('root')!).render(
         <p className="mt-2 text-gray-500">Check browser console for details.</p>
         <button
           onClick={() => window.location.href = '/'}
-          className="mt-6 bg-[#3b2063] text-white px-8 py-3 rounded-full font-bold"
+          className="mt-6 bg-[#6a12b8] text-white px-8 py-3 rounded-full font-bold"
         >
           Reload Dashboard
         </button>

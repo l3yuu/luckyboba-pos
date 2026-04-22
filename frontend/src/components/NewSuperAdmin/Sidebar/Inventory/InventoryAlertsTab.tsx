@@ -191,7 +191,7 @@ const AlertPOModal: React.FC<{
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-black uppercase tracking-widest text-zinc-500">Items to Order</p>
-              <button onClick={addRow} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f5f0ff] border border-[#e9d5ff] text-[#3b2063] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff]">
+              <button onClick={addRow} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f5f0ff] border border-[#e9d5ff] text-[#6a12b8] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff]">
                 <Plus size={12} /> Add More
               </button>
             </div>
@@ -233,7 +233,7 @@ const AlertPOModal: React.FC<{
 
         <div className="flex items-center gap-3 px-6 py-5 border-t border-zinc-100 bg-zinc-50/50 shrink-0">
           <button onClick={onClose} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#2a1647] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all shadow-sm flex items-center justify-center gap-2">
+          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#6a12b8] hover:bg-[#2a1647] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all shadow-sm flex items-center justify-center gap-2">
             {saving ? <><RefreshCw size={14} className="animate-spin" /> Working...</> : 'Create PO'}
           </button>
         </div>
@@ -354,7 +354,7 @@ const AlertTransferModal: React.FC<{
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-black uppercase tracking-widest text-zinc-500">Materials</p>
-              <button onClick={addRow} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f5f0ff] border border-[#e9d5ff] text-[#3b2063] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff]">
+              <button onClick={addRow} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f5f0ff] border border-[#e9d5ff] text-[#6a12b8] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff]">
                 <Plus size={12} /> Add Row
               </button>
             </div>
@@ -392,7 +392,7 @@ const AlertTransferModal: React.FC<{
 
         <div className="flex items-center gap-3 px-6 py-5 border-t border-zinc-100 bg-zinc-50/50 shrink-0">
           <button onClick={onClose} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#2a1647] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all shadow-sm flex items-center justify-center gap-2">
+          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#6a12b8] hover:bg-[#2a1647] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all shadow-sm flex items-center justify-center gap-2">
             {saving ? <><RefreshCw size={14} className="animate-spin" /> Moving...</> : 'Initiate Transfer'}
           </button>
         </div>
@@ -404,7 +404,7 @@ const AlertTransferModal: React.FC<{
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number | string; color?: "violet" | "emerald" | "red" | "amber" }> = ({ icon, label, value, color = "violet" }) => {
   const colors = {
-    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", text: "text-[#3b2063]" },
+    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", text: "text-[#6a12b8]" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-600" },
     red: { bg: "bg-red-50", border: "border-red-200", text: "text-red-500" },
     amber: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-600" },
@@ -569,7 +569,7 @@ const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate, fixedBranchId = 
             placeholder="Search item or branch..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all"
           />
         </div>
         <div className="flex flex-wrap items-center gap-4">
@@ -619,7 +619,7 @@ const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate, fixedBranchId = 
               <div className="px-5 py-4 border-b border-zinc-100 bg-zinc-50/50 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-white border border-zinc-200 rounded-lg flex items-center justify-center">
-                    <Building2 size={14} className="text-[#3b2063]" />
+                    <Building2 size={14} className="text-[#6a12b8]" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-[#1a0f2e]">{branch.branch_name}</h3>
@@ -655,7 +655,7 @@ const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate, fixedBranchId = 
                           <div className="flex items-center gap-2.5">
                             <div className={`w-7 h-7 rounded-[0.4rem] flex items-center justify-center shrink-0 ${item.type === 'raw_material' ? 'bg-[#f5f0ff]' : 'bg-blue-50'
                               }`}>
-                              {item.type === 'raw_material' ? <TrendingDown size={12} className="text-[#3b2063]" /> : <Package size={12} className="text-blue-600" />}
+                              {item.type === 'raw_material' ? <TrendingDown size={12} className="text-[#6a12b8]" /> : <Package size={12} className="text-blue-600" />}
                             </div>
                             <div>
                               <p className="text-xs font-bold text-[#1a0f2e]">{item.name}</p>
@@ -702,7 +702,7 @@ const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate, fixedBranchId = 
                             <button
                               onClick={() => setTransferTarget({ bId: branch.branch_id, mId: item.id })}
                               title="Transfer Stock"
-                              className="p-1.5 hover:bg-[#f5f0ff] text-zinc-400 hover:text-[#3b2063] rounded-lg transition-colors border border-transparent hover:border-[#e9d5ff]"
+                              className="p-1.5 hover:bg-[#f5f0ff] text-zinc-400 hover:text-[#6a12b8] rounded-lg transition-colors border border-transparent hover:border-[#e9d5ff]"
                             >
                               <ArrowRightLeft size={13} />
                             </button>
@@ -720,14 +720,14 @@ const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate, fixedBranchId = 
                                   <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-zinc-200 rounded-xl shadow-xl z-[101] py-1.5 animate-in fade-in zoom-in-95 duration-200">
                                     <button
                                       onClick={() => { onNavigate?.('raw_materials'); setActiveMenu(null); }}
-                                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-[#3b2063] transition-colors"
+                                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-[#6a12b8] transition-colors"
                                     >
                                       <Package size={14} className="text-zinc-400" />
                                       Manage Material
                                     </button>
                                     <button
                                       onClick={() => { onNavigate?.('usage_report'); setActiveMenu(null); }}
-                                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-[#3b2063] transition-colors"
+                                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-[#6a12b8] transition-colors"
                                     >
                                       <Clock size={14} className="text-zinc-400" />
                                       Stock History
@@ -751,7 +751,7 @@ const InventoryAlertsTab: React.FC<AlertProps> = ({ onNavigate, fixedBranchId = 
                 </div>
                 <button
                   onClick={() => onNavigate?.('inv_overview')}
-                  className="text-[#3b2063] font-bold hover:underline flex items-center gap-1"
+                  className="text-[#6a12b8] font-bold hover:underline flex items-center gap-1"
                 >
                   View Full Branch Inventory <ChevronRight size={10} />
                 </button>

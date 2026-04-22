@@ -1450,7 +1450,11 @@ const SalesOrder = () => {
 
     if (navigator.onLine) {
       try {
-        await api.post('/sales', orderData);
+        const res = await api.post('/sales', orderData);
+        if (res.data?.si_number) {
+          finalOrNumber = res.data.si_number;
+          setOrNumber(finalOrNumber);
+        }
         localStorage.removeItem('pos_cart_cache');
         const currentSeq = parseInt(finalOrNumber.split('-').pop() ?? '0', 10)
         if (!isNaN(currentSeq)) {
@@ -1620,9 +1624,9 @@ const SalesOrder = () => {
 
   if (checkingCashIn || loading)
     return (
-      <div className="h-screen flex items-center justify-center font-black text-[#7c14d4] bg-[#f4f2fb]">
+      <div className="h-screen flex items-center justify-center font-black text-[#6a12b8] bg-[#f4f2fb]">
         <div className="text-center">
-          <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#7c14d4]/30 animate-pulse" />
+          <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#6a12b8]/30 animate-pulse" />
           <div className="text-sm tracking-widest uppercase opacity-50">Loading...</div>
         </div>
       </div>
@@ -1929,8 +1933,8 @@ const SalesOrder = () => {
 
             <span
               className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${!selectedCategory
-                  ? 'text-[#7c14d4] bg-[#7c14d4]/10'
-                  : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100'
+                  ? 'text-[#6a12b8] bg-[#6a12b8]/10'
+                  : 'text-zinc-400 hover:text-[#6a12b8] hover:bg-zinc-100'
                 }`}
               onClick={() => { setSelectedCategory(null); setCategorySize(null); setActiveCategoryGroup(null); }}
             >
@@ -1942,8 +1946,8 @@ const SalesOrder = () => {
                 <ChevronRight size={11} className="text-zinc-300 shrink-0" />
                 <span
                   className={`text-xs font-semibold shrink-0 px-2 py-1.5 rounded-lg transition-colors ${!categorySize
-                      ? 'text-[#7c14d4] bg-[#7c14d4]/10'
-                      : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100 cursor-pointer'
+                      ? 'text-[#6a12b8] bg-[#6a12b8]/10'
+                      : 'text-zinc-400 hover:text-[#6a12b8] hover:bg-zinc-100 cursor-pointer'
                     }`}
                   onClick={() => { if (categorySize && !categoryHasOnlyOneSize) setCategorySize(null); }}
                 >
@@ -1955,7 +1959,7 @@ const SalesOrder = () => {
             {selectedCategory && categorySize && !categoryHasOnlyOneSize && (
               <>
                 <ChevronRight size={11} className="text-zinc-300 shrink-0" />
-                <span className="text-xs font-bold text-[#7c14d4] bg-[#7c14d4]/10 px-2 py-1.5 rounded-lg shrink-0">
+                <span className="text-xs font-bold text-[#6a12b8] bg-[#6a12b8]/10 px-2 py-1.5 rounded-lg shrink-0">
                   {categorySize}
                 </span>
               </>
@@ -1982,8 +1986,8 @@ const SalesOrder = () => {
                   key={group.key}
                   onClick={() => setActiveCategoryGroup(isActive ? null : group.key)}
                   className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all border ${isActive
-                      ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-sm'
-                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#7c14d4]/40 hover:text-[#7c14d4] hover:bg-violet-50'
+                      ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-sm'
+                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#6a12b8]/40 hover:text-[#6a12b8] hover:bg-violet-50'
                     }`}
                 >
                   <span>{group.label}</span>

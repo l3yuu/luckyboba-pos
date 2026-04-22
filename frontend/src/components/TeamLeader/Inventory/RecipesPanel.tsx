@@ -31,7 +31,7 @@ const STYLES = `
   .tl-table-head { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
   .tl-label-caps { font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
   .tl-search-input { background: #f1f5f9; border: 1px solid transparent; transition: all 0.2s; }
-  .tl-search-input:focus { background: #fff; border-color: #3b2063; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
+  .tl-search-input:focus { background: #fff; border-color: #6a12b8; box-shadow: 0 0 0 4px rgba(59, 32, 99, 0.05); }
   
   @keyframes tl-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .animate-tl-fade { animation: tl-fade-in 0.4s ease-out forwards; }
@@ -96,7 +96,7 @@ const RecipesPanel = () => {
       {/* Header */}
       <div className="mb-8">
         <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#6a12b8] transition-colors" size={14} />
           <input 
             type="text" 
             placeholder="Search dishes..."
@@ -121,13 +121,13 @@ const RecipesPanel = () => {
                 onClick={() => toggleExpand(r.id)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#3b206310] group-hover:text-[#3b2063] transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#6a12b810] group-hover:text-[#6a12b8] transition-colors">
                     <FlaskConical size={18} />
                   </div>
                   <div>
                     <h3 className="text-[13px] font-black text-slate-900 leading-tight flex items-center gap-2">
                       {name}
-                      <span className="text-[9px] font-black uppercase bg-[#3b206310] text-[#3b2063] px-1.5 py-0.5 rounded leading-none border border-[#3b206310]">
+                      <span className="text-[9px] font-black uppercase bg-[#6a12b810] text-[#6a12b8] px-1.5 py-0.5 rounded leading-none border border-[#6a12b810]">
                         {sizeLabel(r.size)}
                       </span>
                     </h3>
@@ -136,7 +136,7 @@ const RecipesPanel = () => {
                     </p>
                   </div>
                 </div>
-                <div className="text-slate-300 group-hover:text-[#3b2063] transition-colors">
+                <div className="text-slate-300 group-hover:text-[#6a12b8] transition-colors">
                   {isExp ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                 </div>
               </div>

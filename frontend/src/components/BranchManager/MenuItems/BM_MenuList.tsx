@@ -30,7 +30,7 @@ interface BtnProps {
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -506,18 +506,18 @@ const BM_MenuList: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex items-center gap-3">
           <div className="relative group flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
             <input
               type="text"
               placeholder="Search items or barcode..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
             />
           </div>
           <div className="relative shrink-0">
             <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] cursor-pointer shadow-sm transition-all hover:bg-zinc-50">
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] cursor-pointer shadow-sm transition-all hover:bg-zinc-50">
               <option value="">All Categories</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -525,7 +525,7 @@ const BM_MenuList: React.FC = () => {
           </div>
           <div className="relative shrink-0">
             <select value={filterType} onChange={e => setFilterType(e.target.value)}
-              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] cursor-pointer shadow-sm transition-all hover:bg-zinc-50">
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] cursor-pointer shadow-sm transition-all hover:bg-zinc-50">
               <option value="">All Types</option>
               <option value="food">Food</option>
               <option value="drink">Drink</option>
@@ -629,7 +629,7 @@ const BM_MenuList: React.FC = () => {
                       </span>
                     ) : <span className="text-zinc-300 text-xs">—</span>}
                   </td>
-                    <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.price)}</td>
+                    <td className="px-5 py-3.5 font-bold text-[#6a12b8] text-xs">{fmt(item.price)}</td>
                     <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{item.barcode ?? "—"}</td>
 
                     {/* ✅ Options column */}
@@ -675,7 +675,7 @@ const BM_MenuList: React.FC = () => {
                         <button onClick={() => toggleAvailable(item)} className="transition-colors"
                         title={item.is_available ? "Click to hide" : "Click to show"}>
                         {item.is_available
-                          ? <ToggleRight size={22} className="text-[#3b2063]" />
+                          ? <ToggleRight size={22} className="text-[#6a12b8]" />
                           : <ToggleLeft  size={22} className="text-zinc-300"  />}
                         </button>
                       </div>

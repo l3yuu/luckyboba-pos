@@ -97,7 +97,7 @@ const Badge: React.FC<{ cls: string; children: React.ReactNode }> = ({ cls, chil
     'badge-danger': { background: '#fef2f2', color: '#dc2626', borderColor: '#fecaca' },
     'badge-warning': { background: '#fffbeb', color: '#d97706', borderColor: '#fde68a' },
     'badge-success': { background: '#f0fdf4', color: '#16a34a', borderColor: '#bbf7d0' },
-    'badge-violet': { background: '#f5f0ff', color: '#3b2063', borderColor: '#e9d5ff' },
+    'badge-violet': { background: '#f5f0ff', color: '#6a12b8', borderColor: '#e9d5ff' },
   };
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border"
@@ -201,7 +201,7 @@ const InventoryOverview: React.FC = () => {
   const moveDotColor = (type: string) => {
     if (type === 'add') return '#16a34a';
     if (type === 'subtract') return '#dc2626';
-    return '#3b2063';
+    return '#6a12b8';
   };
 
   const resolveUnit = (unit: unknown): string => {
@@ -235,7 +235,7 @@ const InventoryOverview: React.FC = () => {
           label="Total Items"
           value={stats.total_items}
           sub={branch ? "In selected branch" : "Across all branches"}
-          icon={<Package size={16} color="#3b2063" />}
+          icon={<Package size={16} color="#6a12b8" />}
           bg="#f5f0ff" border="#e9d5ff"
         />
         <StatCard
@@ -268,7 +268,7 @@ const InventoryOverview: React.FC = () => {
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <div className="bg-[#3b2063] p-2 rounded text-white"><AlertTriangle size={13} /></div>
+              <div className="bg-[#6a12b8] p-2 rounded text-white"><AlertTriangle size={13} /></div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wide text-[#1a0f2e]">Low Stock Alerts</p>
                 <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Items below reorder level</p>
@@ -312,7 +312,7 @@ const InventoryOverview: React.FC = () => {
                           </p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f5f0ff] text-[#3b2063] border border-[#e9d5ff]">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f5f0ff] text-[#6a12b8] border border-[#e9d5ff]">
                             {item.branch_name}
                           </span>
                         </td>
@@ -335,7 +335,7 @@ const InventoryOverview: React.FC = () => {
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-[#3b2063] p-2 rounded text-white"><Clock size={13} /></div>
+              <div className="bg-[#6a12b8] p-2 rounded text-white"><Clock size={13} /></div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wide text-[#1a0f2e]">Recent Movements</p>
                 <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Last 20 stock events</p>
@@ -366,7 +366,7 @@ const InventoryOverview: React.FC = () => {
       {/* Branch Summary Table */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
         <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center gap-3">
-          <div className="bg-[#3b2063] p-2 rounded text-white">
+          <div className="bg-[#6a12b8] p-2 rounded text-white">
             <Package size={13} />
           </div>
           <div>

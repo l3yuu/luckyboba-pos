@@ -265,16 +265,16 @@ const XReading = () => {
   };
 
   const menuCards = [
-    { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#3b2063]" },
+    { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#6a12b8]" },
     { label: "OVERVIEW",        title: "SALES SUMMARY REPORT", type: "summary",      color: "border-amber-400" },
-    { label: "AUDIT",           title: "VOID LOGS",            type: "void_logs",    color: "border-[#3b2063]" },
-    { label: "TRANSACTION",     title: "SEARCH RECEIPT",       type: "search",       color: "border-[#3b2063]" },
-    { label: "DATA MANAGEMENT", title: "EXPORT SALES",         type: "export_sales", color: "border-[#3b2063]" },
-    { label: "ANALYSIS",        title: "SALES DETAILED",       type: "detailed",     color: "border-[#3b2063]" },
-    { label: "INVENTORY",       title: "EXPORT ITEMS",         type: "export_items", color: "border-[#3b2063]" },
-    { label: "INVENTORY",       title: "QTY ITEMS",            type: "qty_items",    color: "border-[#3b2063]" },
+    { label: "AUDIT",           title: "VOID LOGS",            type: "void_logs",    color: "border-[#6a12b8]" },
+    { label: "TRANSACTION",     title: "SEARCH RECEIPT",       type: "search",       color: "border-[#6a12b8]" },
+    { label: "DATA MANAGEMENT", title: "EXPORT SALES",         type: "export_sales", color: "border-[#6a12b8]" },
+    { label: "ANALYSIS",        title: "SALES DETAILED",       type: "detailed",     color: "border-[#6a12b8]" },
+    { label: "INVENTORY",       title: "EXPORT ITEMS",         type: "export_items", color: "border-[#6a12b8]" },
+    { label: "INVENTORY",       title: "QTY ITEMS",            type: "qty_items",    color: "border-[#6a12b8]" },
     { label: "X-READING",  title: "", isAction: true, type: "x_reading",  actionLabel: "X-READING",  actionText: "PRINT", color: "border-emerald-500" },
-    { label: "CASH COUNT", title: "", isAction: true, type: "cash_count", actionLabel: "CASH COUNT", actionText: "VIEW",  color: "border-[#3b2063]" },
+    { label: "CASH COUNT", title: "", isAction: true, type: "cash_count", actionLabel: "CASH COUNT", actionText: "VIEW",  color: "border-[#6a12b8]" },
   ];
 
   const renderHourlySales = () => {
@@ -873,7 +873,7 @@ const XReading = () => {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-[0.625rem] ${isMenuOpen ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'text-zinc-700 border-zinc-300 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'}`}
+              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-[0.625rem] ${isMenuOpen ? 'bg-[#6a12b8] text-white border-[#6a12b8]' : 'text-zinc-700 border-zinc-300 hover:border-[#6a12b8] hover:text-[#6a12b8] hover:bg-[#f5f0ff]'}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -890,7 +890,7 @@ const XReading = () => {
                       className={`bg-white border-l-4 ${card.color} shadow-sm p-4 h-20 flex flex-col justify-center cursor-pointer group hover:bg-[#f5f0ff] transition-all rounded-[0.625rem]`}
                     >
                       <h3 className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1">{card.label}</h3>
-                      <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#3b2063]">{card.title || card.actionLabel}</h2>
+                      <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#6a12b8]">{card.title || card.actionLabel}</h2>
                     </div>
                   ))}
                 </div>
@@ -903,7 +903,7 @@ const XReading = () => {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]"
+              className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#6a12b8]"
             />
             {reportData?.report_type === 'search' && (
               <div className="flex gap-2 flex-1">
@@ -913,12 +913,12 @@ const XReading = () => {
                   onChange={(e) => setInvoiceQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchReportData('search')}
                   placeholder="Search invoice / cashier..."
-                  className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]"
+                  className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#6a12b8]"
                 />
                 <button
                   onClick={() => fetchReportData('search')}
                   disabled={loading}
-                  className="px-5 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors disabled:opacity-50 rounded-[0.625rem]"
+                  className="px-5 h-11 bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors disabled:opacity-50 rounded-[0.625rem]"
                 >
                   Search
                 </button>
@@ -930,13 +930,13 @@ const XReading = () => {
             <button
               onClick={handleGenerate}
               disabled={loading}
-              className="px-6 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] active:bg-[#5a0fa0] transition-colors disabled:opacity-50 rounded-[0.625rem] border border-[#3b2063]"
+              className="px-6 h-11 bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] active:bg-[#5a0fa0] transition-colors disabled:opacity-50 rounded-[0.625rem] border border-[#6a12b8]"
             >
               {loading ? 'Processing...' : 'Generate'}
             </button>
             <button
               onClick={handlePrint}
-              className="px-6 h-11 bg-white text-[#3b2063] font-bold text-xs uppercase tracking-widest border border-[#3b2063] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]"
+              className="px-6 h-11 bg-white text-[#6a12b8] font-bold text-xs uppercase tracking-widest border border-[#6a12b8] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]"
             >
               Print
             </button>
@@ -959,7 +959,7 @@ const XReading = () => {
         <div className="flex-1 flex flex-col items-center justify-start py-10">
           {loading ? (
             <div className="flex flex-col items-center mt-20 opacity-50">
-              <div className="w-8 h-8 border-4 border-[#3b2063] border-t-transparent rounded-full animate-spin mb-3" />
+              <div className="w-8 h-8 border-4 border-[#6a12b8] border-t-transparent rounded-full animate-spin mb-3" />
               <p className="text-sm text-zinc-400 font-bold uppercase">Generating report...</p>
             </div>
           ) : reportData ? (

@@ -27,7 +27,7 @@ const Btn: React.FC<{
   onClick?: () => void; className?: string; disabled?: boolean;
 }> = ({ children, variant = 'primary', onClick, className = '', disabled = false }) => {
   const variants: Record<VariantKey, string> = {
-    primary:   'bg-[#3b2063] hover:bg-[#2a1647] text-white',
+    primary:   'bg-[#6a12b8] hover:bg-[#2a1647] text-white',
     secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
   };
   return (
@@ -165,16 +165,16 @@ const HourlySalesPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
               <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ordersGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#3b2063" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="#6a12b8" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#6a12b8" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
                 <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#a1a1aa' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: '#a1a1aa' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="orders" stroke="#3b2063" strokeWidth={2}
-                  fill="url(#ordersGrad)" dot={false} activeDot={{ r: 4, fill: '#3b2063' }} />
+                <Area type="monotone" dataKey="orders" stroke="#6a12b8" strokeWidth={2}
+                  fill="url(#ordersGrad)" dot={false} activeDot={{ r: 4, fill: '#6a12b8' }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -274,7 +274,7 @@ const HourlySalesPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
                       <div className="flex items-center gap-2">
                         <div className="w-24 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-[#3b2063] transition-all duration-500"
+                            className="h-full rounded-full bg-[#6a12b8] transition-all duration-500"
                             style={{ width: `${pct}%` }}
                           />
                         </div>

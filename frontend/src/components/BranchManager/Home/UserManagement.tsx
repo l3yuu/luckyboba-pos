@@ -96,7 +96,7 @@ const blankForm = (): FormState => ({
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
 const Avatar: React.FC<{ name: string; size?: string }> = ({ name, size = 'w-7 h-7 text-[10px]' }) => (
-  <div className={`${size} rounded-full bg-[#ede8ff] flex items-center justify-center font-bold text-[#3b2063] shrink-0`}>
+  <div className={`${size} rounded-full bg-[#ede8ff] flex items-center justify-center font-bold text-[#6a12b8] shrink-0`}>
     {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
   </div>
 );
@@ -135,7 +135,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: 'px-3 py-2 text-xs', md: 'px-4 py-2.5 text-sm', lg: 'px-6 py-3 text-sm' };
   const variants: Record<VariantKey, string> = {
-    primary:   'bg-[#3b2063] hover:bg-[#2a1647] text-white',
+    primary:   'bg-[#6a12b8] hover:bg-[#2a1647] text-white',
     secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
     danger:    'bg-red-600 hover:bg-red-700 text-white',
     ghost:     'bg-transparent text-zinc-500 hover:bg-zinc-100',
@@ -798,13 +798,13 @@ const UserManagement: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex items-center gap-3">
           <div className="relative group flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
             <input
               type="text"
               placeholder="Search cashiers..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
             />
           </div>
           <Btn onClick={() => setAddOpen(true)} disabled={loading} className="px-5 py-3 rounded-xl shadow-sm shrink-0">

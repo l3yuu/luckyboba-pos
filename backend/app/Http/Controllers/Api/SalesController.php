@@ -54,7 +54,7 @@ class SalesController extends Controller
 
         return response()->json([
             'status'    => 'success',
-            'si_number' => $validated['si_number'],
+            'si_number' => $result['sale']->invoice_number,
             'sale'      => new SaleResource($result['sale']),
         ], $statusCode);
     }

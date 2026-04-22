@@ -164,7 +164,7 @@ const TL_SubCategoriesTab: React.FC = () => {
             {Object.values(grouped).map(({ cat, children }) => (
               <div key={cat.id} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm">
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-zinc-100 bg-zinc-50/50">
-                  <div className="w-1.5 h-6 rounded-full bg-[#3b2063] shrink-0" />
+                  <div className="w-1.5 h-6 rounded-full bg-[#6a12b8] shrink-0" />
                   <p className="text-xs font-black text-[#1a0f2e] uppercase tracking-widest">{cat.name}</p>
                   <span className="ml-auto bg-zinc-100 text-[10px] font-black tracking-widest text-zinc-400 px-2 py-1 rounded-lg">
                     {children.length} SUB-GROUPS

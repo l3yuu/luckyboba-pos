@@ -40,11 +40,34 @@ class ProcessCheckoutAction
             ->first();
 
         if ($existing) {
-            return [
-                'status' => 'success',
-                'is_new' => false,
-                'sale'   => $existing,
-            ];
+            $isSameOrder = ($existing->source === ($data['source'] ?? 'pos')) && 
+                           (abs((float)$existing->total_amount - (float)($data['total'] ?? 0)) < 0.01) &&
+                           ((int)$existing->items()->count() === count($data['items']));
+
+            if ($isSameOrder) {
+                return [
+                    'status' => 'success',
+                    'is_new' => false,
+                    'sale'   => $existing,
+                ];
+            } else {
+                // SI Collision detected! Re-generate SI number.
+                $latestSale = Sale::where('invoice_number', 'LIKE', 'SI-%')
+                    ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
+                    ->where('branch_id', $branchId)
+                    ->lockForUpdate() // Prevent concurrent generation if inside transaction
+                    ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
+                    ->first();
+
+                $seq = $latestSale ? (int) substr($latestSale->invoice_number, 3) : 0;
+                $seq++;
+                $officialOR = 'SI-' . str_pad($seq, 9, '0', STR_PAD_LEFT);
+                
+                while (Sale::where('invoice_number', $officialOR)->where('branch_id', $branchId)->exists()) {
+                    $seq++;
+                    $officialOR = 'SI-' . str_pad($seq, 9, '0', STR_PAD_LEFT);
+                }
+            }
         }
 
         try {

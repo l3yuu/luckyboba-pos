@@ -80,7 +80,7 @@ const BM_ExportData = ({ onBack }: ExportDataProps) => {
     {
       title: 'Lists & Kits',
       icon: <List size={13} strokeWidth={2.5} />,
-      color: '#3b2063',
+      color: '#6a12b8',
       bg: '#ede9fe',
       items: [
         { label: 'Food List',       action: handleExportFoodList },
@@ -116,8 +116,8 @@ const BM_ExportData = ({ onBack }: ExportDataProps) => {
             {loading && (
               <div className="absolute inset-0 bg-white/70 z-10 flex items-center justify-center rounded-2xl backdrop-blur-[2px]">
                 <div className="flex items-center gap-2.5">
-                  <Loader2 className="animate-spin text-[#3b2063]" size={20} />
-                  <span className="bm-label" style={{ color: '#3b2063' }}>Processing…</span>
+                  <Loader2 className="animate-spin text-[#6a12b8]" size={20} />
+                  <span className="bm-label" style={{ color: '#6a12b8' }}>Processing…</span>
                 </div>
               </div>
             )}
@@ -140,7 +140,7 @@ const BM_ExportData = ({ onBack }: ExportDataProps) => {
               <button
                 onClick={() => handleExportSales('SALES', 'General_Sales')}
                 disabled={loading}
-                className="flex items-center gap-2 h-10 px-6 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all rounded-xl shadow-sm active:scale-[0.98] disabled:opacity-50 shrink-0"
+                className="flex items-center gap-2 h-10 px-6 bg-[#6a12b8] hover:bg-[#2a1647] text-white transition-all rounded-xl shadow-sm active:scale-[0.98] disabled:opacity-50 shrink-0"
                 style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
               >
                 {loading ? <Loader2 className="animate-spin" size={14} /> : <Download size={13} strokeWidth={2.5} />}
@@ -172,7 +172,7 @@ const BM_ExportData = ({ onBack }: ExportDataProps) => {
                       key={item.label}
                       onClick={item.action}
                       disabled={loading}
-                      className="h-10 px-3 bg-[#faf9ff] hover:bg-[#ede9fe] border border-gray-100 hover:border-[#ddd6f7] text-[#3b2063] transition-all rounded-xl active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      className="h-10 px-3 bg-[#faf9ff] hover:bg-[#ede9fe] border border-gray-100 hover:border-[#ddd6f7] text-[#6a12b8] transition-all rounded-xl active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
                       style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}
                     >
                       <FileText size={11} strokeWidth={2.5} className="shrink-0" />
@@ -188,7 +188,7 @@ const BM_ExportData = ({ onBack }: ExportDataProps) => {
           <div className="flex justify-start pt-1 pb-2">
             <button
               onClick={onBack}
-              className="flex items-center gap-2 h-9 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#3b2063] transition-all rounded-xl active:scale-[0.98]"
+              className="flex items-center gap-2 h-9 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#6a12b8] transition-all rounded-xl active:scale-[0.98]"
               style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
             >
               <ArrowLeft size={13} strokeWidth={2.5} /> Back to Settings

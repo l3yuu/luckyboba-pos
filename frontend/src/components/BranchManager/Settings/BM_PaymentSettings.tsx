@@ -118,8 +118,8 @@ const BM_PaymentSettings = ({ onBack }: { onBack: () => void }) => {
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 opacity-50">
-        <div className="w-12 h-12 border-4 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs font-black uppercase tracking-widest text-[#3b2063]">Syncing Branch Config...</p>
+        <div className="w-12 h-12 border-4 border-[#6a12b8] border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-black uppercase tracking-widest text-[#6a12b8]">Syncing Branch Config...</p>
       </div>
     );
   }
@@ -137,7 +137,7 @@ const BM_PaymentSettings = ({ onBack }: { onBack: () => void }) => {
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Digital Wallet Integration</p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="rounded-xl h-11 px-8 gap-2 bg-[#3b2063] shadow-lg shadow-violet-100">
+        <Button onClick={handleSave} disabled={saving} className="rounded-xl h-11 px-8 gap-2 bg-[#6a12b8] shadow-lg shadow-violet-100">
           {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={16} />}
           Save Configuration
         </Button>

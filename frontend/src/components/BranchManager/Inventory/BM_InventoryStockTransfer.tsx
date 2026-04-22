@@ -171,7 +171,7 @@ const CreateTransferModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <ArrowRightLeft size={15} className="text-[#3b2063]" />
+              <ArrowRightLeft size={15} className="text-[#6a12b8]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">Create Stock Transfer</p>
@@ -189,7 +189,7 @@ const CreateTransferModal: React.FC<{
             <div className="flex-1">
               <Field label="From Branch" required error={errors.from}>
                 {branchId ? (
-                  <div className="w-full text-sm text-[#3b2063] bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg px-3 py-2.5 flex items-center gap-2 shadow-sm">
+                  <div className="w-full text-sm text-[#6a12b8] bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg px-3 py-2.5 flex items-center gap-2 shadow-sm">
                     <span className="truncate">{fromBranch?.name || 'Your Branch'}</span>
                   </div>
                 ) : (
@@ -206,7 +206,7 @@ const CreateTransferModal: React.FC<{
             </div>
             <div className="pt-5 shrink-0">
               <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-full flex items-center justify-center">
-                <ArrowRightLeft size={14} className="text-[#3b2063]" />
+                <ArrowRightLeft size={14} className="text-[#6a12b8]" />
               </div>
             </div>
             <div className="flex-1">
@@ -226,7 +226,7 @@ const CreateTransferModal: React.FC<{
                 <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">Source</p>
                 <p className="text-xs font-bold text-zinc-700">{fromBranch?.name ?? '—'}</p>
               </div>
-              <ArrowRightLeft size={16} className="text-[#3b2063] shrink-0" />
+              <ArrowRightLeft size={16} className="text-[#6a12b8] shrink-0" />
               <div className="flex-1 text-center">
                 <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">Destination</p>
                 <p className="text-xs font-bold text-zinc-700">{toBranch?.name ?? '—'}</p>
@@ -247,7 +247,7 @@ const CreateTransferModal: React.FC<{
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Items <span className="text-red-400">*</span></label>
-              <button onClick={addRow} className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#3b2063] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
+              <button onClick={addRow} className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#6a12b8] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
                 <Plus size={11} /> Add Row
               </button>
             </div>
@@ -289,7 +289,7 @@ const CreateTransferModal: React.FC<{
 
         <div className="flex items-center gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
           <button onClick={onClose} disabled={saving} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{saving ? 'Creating...' : 'Create Transfer'}</button>
+          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#6a12b8] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{saving ? 'Creating...' : 'Create Transfer'}</button>
         </div>
       </div>
     </div>,
@@ -326,7 +326,7 @@ const ViewTransferModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <ArrowRightLeft size={15} className="text-[#3b2063]" />
+              <ArrowRightLeft size={15} className="text-[#6a12b8]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{transfer.transfer_number}</p>
@@ -346,7 +346,7 @@ const ViewTransferModal: React.FC<{
                 <p className="text-xs font-bold text-zinc-700">{transfer.from_branch?.name ?? transfer.from_branch_name ?? '—'}</p>
               </div>
             </div>
-            <ArrowRightLeft size={18} className="text-[#3b2063] shrink-0" />
+            <ArrowRightLeft size={18} className="text-[#6a12b8] shrink-0" />
             <div className="flex-1 text-center">
               <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">To</p>
               <div className="flex items-center justify-center gap-1.5">
@@ -366,7 +366,7 @@ const ViewTransferModal: React.FC<{
           {transfer.notes && <p className="text-xs text-zinc-500 bg-zinc-50 border border-zinc-100 rounded-xl p-3">{transfer.notes}</p>}
           <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
             <span>Initiated By:</span>
-            <span className="text-[#3b2063]">{transfer.created_by?.name ?? 'Unknown'}</span>
+            <span className="text-[#6a12b8]">{transfer.created_by?.name ?? 'Unknown'}</span>
           </div>
 
           {/* Items */}
@@ -377,7 +377,7 @@ const ViewTransferModal: React.FC<{
             {items.map((item, i) => (
               <div key={i} className="grid grid-cols-[1fr_80px_60px] px-4 py-2.5 border-b border-zinc-100 last:border-0">
                 <p className="text-xs font-semibold text-zinc-700">{item.material_name}</p>
-                <p className="text-xs font-bold text-[#3b2063] tabular-nums">{item.quantity}</p>
+                <p className="text-xs font-bold text-[#6a12b8] tabular-nums">{item.quantity}</p>
                 <p className="text-xs font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded w-fit">{item.unit}</p>
               </div>
             ))}
@@ -492,13 +492,13 @@ const BM_InventoryStockTransfer: React.FC<{ branchId?: number | null }> = ({ bra
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
             <input
               type="text"
               placeholder="Search transfer # or branch..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
             />
           </div>
 
@@ -511,7 +511,7 @@ const BM_InventoryStockTransfer: React.FC<{ branchId?: number | null }> = ({ bra
           </div>
 
           <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
-            <button onClick={() => setAddOpen(true)} className="w-full md:w-auto px-5 py-3 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-xs">
+            <button onClick={() => setAddOpen(true)} className="w-full md:w-auto px-5 py-3 bg-[#6a12b8] hover:bg-[#2a1647] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-xs">
               <Plus size={14} strokeWidth={3} /> New Transfer
             </button>
           </div>
@@ -523,7 +523,7 @@ const BM_InventoryStockTransfer: React.FC<{ branchId?: number | null }> = ({ bra
         {(Object.entries(counts) as [TransferStatus, number][]).map(([status, count]) => {
           const c = STATUS_CONFIG[status];
           return (
-            <div key={status} className="bg-white border rounded-[0.625rem] px-4 py-3.5 shadow-sm cursor-pointer hover:border-[#3b2063] transition-colors" style={{ borderColor: statusFilter === status ? '#3b2063' : c.border }}
+            <div key={status} className="bg-white border rounded-[0.625rem] px-4 py-3.5 shadow-sm cursor-pointer hover:border-[#6a12b8] transition-colors" style={{ borderColor: statusFilter === status ? '#6a12b8' : c.border }}
               onClick={() => setStatusFilter(statusFilter === status ? '' : status)}>
               <div className="flex items-center gap-1.5 mb-1">
                 <span style={{ color: c.text }}>{c.icon}</span>
@@ -583,11 +583,11 @@ const BM_InventoryStockTransfer: React.FC<{ branchId?: number | null }> = ({ bra
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[11px] font-bold ${isOutgoing ? 'text-[#3b2063]' : 'text-zinc-500'}`}>
+                          <span className={`text-[11px] font-bold ${isOutgoing ? 'text-[#6a12b8]' : 'text-zinc-500'}`}>
                             {t.from_branch?.name ?? t.from_branch_name ?? '—'}
                           </span>
                           <ArrowRight size={10} className="text-zinc-300" />
-                          <span className={`text-[11px] font-bold ${isIncoming ? 'text-[#3b2063] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff]' : 'text-zinc-500'}`}>
+                          <span className={`text-[11px] font-bold ${isIncoming ? 'text-[#6a12b8] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff]' : 'text-zinc-500'}`}>
                             {t.to_branch?.name ?? t.to_branch_name ?? '—'}
                           </span>
                         </div>
@@ -601,7 +601,7 @@ const BM_InventoryStockTransfer: React.FC<{ branchId?: number | null }> = ({ bra
                         ) : <span className="text-zinc-300 text-xs">—</span>}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="text-[10px] font-bold text-[#3b2063] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff] uppercase tracking-tighter">{items.length} items</span>
+                        <span className="text-[10px] font-bold text-[#6a12b8] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff] uppercase tracking-tighter">{items.length} items</span>
                       </td>
                       <td className="px-5 py-3.5"><StatusBadge status={t.status} /></td>
                       <td className="px-5 py-3.5 text-right">
@@ -638,10 +638,10 @@ const BM_InventoryStockTransfer: React.FC<{ branchId?: number | null }> = ({ bra
 
                           <div className="w-[1px] h-4 bg-zinc-100 mx-0.5" />
 
-                          <button onClick={() => setExpanded(isExp ? null : t.id)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                          <button onClick={() => setExpanded(isExp ? null : t.id)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                             <ChevronDown size={13} className={`transition-transform ${isExp ? 'rotate-180' : ''}`} />
                           </button>
-                          <button onClick={() => setViewTarget(t)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                          <button onClick={() => setViewTarget(t)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                             <Eye size={13} />
                           </button>
                         </div>
@@ -652,12 +652,12 @@ const BM_InventoryStockTransfer: React.FC<{ branchId?: number | null }> = ({ bra
                         <td colSpan={7} className="px-5 pb-3 pt-1">
                           <div className="ml-10 border border-[#e9d5ff] rounded-xl overflow-hidden">
                             <div className="grid grid-cols-3 bg-[#f5f0ff] px-4 py-2 border-b border-[#e9d5ff]">
-                              {['Material', 'Quantity', 'Unit'].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#3b2063]">{h}</p>)}
+                              {['Material', 'Quantity', 'Unit'].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#6a12b8]">{h}</p>)}
                             </div>
                             {items.map((item, i) => (
                               <div key={i} className="grid grid-cols-3 px-4 py-2.5 border-b border-zinc-100 last:border-0">
                                 <p className="text-xs font-semibold text-zinc-700">{item.material_name}</p>
-                                <p className="text-xs font-bold text-[#3b2063] tabular-nums">{item.quantity}</p>
+                                <p className="text-xs font-bold text-[#6a12b8] tabular-nums">{item.quantity}</p>
                                 <span className="text-xs font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded w-fit">{item.unit}</span>
                               </div>
                             ))}

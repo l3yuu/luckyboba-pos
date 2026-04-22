@@ -256,8 +256,8 @@ class DashboardService
         $beginningOR = $stats->beginning_or;
         $endingOR = $stats->ending_or;
 
-        $beginningORFormatted = $beginningOR ? str_pad($beginningOR, 5, '0', STR_PAD_LEFT) : '00000';
-        $endingORFormatted = $endingOR ? str_pad($endingOR, 5, '0', STR_PAD_LEFT) : '00000';
+        $beginningORFormatted = $beginningOR ? str_pad($beginningOR, 9, '0', STR_PAD_LEFT) : '000000000';
+        $endingORFormatted = $endingOR ? str_pad($endingOR, 9, '0', STR_PAD_LEFT) : '000000000';
 
         return [
             'beginning_sales' => 0.00,

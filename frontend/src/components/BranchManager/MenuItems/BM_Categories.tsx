@@ -139,13 +139,13 @@ const BM_Categories: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
           <div className="relative group flex-1 w-full md:w-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063]" size={15} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
             <input
               type="text"
               placeholder="Search category name or type..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all shadow-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
             />
           </div>
 
@@ -264,7 +264,7 @@ const BM_Categories: React.FC = () => {
                         {isToggling
                           ? <RefreshCw size={20} className="animate-spin text-zinc-400" />
                           : cat.is_active
-                            ? <ToggleRight size={26} className="text-[#3b2063]" />
+                            ? <ToggleRight size={26} className="text-[#6a12b8]" />
                             : <ToggleLeft  size={26} className="text-zinc-300" />}
                       </button>
                     </td>

@@ -63,7 +63,7 @@ export const Toast: React.FC<ToastProps> = ({
       label: 'Notification',
       icon: <Info size={16} strokeWidth={2.5} />,
       iconBg: '#f5f3ff',
-      iconColor: '#3b2063',
+      iconColor: '#6a12b8',
       dot: '#7c3aed',
       accent: '#c4b5fd',
     },

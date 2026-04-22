@@ -93,7 +93,7 @@ interface BtnProps {
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -556,7 +556,7 @@ const CategoryModal: React.FC<{
               <p className="text-[10px] text-zinc-400">Toggle off to hide category from cashiers</p>
             </div>
             <button type="button" onClick={() => setIsActive(v => !v)}>
-              {isActive ? <ToggleRight size={28} className="text-[#3b2063]" /> : <ToggleLeft size={28} className="text-zinc-300" />}
+              {isActive ? <ToggleRight size={28} className="text-[#6a12b8]" /> : <ToggleLeft size={28} className="text-zinc-300" />}
             </button>
           </div>
         </div>
@@ -1001,7 +1001,7 @@ const CategoriesTab: React.FC = () => {
                   </td>
                   <td className="px-5 py-3.5">
                     <button onClick={() => toggleActive(cat)} className="transition-colors">
-                      {cat.is_active ? <ToggleRight size={22} className="text-[#3b2063]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
+                      {cat.is_active ? <ToggleRight size={22} className="text-[#6a12b8]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
                     </button>
                   </td>
                   <td className="px-5 py-3.5">

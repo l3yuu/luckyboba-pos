@@ -148,7 +148,7 @@ const InventoryListPanel = ({ branchId }: { branchId: number | null }) => {
             placeholder="Search items..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b2063]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6a12b8]"
           />
         </div>
         <div className="flex space-x-2">
@@ -158,7 +158,7 @@ const InventoryListPanel = ({ branchId }: { branchId: number | null }) => {
               onClick={() => setFilter(status)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === status
-                  ? 'bg-[#3b2063] text-white'
+                  ? 'bg-[#6a12b8] text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
               }`}
             >

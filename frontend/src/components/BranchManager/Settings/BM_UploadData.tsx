@@ -142,11 +142,11 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
   };
 
   const btnPrimary = {
-    cls:   'flex items-center gap-2 h-9 px-5 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98] disabled:opacity-50 shadow-sm',
+    cls:   'flex items-center gap-2 h-9 px-5 bg-[#6a12b8] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98] disabled:opacity-50 shadow-sm',
     style: { fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' } as React.CSSProperties,
   };
   const btnOutline = {
-    cls:   'flex items-center gap-2 h-9 px-5 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#3b2063] transition-all rounded-xl active:scale-[0.98]',
+    cls:   'flex items-center gap-2 h-9 px-5 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#6a12b8] transition-all rounded-xl active:scale-[0.98]',
     style: { fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' } as React.CSSProperties,
   };
 
@@ -166,7 +166,7 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
                 fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
                 background: activeTab === tab ? '#fff' : 'transparent',
                 color:      activeTab === tab ? '#1a0f2e' : '#a1a1aa',
-                borderBottom: activeTab === tab ? '2px solid #3b2063' : '2px solid transparent',
+                borderBottom: activeTab === tab ? '2px solid #6a12b8' : '2px solid transparent',
               }}
             >
               {tab === 'upload' ? 'Upload New' : 'Import History'}
@@ -202,7 +202,7 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
                   selectedFile
                     ? 'border-emerald-300 bg-emerald-50/30'
                     : isDragging
-                      ? 'border-[#3b2063] bg-[#faf9ff] scale-[1.01] shadow-md'
+                      ? 'border-[#6a12b8] bg-[#faf9ff] scale-[1.01] shadow-md'
                       : 'border-gray-200 hover:border-[#ddd6f7] cursor-pointer'
                 }`}
               >
@@ -227,12 +227,12 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
                 ) : (
                   <>
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${
-                      isDragging ? 'bg-[#ede9fe] text-[#3b2063]' : 'bg-gray-50 text-gray-300'
+                      isDragging ? 'bg-[#ede9fe] text-[#6a12b8]' : 'bg-gray-50 text-gray-300'
                     }`}>
                       <Upload size={28} strokeWidth={1.5} />
                     </div>
                     <div className="text-center">
-                      <p style={{ fontSize: '0.85rem', fontWeight: 700, color: isDragging ? '#3b2063' : '#71717a' }}>
+                      <p style={{ fontSize: '0.85rem', fontWeight: 700, color: isDragging ? '#6a12b8' : '#71717a' }}>
                         {isDragging ? 'Drop file here' : 'Select or drag a spreadsheet'}
                       </p>
                       <p className="bm-label mt-1" style={{ color: '#d4d4d8' }}>Supports CSV, XLSX, XLS</p>
@@ -268,7 +268,7 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
                       <tbody>
                         {preview.map((row, idx) => (
                           <tr key={idx} className="border-t border-gray-50 hover:bg-[#faf9ff] transition-colors">
-                            <td className="px-5 py-2.5" style={{ fontSize: '0.82rem', fontWeight: 700, color: '#3b2063' }}>{row.name}</td>
+                            <td className="px-5 py-2.5" style={{ fontSize: '0.82rem', fontWeight: 700, color: '#6a12b8' }}>{row.name}</td>
                             <td className="px-5 py-2.5" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1a0f2e' }}>{row.amount}</td>
                             <td className="px-5 py-2.5">
                               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 border"
@@ -303,7 +303,7 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
 
               <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-6 py-3.5 border-b border-gray-50 flex items-center gap-2">
-                  <History size={13} strokeWidth={2.5} className="text-[#3b2063]" />
+                  <History size={13} strokeWidth={2.5} className="text-[#6a12b8]" />
                   <span className="bm-label" style={{ color: '#a1a1aa' }}>System Import Logs</span>
                 </div>
                 <table className="w-full text-left border-collapse">
@@ -320,7 +320,7 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
                     {isLoadingHistory ? (
                       <tr>
                         <td colSpan={3} className="p-12 text-center">
-                          <Loader2 className="animate-spin mx-auto text-[#3b2063]" size={24} />
+                          <Loader2 className="animate-spin mx-auto text-[#6a12b8]" size={24} />
                         </td>
                       </tr>
                     ) : history.length > 0 ? history.map(log => (
@@ -384,7 +384,7 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
           <div className="bg-white w-full max-w-md rounded-2xl border border-gray-100 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-7 py-5 border-b border-gray-50">
               <div className="flex items-center gap-2">
-                <ClipboardCheck size={15} strokeWidth={2.5} className="text-[#3b2063]" />
+                <ClipboardCheck size={15} strokeWidth={2.5} className="text-[#6a12b8]" />
                 <div>
                   <p className="bm-label" style={{ color: '#a1a1aa' }}>Settings</p>
                   <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0, marginTop: 2 }}>
@@ -415,7 +415,7 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
                   <div className="flex justify-between items-center">
                     <p className="bm-label" style={{ color: '#a1a1aa' }}>Error Logs</p>
                     <button onClick={downloadErrorLog}
-                      className="flex items-center gap-1 text-[#3b2063] hover:underline transition-colors"
+                      className="flex items-center gap-1 text-[#6a12b8] hover:underline transition-colors"
                       style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                       <FileWarning size={11} strokeWidth={2.5} /> Download Log
                     </button>
@@ -429,7 +429,7 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
               )}
 
               <button onClick={() => setSummary(null)}
-                className="w-full h-10 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98]"
+                className="w-full h-10 bg-[#6a12b8] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98]"
                 style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                 Close Report
               </button>

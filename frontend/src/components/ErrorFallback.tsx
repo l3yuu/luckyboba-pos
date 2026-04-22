@@ -34,7 +34,7 @@ export const ErrorFallback = ({ onRetry, errorMessage }: ErrorFallbackProps) => 
 
         {/* Error Title */}
         <div>
-          <h1 className="text-[#3b2063] font-black uppercase text-2xl tracking-tight mb-2">
+          <h1 className="text-[#6a12b8] font-black uppercase text-2xl tracking-tight mb-2">
             Something Went Wrong
           </h1>
           <p className="text-zinc-400 text-sm font-medium leading-relaxed">
@@ -55,14 +55,14 @@ export const ErrorFallback = ({ onRetry, errorMessage }: ErrorFallbackProps) => 
           {onRetry && (
             <button
               onClick={onRetry}
-              className="w-full py-4 bg-[#3b2063] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[#2a1647] transition-all active:scale-95 shadow-lg shadow-purple-100"
+              className="w-full py-4 bg-[#6a12b8] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[#2a1647] transition-all active:scale-95 shadow-lg shadow-purple-100"
             >
               Try Again
             </button>
           )}
           <button
             onClick={handleReload}
-            className="w-full py-4 bg-white text-[#3b2063] border-2 border-[#3b2063]/20 rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[#f0ebff] transition-all active:scale-95"
+            className="w-full py-4 bg-white text-[#6a12b8] border-2 border-[#6a12b8]/20 rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[#f0ebff] transition-all active:scale-95"
           >
             Reload Page
           </button>

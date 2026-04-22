@@ -38,7 +38,7 @@ const STYLES = `
   }
 
   .sv-header-strip {
-    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #3b2063 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #6a12b8 100%);
     padding: 3rem 4rem 8rem;
     position: relative;
     overflow: hidden;
@@ -46,7 +46,7 @@ const STYLES = `
 
   .sv-tab-active {
     background: #ffffff;
-    color: #3b2063;
+    color: #6a12b8;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 
@@ -57,7 +57,7 @@ const STYLES = `
   .sv-spin { animation: sv-spin 1s linear infinite; }
 `;
 
-const SV_GRADIENT = ['#3b2063', '#4a2c7a', '#5a3891', '#6a44a7', '#7a50be', '#8a5cd5'];
+const SV_GRADIENT = ['#6a12b8', '#4a2c7a', '#5a3891', '#6a44a7', '#7a50be', '#8a5cd5'];
 
 const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
   const [data, setData] = useState<ItemReport[]>([]);
@@ -101,8 +101,8 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
   if (loading) return (
     <div className="h-full min-h-[60vh] flex flex-col items-center justify-center gap-4">
       <style>{STYLES}</style>
-      <div className="w-12 h-12 border-4 border-[#3b2063] border-t-transparent rounded-full sv-spin" />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#3b2063]/50">Establishing Secure Uplink</p>
+      <div className="w-12 h-12 border-4 border-[#6a12b8] border-t-transparent rounded-full sv-spin" />
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#6a12b8]/50">Establishing Secure Uplink</p>
     </div>
   );
 
@@ -113,10 +113,10 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
   const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
 
   const stats = [
-    { label: 'Inventory Throughput', value: totalQuantity.toLocaleString(), icon: <ShoppingBag size={14} />, color: '#3b2063' },
-    { label: 'Gross Item Yield', value: `₱${totalRevenue.toLocaleString()}`, icon: <TrendingUp size={14} />, color: '#3b2063' },
-    { label: 'Unit Economics', value: `₱${(totalRevenue / (totalQuantity || 1)).toFixed(2)}`, icon: <Target size={14} />, color: '#3b2063' },
-    { label: 'Product Diversity', value: new Set(data.map(d => d.category)).size, icon: <Award size={14} />, color: '#3b2063' },
+    { label: 'Inventory Throughput', value: totalQuantity.toLocaleString(), icon: <ShoppingBag size={14} />, color: '#6a12b8' },
+    { label: 'Gross Item Yield', value: `₱${totalRevenue.toLocaleString()}`, icon: <TrendingUp size={14} />, color: '#6a12b8' },
+    { label: 'Unit Economics', value: `₱${(totalRevenue / (totalQuantity || 1)).toFixed(2)}`, icon: <Target size={14} />, color: '#6a12b8' },
+    { label: 'Product Diversity', value: new Set(data.map(d => d.category)).size, icon: <Award size={14} />, color: '#6a12b8' },
   ];
 
   return (
@@ -126,7 +126,7 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
       {/* ── EXECUTIVE HEADER ── */}
       <div className="sv-header-strip">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/[0.03] rounded-full -mr-48 -mt-48 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#3b2063]/[0.05] rounded-full -ml-32 -mb-32 blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#6a12b8]/[0.05] rounded-full -ml-32 -mb-32 blur-2xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div>
@@ -161,7 +161,7 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
         {/* ── KPI GRID ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {stats.map((s, i) => (
-            <div key={i} className="sv-glass-card p-6 flex items-center gap-5 border-none shadow-2xl shadow-[#3b2063]/10 transition-transform hover:scale-[1.03]">
+            <div key={i} className="sv-glass-card p-6 flex items-center gap-5 border-none shadow-2xl shadow-[#6a12b8]/10 transition-transform hover:scale-[1.03]">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: `${s.color}10`, color: s.color }}>
                 {s.icon}
               </div>
@@ -177,7 +177,7 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
         <div className="sv-glass-card p-6 mb-10 border-none flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl shadow-slate-900/5">
           <div>
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-              <Filter size={14} className="text-[#3b2063]" /> Metric Ranking Logic
+              <Filter size={14} className="text-[#6a12b8]" /> Metric Ranking Logic
             </h3>
             <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider italic">Re-order data grid based on primary performance vector</p>
           </div>
@@ -200,15 +200,15 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
         {/* ── VISUAL DATA ENGINE ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mb-10">
           
-          <div className="lg:col-span-2 sv-glass-card p-8 border-none shadow-2xl shadow-[#3b2063]/10">
+          <div className="lg:col-span-2 sv-glass-card p-8 border-none shadow-2xl shadow-[#6a12b8]/10">
             <div className="flex items-center justify-between mb-12">
                <div>
                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.15em] flex items-center gap-2">
-                    <BarChart3 size={16} className="text-[#3b2063]" /> Top Performer Distribution
+                    <BarChart3 size={16} className="text-[#6a12b8]" /> Top Performer Distribution
                  </h3>
                  <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Comparative saturation audit</p>
                </div>
-               <span className="px-3 py-1 bg-[#3b2063]/10 text-[#3b2063] rounded-lg text-[10px] font-black uppercase tracking-[0.2em]">{data.length} Nodes</span>
+               <span className="px-3 py-1 bg-[#6a12b8]/10 text-[#6a12b8] rounded-lg text-[10px] font-black uppercase tracking-[0.2em]">{data.length} Nodes</span>
             </div>
             
             <div className="h-[320px] -ml-6">
@@ -239,25 +239,25 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
             </div>
           </div>
 
-          <div className="sv-glass-card p-8 border-none shadow-2xl shadow-[#3b2063]/10">
+          <div className="sv-glass-card p-8 border-none shadow-2xl shadow-[#6a12b8]/10">
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.15em] mb-8 flex items-center gap-2">
-               <Award size={18} className="text-[#3b2063]" /> Leaderboard
+               <Award size={18} className="text-[#6a12b8]" /> Leaderboard
             </h3>
             <div className="space-y-6">
                {sortedData.slice(0, 6).map((item, i) => (
                  <div key={i} className="group">
                     <div className="flex items-center justify-between mb-2">
                        <div className="flex items-center gap-4">
-                          <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-black shadow-md ${i === 0 ? 'bg-[#3b2063] text-white' : 'bg-white border border-slate-100 text-slate-400 group-hover:text-[#3b2063]'}`}>
+                          <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-black shadow-md ${i === 0 ? 'bg-[#6a12b8] text-white' : 'bg-white border border-slate-100 text-slate-400 group-hover:text-[#6a12b8]'}`}>
                             {i + 1}
                           </span>
                           <span className="text-[12px] font-black text-slate-800 tracking-tight">{item.name}</span>
                        </div>
-                       <span className="text-[10px] font-black text-[#3b2063] tabular-nums">
+                       <span className="text-[10px] font-black text-[#6a12b8] tabular-nums">
                          {sortBy === 'quantity' ? `${item.quantity} SOLD` : `₱${item.revenue.toLocaleString()}`}
                        </span>
                     </div>
-                    <div className="sv-progress-bg group-hover:bg-[#3b2063]/10 transition-colors shadow-inner">
+                    <div className="sv-progress-bg group-hover:bg-[#6a12b8]/10 transition-colors shadow-inner">
                        <div className="sv-progress-fill shadow-lg" style={{ width: `${sortBy === 'quantity' ? (item.quantity / maxQty) * 100 : (item.revenue / maxRevenue) * 100}%`, background: SV_GRADIENT[i % SV_GRADIENT.length] }} />
                     </div>
                  </div>
@@ -277,7 +277,7 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
           <div className="px-10 py-7 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <div>
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
-                <FileText size={16} className="text-[#3b2063]" /> Integrated performance matrix
+                <FileText size={16} className="text-[#6a12b8]" /> Integrated performance matrix
               </h3>
               <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest italic">Normalized item audit ledger</p>
             </div>
@@ -300,24 +300,24 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {sortedData.map((item, index) => (
-                  <tr key={index} className="group hover:bg-[#3b2063]/10/20 transition-all duration-300 cursor-default">
+                  <tr key={index} className="group hover:bg-[#6a12b8]/10/20 transition-all duration-300 cursor-default">
                     <td className="px-10 py-6">
                       <div className="flex items-center gap-4">
-                        <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black transition-all ${index < 3 ? 'bg-[#3b2063] text-white shadow-lg shadow-[#3b2063]/20' : 'bg-slate-50 border border-slate-100 text-slate-400 group-hover:bg-white group-hover:text-[#3b2063]'}`}>{index + 1}</span>
+                        <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black transition-all ${index < 3 ? 'bg-[#6a12b8] text-white shadow-lg shadow-[#6a12b8]/20' : 'bg-slate-50 border border-slate-100 text-slate-400 group-hover:bg-white group-hover:text-[#6a12b8]'}`}>{index + 1}</span>
                         <div className="flex flex-col">
                            <span className="text-[13px] font-black text-slate-900 tracking-tight leading-tight">{item.name}</span>
                         </div>
                       </div>
                     </td>
                     <td className="px-10 py-6">
-                       <span className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest group-hover:bg-[#3b2063]/10 group-hover:text-[#3b2063] transition-colors">{item.category}</span>
+                       <span className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest group-hover:bg-[#6a12b8]/10 group-hover:text-[#6a12b8] transition-colors">{item.category}</span>
                     </td>
                     <td className="px-10 py-6 text-right font-black text-slate-700 tabular-nums text-sm">{item.quantity}</td>
-                    <td className="px-10 py-6 text-right font-black text-[#3b2063] tabular-nums text-sm">₱{item.revenue.toLocaleString()}</td>
+                    <td className="px-10 py-6 text-right font-black text-[#6a12b8] tabular-nums text-sm">₱{item.revenue.toLocaleString()}</td>
                     <td className="px-10 py-6 text-right">
                        <div className="flex items-center justify-end gap-2">
                           <span className="text-xs font-bold text-slate-400 tabular-nums">₱{(item.revenue / (item.quantity || 1)).toLocaleString()}</span>
-                          <ArrowRight size={12} className="text-slate-200 group-hover:translate-x-2 group-hover:text-[#3b2063] transition-all" />
+                          <ArrowRight size={12} className="text-slate-200 group-hover:translate-x-2 group-hover:text-[#6a12b8] transition-all" />
                        </div>
                     </td>
                   </tr>

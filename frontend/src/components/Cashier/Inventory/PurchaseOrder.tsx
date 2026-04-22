@@ -213,7 +213,7 @@ const PurchaseOrder = () => {
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="h-11 px-7 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm"
+              className="h-11 px-7 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm"
             >
               CREATE NEW P.O.
             </button>
@@ -237,7 +237,7 @@ const PurchaseOrder = () => {
 
           {/* Table card */}
           <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
-            {isFetching && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]"><Loader2 className="animate-spin text-[#3b2063]" size={32} /></div>}
+            {isFetching && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]"><Loader2 className="animate-spin text-[#6a12b8]" size={32} /></div>}
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-white z-10 border-b-2 border-[#e9d5ff]">
                 <tr className="bg-[#f5f0ff]">
@@ -256,7 +256,7 @@ const PurchaseOrder = () => {
                       <span className="text-[12px] font-semibold text-zinc-500 font-mono">{po.poNumber}</span>
                     </td>
                     <td className="px-7 py-3.5">
-                      <span className="text-[13px] font-extrabold text-[#3b2063]">{po.supplier}</span>
+                      <span className="text-[13px] font-extrabold text-[#6a12b8]">{po.supplier}</span>
                     </td>
                     <td className="px-7 py-3.5">
                       <span className="text-[12px] font-semibold text-zinc-500">{po.dateOrdered}</span>
@@ -270,7 +270,7 @@ const PurchaseOrder = () => {
                     <td className="px-7 py-3.5 text-center">
                       <button
                         onClick={() => openUpdateModal(po)}
-                        className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#6a12b8] text-white transition-colors rounded-[0.625rem]"
+                        className="h-9 w-9 inline-flex items-center justify-center bg-[#6a12b8] hover:bg-[#6a12b8] text-white transition-colors rounded-[0.625rem]"
                         title="Update"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -306,7 +306,7 @@ const PurchaseOrder = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
-            <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#3b2063] rounded-t-[0.625rem]">
+            <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#6a12b8] rounded-t-[0.625rem]">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-purple-200">Inventory</p>
                 <h2 className="text-sm font-extrabold text-white mt-0.5">New Purchase Order</h2>
@@ -324,7 +324,7 @@ const PurchaseOrder = () => {
                       type="text"
                       value={formData.supplier}
                       onChange={(e) => setFormData({...formData, supplier: e.target.value})}
-                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white"
+                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#6a12b8] focus:bg-white"
                       placeholder="e.g. Boba Supply Co."
                     />
                   </div>
@@ -335,7 +335,7 @@ const PurchaseOrder = () => {
                       type="date"
                       value={formData.date_ordered}
                       onChange={(e) => setFormData({...formData, date_ordered: e.target.value})}
-                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                      className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#6a12b8] focus:bg-white cursor-pointer"
                     />
                   </div>
                 </div>
@@ -356,7 +356,7 @@ const PurchaseOrder = () => {
                           required
                           value={item.menu_item_id}
                           onChange={(e) => updateFormItem(index, 'menu_item_id', e.target.value)}
-                          className="flex-1 bg-white border border-[#e9d5ff] rounded-[0.625rem] px-3 py-2 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#3b2063]"
+                          className="flex-1 bg-white border border-[#e9d5ff] rounded-[0.625rem] px-3 py-2 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#6a12b8]"
                         >
                           <option value="" disabled>Select Item</option>
                           {menuItems.map(mi => <option key={mi.id} value={mi.id}>{mi.name}</option>)}
@@ -364,12 +364,12 @@ const PurchaseOrder = () => {
                         <input
                           required type="number" min="1" placeholder="Qty"
                           value={item.quantity} onChange={(e) => updateFormItem(index, 'quantity', e.target.value)}
-                          className="w-20 bg-white border border-[#e9d5ff] rounded-[0.625rem] px-3 py-2 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#3b2063]"
+                          className="w-20 bg-white border border-[#e9d5ff] rounded-[0.625rem] px-3 py-2 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#6a12b8]"
                         />
                         <input
                           required type="number" step="0.01" min="0" placeholder="Cost"
                           value={item.unit_cost} onChange={(e) => updateFormItem(index, 'unit_cost', e.target.value)}
-                          className="w-24 bg-white border border-[#e9d5ff] rounded-[0.625rem] px-3 py-2 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#3b2063]"
+                          className="w-24 bg-white border border-[#e9d5ff] rounded-[0.625rem] px-3 py-2 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#6a12b8]"
                         />
                         {formItems.length > 1 && (
                           <button type="button" onClick={() => removeFormItem(index)} className="p-2 text-red-500 hover:bg-red-50 rounded-[0.625rem]">
@@ -382,7 +382,7 @@ const PurchaseOrder = () => {
 
                   <div className="mt-4 pt-4 border-t border-[#e9d5ff] flex justify-between items-center">
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Calculated Total:</span>
-                    <span className="text-lg font-extrabold text-[#3b2063]">₱{calculatedTotal.toLocaleString()}</span>
+                    <span className="text-lg font-extrabold text-[#6a12b8]">₱{calculatedTotal.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -398,7 +398,7 @@ const PurchaseOrder = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
+                  className="flex-1 h-11 bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
                 >
                   {isSubmitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Confirm Order</> : 'Confirm Order'}
                 </button>
@@ -412,7 +412,7 @@ const PurchaseOrder = () => {
       {isUpdateModalOpen && selectedPO && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
-            <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#3b2063] rounded-t-[0.625rem]">
+            <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#6a12b8] rounded-t-[0.625rem]">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-purple-200">Inventory</p>
                 <h2 className="text-sm font-extrabold text-white mt-0.5">Update Status</h2>
@@ -430,7 +430,7 @@ const PurchaseOrder = () => {
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value as POStatus)}
-                  className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                  className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#6a12b8] focus:bg-white cursor-pointer"
                 >
                   <option value="Pending">Pending</option>
                   <option value="Received">Received</option>
@@ -448,7 +448,7 @@ const PurchaseOrder = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
+                  className="flex-1 h-11 bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
                 >
                   {isSubmitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Save Changes</> : 'Save Changes'}
                 </button>

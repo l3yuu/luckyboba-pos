@@ -110,7 +110,7 @@ const StatTile = ({ label, value, icon: Icon, color, trend }: StatTileProps) => 
   <div className="sv-tile sv-glass p-6 flex flex-col justify-between min-h-[150px]">
     <div className="flex items-start justify-between">
       <div
-        className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-[#3b2063]/10"
+        className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-[#6a12b8]/10"
         style={{ background: `linear-gradient(135deg, ${color}20 0%, ${color}10 100%)`, color }}
       >
         <Icon size={24} strokeWidth={2.5} />
@@ -233,17 +233,17 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
         <div>
           <div className="flex items-center gap-3 mb-3">
-            <div className="px-2 py-0.5 rounded bg-[#3b2063] text-white text-[10px] font-black uppercase tracking-widest">
+            <div className="px-2 py-0.5 rounded bg-[#6a12b8] text-white text-[10px] font-black uppercase tracking-widest">
               Supervisor View
             </div>
             <div className="h-1 w-1 rounded-full bg-slate-300" />
-            <p className="sv-label !text-[#3b2063] tracking-widest font-black">Shift Performance Dashboard</p>
+            <p className="sv-label !text-[#6a12b8] tracking-widest font-black">Shift Performance Dashboard</p>
           </div>
           <h1 className="text-[2.6rem] font-black text-slate-900 tracking-tight leading-none">
             Operational Overview
           </h1>
           <p className="text-[0.8rem] font-bold text-slate-400 mt-4 flex items-center gap-2">
-            <Clock size={16} className="text-[#3b2063]" />
+            <Clock size={16} className="text-[#6a12b8]" />
             Terminal Live Sync: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
@@ -251,7 +251,7 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => load(true)}
-            className="group flex items-center gap-3 px-6 py-3.5 bg-white border border-slate-200 text-slate-600 hover:text-[#3b2063] hover:border-[#3b2063]/30 rounded-2xl transition-all shadow-xl shadow-[#3b2063]/5 font-black text-xs uppercase tracking-widest"
+            className="group flex items-center gap-3 px-6 py-3.5 bg-white border border-slate-200 text-slate-600 hover:text-[#6a12b8] hover:border-[#6a12b8]/30 rounded-2xl transition-all shadow-xl shadow-[#6a12b8]/5 font-black text-xs uppercase tracking-widest"
           >
             <RefreshCw size={14} className={refreshing ? 'sv-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
             {refreshing ? 'Processing...' : 'Refresh Hub'}
@@ -261,30 +261,30 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
 
       {/* ── PREMIUM KPI ARCHITECTURE ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-        <StatTile label="Today's Revenue" value={fmtS(totalSales)} icon={TrendingUp} color="#3b2063" trend={+12} />
-        <StatTile label="Orders Processed" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#3b2063" trend={-2} />
-        <StatTile label="Void Risks Value" value={fmtS(voidedSales)} icon={AlertTriangle} color="#3b2063" />
-        <StatTile label="On-Shift Personnel" value={activeStaffTodayCount} icon={Users} color="#3b2063" />
+        <StatTile label="Today's Revenue" value={fmtS(totalSales)} icon={TrendingUp} color="#6a12b8" trend={+12} />
+        <StatTile label="Orders Processed" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#6a12b8" trend={-2} />
+        <StatTile label="Void Risks Value" value={fmtS(voidedSales)} icon={AlertTriangle} color="#6a12b8" />
+        <StatTile label="On-Shift Personnel" value={activeStaffTodayCount} icon={Users} color="#6a12b8" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
         {/* ── VISUAL ANALYTICS ENGINE ── */}
-        <div className="lg:col-span-2 sv-monitoring-card bg-white p-8 relative overflow-hidden shadow-2xl shadow-[#3b2063]/5">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#3b2063]" />
+        <div className="lg:col-span-2 sv-monitoring-card bg-white p-8 relative overflow-hidden shadow-2xl shadow-[#6a12b8]/5">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#6a12b8]" />
 
           <div className="flex items-center justify-between mb-12">
             <div>
               <div className="flex items-center gap-2 mb-1.5">
-                <Activity size={14} className="text-[#3b2063]" />
+                <Activity size={14} className="text-[#6a12b8]" />
                 <h3 className="font-black text-slate-800 tracking-tight uppercase text-xs">Real-Time Revenue Distribution</h3>
               </div>
               <p className="sv-label text-[10px]">Fiscal momentum and trading density audit</p>
             </div>
-            <div className="flex items-center gap-4 px-4 py-2 bg-[#3b2063]/10 border border-[#3b2063]/20 rounded-xl">
+            <div className="flex items-center gap-4 px-4 py-2 bg-[#6a12b8]/10 border border-[#6a12b8]/20 rounded-xl">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#3b2063] animate-pulse" />
-                <span className="text-[10px] font-black text-[#3b2063] uppercase tracking-widest">Active Forecast</span>
+                <span className="w-2 h-2 rounded-full bg-[#6a12b8] animate-pulse" />
+                <span className="text-[10px] font-black text-[#6a12b8] uppercase tracking-widest">Active Forecast</span>
               </div>
             </div>
           </div>
@@ -294,8 +294,8 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
               <AreaChart data={hourly} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b2063" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#6a12b8" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#6a12b8" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="4 4" />
@@ -317,18 +317,18 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', background: '#1e293b', padding: '16px 20px' }}
                   itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 700, padding: 0 }}
                   labelStyle={{ fontSize: '10px', color: '#c7d2fe', marginBottom: '8px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}
-                  cursor={{ stroke: '#3b2063', strokeWidth: 1.5, strokeDasharray: '5 5' }}
+                  cursor={{ stroke: '#6a12b8', strokeWidth: 1.5, strokeDasharray: '5 5' }}
                   formatter={(v) => [`₱${Number(v).toLocaleString()}`, 'HOURLY SALES']}
                 />
                 <Area
                   type="monotone"
                   dataKey="total"
-                  stroke="#3b2063"
+                  stroke="#6a12b8"
                   strokeWidth={4}
                   fillOpacity={1}
                   fill="url(#colorSales)"
-                  dot={{ r: 5, strokeWidth: 2.5, fill: '#fff', stroke: '#3b2063' }}
-                  activeDot={{ r: 8, strokeWidth: 3, fill: '#3b2063', stroke: '#fff' }}
+                  dot={{ r: 5, strokeWidth: 2.5, fill: '#fff', stroke: '#6a12b8' }}
+                  activeDot={{ r: 8, strokeWidth: 3, fill: '#6a12b8', stroke: '#fff' }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -365,14 +365,14 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
           <div className="sv-monitoring-card">
             <div className="sv-monitoring-head">
               <h3 className="font-black text-slate-800 tracking-tight uppercase text-[10px] flex items-center gap-2">
-                <Clock size={16} className="text-[#3b2063]" strokeWidth={2.5} /> Void Event Log
+                <Clock size={16} className="text-[#6a12b8]" strokeWidth={2.5} /> Void Event Log
               </h3>
             </div>
             <div className="p-6 space-y-5">
               {pendingVoids.length > 0 ? pendingVoids.map(v => (
                 <div key={v.id} className="flex items-center justify-between group">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#3b2063]/10 group-hover:text-[#3b2063] transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#6a12b8]/10 group-hover:text-[#6a12b8] transition-colors">
                       <FileText size={18} />
                     </div>
                     <div>
@@ -406,11 +406,11 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
           { icon: FileText, label: "Audit Suite" },
           { icon: BarChart2, label: "Sync Nodes" },
         ].map((act, i) => (
-          <button key={i} className="group px-6 py-4 bg-white border border-slate-200 rounded-2xl flex items-center gap-4 hover:border-[#3b2063]/30 hover:shadow-xl hover:shadow-[#3b2063]/5 transition-all active:scale-[0.98]">
-            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#3b2063] group-hover:text-white transition-all duration-300">
+          <button key={i} className="group px-6 py-4 bg-white border border-slate-200 rounded-2xl flex items-center gap-4 hover:border-[#6a12b8]/30 hover:shadow-xl hover:shadow-[#6a12b8]/5 transition-all active:scale-[0.98]">
+            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#6a12b8] group-hover:text-white transition-all duration-300">
               <act.icon size={20} strokeWidth={2.5} />
             </div>
-            <span className="text-[0.7rem] font-black text-slate-600 uppercase tracking-widest group-hover:text-[#3b2063] transition-colors">{act.label}</span>
+            <span className="text-[0.7rem] font-black text-slate-600 uppercase tracking-widest group-hover:text-[#6a12b8] transition-colors">{act.label}</span>
           </button>
         ))}
       </div>

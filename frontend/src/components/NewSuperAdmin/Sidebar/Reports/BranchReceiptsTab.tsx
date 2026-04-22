@@ -485,13 +485,13 @@ const BranchReceiptsTab: React.FC = () => {
         <div className="flex-1 min-w-[240px]">
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Search Query</p>
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none group-focus-within:text-[#3b2063] transition-colors" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none group-focus-within:text-[#6a12b8] transition-colors" size={16} />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search SI number, customer, etc..."
-              className="w-full bg-zinc-50 border border-zinc-200 rounded-lg pl-10 pr-10 py-2.5 text-sm font-semibold text-[#1a0f2e] outline-none focus:ring-2 focus:ring-violet-400/20 focus:border-[#3b2063] transition-all"
+              className="w-full bg-zinc-50 border border-zinc-200 rounded-lg pl-10 pr-10 py-2.5 text-sm font-semibold text-[#1a0f2e] outline-none focus:ring-2 focus:ring-violet-400/20 focus:border-[#6a12b8] transition-all"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-red-500">
@@ -506,7 +506,7 @@ const BranchReceiptsTab: React.FC = () => {
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Date Filter</p>
             <button 
               onClick={() => setSelectedDate(selectedDate ? "" : new Date().toISOString().split('T')[0])}
-              className="text-[9px] font-black text-[#3b2063] uppercase tracking-wider hover:underline"
+              className="text-[9px] font-black text-[#6a12b8] uppercase tracking-wider hover:underline"
             >
               {selectedDate ? "All Time" : "Set Today"}
             </button>
@@ -537,7 +537,7 @@ const BranchReceiptsTab: React.FC = () => {
         <button
           onClick={() => handleSearch()}
           disabled={isLoading}
-          className="bg-[#3b2063] hover:bg-[#2a1647] text-white px-8 py-2.5 rounded-lg font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
+          className="bg-[#6a12b8] hover:bg-[#2a1647] text-white px-8 py-2.5 rounded-lg font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
         >
           {isLoading ? <RefreshCw size={16} className="animate-spin" /> : "Search"}
         </button>
@@ -555,7 +555,7 @@ const BranchReceiptsTab: React.FC = () => {
         <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-violet-50 p-2 rounded-lg">
-              <Terminal size={16} className="text-[#3b2063]" />
+              <Terminal size={16} className="text-[#6a12b8]" />
             </div>
             <div>
               <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wide">Transaction Journal</h3>
@@ -607,8 +607,8 @@ const BranchReceiptsTab: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-[#3b2063]/5 border border-[#3b2063]/10 rounded-md">
-                      <span className="text-[10px] font-black text-[#3b2063] uppercase tracking-wider">{item.branch_name}</span>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-[#6a12b8]/5 border border-[#6a12b8]/10 rounded-md">
+                      <span className="text-[10px] font-black text-[#6a12b8] uppercase tracking-wider">{item.branch_name}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -630,7 +630,7 @@ const BranchReceiptsTab: React.FC = () => {
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => openReprintModal(item)}
-                        className="w-8 h-8 flex items-center justify-center bg-white border border-zinc-200 text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] hover:bg-violet-50 transition-all rounded-lg shadow-sm"
+                        className="w-8 h-8 flex items-center justify-center bg-white border border-zinc-200 text-zinc-400 hover:text-[#6a12b8] hover:border-[#6a12b8] hover:bg-violet-50 transition-all rounded-lg shadow-sm"
                         title="Reprint Receipt"
                       >
                         <Printer size={14} />
@@ -734,7 +734,7 @@ const BranchReceiptsTab: React.FC = () => {
             <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-                  <Printer size={16} className="text-[#3b2063]" />
+                  <Printer size={16} className="text-[#6a12b8]" />
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-tight">Reprint Receipt</h3>
@@ -757,8 +757,8 @@ const BranchReceiptsTab: React.FC = () => {
                       disabled={isActive || reprinting !== null}
                       className={`w-full p-4 rounded-xl font-black text-[10px] uppercase tracking-[0.1em] transition-all flex items-center justify-between border-2
                         ${isActive
-                          ? 'bg-[#3b2063] border-[#3b2063] text-white'
-                          : 'bg-white border-zinc-100 text-zinc-600 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-violet-50'
+                          ? 'bg-[#6a12b8] border-[#6a12b8] text-white'
+                          : 'bg-white border-zinc-100 text-zinc-600 hover:border-[#6a12b8] hover:text-[#6a12b8] hover:bg-violet-50'
                         } disabled:opacity-50 shadow-sm`}
                     >
                       <div className="flex items-center gap-3">

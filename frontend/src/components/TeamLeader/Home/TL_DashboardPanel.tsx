@@ -229,7 +229,7 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
 
       {/* ── EXECUTIVE KPI TILES ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-5 mb-10">
-        <StatTile label="Today's Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#3b2063" />
+        <StatTile label="Today's Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#6a12b8" />
         <StatTile label="Cash In" value={fmtS(cashIn)} icon={ArrowUpRight} color="#059669" />
         <StatTile label="Cash Out" value={fmtS(cashOut)} icon={ArrowDownRight} color="#be2525" />
         <StatTile label="Net Cash" value={fmtS(overallCash)} icon={PhilippinePeso} color="#0891b2" />
@@ -242,7 +242,7 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
 
         {/* ── LIVE REVENUE TREND ── */}
         <div className="lg:col-span-2 tl-tile bg-white p-8 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-[#3b2063]" />
+          <div className="absolute top-0 left-0 w-1 h-full bg-[#6a12b8]" />
 
           <div className="flex items-center justify-between mb-10">
             <div>
@@ -250,7 +250,7 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
               <p className="tl-label mt-1 text-[10px]">Fiscal momentum across trading hours</p>
             </div>
             <div className="flex items-center gap-4 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg">
-              <span className="w-2 h-2 rounded-full bg-[#3b2063]" />
+              <span className="w-2 h-2 rounded-full bg-[#6a12b8]" />
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Gross Sales</span>
             </div>
           </div>
@@ -277,16 +277,16 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
                   contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 20px 40px -8px rgba(0,0,0,0.2)', background: '#0f172a', padding: '12px 16px' }}
                   itemStyle={{ color: '#fff', fontSize: '11px', fontWeight: 700, padding: 0 }}
                   labelStyle={{ fontSize: '9px', color: '#6366f1', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.08em' }}
-                  cursor={{ stroke: '#3b206320', strokeWidth: 1 }}
+                  cursor={{ stroke: '#6a12b820', strokeWidth: 1 }}
                   formatter={(v) => [`₱${Number(v).toLocaleString()}`, 'HOURLY SALES']}
                 />
                 <Line
                   type="monotone"
                   dataKey="total"
-                  stroke="#3b2063"
+                  stroke="#6a12b8"
                   strokeWidth={3.5}
-                  dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#3b2063' }}
-                  activeDot={{ r: 7, strokeWidth: 3, fill: '#fff', stroke: '#3b2063' }}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#6a12b8' }}
+                  activeDot={{ r: 7, strokeWidth: 3, fill: '#fff', stroke: '#6a12b8' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -320,7 +320,7 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
           <div className="tl-monitoring-card">
             <div className="tl-monitoring-head">
               <h3 className="font-black text-slate-800 tracking-tight uppercase text-[10px] flex items-center gap-2">
-                <Clock size={14} className="text-[#3b2063]" /> Recent Voids
+                <Clock size={14} className="text-[#6a12b8]" /> Recent Voids
               </h3>
             </div>
             <div className="p-5 space-y-4">
@@ -355,8 +355,8 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
           { icon: Search, label: "Global Search" },
           { icon: FileText, label: "Generate EOD" },
         ].map((act, i) => (
-          <button key={i} className="group p-4 bg-white border border-slate-200 rounded-xl flex items-center gap-4 hover:border-[#3b206350] hover:shadow-md transition-all active:scale-[0.98]">
-            <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#3b206310] group-hover:text-[#3b2063] transition-colors">
+          <button key={i} className="group p-4 bg-white border border-slate-200 rounded-xl flex items-center gap-4 hover:border-[#6a12b850] hover:shadow-md transition-all active:scale-[0.98]">
+            <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#6a12b810] group-hover:text-[#6a12b8] transition-colors">
               <act.icon size={20} />
             </div>
             <span className="text-[0.7rem] font-black text-slate-600 uppercase tracking-widest">{act.label}</span>
