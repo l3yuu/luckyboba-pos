@@ -338,7 +338,7 @@ export const CartSidebar = ({
     <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{cashierName ?? 'Admin'}</div>
   </div>
   <div className="text-center">
-    <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Current Order</div>
+    <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">SI#</div>
     <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{orNumber}</div>
   </div>
   <div className="text-center">
