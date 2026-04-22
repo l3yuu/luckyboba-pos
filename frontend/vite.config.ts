@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  define: {
+    // Stamp every build with a unique version so the app can detect new deployments
+    '__BUILD_VERSION__': JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     VitePWA({
