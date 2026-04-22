@@ -155,6 +155,12 @@ Route::post('/kiosk/verify-password', function (Illuminate\Http\Request $request
     $password = $request->input('password');
     $branchId = $request->input('branch_id');
 
+    // Check Global SuperAdmin Password
+    $globalPass = \App\Models\Setting::where('key', 'global_kiosk_password')->value('value') ?? 'luckyboba';
+    if ($password === $globalPass) {
+        return response()->json(['success' => true]);
+    }
+
     $branch = \App\Models\Branch::find($branchId);
     if ($branch) {
         $branchPassword = $branch->kiosk_password ?? 'luckyboba';

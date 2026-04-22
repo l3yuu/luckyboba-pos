@@ -223,7 +223,9 @@ public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedRes
                 'currency' => 'PHP – Philippine Peso',
                 'notifications' => 'true',
                 'auto_reports' => 'true',
-                'two_factor' => 'false'
+                'two_factor' => 'false',
+                'global_kiosk_pin' => '1234',
+                'global_kiosk_password' => 'luckyboba',
             ];
 
             foreach ($defaults as $key => $value) {
