@@ -543,7 +543,7 @@ const KioskPage = () => {
 
     const cat = item.category?.toLowerCase() || '';
     const type = item.category_type?.toLowerCase() || '';
-    const needsCustomization = type === 'drink' || 
+    const needsCustomization = type === 'drink' ||
       cat.includes('milk tea') || cat.includes('milktea') ||
       cat.includes('coffee') || cat.includes('yakult') ||
       cat.includes('fruit') || cat.includes('yogurt') ||
@@ -1330,8 +1330,8 @@ const KioskPage = () => {
                             {sizeLabel && <span className="text-[#6a12b8] ml-1">({sizeLabel})</span>}
                           </h4>
                           <div className="flex flex-wrap gap-1 mt-0.5">
-                            {item.selectedSugarLevel && 
-                              (item.category?.toLowerCase().includes('milk tea') || item.category?.toLowerCase().includes('milktea') || item.category?.toLowerCase().includes('coffee') || item.category?.toLowerCase().includes('yakult') || item.category?.toLowerCase().includes('fruit') || item.category?.toLowerCase().includes('yogurt') || item.category?.toLowerCase().includes('frappe') || item.category?.toLowerCase().includes('series') || item.category?.toLowerCase().includes('drink') || item.category?.toLowerCase().includes('matcha')) && 
+                            {item.selectedSugarLevel &&
+                              (item.category?.toLowerCase().includes('milk tea') || item.category?.toLowerCase().includes('milktea') || item.category?.toLowerCase().includes('coffee') || item.category?.toLowerCase().includes('yakult') || item.category?.toLowerCase().includes('fruit') || item.category?.toLowerCase().includes('yogurt') || item.category?.toLowerCase().includes('frappe') || item.category?.toLowerCase().includes('series') || item.category?.toLowerCase().includes('drink') || item.category?.toLowerCase().includes('matcha')) &&
                               <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} {t.sugar}</span>}
                             {item.selectedAddOns && item.selectedAddOns.length > 0 && <span className="text-[8px] font-bold text-zinc-400">{item.selectedAddOns.map(a => a.name).join(' · ')}</span>}
                           </div>
@@ -1475,19 +1475,19 @@ const KioskPage = () => {
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-10 max-w-2xl mx-auto">
+                  <div className="space-y-6 max-w-2xl mx-auto">
                     {/* Sugar Level */}
-                    <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
-                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                    <div className="bg-white p-6 rounded-[1.5rem] border border-purple-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-lg tracking-tight uppercase mb-4 flex items-center gap-3">
                         <span className="w-8 h-8 rounded-full bg-[#6a12b8] text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">1</span>
                         {t.selectSugarLevel}
                       </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                         {sugarLevels.map((sl) => (
                           <button
                             key={sl.id}
                             onClick={() => setMixMatchSugar(sl.value)}
-                            className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchSugar === sl.value
+                            className={`py-3 rounded-xl font-black text-xs transition-all border-2 ${mixMatchSugar === sl.value
                               ? 'bg-[#6a12b8] border-[#6a12b8] text-white shadow-lg shadow-purple-200'
                               : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
                               }`}
@@ -1499,20 +1499,20 @@ const KioskPage = () => {
                     </div>
 
                     {/* Options (Ice/Pearl) */}
-                    <div className="bg-white p-8 rounded-[2rem] border border-orange-50 shadow-sm">
-                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                    <div className="bg-white p-6 rounded-[1.5rem] border border-orange-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-lg tracking-tight uppercase mb-4 flex items-center gap-3">
                         <span className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm shadow-md shadow-orange-200">2</span>
                         {t.drinkOptions}
                       </h4>
-                      <div className="space-y-8">
+                      <div className="space-y-6">
                         <div>
-                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">{t.iceLevel}</p>
-                          <div className="grid grid-cols-4 gap-3">
+                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">{t.iceLevel}</p>
+                          <div className="grid grid-cols-4 gap-2">
                             {['NO ICE', '-ICE', '+ICE', 'WARM'].map(opt => (
                               <button
                                 key={opt}
                                 onClick={() => mixMatchToggleOption(opt)}
-                                className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchOptions.includes(opt)
+                                className={`py-3 rounded-xl font-black text-xs transition-all border-2 ${mixMatchOptions.includes(opt)
                                   ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
                                   : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
                                   }`}
@@ -1523,13 +1523,13 @@ const KioskPage = () => {
                           </div>
                         </div>
                         <div>
-                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">{t.pearlPreference}</p>
-                          <div className="grid grid-cols-2 gap-4">
+                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">{t.pearlPreference}</p>
+                          <div className="grid grid-cols-2 gap-2">
                             {['NO PRL', 'W/ PRL'].map(opt => (
                               <button
                                 key={opt}
                                 onClick={() => mixMatchToggleOption(opt)}
-                                className={`py-4 rounded-2xl font-black text-sm transition-all border-2 ${mixMatchOptions.includes(opt)
+                                className={`py-3 rounded-xl font-black text-xs transition-all border-2 ${mixMatchOptions.includes(opt)
                                   ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200'
                                   : 'bg-white border-zinc-100 text-zinc-400 hover:border-orange-200 hover:text-orange-600'
                                   }`}
@@ -1543,12 +1543,12 @@ const KioskPage = () => {
                     </div>
 
                     {/* Add-ons */}
-                    <div className="bg-white p-8 rounded-[2rem] border border-purple-50 shadow-sm">
-                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase mb-6 flex items-center gap-3">
+                    <div className="bg-white p-6 rounded-[1.5rem] border border-purple-50 shadow-sm">
+                      <h4 className="font-black text-zinc-900 text-lg tracking-tight uppercase mb-4 flex items-center gap-3">
                         <span className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm shadow-md shadow-purple-200">3</span>
                         {t.extraToppings}
                       </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {allAddOns
                           .filter(ao => ao.category === 'drink' || ao.category === 'Toppings')
                           .map((ao) => {
@@ -1561,18 +1561,18 @@ const KioskPage = () => {
                                     isSelected ? prev.filter(p => p.id !== ao.id) : [...prev, ao]
                                   );
                                 }}
-                                className={`p-4 rounded-2xl border-2 flex flex-col gap-1 transition-all ${isSelected
+                                className={`p-3 rounded-xl border-2 flex flex-col gap-1 transition-all ${isSelected
                                   ? 'border-purple-500 bg-purple-50 shadow-md'
                                   : 'border-zinc-100 bg-white hover:border-purple-200'
                                   }`}
                               >
                                 <div className="flex justify-between items-center w-full">
                                   <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-zinc-400'}`}>+₱{ao.price}</span>
-                                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'bg-purple-500 border-purple-500 text-white' : 'bg-white border-zinc-200'}`}>
-                                    {isSelected && <Check size={10} strokeWidth={4} />}
+                                  <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${isSelected ? 'bg-purple-500 border-purple-500 text-white' : 'bg-white border-zinc-200'}`}>
+                                    {isSelected && <Check size={8} strokeWidth={4} />}
                                   </div>
                                 </div>
-                                <span className={`font-bold text-xs uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-600'}`}>{ao.name}</span>
+                                <span className={`font-bold text-[11px] uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-600'}`}>{ao.name}</span>
                               </button>
                             );
                           })}
@@ -1661,12 +1661,12 @@ const KioskPage = () => {
                           <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.selectSugar}</h4>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                         {sugarLevels.map((sl) => (
                           <button
                             key={sl.id}
                             onClick={() => setSelectedSugarLevel(sl.value)}
-                            className={`py-5 rounded-2xl font-black text-sm transition-all border-2 ${selectedSugarLevel === sl.value
+                            className={`py-3 rounded-xl font-black text-xs transition-all border-2 ${selectedSugarLevel === sl.value
                               ? 'bg-[#a020f0] border-[#a020f0] text-white shadow-lg shadow-purple-200'
                               : 'bg-white border-zinc-100 text-zinc-400 hover:border-purple-200 hover:text-purple-600'
                               }`}
@@ -1678,17 +1678,17 @@ const KioskPage = () => {
                     </div>
                   )}
 
-                <div className="bg-white/95 p-8 rounded-[2rem] border border-purple-50 shadow-sm">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 shadow-md shadow-purple-100">
+                <div className="bg-white/95 p-6 rounded-[1.5rem] border border-purple-50 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center font-black text-base shrink-0 shadow-md shadow-purple-100">
                       {((customizingItem.category?.toLowerCase().includes('milk') || customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0) ? '2' : '1'}
                     </div>
-                    <div className="relative flex-1 h-8">
-                      <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase invisible" aria-hidden="true">Add Toppings</h4>
-                      <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.addToppings}</h4>
+                    <div className="relative flex-1 h-6">
+                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase invisible" aria-hidden="true">Add Toppings</h4>
+                      <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase absolute inset-0">{t.addToppings}</h4>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {allAddOns
                       .filter(ao => {
                         const itemCat = customizingItem.category?.toLowerCase() || '';
@@ -1707,7 +1707,7 @@ const KioskPage = () => {
                                   : [...prev, ao]
                               );
                             }}
-                            className={`p-4 rounded-2xl border-2 flex flex-col transition-all text-left ${isSelected
+                            className={`p-3 rounded-xl border-2 flex flex-col transition-all text-left ${isSelected
                               ? 'border-purple-500 bg-purple-50 shadow-md'
                               : 'border-zinc-100 bg-white hover:border-purple-200'
                               }`}
@@ -1716,11 +1716,11 @@ const KioskPage = () => {
                               <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-zinc-400'}`}>
                                 +₱{Number(ao.price).toFixed(0)}
                               </span>
-                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'bg-purple-500 border-purple-500 text-white' : 'bg-white border-zinc-200'}`}>
-                                {isSelected && <Check size={10} strokeWidth={4} />}
+                              <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'bg-purple-500 border-purple-500 text-white' : 'bg-white border-zinc-200'}`}>
+                                {isSelected && <Check size={8} strokeWidth={4} />}
                               </div>
                             </div>
-                            <span className={`font-bold text-xs uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-600'}`}>
+                            <span className={`font-bold text-[11px] uppercase ${isSelected ? 'text-purple-900' : 'text-zinc-600'}`}>
                               {ao.name}
                             </span>
                           </button>
