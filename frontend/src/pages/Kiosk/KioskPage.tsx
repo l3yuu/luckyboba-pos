@@ -424,7 +424,8 @@ const KioskPage = () => {
       // groupKey REMOVED to fix lint warning (manually comparing below)
 
       const cat = item.category?.toLowerCase() || '';
-      const isDrink = cat.includes('milk tea') || cat.includes('milktea') || cat.includes('coffee') || cat.includes('yakult') || cat.includes('fruit') || cat.includes('yogurt') || cat.includes('frappe') || cat.includes('series') || cat.includes('drink') || cat.includes('matcha');
+      const type = item.category_type?.toLowerCase() || '';
+      const isDrink = type === 'drink' || cat.includes('milk tea') || cat.includes('milktea') || cat.includes('coffee') || cat.includes('yakult') || cat.includes('fruit') || cat.includes('yogurt') || cat.includes('frappe') || cat.includes('series') || cat.includes('drink') || cat.includes('matcha') || cat.includes('classic') || cat.includes('signature') || cat.includes('premium');
       const finalSugar = isDrink ? sugar : undefined;
 
       const existing = prev.find((i: CartItem) => {
@@ -541,11 +542,15 @@ const KioskPage = () => {
     }
 
     const cat = item.category?.toLowerCase() || '';
-    const needsCustomization = cat.includes('milk tea') || cat.includes('milktea') ||
+    const type = item.category_type?.toLowerCase() || '';
+    const needsCustomization = type === 'drink' || 
+      cat.includes('milk tea') || cat.includes('milktea') ||
       cat.includes('coffee') || cat.includes('yakult') ||
       cat.includes('fruit') || cat.includes('yogurt') ||
       cat.includes('waffle') || cat.includes('frappe') ||
-      cat.includes('series') || cat.includes('drink');
+      cat.includes('series') || cat.includes('drink') ||
+      cat.includes('matcha') || cat.includes('classic') ||
+      cat.includes('signature') || cat.includes('premium');
 
     if (needsCustomization) {
       setCustomizingItem(item);
@@ -649,7 +654,8 @@ const KioskPage = () => {
         vat_amount: Number(vatAmount.toFixed(2)),
         items: cart.map((item: CartItem) => {
           const cat = item.category?.toLowerCase() || '';
-          const isDrink = cat.includes('milk tea') || cat.includes('milktea') || cat.includes('coffee') || cat.includes('yakult') || cat.includes('fruit') || cat.includes('yogurt') || cat.includes('frappe') || cat.includes('series') || cat.includes('drink');
+          const type = item.category_type?.toLowerCase() || '';
+          const isDrink = type === 'drink' || cat.includes('milk tea') || cat.includes('milktea') || cat.includes('coffee') || cat.includes('yakult') || cat.includes('fruit') || cat.includes('yogurt') || cat.includes('frappe') || cat.includes('series') || cat.includes('drink') || cat.includes('matcha') || cat.includes('classic') || cat.includes('signature') || cat.includes('premium');
           return {
             menu_item_id: item.id,
             name: item.name,
@@ -1325,7 +1331,16 @@ const KioskPage = () => {
                           </h4>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {item.selectedSugarLevel && 
-                              (item.category?.toLowerCase().includes('milk tea') || item.category?.toLowerCase().includes('milktea') || item.category?.toLowerCase().includes('coffee') || item.category?.toLowerCase().includes('yakult') || item.category?.toLowerCase().includes('fruit') || item.category?.toLowerCase().includes('yogurt') || item.category?.toLowerCase().includes('frappe') || item.category?.toLowerCase().includes('series') || item.category?.toLowerCase().includes('drink') || item.category?.toLowerCase().includes('matcha')) && 
+                              (item.category_type?.toLowerCase() === 'drink' ||
+                                item.category?.toLowerCase().includes('milk tea') ||
+                                item.category?.toLowerCase().includes('milktea') ||
+                                item.category?.toLowerCase().includes('classic') ||
+                                item.category?.toLowerCase().includes('matcha') ||
+                                item.category?.toLowerCase().includes('coffee') ||
+                                item.category?.toLowerCase().includes('series') ||
+                                item.category?.toLowerCase().includes('signature') ||
+                                item.category?.toLowerCase().includes('premium') ||
+                                item.category?.toLowerCase().includes('drink')) && 
                               <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} {t.sugar}</span>}
                             {item.selectedAddOns && item.selectedAddOns.length > 0 && <span className="text-[8px] font-bold text-zinc-400">{item.selectedAddOns.map(a => a.name).join(' · ')}</span>}
                           </div>
@@ -1637,8 +1652,16 @@ const KioskPage = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-10 space-y-10 scrollbar-hide">
-                {(customizingItem.category?.toLowerCase().includes('milk tea') ||
-                  customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
+                {(customizingItem.category_type?.toLowerCase() === 'drink' ||
+                  customizingItem.category?.toLowerCase().includes('milk tea') ||
+                  customizingItem.category?.toLowerCase().includes('milktea') ||
+                  customizingItem.category?.toLowerCase().includes('classic') ||
+                  customizingItem.category?.toLowerCase().includes('matcha') ||
+                  customizingItem.category?.toLowerCase().includes('coffee') ||
+                  customizingItem.category?.toLowerCase().includes('series') ||
+                  customizingItem.category?.toLowerCase().includes('signature') ||
+                  customizingItem.category?.toLowerCase().includes('premium') ||
+                  customizingItem.category?.toLowerCase().includes('drink')) && sugarLevels.length > 0 && (
                     <div className="bg-white/95 p-6 rounded-[1.5rem] border border-purple-50 shadow-sm">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-8 h-8 bg-[#a020f0] text-white rounded-full flex items-center justify-center font-black text-base shrink-0 shadow-md shadow-purple-200">1</div>
@@ -1667,7 +1690,16 @@ const KioskPage = () => {
                 <div className="bg-white/95 p-6 rounded-[1.5rem] border border-purple-50 shadow-sm">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center font-black text-base shrink-0 shadow-md shadow-purple-100">
-                      {((customizingItem.category?.toLowerCase().includes('milk') || customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0) ? '2' : '1'}
+                      {((customizingItem.category_type?.toLowerCase() === 'drink' ||
+                        customizingItem.category?.toLowerCase().includes('milk tea') ||
+                        customizingItem.category?.toLowerCase().includes('milktea') ||
+                        customizingItem.category?.toLowerCase().includes('classic') ||
+                        customizingItem.category?.toLowerCase().includes('matcha') ||
+                        customizingItem.category?.toLowerCase().includes('coffee') ||
+                        customizingItem.category?.toLowerCase().includes('series') ||
+                        customizingItem.category?.toLowerCase().includes('signature') ||
+                        customizingItem.category?.toLowerCase().includes('premium') ||
+                        customizingItem.category?.toLowerCase().includes('drink')) && sugarLevels.length > 0) ? '2' : '1'}
                     </div>
                     <div className="relative flex-1 h-6">
                       <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase invisible" aria-hidden="true">Add Toppings</h4>
@@ -2095,7 +2127,7 @@ const KioskPage = () => {
           queueNumber={printData.queueNumber || printData.invoice.slice(-4)}
           formattedDate={new Date().toLocaleDateString()}
           formattedTime={new Date().toLocaleTimeString()}
-          totalAmount={printData.cart.reduce((s: number, i: CartItem) => s + (Number(i.sellingPrice) * i.qty), 0)}
+          totalAmount={printData.cart.reduce((s: number, i: CartItem) => s + (i.itemTotal * i.qty), 0)}
         />
       )}
 

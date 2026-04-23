@@ -176,20 +176,22 @@ class SaleRepository implements SaleRepositoryInterface
 
     public function getFirstSiNumberBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null): string
     {
-        return DB::table('receipts')
+        return DB::table('sales')
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->where('invoice_number', 'LIKE', 'SI-%')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->orderBy('id', 'asc')
-            ->value('si_number') ?? '0000000000';
+            ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) ASC')
+            ->value('invoice_number') ?? '—';
     }
 
     public function getLastSiNumberBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null): string
     {
-        return DB::table('receipts')
+        return DB::table('sales')
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->where('invoice_number', 'LIKE', 'SI-%')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->orderBy('id', 'desc')
-            ->value('si_number') ?? '0000000000';
+            ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
+            ->value('invoice_number') ?? '—';
     }
 
     public function getDiscountsBreakdown(Carbon $startDate, Carbon $endDate, ?int $branchId = null): array
