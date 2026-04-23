@@ -543,7 +543,7 @@ const KioskPage = () => {
 
     const cat = item.category?.toLowerCase() || '';
     const type = item.category_type?.toLowerCase() || '';
-    const needsCustomization = type === 'drink' || 
+    const needsCustomization = type === 'drink' ||
       cat.includes('milk tea') || cat.includes('milktea') ||
       cat.includes('coffee') || cat.includes('yakult') ||
       cat.includes('fruit') || cat.includes('yogurt') ||
@@ -1330,8 +1330,8 @@ const KioskPage = () => {
                             {sizeLabel && <span className="text-[#6a12b8] ml-1">({sizeLabel})</span>}
                           </h4>
                           <div className="flex flex-wrap gap-1 mt-0.5">
-                            {item.selectedSugarLevel && 
-                              (item.category?.toLowerCase().includes('milk tea') || item.category?.toLowerCase().includes('milktea') || item.category?.toLowerCase().includes('coffee') || item.category?.toLowerCase().includes('yakult') || item.category?.toLowerCase().includes('fruit') || item.category?.toLowerCase().includes('yogurt') || item.category?.toLowerCase().includes('frappe') || item.category?.toLowerCase().includes('series') || item.category?.toLowerCase().includes('drink') || item.category?.toLowerCase().includes('matcha')) && 
+                            {item.selectedSugarLevel &&
+                              (item.category?.toLowerCase().includes('milk tea') || item.category?.toLowerCase().includes('milktea') || item.category?.toLowerCase().includes('coffee') || item.category?.toLowerCase().includes('yakult') || item.category?.toLowerCase().includes('fruit') || item.category?.toLowerCase().includes('yogurt') || item.category?.toLowerCase().includes('frappe') || item.category?.toLowerCase().includes('series') || item.category?.toLowerCase().includes('drink') || item.category?.toLowerCase().includes('matcha')) &&
                               <span className="text-[8px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{item.selectedSugarLevel} {t.sugar}</span>}
                             {item.selectedAddOns && item.selectedAddOns.length > 0 && <span className="text-[8px] font-bold text-zinc-400">{item.selectedAddOns.map(a => a.name).join(' · ')}</span>}
                           </div>
@@ -1463,7 +1463,7 @@ const KioskPage = () => {
                           }}
                           className="bg-white p-5 rounded-3xl border-2 border-purple-50 shadow-sm hover:border-purple-300 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center text-center gap-4"
                         >
-                  <div className="w-full aspect-square bg-gradient-to-br from-purple-50 to-orange-50 rounded-2xl flex items-center justify-center overflow-hidden">
+                          <div className="w-full aspect-square bg-gradient-to-br from-purple-50 to-orange-50 rounded-2xl flex items-center justify-center overflow-hidden">
                             <ShoppingBag size={48} className="text-purple-200 group-hover:scale-110 transition-transform duration-500" />
                           </div>
                           <div>
@@ -1643,16 +1643,6 @@ const KioskPage = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-10 space-y-10 scrollbar-hide">
-<<<<<<< HEAD
-                {(customizingItem.category?.toLowerCase().includes('milk tea') ||
-                  customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
-                    <div className="bg-white/95 p-6 rounded-[1.5rem] border border-purple-50 shadow-sm">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 bg-[#a020f0] text-white rounded-full flex items-center justify-center font-black text-base shrink-0 shadow-md shadow-purple-200">1</div>
-                        <div className="relative flex-1 h-6">
-                          <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase invisible" aria-hidden="true">Select Sugar</h4>
-                          <h4 className="font-black text-zinc-900 text-xl tracking-tight uppercase absolute inset-0">{t.selectSugar}</h4>
-=======
                 {(customizingItem.category_type?.toLowerCase() === 'drink' ||
                   customizingItem.category?.toLowerCase().includes('milk tea') ||
                   customizingItem.category?.toLowerCase().includes('milktea') ||
@@ -1669,7 +1659,6 @@ const KioskPage = () => {
                         <div className="relative flex-1 h-8">
                           <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase invisible" aria-hidden="true">Select Sugar</h4>
                           <h4 className="font-black text-zinc-900 text-2xl tracking-tight uppercase absolute inset-0">{t.selectSugar}</h4>
->>>>>>> origin/development
                         </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
