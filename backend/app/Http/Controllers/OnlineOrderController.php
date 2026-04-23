@@ -272,6 +272,8 @@ class OnlineOrderController extends Controller
                     'menu_item_id' => $item['menu_item_id'] ?? null,
                     'size'         => $item['cup_size'] ?? null,
                     'add_ons'      => $item['add_ons'] ?? null,
+                    'bundle_id'    => $item['bundle_id'] ?? null,
+                    'bundle_components' => $item['bundle_components'] ?? null,
                 ]);
             }
 
@@ -464,6 +466,8 @@ class OnlineOrderController extends Controller
                     'options'          => $item->options ?? [],
                     'add_ons'          => $finalAddons,
                     'remarks'          => $item->remarks ?? null,
+                    'bundle_id'         => $item->bundle_id,
+                    'bundle_components' => $item->bundle_components,
                 ];
             })->values()->toArray(),
         ];

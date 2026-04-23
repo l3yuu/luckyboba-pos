@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
 import {
   RefreshCw, Clock, CheckCircle2, ChefHat, QrCode,
-  User, ShoppingBag, Package, AlertCircle, ArrowLeft, Utensils, Printer, Search,
+  User, ShoppingBag, Package, AlertCircle, ArrowLeft, Utensils, Printer, Search, Tag,
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { CustomerNameModal, SuccessModal } from './modals';
@@ -35,6 +35,8 @@ interface SaleItem {
   options?: string[];
   add_ons?: (string | { name?: string; addon_name?: string; price?: number })[];
   remarks?: string;
+  bundle_id?: number;
+  bundle_components?: any[];
 }
 
 interface OnlineOrder {
@@ -117,22 +119,27 @@ const elapsed = (dateStr: string) => {
 
 // ─── Print Mappers ────────────────────────────────────────────────────────────
 
-const mapOrderToCart = (order: OnlineOrder): CartItem[] => {
-  return order.items.map(item => {
+const mapOrderToCart = (order: OnlineOrder | null): CartItem[] => {
+  if (!order) return [];
+  return (order.items || []).map(item => {
     // Filter out 'none'/'NONE' — matches SalesOrder which sets cupSizeLabel=undefined for non-drinks
     const rawLabel = item.cup_size_label || (item.cup_size && item.cup_size !== 'none' ? item.cup_size.toUpperCase() : '');
     const cupSizeLabel = rawLabel && rawLabel.toUpperCase() !== 'NONE' ? rawLabel : undefined;
 
-    // Only show sugarLevel for drinks (items with a real cup_size) — matches SalesOrder: `isDrink ? sugarLevel : undefined`
+    // Only show sugarLevel for drinks (items with a real cup_size)
     const hasCupSize = item.cup_size && item.cup_size !== 'none';
     const sugarLevel = hasCupSize && item.sugar_level && item.sugar_level !== 'none' ? item.sugar_level : undefined;
 
+    // Use a default size 'none' if missing to avoid downstream issues
+    const size = (item.cup_size && item.cup_size !== 'none') ? (item.cup_size as 'M' | 'L' | 'none') : 'none';
+
     return {
-      name: item.name,
+      id: item.id || Math.floor(Math.random() * 1000000),
+      name: item.name || 'Unknown Item',
       qty: itemQty(item),
       price: item.unit_price ?? itemPrice(item),
       cupSizeLabel,
-      size: (item.cup_size && item.cup_size !== 'none') ? item.cup_size : 'none',
+      size,
       sugarLevel,
       remarks: item.remarks || '',
       options: Array.isArray(item.options) ? item.options : [],
@@ -141,6 +148,12 @@ const mapOrderToCart = (order: OnlineOrder): CartItem[] => {
             typeof a === 'string' ? a : (a.name || a.addon_name || '')) 
         : [],
       finalPrice: itemPrice(item),
+      isBundle: !!item.bundle_id,
+      bundleComponents: item.bundle_components,
+      charges: {
+        grab: order.source === 'grab' || (order.invoice_number?.startsWith('APP-') && order.branch_name?.toLowerCase().includes('grab')),
+        panda: order.source === 'panda' || (order.invoice_number?.startsWith('APP-') && order.branch_name?.toLowerCase().includes('panda'))
+      }
     };
   }) as unknown as CartItem[];
 };
@@ -151,10 +164,11 @@ interface OrderCardProps {
   order: OnlineOrder;
   onMove: (id: number, status: Status) => void;
   onPrint: (order: OnlineOrder) => void;
+  onPrintStickers?: (order: OnlineOrder) => void;
   updating: boolean;
 }
 
-const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
+const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderCardProps) => {
   const [showQr, setShowQr] = useState(false);
   const meta = STATUS_META[order.status as Status];
   const invoice = orderInvoice(order);
@@ -220,14 +234,27 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
           <div className="flex items-center gap-1.5">
             {/* Reprint receipt — completed only */}
             {order.status === 'completed' && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => onPrint(order)}
+                  className="flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                  title="Reprint Receipt"
+                >
+                  <Printer size={11} />
+                  Receipt
+                </button>
+            {/* Reprint Stickers — Available for all statuses to allow prep */}
+            {onPrintStickers && (
               <button
-                onClick={() => onPrint(order)}
-                className="flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors"
-                title="Reprint Receipt"
+                onClick={() => onPrintStickers(order)}
+                className="flex items-center gap-1 px-2 py-1 bg-violet-50 border border-violet-200 rounded-lg text-[10px] font-bold text-violet-700 hover:bg-violet-100 transition-colors"
+                title="Print Stickers"
               >
-                <Printer size={11} />
-                Print
+                <Tag size={11} />
+                Stickers
               </button>
+            )}
+              </div>
             )}
             {(order.qr_code || invoice) && (
               <button
@@ -324,10 +351,11 @@ interface ColumnProps {
   orders: OnlineOrder[];
   onMove: (id: number, status: Status) => void;
   onPrint: (order: OnlineOrder) => void;
+  onPrintStickers?: (order: OnlineOrder) => void;
   updatingId: number | null;
 }
 
-const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId }: ColumnProps) => {
+const KanbanColumn = ({ status, orders, onMove, onPrint, onPrintStickers, updatingId }: ColumnProps) => {
   const meta = STATUS_META[status];
   const COLUMN_LABELS: Record<Status, string> = {
     pending: 'New Orders',
@@ -361,6 +389,7 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, updatingId }: ColumnPro
               order={order}
               onMove={onMove}
               onPrint={onPrint}
+              onPrintStickers={onPrintStickers}
               updating={updatingId === order.id}
             />
           ))
@@ -508,12 +537,13 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     seqNumber: string,
   ) => {
     setPrintJob({ type, order, seqNumber });
+    // Increase delay to ensure component renders before browser print dialog
     setTimeout(() => {
       window.print();
       setTimeout(() => {
         setPrintJob(null);
       }, 1000);
-    }, 150);
+    }, 500);
   }, []);
 
   const completeWorkflow = async (
@@ -750,6 +780,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
               orders={filteredOrders.filter(o => o.status === status)}
               onMove={handleConfirm}
               onPrint={handleReprintReceipt}
+              onPrintStickers={(o) => triggerPrint('stickers', o, o.customer_code || '001')}
               updatingId={updatingId}
             />
           ))}
@@ -905,7 +936,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           queueNumber={printJob.seqNumber}
           terminalNumber={terminalNumber}
           cashierName="Customer App"
-          orderCharge={null}
+          orderCharge={printJob.order.source === 'grab' || printJob.order.source === 'panda' ? printJob.order.source as 'grab' | 'panda' : null}
           totalCount={printJob.order.items.reduce((acc, i) => acc + itemQty(i), 0)}
           subtotal={printJob.order.subtotal || orderTotal(printJob.order)}
           amtDue={printJob.order.total_amount ?? orderTotal(printJob.order)}
@@ -947,6 +978,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
           formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
           formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          isOnline={true}
         />
       )}
     </>
