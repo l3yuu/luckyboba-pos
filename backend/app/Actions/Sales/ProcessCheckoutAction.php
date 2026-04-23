@@ -33,16 +33,24 @@ class ProcessCheckoutAction
     {
         $officialOR = $data['si_number'];
 
-        // 1. Idempotency Check
+        // 1. Idempotency Check (Verify both Sales and Receipts to prevent collisions)
         $existing = Sale::with('items')
             ->where('invoice_number', $officialOR)
             ->where('branch_id', $branchId)
             ->first();
 
-        if ($existing) {
-            $isSameOrder = ($existing->source === ($data['source'] ?? 'pos')) && 
-                           (abs((float)$existing->total_amount - (float)($data['total'] ?? 0)) < 0.01) &&
-                           ((int)$existing->items()->count() === count($data['items']));
+        $receiptExists = Receipt::where('si_number', $officialOR)
+            ->where('branch_id', $branchId)
+            ->exists();
+
+        if ($existing || $receiptExists) {
+            $isSameOrder = false;
+            
+            if ($existing) {
+                $isSameOrder = ($existing->source === ($data['source'] ?? 'pos')) && 
+                               (abs((float)$existing->total_amount - (float)($data['total'] ?? 0)) < 0.01) &&
+                               ((int)$existing->items()->count() === count($data['items']));
+            }
 
             if ($isSameOrder) {
                 return [
@@ -51,21 +59,33 @@ class ProcessCheckoutAction
                     'sale'   => $existing,
                 ];
             } else {
-                // SI Collision detected! Re-generate SI number.
-                $latestSale = Sale::where('invoice_number', 'LIKE', 'SI-%')
-                    ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
-                    ->where('branch_id', $branchId)
-                    ->lockForUpdate() // Prevent concurrent generation if inside transaction
-                    ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
-                    ->first();
+                // Collision detected! Re-generate SI number.
+                if (str_starts_with($officialOR, 'SI-')) {
+                    $latestSale = Sale::where('invoice_number', 'LIKE', 'SI-%')
+                        ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
+                        ->where('branch_id', $branchId)
+                        ->lockForUpdate()
+                        ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
+                        ->first();
 
-                $seq = $latestSale ? (int) substr($latestSale->invoice_number, 3) : 0;
-                $seq++;
-                $officialOR = 'SI-' . str_pad($seq, 9, '0', STR_PAD_LEFT);
-                
-                while (Sale::where('invoice_number', $officialOR)->where('branch_id', $branchId)->exists()) {
+                    $seq = $latestSale ? (int) substr($latestSale->invoice_number, 3) : 0;
                     $seq++;
                     $officialOR = 'SI-' . str_pad($seq, 9, '0', STR_PAD_LEFT);
+                    
+                    while (Sale::where('invoice_number', $officialOR)->where('branch_id', $branchId)->exists() || 
+                           Receipt::where('si_number', $officialOR)->where('branch_id', $branchId)->exists()) {
+                        $seq++;
+                        $officialOR = 'SI-' . str_pad($seq, 9, '0', STR_PAD_LEFT);
+                    }
+                } else {
+                    // For KSK- or other prefixes, append a timestamp for uniqueness
+                    $baseOR = $officialOR;
+                    $officialOR = $baseOR . '-' . time();
+                    
+                    while (Sale::where('invoice_number', $officialOR)->where('branch_id', $branchId)->exists() || 
+                           Receipt::where('si_number', $officialOR)->where('branch_id', $branchId)->exists()) {
+                        $officialOR = $baseOR . '-' . time() . '-' . rand(1, 999);
+                    }
                 }
             }
         }

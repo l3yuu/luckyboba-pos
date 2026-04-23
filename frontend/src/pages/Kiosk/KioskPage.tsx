@@ -628,7 +628,9 @@ const KioskPage = () => {
       // Use a temporary KSK- prefix — the real SI# is assigned by the cashier
       // when they click "Start Preparing" in the Online Orders panel
       const formattedQueue = String(nextQueue).padStart(3, '0');
-      const tempInvoice = `KSK-${formattedQueue}`;
+      const today = new Date();
+      const datePart = today.toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
+      const tempInvoice = `KSK-${datePart}-${formattedQueue}`;
 
       const total = calculateTotal();
       const vatableSales = total / 1.12;
