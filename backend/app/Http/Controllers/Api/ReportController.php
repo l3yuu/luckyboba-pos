@@ -10,6 +10,7 @@ use App\Actions\Reports\ExportItemsCsvAction;
 use App\Http\Resources\ReportSummaryResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
 
 class ReportController extends Controller
@@ -56,27 +57,20 @@ class ReportController extends Controller
         }
     }
 
-    public function getItemQuantities(ReportFilterRequest $request)
+    public function getItemQuantities(ReportFilterRequest $request): JsonResponse
     {
-        $date        = $request->query('date', date('Y-m-d'));
-        $branchId    = $request->resolveBranchId();
-        $user        = auth('sanctum')->user() ?? $request->user();
-        $cashierName = $user ? $user->name : 'System Admin';
-
         try {
-            $data = $this->reportRepo->getItemQuantities($date, $branchId, $cashierName);
+            $from        = $request->query('from', $request->query('date', date('Y-m-d')));
+            $to          = $request->query('to',   $request->query('date', date('Y-m-d')));
+            $branchId    = $request->resolveBranchId();
+            $cashierName = $request->query('cashier_name');
+
+            $data = $this->reportRepo->getItemQuantities($from, $to, $branchId, $cashierName);
+
             return response()->json($data);
         } catch (\Throwable $e) {
-            Log::error("Item Quantities Error: " . $e->getMessage(), [
-                'exception' => $e,
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'error' => 'Failed to fetch item quantities',
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ], 500);
+            \Log::error("getItemQuantities: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

@@ -116,7 +116,7 @@ class ReportRepository implements ReportRepositoryInterface
         ];
     }
 
-    public function getItemQuantities(?string $date = null, ?int $branchId = null, ?string $cashierName = null): array
+    public function getItemQuantities(?string $from = null, ?string $to = null, ?int $branchId = null, ?string $cashierName = null): array
     {
         try {
             $query = DB::table('sale_items')
@@ -127,8 +127,10 @@ class ReportRepository implements ReportRepositoryInterface
                 ->leftJoin('cups', 'categories.cup_id', '=', 'cups.id')
                 ->where('sales.status', '!=', 'cancelled');
 
-            if ($date) {
-                $query->whereDate('sales.created_at', $date);
+            if ($from && $to) {
+                $query->whereBetween('sales.created_at', [$from . ' 00:00:00', $to . ' 23:59:59']);
+            } elseif ($from) {
+                $query->whereDate('sales.created_at', $from);
             }
 
             if ($branchId) {
@@ -206,7 +208,7 @@ class ReportRepository implements ReportRepositoryInterface
             $grandTotal = (float) $rawItems->sum('final_price');
 
             return [
-                'date'                => $date,
+                'date'                => $from,
                 'report_type'         => 'qty_items',
                 'categories'          => $groupedData,
                 'all_addons_summary'  => $globalAddonList,
@@ -218,7 +220,7 @@ class ReportRepository implements ReportRepositoryInterface
         } catch (\Throwable $e) {
             Log::error("ReportRepository getItemQuantities Error: " . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'date' => $date,
+                'date' => $from,
                 'branchId' => $branchId,
                 'cashierName' => $cashierName
             ]);

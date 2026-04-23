@@ -122,6 +122,7 @@ const XReading = () => {
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const vatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = vatType === 'vat';
+  const branchId = localStorage.getItem('lucky_boba_user_branch_id') || '';
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -147,9 +148,15 @@ const XReading = () => {
     setRawApiResponse(null);
     try {
       if (type === 'summary') {
+        const sParams: any = { from: selectedDate, to: selectedDate };
+        const qParams: any = { date: selectedDate };
+        if (branchId) {
+          sParams.branch_id = branchId;
+          qParams.branch_id = branchId;
+        }
         const [summaryRes, qtyRes] = await Promise.all([
-          api.get('/reports/sales-summary',   { params: { from: selectedDate, to: selectedDate } }),
-          api.get('/reports/item-quantities', { params: { date: selectedDate } }),
+          api.get('/reports/sales-summary',   { params: sParams }),
+          api.get('/reports/item-quantities', { params: qParams }),
         ]);
         const merged = {
           ...summaryRes.data,
@@ -173,7 +180,10 @@ const XReading = () => {
       };
 
       const { url, params } = endpointMap[type];
-      const response = await api.get(url, { params });
+      const finalParams: any = { ...params };
+      if (branchId) finalParams.branch_id = branchId;
+
+      const response = await api.get(url, { params: finalParams });
       setRawApiResponse(response.data as Record<string, unknown>);
       const normalized = normalizeResponse(type, response.data);
       setReportData({ ...normalized, report_type: type });
