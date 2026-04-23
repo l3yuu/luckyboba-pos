@@ -138,7 +138,7 @@ const mapOrderToCart = (order: OnlineOrder | null): CartItem[] => {
       id: item.id || Math.floor(Math.random() * 1000000),
       name: item.name || 'Unknown Item',
       qty: itemQty(item),
-      price: (Number(item.price || 0) + Number(item.discount_amount || 0)) / itemQty(item),
+      price: (Number(item.unit_price || item.price || 0) + Number(item.discount_amount || 0)) / itemQty(item),
       cupSizeLabel,
       size,
       sugarLevel,
