@@ -212,11 +212,17 @@ const Row = ({ label, value, indent = false }: { label: string; value: React.Rea
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
 
 const ZReading = () => {
+  const getLocalDate = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localNow = new Date(now.getTime() - (offset * 60 * 1000));
+    return localNow.toISOString().split('T')[0];
+  };
+
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDate());
+  const [fromDate, setFromDate] = useState(getLocalDate());
+  const [toDate, setToDate] = useState(getLocalDate());
   const { showToast } = useToast();
-  const today = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [fromDate, setFromDate] = useState(today);
-  const [toDate, setToDate] = useState(today);
   const [dateMode, setDateMode] = useState<'single' | 'range'>('single');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [reportData, setReportData] = useState<ZReadingReport | null>(null);
@@ -409,7 +415,7 @@ const ZReading = () => {
         return { ...data, summary_data: summaryData ?? [] } as unknown as ZReadingReport;
       }
       case 'search': {
-        const raw = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
+        const raw = (Array.isArray(data) ? data : (data.results ?? [])) as Record<string, unknown>[];
         return { ...data, transactions: raw.map(r => ({ Invoice: r.si_number ?? r.Invoice ?? '', Amount: r.total_amount ?? r.Amount ?? 0, Status: r.status ?? r.Status ?? '', Date_Time: r.created_at ?? r.Date_Time ?? '' })) } as unknown as ZReadingReport;
       }
       case 'hourly_sales': {

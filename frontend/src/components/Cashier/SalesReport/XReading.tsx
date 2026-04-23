@@ -108,8 +108,14 @@ const Row = ({ label, value, indent = false }: { label: string; value: React.Rea
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
 
 const XReading = () => {
-  const today = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState(today);
+  const getLocalDate = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localNow = new Date(now.getTime() - (offset * 60 * 1000));
+    return localNow.toISOString().split('T')[0];
+  };
+
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDate());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [reportData, setReportData] = useState<XReadingReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -210,7 +216,7 @@ const XReading = () => {
         return { ...data, summary_data: summaryData ?? [] } as unknown as XReadingReport;
       }
       case 'search': {
-        const raw = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
+        const raw = (Array.isArray(data) ? data : (data.results ?? [])) as Record<string, unknown>[];
         const txData = raw.map(r => ({
           Invoice:   r.si_number    ?? r.Invoice   ?? '',
           Amount:    r.total_amount ?? r.Amount    ?? 0,
