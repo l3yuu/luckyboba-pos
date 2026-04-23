@@ -968,6 +968,7 @@ interface StickerPrintProps {
   formattedDate: string;
   formattedTime: string;
   orderType: 'dine-in' | 'take-out' | 'delivery';
+  isOnline?: boolean;
 }
 
 interface StickerClasses {
@@ -1046,7 +1047,7 @@ const StickerFooter = ({ cls, formattedDate, formattedTime }: { cls: StickerClas
 );
 
 export const StickerPrint = ({
-  cart, branchName, orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType
+  cart, branchName, orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType, isOnline
 }: StickerPrintProps) => {
   const stickers: React.ReactNode[] = [];
   let drinkIndex = 1;
@@ -1071,7 +1072,7 @@ export const StickerPrint = ({
     const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
     if (waffleCount > 0) return acc + waffleCount;
 
-    if (orderType !== 'dine-in') return acc + item.qty;
+    if (orderType !== 'dine-in' || isOnline) return acc + item.qty;
     return acc;
   }, 0);
 
@@ -1197,8 +1198,8 @@ export const StickerPrint = ({
         const extraCount = options.length + addOns.length;
         const cls = getStickerClasses(extraCount);
 
-        // 1. Food Sticker (only for take-out/delivery)
-        if (orderType !== 'dine-in') {
+        // 1. Food Sticker (only for take-out/delivery or online orders)
+        if (orderType !== 'dine-in' || isOnline) {
           // Try to get food name by removing the drink part if it's "Pizza + Drink" style
           const foodName = item.name.replace(new RegExp(` \\+ ${drinkName}$`, 'i'), '').replace(/ \+ DRINK$/i, '').trim();
           const foodCls = getStickerClasses(0, foodName.length);
@@ -1252,9 +1253,9 @@ export const StickerPrint = ({
       return;
     }
 
-    // ── Non-drink food stickers (take-out / delivery only) ────────────────────
+    // ── Non-drink food stickers (take-out / delivery / online) ───────────────
     if (!isDrinkSticker) {
-      if (orderType === 'dine-in') return;
+      if (orderType === 'dine-in' && !isOnline) return;
 
       const cls = getStickerClasses(0, item.name.length);
       for (let i = 0; i < item.qty; i++) {
@@ -1356,7 +1357,11 @@ export const StickerPrint = ({
           }
         }
       `}</style>
-      {stickers}
+      {stickers.length > 0 ? stickers : (
+        <div className="text-center py-20 text-zinc-400 font-bold uppercase tracking-widest text-[10px]">
+          No items eligible for stickers
+        </div>
+      )}
     </div>
   );
 };

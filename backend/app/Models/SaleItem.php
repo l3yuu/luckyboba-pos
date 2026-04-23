@@ -39,6 +39,7 @@ class SaleItem extends Model
     protected $casts = [
         'options'          => 'array',
         'add_ons'          => 'array',
+        'bundle_components' => 'array',
         'unit_price'       => 'decimal:2',
         'price'            => 'decimal:2',
         'final_price'      => 'decimal:2',
