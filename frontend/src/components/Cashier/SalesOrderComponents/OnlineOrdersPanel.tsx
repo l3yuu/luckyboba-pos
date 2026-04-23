@@ -540,14 +540,19 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     seqNumber: string,
   ) => {
     setPrintJob({ type, order, seqNumber });
-    // Increase delay to ensure component renders before browser print dialog
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        setPrintJob(null);
-      }, 1000);
-    }, 500);
   }, []);
+
+  // Handle printing after job is set - ensures DOM is ready
+  useEffect(() => {
+    if (printJob) {
+      const timer = setTimeout(() => {
+        window.print();
+        // Delay clearing print job to ensure browser has captured the DOM
+        setTimeout(() => setPrintJob(null), 3000);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [printJob]);
 
   const completeWorkflow = async (
     nameObj: NonNullable<typeof activeNameOrder>,

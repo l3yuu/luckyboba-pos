@@ -148,8 +148,8 @@ const XReading = () => {
     setRawApiResponse(null);
     try {
       if (type === 'summary') {
-        const sParams: any = { from: selectedDate, to: selectedDate };
-        const qParams: any = { date: selectedDate };
+        const sParams: Record<string, string | number> = { from: selectedDate, to: selectedDate };
+        const qParams: Record<string, string | number> = { date: selectedDate };
         if (branchId) {
           sParams.branch_id = branchId;
           qParams.branch_id = branchId;
@@ -180,7 +180,7 @@ const XReading = () => {
       };
 
       const { url, params } = endpointMap[type];
-      const finalParams: any = { ...params };
+      const finalParams: Record<string, string | number> = { ...params };
       if (branchId) finalParams.branch_id = branchId;
 
       const response = await api.get(url, { params: finalParams });
