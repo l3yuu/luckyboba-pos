@@ -1568,12 +1568,12 @@ const SalesOrder = () => {
     if (printTarget) {
       const timer = setTimeout(() => {
         window.print();
-        // We DO NOT reset printTarget here because the user might want to reprint
-        // or print stickers after the receipt.
-      }, 500); 
+        // Delay slightly before potentially clearing if needed, 
+        // though POS usually keeps target for reprint.
+      }, 1000); 
       return () => clearTimeout(timer);
     }
-  }, [printTarget, orNumber]); // orNumber check for new orders
+  }, [printTarget, orNumber]); 
 
   // ── New order ──────────────────────────────────────────────────────────────
 

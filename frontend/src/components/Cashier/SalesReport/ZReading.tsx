@@ -286,7 +286,7 @@ const ZReading = () => {
     setLoading(true); setError(null); setRawApiResponse(null);
     try {
       if (type === 'summary') {
-        const commonParams: any = {};
+        const commonParams: Record<string, string | number> = {};
         if (branchId) commonParams.branch_id = branchId;
 
         const sParams = { 
@@ -312,7 +312,7 @@ const ZReading = () => {
         return;
       }
       if (type === 'z_reading') {
-        const commonParams: any = {};
+        const commonParams: Record<string, string | number> = {};
         if (branchId) commonParams.branch_id = branchId;
 
         const zParams = {
@@ -372,10 +372,10 @@ const ZReading = () => {
         setReportData({ ...merged as unknown as ZReadingReport, report_type: type });
         return;
       }
-      const commonParams: any = {};
+      const commonParams: Record<string, string | number> = {};
       if (branchId) commonParams.branch_id = branchId;
 
-      const endpointMap: Record<string, { url: string; params: Record<string, any> }> = {
+      const endpointMap: Record<string, { url: string; params: Record<string, string | number> }> = {
         hourly_sales: { url: '/reports/hourly-sales',    params: { date: selectedDate } },
         void_logs:    { url: '/reports/void-logs',       params: { date: dateMode === 'range' ? toDate : selectedDate } },
         qty_items:    { url: '/reports/item-quantities', params: dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate } },

@@ -663,6 +663,7 @@ const KioskPage = () => {
               price: ao.price
             })),
             size: item.size || 'Standard',
+            cup_size_label: item.size || 'Standard',
           };
         })
       };
@@ -993,7 +994,7 @@ const KioskPage = () => {
       else if (s === 'm') displaySize = 'SM';
       else if (s && !['none'].includes(s)) displaySize = s.toUpperCase();
       const allowed = ['SL', 'SM', 'PCM', 'PCL', 'UL', 'UM', 'JR'];
-      return displaySize && allowed.includes(displaySize) ? displaySize : null;
+      return displaySize && allowed.includes(displaySize) ? displaySize : (s && !['none', 'standard'].includes(s) ? s.toUpperCase() : null);
     };
 
     return (
