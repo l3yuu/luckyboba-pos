@@ -212,11 +212,17 @@ const Row = ({ label, value, indent = false }: { label: string; value: React.Rea
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
 
 const ZReading = () => {
+  const getLocalDate = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localNow = new Date(now.getTime() - (offset * 60 * 1000));
+    return localNow.toISOString().split('T')[0];
+  };
+
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDate());
+  const [fromDate, setFromDate] = useState(getLocalDate());
+  const [toDate, setToDate] = useState(getLocalDate());
   const { showToast } = useToast();
-  const today = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [fromDate, setFromDate] = useState(today);
-  const [toDate, setToDate] = useState(today);
   const [dateMode, setDateMode] = useState<'single' | 'range'>('single');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [reportData, setReportData] = useState<ZReadingReport | null>(null);
@@ -235,6 +241,7 @@ const ZReading = () => {
   const [zStatus, setZStatus] = useState<{ exists: boolean; is_closed: boolean; has_sales: boolean } | null>(null);
   const [gaps, setGaps] = useState<string[]>([]);
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const branchId = localStorage.getItem('lucky_boba_user_branch_id') || '';
 
   // ── PIN overlay state ──────────────────────────────────────────────────────
   const [showPinOverlay, setShowPinOverlay]         = useState(false);
@@ -285,25 +292,46 @@ const ZReading = () => {
     setLoading(true); setError(null); setRawApiResponse(null);
     try {
       if (type === 'summary') {
+        const commonParams: Record<string, string | number> = {};
+        if (branchId) commonParams.branch_id = branchId;
+
+        const sParams = { 
+          ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { from: selectedDate, to: selectedDate }),
+          ...commonParams 
+        };
+        const qParams = { 
+          ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }),
+          ...commonParams 
+        };
+
         const [summaryRes, qtyRes] = await Promise.all([
-          api.get('/reports/sales-summary',   { params: { from: selectedDate, to: selectedDate } }),
-          api.get('/reports/item-quantities', { params: { date: selectedDate } }),
+          api.get('/reports/sales-summary',   { params: sParams }),
+          api.get('/reports/item-quantities', { params: qParams }),
         ]);
-        const merged = { ...summaryRes.data, categories: qtyRes.data.categories ?? [], all_addons_summary: qtyRes.data.all_addons_summary ?? [] };
+        const merged = { 
+          ...summaryRes.data, 
+          categories: qtyRes.data.categories ?? [], 
+          all_addons_summary: qtyRes.data.all_addons_summary ?? [] 
+        };
         setRawApiResponse(merged as Record<string, unknown>);
         setReportData({ ...normalizeResponse(type, merged), report_type: type });
         return;
       }
       if (type === 'z_reading') {
-        const zParams = dateMode === 'range'
-          ? { from: fromDate, to: toDate }
-          : { from: selectedDate, to: selectedDate };
+        const commonParams: Record<string, string | number> = {};
+        if (branchId) commonParams.branch_id = branchId;
+
+        const zParams = {
+          ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { from: selectedDate, to: selectedDate }),
+          ...commonParams
+        };
+
         const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
-  api.get('/reports/z-reading',       { params: zParams }),
-  api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
-  api.get('/reports/item-quantities', { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
-  api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
-]);
+          api.get('/reports/z-reading',       { params: zParams }),
+          api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams } }),
+          api.get('/reports/item-quantities', { params: { ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }), ...commonParams } }),
+          api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams } }),
+        ]);
 
 
 
@@ -350,16 +378,19 @@ const ZReading = () => {
         setReportData({ ...merged as unknown as ZReadingReport, report_type: type });
         return;
       }
-      const endpointMap: Record<string, { url: string; params: Record<string, string> }> = {
+      const commonParams: Record<string, string | number> = {};
+      if (branchId) commonParams.branch_id = branchId;
+
+      const endpointMap: Record<string, { url: string; params: Record<string, string | number> }> = {
         hourly_sales: { url: '/reports/hourly-sales',    params: { date: selectedDate } },
-        void_logs:    { url: '/reports/void-logs',       params: { date: selectedDate } },
-        qty_items:    { url: '/reports/item-quantities', params: { date: selectedDate } },
-        cash_count:   { url: '/cash-counts/summary',     params: { date: selectedDate } },
-        search:       { url: '/receipts/search',         params: { query: invoiceQuery, date: selectedDate } },
-        detailed:     { url: '/reports/sales-detailed',  params: { date: selectedDate } },
+        void_logs:    { url: '/reports/void-logs',       params: { date: dateMode === 'range' ? toDate : selectedDate } },
+        qty_items:    { url: '/reports/item-quantities', params: dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate } },
+        cash_count:   { url: '/cash-counts/summary',     params: { date: dateMode === 'range' ? toDate : selectedDate } },
+        search:       { url: '/receipts/search',         params: { query: invoiceQuery, date: dateMode === 'range' ? toDate : selectedDate } },
+        detailed:     { url: '/reports/sales-detailed',  params: { date: dateMode === 'range' ? toDate : selectedDate } },
       };
       const { url, params } = endpointMap[type];
-      const response = await api.get(url, { params });
+      const response = await api.get(url, { params: { ...params, ...commonParams } });
       setRawApiResponse(response.data as Record<string, unknown>);
       setReportData({ ...normalizeResponse(type, response.data), report_type: type });
     } catch (err: unknown) {
@@ -384,7 +415,7 @@ const ZReading = () => {
         return { ...data, summary_data: summaryData ?? [] } as unknown as ZReadingReport;
       }
       case 'search': {
-        const raw = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
+        const raw = (Array.isArray(data) ? data : (data.results ?? [])) as Record<string, unknown>[];
         return { ...data, transactions: raw.map(r => ({ Invoice: r.si_number ?? r.Invoice ?? '', Amount: r.total_amount ?? r.Amount ?? 0, Status: r.status ?? r.Status ?? '', Date_Time: r.created_at ?? r.Date_Time ?? '' })) } as unknown as ZReadingReport;
       }
       case 'hourly_sales': {
@@ -1092,6 +1123,7 @@ const ZReading = () => {
               display: block !important; 
               margin: 0 !important; 
               padding: 0 !important; 
+            }
             .receipt-area { 
               color: #000 !important;
               width: 76mm !important; 

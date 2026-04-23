@@ -424,7 +424,8 @@ const KioskPage = () => {
       // groupKey REMOVED to fix lint warning (manually comparing below)
 
       const cat = item.category?.toLowerCase() || '';
-      const isDrink = cat.includes('milk tea') || cat.includes('milktea') || cat.includes('coffee') || cat.includes('yakult') || cat.includes('fruit') || cat.includes('yogurt') || cat.includes('frappe') || cat.includes('series') || cat.includes('drink') || cat.includes('matcha');
+      const type = item.category_type?.toLowerCase() || '';
+      const isDrink = type === 'drink' || cat.includes('milk tea') || cat.includes('milktea') || cat.includes('coffee') || cat.includes('yakult') || cat.includes('fruit') || cat.includes('yogurt') || cat.includes('frappe') || cat.includes('series') || cat.includes('drink') || cat.includes('matcha') || cat.includes('classic') || cat.includes('signature') || cat.includes('premium');
       const finalSugar = isDrink ? sugar : undefined;
 
       const existing = prev.find((i: CartItem) => {
@@ -541,11 +542,15 @@ const KioskPage = () => {
     }
 
     const cat = item.category?.toLowerCase() || '';
-    const needsCustomization = cat.includes('milk tea') || cat.includes('milktea') ||
+    const type = item.category_type?.toLowerCase() || '';
+    const needsCustomization = type === 'drink' || 
+      cat.includes('milk tea') || cat.includes('milktea') ||
       cat.includes('coffee') || cat.includes('yakult') ||
       cat.includes('fruit') || cat.includes('yogurt') ||
       cat.includes('waffle') || cat.includes('frappe') ||
-      cat.includes('series') || cat.includes('drink');
+      cat.includes('series') || cat.includes('drink') ||
+      cat.includes('matcha') || cat.includes('classic') ||
+      cat.includes('signature') || cat.includes('premium');
 
     if (needsCustomization) {
       setCustomizingItem(item);
@@ -628,7 +633,9 @@ const KioskPage = () => {
       // Use a temporary KSK- prefix — the real SI# is assigned by the cashier
       // when they click "Start Preparing" in the Online Orders panel
       const formattedQueue = String(nextQueue).padStart(3, '0');
-      const tempInvoice = `KSK-${formattedQueue}`;
+      const today = new Date();
+      const datePart = today.toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
+      const tempInvoice = `KSK-${datePart}-${formattedQueue}`;
 
       const total = calculateTotal();
       const vatableSales = total / 1.12;
@@ -647,7 +654,8 @@ const KioskPage = () => {
         vat_amount: Number(vatAmount.toFixed(2)),
         items: cart.map((item: CartItem) => {
           const cat = item.category?.toLowerCase() || '';
-          const isDrink = cat.includes('milk tea') || cat.includes('milktea') || cat.includes('coffee') || cat.includes('yakult') || cat.includes('fruit') || cat.includes('yogurt') || cat.includes('frappe') || cat.includes('series') || cat.includes('drink');
+          const type = item.category_type?.toLowerCase() || '';
+          const isDrink = type === 'drink' || cat.includes('milk tea') || cat.includes('milktea') || cat.includes('coffee') || cat.includes('yakult') || cat.includes('fruit') || cat.includes('yogurt') || cat.includes('frappe') || cat.includes('series') || cat.includes('drink') || cat.includes('matcha') || cat.includes('classic') || cat.includes('signature') || cat.includes('premium');
           return {
             menu_item_id: item.id,
             name: item.name,
@@ -661,6 +669,7 @@ const KioskPage = () => {
               price: ao.price
             })),
             size: item.size || 'Standard',
+            cup_size_label: item.size || 'Standard',
           };
         })
       };
@@ -991,7 +1000,7 @@ const KioskPage = () => {
       else if (s === 'm') displaySize = 'SM';
       else if (s && !['none'].includes(s)) displaySize = s.toUpperCase();
       const allowed = ['SL', 'SM', 'PCM', 'PCL', 'UL', 'UM', 'JR'];
-      return displaySize && allowed.includes(displaySize) ? displaySize : null;
+      return displaySize && allowed.includes(displaySize) ? displaySize : (s && !['none', 'standard'].includes(s) ? s.toUpperCase() : null);
     };
 
     return (
@@ -1634,8 +1643,16 @@ const KioskPage = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-10 space-y-10 scrollbar-hide">
-                {(customizingItem.category?.toLowerCase().includes('milk tea') ||
-                  customizingItem.category?.toLowerCase().includes('milktea')) && sugarLevels.length > 0 && (
+                {(customizingItem.category_type?.toLowerCase() === 'drink' ||
+                  customizingItem.category?.toLowerCase().includes('milk tea') ||
+                  customizingItem.category?.toLowerCase().includes('milktea') ||
+                  customizingItem.category?.toLowerCase().includes('classic') ||
+                  customizingItem.category?.toLowerCase().includes('matcha') ||
+                  customizingItem.category?.toLowerCase().includes('coffee') ||
+                  customizingItem.category?.toLowerCase().includes('series') ||
+                  customizingItem.category?.toLowerCase().includes('signature') ||
+                  customizingItem.category?.toLowerCase().includes('premium') ||
+                  customizingItem.category?.toLowerCase().includes('drink')) && sugarLevels.length > 0 && (
                     <div className="bg-white/95 p-8 rounded-[2rem] border border-purple-50 shadow-sm">
                       <div className="flex items-center gap-4 mb-6">
                         <div className="w-10 h-10 bg-[#a020f0] text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 shadow-md shadow-purple-200">1</div>

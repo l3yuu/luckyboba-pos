@@ -313,12 +313,8 @@ export const ReceiptPrint = ({
               const showAddOns = !shownAddOns.has(cartIndex);
               if (showAddOns) shownAddOns.add(cartIndex);
 
-              const addOnCostPerUnit = (item.addOns ?? []).reduce(
-                (sum: number, name: string) => sum + addOnUnitPrice(item, name),
-                0
-              );
 
-              const unitGross = Number(item.price) + addOnCostPerUnit;
+              const unitGross = Number(item.price);
               return (
                 <div key={gi} className="mb-3">
                   {/* Item name + badge */}

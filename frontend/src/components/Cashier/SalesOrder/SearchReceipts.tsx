@@ -98,6 +98,7 @@ interface RawSaleItem {
   quantity:      number;
   unit_price?:   number;
   price?:        number;  
+  discount_amount?: number;
   total_price?:  number;
   final_price?:  number;  
   size?:         string | null;
@@ -108,7 +109,6 @@ interface RawSaleItem {
   remarks?:      string | null;
   charges?:      { grab?: boolean; panda?: boolean } | null;
   is_bundle?:    boolean;
-  discount_amount?: number;
   discount_label?:  string;
   discount_type?:   string;
   discount_value?:  number;
@@ -240,7 +240,7 @@ const SearchReceipts = () => {
       });
       setPrintPayload(data);
       setPrintType(type);
-      setTimeout(() => window.print(), 300);
+      setTimeout(() => window.print(), 1000);
     } catch (err) {
       console.error('Reprint error:', err);
       setReprintError('Reprint failed. Please try again.');

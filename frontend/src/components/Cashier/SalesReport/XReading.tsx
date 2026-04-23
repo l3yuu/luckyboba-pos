@@ -108,8 +108,14 @@ const Row = ({ label, value, indent = false }: { label: string; value: React.Rea
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
 
 const XReading = () => {
-  const today = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState(today);
+  const getLocalDate = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localNow = new Date(now.getTime() - (offset * 60 * 1000));
+    return localNow.toISOString().split('T')[0];
+  };
+
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDate());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [reportData, setReportData] = useState<XReadingReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -122,6 +128,7 @@ const XReading = () => {
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const vatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = vatType === 'vat';
+  const branchId = localStorage.getItem('lucky_boba_user_branch_id') || '';
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -147,9 +154,15 @@ const XReading = () => {
     setRawApiResponse(null);
     try {
       if (type === 'summary') {
+        const sParams: Record<string, string | number> = { from: selectedDate, to: selectedDate };
+        const qParams: Record<string, string | number> = { date: selectedDate };
+        if (branchId) {
+          sParams.branch_id = branchId;
+          qParams.branch_id = branchId;
+        }
         const [summaryRes, qtyRes] = await Promise.all([
-          api.get('/reports/sales-summary',   { params: { from: selectedDate, to: selectedDate } }),
-          api.get('/reports/item-quantities', { params: { date: selectedDate } }),
+          api.get('/reports/sales-summary',   { params: sParams }),
+          api.get('/reports/item-quantities', { params: qParams }),
         ]);
         const merged = {
           ...summaryRes.data,
@@ -173,7 +186,10 @@ const XReading = () => {
       };
 
       const { url, params } = endpointMap[type];
-      const response = await api.get(url, { params });
+      const finalParams: Record<string, string | number> = { ...params };
+      if (branchId) finalParams.branch_id = branchId;
+
+      const response = await api.get(url, { params: finalParams });
       setRawApiResponse(response.data as Record<string, unknown>);
       const normalized = normalizeResponse(type, response.data);
       setReportData({ ...normalized, report_type: type });
@@ -200,7 +216,7 @@ const XReading = () => {
         return { ...data, summary_data: summaryData ?? [] } as unknown as XReadingReport;
       }
       case 'search': {
-        const raw = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
+        const raw = (Array.isArray(data) ? data : (data.results ?? [])) as Record<string, unknown>[];
         const txData = raw.map(r => ({
           Invoice:   r.si_number    ?? r.Invoice   ?? '',
           Amount:    r.total_amount ?? r.Amount    ?? 0,

@@ -37,6 +37,7 @@ interface SaleItem {
   remarks?: string;
   bundle_id?: number;
   bundle_components?: unknown[];
+  discount_amount?: number;
 }
 
 interface OnlineOrder {
@@ -137,7 +138,7 @@ const mapOrderToCart = (order: OnlineOrder | null): CartItem[] => {
       id: item.id || Math.floor(Math.random() * 1000000),
       name: item.name || 'Unknown Item',
       qty: itemQty(item),
-      price: item.unit_price ?? itemPrice(item),
+      price: (Number(item.unit_price || item.price || 0) + Number(item.discount_amount || 0)) / itemQty(item),
       cupSizeLabel,
       size,
       sugarLevel,
@@ -539,14 +540,19 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     seqNumber: string,
   ) => {
     setPrintJob({ type, order, seqNumber });
-    // Increase delay to ensure component renders before browser print dialog
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        setPrintJob(null);
-      }, 1000);
-    }, 500);
   }, []);
+
+  // Handle printing after job is set - ensures DOM is ready
+  useEffect(() => {
+    if (printJob) {
+      const timer = setTimeout(() => {
+        window.print();
+        // Delay clearing print job to ensure browser has captured the DOM
+        setTimeout(() => setPrintJob(null), 3000);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [printJob]);
 
   const completeWorkflow = async (
     nameObj: NonNullable<typeof activeNameOrder>,
@@ -922,53 +928,66 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         />
       )}
       {printJob?.type === 'receipt' && (
-        <ReceiptPrint
-          cart={mapOrderToCart(printJob.order)}
-          branchName={printJob.order.branch_name ?? '—'}
-          brand={branchDetails.brand || "LUCKY BOBA MILKTEA"}
-          {...branchDetails}
-          businessName={generalSettings.business_name}
-          contactEmail={generalSettings.contact_email}
-          contactPhone={generalSettings.contact_phone}
-          generalAddress={generalSettings.address}
-          ownerName={branchDetails.owner_name}
-          vatType={vatType}
-          addOnsData={addOnsData}
-          orNumber={orderInvoice(printJob.order)}
-          queueNumber={printJob.seqNumber}
-          terminalNumber={terminalNumber}
-          cashierName="Customer App"
-          orderCharge={printJob.order.source === 'grab' || printJob.order.source === 'panda' ? printJob.order.source as 'grab' | 'panda' : null}
-          totalCount={printJob.order.items.reduce((acc, i) => acc + itemQty(i), 0)}
-          subtotal={printJob.order.subtotal || orderTotal(printJob.order)}
-          amtDue={printJob.order.total_amount ?? orderTotal(printJob.order)}
-          vatableSales={printJob.order.vatable_sales ?? (orderTotal(printJob.order) / 1.12)}
-          vatAmount={printJob.order.vat_amount ?? (orderTotal(printJob.order) - (orderTotal(printJob.order) / 1.12))}
-          vatExemptSales={printJob.order.vat_exempt_sales ?? 0}
-          change={Math.max(0, (printJob.order.cash_tendered || 0) - (printJob.order.total_amount || orderTotal(printJob.order)))}
-          cashTendered={printJob.order.cash_tendered ?? (printJob.order.total_amount ?? orderTotal(printJob.order))}
-          referenceNumber={printJob.order.reference_number ?? ""}
-          paymentMethod={(printJob.order.payment_method ?? 'online').toLowerCase()}
-          selectedDiscount={null}
-          selectedDiscounts={[]}
-          totalDiscountDisplay={printJob.order.discount_amount ?? 0}
-          itemDiscountTotal={0}
-          promoDiscount={printJob.order.discount_amount ?? 0}
-          itemPaxAssignments={{}}
-          customerName={printJob.order.customer_name ?? 'App Customer'}
-          seniorIds={printJob.order.senior_id ? printJob.order.senior_id.split(',') : []}
-          pwdIds={printJob.order.pwd_id ? printJob.order.pwd_id.split(',') : []}
-          paxSenior={printJob.order.pax_senior}
-          paxPwd={printJob.order.pax_pwd}
-          sc_discount_amount={printJob.order.sc_discount_amount}
-          pwd_discount_amount={printJob.order.pwd_discount_amount}
-          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
-          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
-          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-          isReprint={false}
-          showDoubleQueueStub={printJob.order.order_type === 'take-out'}
-          posFooter={posFooter}
-        />
+        (() => {
+          const order = printJob.order;
+          const calculatedSubtotal = (order.items || []).reduce((acc: number, item: SaleItem) => {
+            const finalLineTotal = Number(item.price || 0);
+            const itemDisc = Number(item.discount_amount || 0);
+            return acc + (finalLineTotal + itemDisc);
+          }, 0);
+          const totalDue = order.total_amount ?? orderTotal(order);
+          const itemDiscountTotal = (order.items || []).reduce((acc: number, i: SaleItem) => acc + Number(i.discount_amount || 0), 0);
+
+          return (
+            <ReceiptPrint
+              cart={mapOrderToCart(order)}
+              branchName={order.branch_name ?? '—'}
+              brand={branchDetails.brand || "LUCKY BOBA MILKTEA"}
+              {...branchDetails}
+              businessName={generalSettings.business_name}
+              contactEmail={generalSettings.contact_email}
+              contactPhone={generalSettings.contact_phone}
+              generalAddress={generalSettings.address}
+              ownerName={branchDetails.owner_name}
+              vatType={vatType}
+              addOnsData={addOnsData}
+              orNumber={orderInvoice(order)}
+              queueNumber={printJob.seqNumber}
+              terminalNumber={terminalNumber}
+              cashierName="Customer App"
+              orderCharge={order.source === 'grab' || order.source === 'panda' ? order.source as 'grab' | 'panda' : null}
+              totalCount={order.items.reduce((acc, i) => acc + itemQty(i), 0)}
+              subtotal={calculatedSubtotal}
+              amtDue={totalDue}
+              vatableSales={order.vatable_sales ?? (totalDue / 1.12)}
+              vatAmount={order.vat_amount ?? (totalDue - (totalDue / 1.12))}
+              vatExemptSales={order.vat_exempt_sales ?? 0}
+              change={Math.max(0, (order.cash_tendered || 0) - totalDue)}
+              cashTendered={order.cash_tendered ?? totalDue}
+              referenceNumber={order.reference_number ?? ""}
+              paymentMethod={(order.payment_method ?? 'online').toLowerCase()}
+              selectedDiscount={null}
+              selectedDiscounts={[]}
+              totalDiscountDisplay={Math.max(0, calculatedSubtotal - totalDue)}
+              itemDiscountTotal={itemDiscountTotal}
+              promoDiscount={order.discount_amount ?? 0}
+              itemPaxAssignments={{}}
+              customerName={order.customer_name ?? 'App Customer'}
+              seniorIds={order.senior_id ? order.senior_id.split(',') : []}
+              pwdIds={order.pwd_id ? order.pwd_id.split(',') : []}
+              paxSenior={order.pax_senior}
+              paxPwd={order.pax_pwd}
+              sc_discount_amount={order.sc_discount_amount}
+              pwd_discount_amount={order.pwd_discount_amount}
+              orderType={order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
+              formattedDate={new Date(order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+              formattedTime={new Date(order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              isReprint={false}
+              showDoubleQueueStub={order.order_type === 'take-out'}
+              posFooter={posFooter}
+            />
+          );
+        })()
       )}
       {printJob?.type === 'stickers' && (
         <StickerPrint

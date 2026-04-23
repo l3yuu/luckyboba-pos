@@ -116,7 +116,7 @@ class ReportRepository implements ReportRepositoryInterface
         ];
     }
 
-    public function getItemQuantities(?string $date = null, ?int $branchId = null, ?string $cashierName = null): array
+    public function getItemQuantities(?string $from = null, ?string $to = null, ?int $branchId = null, ?string $cashierName = null): array
     {
         try {
             $query = DB::table('sale_items')
@@ -127,8 +127,10 @@ class ReportRepository implements ReportRepositoryInterface
                 ->leftJoin('cups', 'categories.cup_id', '=', 'cups.id')
                 ->where('sales.status', '!=', 'cancelled');
 
-            if ($date) {
-                $query->whereDate('sales.created_at', $date);
+            if ($from && $to) {
+                $query->whereBetween('sales.created_at', [$from . ' 00:00:00', $to . ' 23:59:59']);
+            } elseif ($from) {
+                $query->whereDate('sales.created_at', $from);
             }
 
             if ($branchId) {
@@ -148,16 +150,38 @@ class ReportRepository implements ReportRepositoryInterface
             )
             ->get();
 
+            Log::info("ReportRepository::getItemQuantities found " . $rawItems->count() . " items", [
+                'from' => $from,
+                'to' => $to,
+                'branch_id' => $branchId,
+                'cashier' => $cashierName
+            ]);
+
             $globalAddonSummary = [];
 
             $groupedData = $rawItems->groupBy('category_name')->map(function ($items, $category) use (&$globalAddonSummary) {
                 $productSummary = $items->groupBy(function ($item) {
                     $name = $item->resolved_product_name ?? $item->product_name;
-                    $sizeLabel = $item->cup_size_label ?? null;
-                    return $name . '||' . ($sizeLabel ?? 'none');
+                    $s = $item->size ?? 'none';
+                    $label = $item->cup_size_label;
+                    if (!$label || $label === 'none') {
+                        if ($s === 'L') $label = $item->cup_size_l ?? 'L';
+                        elseif ($s === 'M' || $s === 'none') $label = $item->cup_size_m ?? ($s === 'none' ? 'Standard' : 'M');
+                        else $label = strtoupper($s);
+                    }
+                    return $name . '||' . $label;
                 })->map(function ($pGroup) use (&$globalAddonSummary) {
                     $firstItem = $pGroup->first();
                     $quantity = (int) $pGroup->sum('quantity');
+
+                    $name = $firstItem->resolved_product_name ?? $firstItem->product_name;
+                    $s = $firstItem->size ?? 'none';
+                    $label = $firstItem->cup_size_label;
+                    if (!$label || $label === 'none') {
+                        if ($s === 'L') $label = $firstItem->cup_size_l ?? 'L';
+                        elseif ($s === 'M' || $s === 'none') $label = $firstItem->cup_size_m ?? ($s === 'none' ? 'Standard' : 'M');
+                        else $label = strtoupper($s);
+                    }
 
                     $addonCounts = [];
                     foreach ($pGroup as $item) {
@@ -182,8 +206,8 @@ class ReportRepository implements ReportRepositoryInterface
                     }
 
                     return [
-                        'product_name' => $firstItem->resolved_product_name ?? $firstItem->product_name,
-                        'size'         => $firstItem->cup_size_label ?? 'none',
+                        'product_name' => $name,
+                        'size'         => $label,
                         'total_qty'    => $quantity,
                         'total_sales'  => (float) $pGroup->sum('final_price'),
                         'add_ons'      => $formattedAddons,
@@ -206,7 +230,7 @@ class ReportRepository implements ReportRepositoryInterface
             $grandTotal = (float) $rawItems->sum('final_price');
 
             return [
-                'date'                => $date,
+                'date'                => $from,
                 'report_type'         => 'qty_items',
                 'categories'          => $groupedData,
                 'all_addons_summary'  => $globalAddonList,
@@ -218,7 +242,7 @@ class ReportRepository implements ReportRepositoryInterface
         } catch (\Throwable $e) {
             Log::error("ReportRepository getItemQuantities Error: " . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'date' => $date,
+                'date' => $from,
                 'branchId' => $branchId,
                 'cashierName' => $cashierName
             ]);
