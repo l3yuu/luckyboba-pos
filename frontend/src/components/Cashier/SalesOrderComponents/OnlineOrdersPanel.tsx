@@ -571,6 +571,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         vatable_sales: calculations.vatableSales,
         vat_amount: calculations.vatAmount,
         vat_exempt_sales: calculations.vatExemptSales,
+        total_amount: calculations.amtDue,
       });
 
       const updatedOrder: OnlineOrder = {
@@ -582,6 +583,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         vatable_sales: calculations.vatableSales,
         vat_amount: calculations.vatAmount,
         vat_exempt_sales: calculations.vatExemptSales,
+        total_amount: calculations.amtDue,
         discount_amount: Math.round((scDiscountAmount + pwdDiscountAmount + promoDiscountAmount) * 100) / 100,
         sc_discount_amount: Math.round(scDiscountAmount * 100) / 100,
         pwd_discount_amount: Math.round(pwdDiscountAmount * 100) / 100,
