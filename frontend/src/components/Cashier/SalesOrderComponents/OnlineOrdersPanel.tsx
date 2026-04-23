@@ -63,6 +63,8 @@ interface OnlineOrder {
   pwd_id?: string;
   pax_senior?: number;
   pax_pwd?: number;
+  cash_tendered?: number;
+  reference_number?: string;
 }
 
 type Status = 'pending' | 'preparing' | 'completed';
@@ -908,10 +910,10 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           vatableSales={printJob.order.vatable_sales ?? (orderTotal(printJob.order) / 1.12)}
           vatAmount={printJob.order.vat_amount ?? (orderTotal(printJob.order) - (orderTotal(printJob.order) / 1.12))}
           vatExemptSales={printJob.order.vat_exempt_sales ?? 0}
-          change={0}
-          cashTendered={printJob.order.total_amount ?? orderTotal(printJob.order)}
-          referenceNumber=""
-          paymentMethod={(printJob.order.payment_method ?? 'online').toUpperCase()}
+          change={Math.max(0, (printJob.order.cash_tendered || 0) - (printJob.order.total_amount || orderTotal(printJob.order)))}
+          cashTendered={printJob.order.cash_tendered ?? (printJob.order.total_amount ?? orderTotal(printJob.order))}
+          referenceNumber={printJob.order.reference_number ?? ""}
+          paymentMethod={(printJob.order.payment_method ?? 'online').toLowerCase()}
           selectedDiscount={null}
           selectedDiscounts={[]}
           totalDiscountDisplay={printJob.order.discount_amount ?? 0}
