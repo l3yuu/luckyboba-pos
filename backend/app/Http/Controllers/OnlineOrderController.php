@@ -64,6 +64,7 @@ class OnlineOrderController extends Controller
             'vatable_sales'       => 'nullable|numeric|min:0',
             'vat_amount'          => 'nullable|numeric|min:0',
             'vat_exempt_sales'    => 'nullable|numeric|min:0',
+            'total_amount'        => 'nullable|numeric|min:0',
         ]);
 
         $user  = $request->user();
@@ -110,6 +111,7 @@ class OnlineOrderController extends Controller
         if ($request->has('vatable_sales'))          $sale->vatable_sales        = $request->input('vatable_sales');
         if ($request->has('vat_amount'))             $sale->vat_amount           = $request->input('vat_amount');
         if ($request->has('vat_exempt_sales'))       $sale->vat_exempt_sales     = $request->input('vat_exempt_sales');
+        if ($request->has('total_amount'))           $sale->total_amount         = $request->input('total_amount');
 
         $sale->save();
 
@@ -270,6 +272,8 @@ class OnlineOrderController extends Controller
                     'menu_item_id' => $item['menu_item_id'] ?? null,
                     'size'         => $item['cup_size'] ?? null,
                     'add_ons'      => $item['add_ons'] ?? null,
+                    'bundle_id'    => $item['bundle_id'] ?? null,
+                    'bundle_components' => $item['bundle_components'] ?? null,
                 ]);
             }
 
@@ -462,6 +466,8 @@ class OnlineOrderController extends Controller
                     'options'          => $item->options ?? [],
                     'add_ons'          => $finalAddons,
                     'remarks'          => $item->remarks ?? null,
+                    'bundle_id'         => $item->bundle_id,
+                    'bundle_components' => $item->bundle_components,
                 ];
             })->values()->toArray(),
         ];

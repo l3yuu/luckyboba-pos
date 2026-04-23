@@ -968,6 +968,7 @@ interface StickerPrintProps {
   formattedDate: string;
   formattedTime: string;
   orderType: 'dine-in' | 'take-out' | 'delivery';
+  isOnline?: boolean;
 }
 
 interface StickerClasses {
@@ -989,15 +990,15 @@ const getStickerClasses = (extraCount: number, nameLength = 0): StickerClasses =
   const isUltraLongName = nameLength > 25;
   return {
     paddingClass: isUltraCrowded ? 'p-0' : isVeryCrowded ? 'p-0.5' : 'p-1',
-    titleSize: isUltraCrowded ? 'text-[8px]' : isVeryCrowded ? 'text-[9px]' : isCrowded ? 'text-[10px]' : 'text-[11px]',
+    titleSize: isUltraCrowded ? 'text-[9px]' : isVeryCrowded ? 'text-[10px]' : isCrowded ? 'text-[11px]' : 'text-[12px]',
     nameSize: isUltraCrowded || isUltraLongName
-      ? 'text-[7px]'
+      ? 'text-[8px]'
       : isVeryCrowded || isVeryLongName
-        ? 'text-[8px]'
+        ? 'text-[9px]'
         : isCrowded || isLongName
-          ? 'text-[9px]'
-          : 'text-[11px]',
-    addOnSize: isUltraCrowded ? 'text-[5.5px]' : isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[8px]',
+          ? 'text-[10px]'
+          : 'text-[12px]',
+    addOnSize: isUltraCrowded ? 'text-[6.5px]' : isVeryCrowded ? 'text-[7.5px]' : isCrowded ? 'text-[8.5px]' : 'text-[9px]',
     gapClass: isUltraCrowded ? 'space-y-0 leading-none' : isVeryCrowded ? 'space-y-0 leading-tight' : 'space-y-0.5 leading-tight',
     marginClass: isUltraCrowded || isVeryCrowded ? 'mb-0' : 'mb-0.5',
     isVeryCrowded: isVeryCrowded || isUltraCrowded,
@@ -1013,20 +1014,20 @@ const StickerHeader = ({
   orderType: 'dine-in' | 'take-out' | 'delivery';
 }) => (
   <div className="w-full text-center flex flex-col items-center">
-    <div className={`font-black uppercase leading-none tracking-tight ${cls.isVeryCrowded ? 'text-[9px]' : 'text-[11px]'}`}>
+    <div className={`font-black uppercase leading-none tracking-tight ${cls.isVeryCrowded ? 'text-[10px]' : 'text-[12px]'}`}>
       LUCKY BOBA
     </div>
-    <div className={`font-bold uppercase leading-none tracking-widest ${cls.isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6px] mt-1'}`}>
+    <div className={`font-bold uppercase leading-none tracking-widest ${cls.isVeryCrowded ? 'text-[6px] mt-0.5' : 'text-[7px] mt-1'}`}>
       {branchName.toUpperCase()}
     </div>
-    <div className={`w-full flex justify-between items-center font-black border-b-[1.5px] border-black px-1 ${cls.isVeryCrowded ? 'text-[8px] pb-0 mb-0 mt-0.5' : 'text-[9px] pb-0.5 mb-0.5 mt-1'}`}>
+    <div className={`w-full flex justify-between items-center font-black border-b-[1.5px] border-black px-1 ${cls.isVeryCrowded ? 'text-[9px] pb-0 mb-0 mt-0.5' : 'text-[10px] pb-0.5 mb-0.5 mt-1'}`}>
       <span>Q:{queueNumber} SI:{orNumber.replace('SI-', '')}</span>
       <span>{drinkIndex}/{totalDrinks}</span>
     </div>
     {(customerName || orderType) && (
-      <div className={`w-full text-center font-black uppercase px-1 leading-none ${cls.isVeryCrowded ? 'text-[7px] mt-0.5' : 'text-[8px] mt-1'}`}>
+      <div className={`w-full text-center font-black uppercase px-1 leading-none ${cls.isVeryCrowded ? 'text-[8px] mt-0.5' : 'text-[9px] mt-1'}`}>
         {customerName && <div className="truncate mb-0.5">{customerName}</div>}
-        <div className="text-[6px] font-bold opacity-80">{orderType === 'dine-in' ? 'DINE IN' : orderType === 'take-out' ? 'TAKE OUT' : 'DELIVERY'}</div>
+        <div className="text-[7px] font-bold opacity-80">{orderType === 'dine-in' ? 'DINE IN' : orderType === 'take-out' ? 'TAKE OUT' : 'DELIVERY'}</div>
       </div>
     )}
   </div>
@@ -1034,19 +1035,19 @@ const StickerHeader = ({
 
 const StickerFooter = ({ cls, formattedDate, formattedTime }: { cls: StickerClasses; formattedDate: string; formattedTime: string }) => (
   <>
-    <div className="w-full text-center mt-auto">
-      <p className={`font-black uppercase whitespace-nowrap tracking-tighter ${cls.isVeryCrowded ? 'text-[4.5px]' : 'text-[6px]'}`}>
+    <div className="w-full text-center mt-auto px-1">
+      <p className={`font-black uppercase tracking-tighter leading-tight ${cls.isVeryCrowded ? 'text-[5px]' : 'text-[7px]'}`}>
         Best consume within 30 minutes
       </p>
     </div>
-    <div className={`w-full font-bold text-center border-t border-zinc-800 ${cls.isVeryCrowded ? 'text-[7px] pt-0 mt-0' : 'text-[8px] pt-0.5 mt-0.5'}`}>
+    <div className={`w-full font-bold text-center border-t border-zinc-800 ${cls.isVeryCrowded ? 'text-[8px] pt-0 mt-0' : 'text-[9px] pt-0.5 mt-0.5'}`}>
       {formattedDate} {formattedTime}
     </div>
   </>
 );
 
 export const StickerPrint = ({
-  cart, branchName, orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType
+  cart, branchName, orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType, isOnline
 }: StickerPrintProps) => {
   const stickers: React.ReactNode[] = [];
   let drinkIndex = 1;
@@ -1071,7 +1072,7 @@ export const StickerPrint = ({
     const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
     if (waffleCount > 0) return acc + waffleCount;
 
-    if (orderType !== 'dine-in') return acc + item.qty;
+    if (orderType !== 'dine-in' || isOnline) return acc + item.qty;
     return acc;
   }, 0);
 
@@ -1093,7 +1094,7 @@ export const StickerPrint = ({
               >
                 <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
                 <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-                  <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">{item.name}</div>
+                  <div className="text-[9px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">{item.name}</div>
                   <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>{component.name}</div>
                   <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
                     {component.sugarLevel && component.sugarLevel.trim() !== '' && (
@@ -1129,8 +1130,8 @@ export const StickerPrint = ({
             >
               <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
               <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-                <div className="w-full font-black uppercase leading-tight text-xs mb-1">{addonName}</div>
-                <div className="w-full text-center font-bold text-[9px]"><div>Waffle Combo</div></div>
+                <div className="w-full font-black uppercase leading-tight text-sm mb-1">{addonName}</div>
+                <div className="w-full text-center font-bold text-[11px]"><div>Waffle Combo</div></div>
               </div>
               <StickerFooter cls={cls} formattedDate={formattedDate} formattedTime={formattedTime} />
             </div>
@@ -1162,7 +1163,7 @@ export const StickerPrint = ({
           >
             <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
             <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-              <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
+              <div className="text-[9px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
                 Mix & Match — {item.name}
               </div>
               <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
@@ -1197,8 +1198,8 @@ export const StickerPrint = ({
         const extraCount = options.length + addOns.length;
         const cls = getStickerClasses(extraCount);
 
-        // 1. Food Sticker (only for take-out/delivery)
-        if (orderType !== 'dine-in') {
+        // 1. Food Sticker (only for take-out/delivery or online orders)
+        if (orderType !== 'dine-in' || isOnline) {
           // Try to get food name by removing the drink part if it's "Pizza + Drink" style
           const foodName = item.name.replace(new RegExp(` \\+ ${drinkName}$`, 'i'), '').replace(/ \+ DRINK$/i, '').trim();
           const foodCls = getStickerClasses(0, foodName.length);
@@ -1210,7 +1211,7 @@ export const StickerPrint = ({
             >
               <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={foodCls} />
               <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-                <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
+                <div className="text-[9px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
                   Combo — Food Part
                 </div>
                 <div className={`w-full font-black uppercase leading-tight ${foodCls.nameSize} ${foodCls.marginClass}`}>
@@ -1232,7 +1233,7 @@ export const StickerPrint = ({
           >
             <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
             <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-              <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
+              <div className="text-[9px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
                 Combo Drink — {item.name}
               </div>
               <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
@@ -1252,9 +1253,9 @@ export const StickerPrint = ({
       return;
     }
 
-    // ── Non-drink food stickers (take-out / delivery only) ────────────────────
+    // ── Non-drink food stickers (take-out / delivery / online) ───────────────
     if (!isDrinkSticker) {
-      if (orderType === 'dine-in') return;
+      if (orderType === 'dine-in' && !isOnline) return;
 
       const cls = getStickerClasses(0, item.name.length);
       for (let i = 0; i < item.qty; i++) {
@@ -1267,7 +1268,7 @@ export const StickerPrint = ({
             <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
             <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
               {item.cupSizeLabel && (
-                <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
+                <div className="text-[9px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
                   {item.cupSizeLabel}
                 </div>
               )}
@@ -1302,7 +1303,7 @@ export const StickerPrint = ({
           <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
           <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
             {item.cupSizeLabel && (
-              <div className="text-[7px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
+              <div className="text-[9px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
                 {item.cupSizeLabel}
               </div>
             )}
@@ -1356,7 +1357,11 @@ export const StickerPrint = ({
           }
         }
       `}</style>
-      {stickers}
+      {stickers.length > 0 ? stickers : (
+        <div className="text-center py-20 text-zinc-400 font-bold uppercase tracking-widest text-[10px]">
+          No items eligible for stickers
+        </div>
+      )}
     </div>
   );
 };
