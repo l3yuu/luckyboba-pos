@@ -468,6 +468,7 @@ class OnlineOrderController extends Controller
                     'remarks'          => $item->remarks ?? null,
                     'bundle_id'         => $item->bundle_id,
                     'bundle_components' => $item->bundle_components,
+                    'discount_amount'   => (float) $item->discount_amount,
                 ];
             })->values()->toArray(),
         ];
