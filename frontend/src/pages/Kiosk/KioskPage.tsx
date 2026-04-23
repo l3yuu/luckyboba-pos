@@ -1919,10 +1919,17 @@ const KioskPage = () => {
           {/* Branch Grid */}
           <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-hide grid grid-cols-1 md:grid-cols-2 gap-5 pb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-400">
             {filtered.map(branch => (
-              <button
+              <div
                 key={branch.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleSelectBranch(branch)}
-                className={`p-6 rounded-2xl border-[1.5px] flex flex-col items-start text-left transition-all duration-300 group active:scale-[0.98] bg-white relative overflow-hidden ${selectedBranchToConfirm?.id === branch.id
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleSelectBranch(branch);
+                  }
+                }}
+                className={`p-6 rounded-2xl border-[1.5px] flex flex-col items-start text-left transition-all duration-300 group active:scale-[0.98] bg-white relative overflow-hidden cursor-pointer h-full w-full min-h-[240px] ${selectedBranchToConfirm?.id === branch.id
                   ? 'border-[#3b2063] shadow-[0_8px_24px_rgba(109,40,217,0.15)] -translate-y-1'
                   : 'border-zinc-200 hover:border-[#6d28d9] hover:shadow-[0_8px_24px_rgba(109,40,217,0.08)] hover:-translate-y-1'
                   }`}
@@ -1935,7 +1942,7 @@ const KioskPage = () => {
                     <ShoppingBag size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-black text-[#1a0f2e] capitalize tracking-tight mb-1">
+                    <h3 className="text-lg font-bold text-[#1a0f2e] capitalize tracking-tight mb-1">
                       {branch.name.toLowerCase()}
                     </h3>
                     <div className="flex items-center gap-2">
@@ -1967,7 +1974,7 @@ const KioskPage = () => {
                   </div>
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-zinc-100 w-full flex items-center justify-between relative z-10">
+                <div className="mt-5 pt-4 border-t border-zinc-100 w-full flex items-center justify-between relative z-10 mt-auto">
                   <div className={`flex items-center gap-1.5 font-bold uppercase text-[10px] tracking-[0.15em] transition-colors duration-300 ${selectedBranchToConfirm?.id === branch.id
                     ? 'text-[#6d28d9]'
                     : 'text-zinc-400 group-hover:text-[#6d28d9]'
@@ -1976,7 +1983,7 @@ const KioskPage = () => {
                     <ChevronRight size={12} strokeWidth={3} className="transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
 
             {filtered.length === 0 && (
