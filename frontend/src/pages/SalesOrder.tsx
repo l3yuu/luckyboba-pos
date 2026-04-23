@@ -819,11 +819,8 @@ const SalesOrder = () => {
   }
 
   const handleItemClick = async (item: MenuItem) => {
-    const actualCategory = categories.find(cat => cat.menu_items.some(mi => mi.id === item.id)) ?? selectedCategory
-
-    if (!searchQuery.trim()) {
-      setSelectedCategory(actualCategory)
-    }
+    const actualCategory = categories.find(cat => cat.menu_items.some(mi => mi.id === item.id)) || selectedCategory
+    setSelectedCategory(actualCategory)
 
     const catType = actualCategory?.category_type
 

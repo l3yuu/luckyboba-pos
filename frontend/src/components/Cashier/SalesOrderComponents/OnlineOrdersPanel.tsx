@@ -63,6 +63,8 @@ interface OnlineOrder {
   pwd_id?: string;
   pax_senior?: number;
   pax_pwd?: number;
+  cash_tendered?: number;
+  reference_number?: string;
 }
 
 type Status = 'pending' | 'preparing' | 'completed';
@@ -453,6 +455,9 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       lessVat: number;
       amtDue: number;
       totalDiscountDisplay: number;
+      scDiscountAmount: number;
+      pwdDiscountAmount: number;
+      promoDiscountAmount: number;
     };
   } | null>(null);
   const [activeSuccessOrder, setActiveSuccessOrder] = useState<{order: OnlineOrder, seqNumber: string,
@@ -541,46 +546,9 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       const paxSenior = allAssignments.filter(a => a === 'sc').length;
       const paxPwd = allAssignments.filter(a => a === 'pwd').length;
 
-      // Derive per-type discount amounts
-      const scDiscountEntry = discounts.find(d => d.name.toUpperCase().includes('SENIOR'));
-      const pwdDiscountEntry = discounts.find(d => d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT'));
-      const isVatOrder = vatType === 'vat';
-      const scPct = scDiscountEntry ? Number(scDiscountEntry.amount) : 20;
-      const pwdPct = pwdDiscountEntry ? Number(pwdDiscountEntry.amount) : 20;
-
-      let scDiscountAmount = 0;
-      let pwdDiscountAmount = 0;
-
-      (order.items || []).forEach((item, cartIndex) => {
-        const assignments = itemPaxAssignments[String(cartIndex)] ?? [];
-        
-        const addOnCost = (item.add_ons || []).reduce((sum, add) => {
-          if (typeof add === 'object' && add.price !== undefined && Number(add.price) > 0) {
-            return sum + Number(add.price);
-          }
-          const name = typeof add === 'string' ? add : (add.name || add.addon_name);
-          const match = addOnsData.find(a => a.name.toLowerCase() === (name || '').toLowerCase());
-          if (!match) return sum;
-          if (paymentMethod === 'grab' && match.grab_price && Number(match.grab_price) > 0) return sum + Number(match.grab_price);
-          if (paymentMethod === 'food_panda' && match.panda_price && Number(match.panda_price) > 0) return sum + Number(match.panda_price);
-          return sum + Number(match.price);
-        }, 0);
-
-        const unitPrice = Number(item.unit_price ?? item.price ?? 0) + addOnCost;
-        
-        assignments.forEach(a => {
-          if (a === 'none') return;
-          const vatExcl = isVatOrder ? unitPrice / 1.12 : unitPrice;
-          if (a === 'sc') scDiscountAmount += vatExcl * (scPct / 100);
-          if (a === 'pwd') pwdDiscountAmount += vatExcl * (pwdPct / 100);
-        });
-      });
-
-      const promoDiscountAmount = selectedDiscount
-        ? selectedDiscount.type.includes('Percent')
-          ? calculations.amtDue * (Number(selectedDiscount.amount) / 100)
-          : Number(selectedDiscount.amount)
-        : 0;
+      const scDiscountAmount = calculations.scDiscountAmount;
+      const pwdDiscountAmount = calculations.pwdDiscountAmount;
+      const promoDiscountAmount = calculations.promoDiscountAmount;
 
       await api.patch(`/online-orders/${order.id}/status`, {
         status: 'preparing',
@@ -942,10 +910,10 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           vatableSales={printJob.order.vatable_sales ?? (orderTotal(printJob.order) / 1.12)}
           vatAmount={printJob.order.vat_amount ?? (orderTotal(printJob.order) - (orderTotal(printJob.order) / 1.12))}
           vatExemptSales={printJob.order.vat_exempt_sales ?? 0}
-          change={0}
-          cashTendered={printJob.order.total_amount ?? orderTotal(printJob.order)}
-          referenceNumber=""
-          paymentMethod={(printJob.order.payment_method ?? 'online').toUpperCase()}
+          change={Math.max(0, (printJob.order.cash_tendered || 0) - (printJob.order.total_amount || orderTotal(printJob.order)))}
+          cashTendered={printJob.order.cash_tendered ?? (printJob.order.total_amount ?? orderTotal(printJob.order))}
+          referenceNumber={printJob.order.reference_number ?? ""}
+          paymentMethod={(printJob.order.payment_method ?? 'online').toLowerCase()}
           selectedDiscount={null}
           selectedDiscounts={[]}
           totalDiscountDisplay={printJob.order.discount_amount ?? 0}

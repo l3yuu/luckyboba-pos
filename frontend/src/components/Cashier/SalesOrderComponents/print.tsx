@@ -69,7 +69,7 @@ interface ReceiptPrintProps {
     pos_valid_until?: string;
     pos_ptu?: string;
     pos_ptu_date?: string;
-    contact_email?: string;   
+    contact_email?: string;
     contact_phone?: string;
   };
 }
@@ -433,11 +433,11 @@ export const ReceiptPrint = ({
 
           {/* PAX Discount Detailed Breakdown (Summary) */}
           {(() => {
-            if (!_isReprint) {
-              const paxGroups = (['sc', 'pwd'] as const).filter(t =>
-                splitGroups.some(g => g.discountType === t)
-              );
-              if (paxGroups.length === 0) return null;
+            const paxGroups = (['sc', 'pwd'] as const).filter(t =>
+              splitGroups.some(g => g.discountType === t)
+            );
+
+            if (paxGroups.length > 0) {
               return (
                 <div className="space-y-2 border-t border-dashed border-black py-2">
                   {paxGroups.map(type => {
@@ -494,7 +494,8 @@ export const ReceiptPrint = ({
                 </div>
               );
             }
-            if (_isReprint && (sc_discount_amount > 0 || pwd_discount_amount > 0)) {
+
+            if (sc_discount_amount > 0 || pwd_discount_amount > 0) {
               const paxTypes = [];
               if (sc_discount_amount > 0) paxTypes.push({ type: 'sc', amt: sc_discount_amount, label: 'Senior' });
               if (pwd_discount_amount > 0) paxTypes.push({ type: 'pwd', amt: pwd_discount_amount, label: 'PWD' });
@@ -505,26 +506,27 @@ export const ReceiptPrint = ({
                     const groupLessVat = preVatFull * 0.12;
                     const netVatExempt = preVatFull * 0.80;
                     return (
-                    <div key={p.type} className="space-y-0.5">
-                      <div className="uppercase font-bold">{p.label} PAX Summary</div>
-                      <div className="flex justify-between font-normal">
-                        <span>Discount (20%)</span>
-                        <span>-₱{p.amt.toFixed(2)}</span>
+                      <div key={p.type} className="space-y-0.5">
+                        <div className="uppercase font-bold">{p.label} PAX Summary</div>
+                        <div className="flex justify-between font-normal">
+                          <span>Discount (20%)</span>
+                          <span>-₱{p.amt.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Less VAT</span>
+                          <span>₱{groupLessVat.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Net of VAT</span>
+                          <span>₱{receiptNetOfVat.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between italic text-[10px]">
+                          <span>Net Price (VAT Exempt)</span>
+                          <span>₱{netVatExempt.toFixed(2)}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Less VAT</span>
-                        <span>-₱{groupLessVat.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Net of VAT</span>
-                        <span>₱{receiptNetOfVat.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between italic text-[10px]">
-                        <span>Net Price (VAT Exempt)</span>
-                        <span>₱{netVatExempt.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  )})}
+                    )
+                  })}
                 </div>
               );
             }
@@ -592,10 +594,10 @@ export const ReceiptPrint = ({
 
         {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
-  FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />
-  {contactEmail || posFooter.contact_email || 'luckyboba.franchise@gmail.com'}<br />
-  {contactPhone || posFooter.contact_phone || '09171699894'}
-</div>
+          FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />
+          {contactEmail || posFooter.contact_email || 'luckyboba.franchise@gmail.com'}<br />
+          {contactPhone || posFooter.contact_phone || '09171699894'}
+        </div>
 
         {/* ── POS Supplier Footer ── */}
         {(posFooter.pos_supplier || posFooter.pos_tin) && (
@@ -789,16 +791,6 @@ export const KioskTicketPrint = ({
               <span className="tracking-tighter" style={{ fontSize: '14pt' }}>{totalAmount.toFixed(2)}</span>
             </div>
           </div>
-        </div>
-
-        {/* Signature fields */}
-        <div className="text-[9px] mt-4 mb-4 space-y-2 border-t border-black pt-2">
-          {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature'].map(label => (
-            <div key={label} className="flex justify-between items-end w-full">
-              <span className="font-bold">{label}</span>
-              <span className="border-b border-black w-[70%] h-3"></span>
-            </div>
-          ))}
         </div>
 
         {/* Footer */}
