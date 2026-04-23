@@ -36,7 +36,7 @@ interface SaleItem {
   add_ons?: (string | { name?: string; addon_name?: string; price?: number })[];
   remarks?: string;
   bundle_id?: number;
-  bundle_components?: any[];
+  bundle_components?: unknown[];
 }
 
 interface OnlineOrder {
@@ -143,9 +143,9 @@ const mapOrderToCart = (order: OnlineOrder | null): CartItem[] => {
       sugarLevel,
       remarks: item.remarks || '',
       options: Array.isArray(item.options) ? item.options : [],
-      addOns: Array.isArray(item.add_ons) 
-        ? item.add_ons.map((a: string | { name?: string; addon_name?: string; price?: number }) => 
-            typeof a === 'string' ? a : (a.name || a.addon_name || '')) 
+      addOns: Array.isArray(item.add_ons)
+        ? item.add_ons.map((a: string | { name?: string; addon_name?: string; price?: number }) =>
+          typeof a === 'string' ? a : (a.name || a.addon_name || ''))
         : [],
       finalPrice: itemPrice(item),
       isBundle: !!item.bundle_id,
@@ -243,17 +243,17 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
                   <Printer size={11} />
                   Receipt
                 </button>
-            {/* Reprint Stickers — Available for all statuses to allow prep */}
-            {onPrintStickers && (
-              <button
-                onClick={() => onPrintStickers(order)}
-                className="flex items-center gap-1 px-2 py-1 bg-violet-50 border border-violet-200 rounded-lg text-[10px] font-bold text-violet-700 hover:bg-violet-100 transition-colors"
-                title="Print Stickers"
-              >
-                <Tag size={11} />
-                Stickers
-              </button>
-            )}
+                {/* Reprint Stickers — Available for all statuses to allow prep */}
+                {onPrintStickers && (
+                  <button
+                    onClick={() => onPrintStickers(order)}
+                    className="flex items-center gap-1 px-2 py-1 bg-violet-50 border border-violet-200 rounded-lg text-[10px] font-bold text-violet-700 hover:bg-violet-100 transition-colors"
+                    title="Print Stickers"
+                  >
+                    <Tag size={11} />
+                    Stickers
+                  </button>
+                )}
               </div>
             )}
             {(order.qr_code || invoice) && (
@@ -430,10 +430,10 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   interface AddOnType { id: number; name: string; price: number; grab_price?: number; panda_price?: number; }
   const [addOnsData, setAddOnsData] = useState<AddOnType[]>([]);
   const [discounts, setDiscounts] = useState<Discount[]>([]);
-  
+
   useEffect(() => {
     if (!user?.branch_id) return;
-    
+
     api.get(`/addons`).then(res => setAddOnsData(res.data)).catch(console.error);
     api.get('/discounts').then(res => {
       const raw = res.data.data ?? res.data;
@@ -489,8 +489,10 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       promoDiscountAmount: number;
     };
   } | null>(null);
-  const [activeSuccessOrder, setActiveSuccessOrder] = useState<{order: OnlineOrder, seqNumber: string,
-    printedReceipt: boolean, printedKitchen: boolean, printedStickers: boolean} | null>(null);
+  const [activeSuccessOrder, setActiveSuccessOrder] = useState<{
+    order: OnlineOrder, seqNumber: string,
+    printedReceipt: boolean, printedKitchen: boolean, printedStickers: boolean
+  } | null>(null);
 
   // What to render in the hidden print area: 'receipt' | 'kitchen' | null
   const [printJob, setPrintJob] = useState<{
@@ -647,11 +649,11 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   // ── Confirmation modal ────────────────────────────────────────────────────
   const handleConfirm = (id: number, status: Status) => {
     const order = orders.find(o => o.id === id);
-    setConfirmOrder({ 
-      id, 
-      status, 
-      invoice: orderInvoice(order!), 
-      customer_code: order?.customer_code 
+    setConfirmOrder({
+      id,
+      status,
+      invoice: orderInvoice(order!),
+      customer_code: order?.customer_code
     });
   };
 
@@ -718,198 +720,198 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       {/* Main UI — hidden during print (matches SalesOrder pattern) */}
       <div className={`flex flex-col bg-[#f4f2fb] print:hidden ${isPage ? 'h-screen' : 'h-full'}`}>
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-[#e9d5ff] shrink-0 shadow-sm">
-        <div className="flex items-center gap-3">
-          {isPage && (
-            <button
-              onClick={() => navigate(-1)}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#f5f0ff] hover:bg-[#ede9fe] text-[#6a12b8] transition-colors mr-1 border border-[#e9d5ff]"
-              title="Back"
-            >
-              <ArrowLeft size={18} strokeWidth={2.5} />
-            </button>
-          )}
-          <div className="w-9 h-9 bg-[#6a12b8] rounded-xl flex items-center justify-center">
-            <ShoppingBag size={16} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-sm font-black uppercase tracking-widest text-[#1a0f2e]">Online Orders</h1>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-              Last updated {lastRefresh.toLocaleTimeString()}
-            </p>
-          </div>
-          
-          {/* Search bar */}
-          <div className="relative ml-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs w-48 focus:outline-none focus:ring-2 focus:ring-[#6a12b8]/20 focus:border-[#6a12b8] transition-all"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          {error && (
-            <div className="flex items-center gap-1.5 text-red-500 text-[10px] font-bold uppercase">
-              <AlertCircle size={13} />
-              {error}
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-[#e9d5ff] shrink-0 shadow-sm">
+          <div className="flex items-center gap-3">
+            {isPage && (
+              <button
+                onClick={() => navigate(-1)}
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#f5f0ff] hover:bg-[#ede9fe] text-[#6a12b8] transition-colors mr-1 border border-[#e9d5ff]"
+                title="Back"
+              >
+                <ArrowLeft size={18} strokeWidth={2.5} />
+              </button>
+            )}
+            <div className="w-9 h-9 bg-[#6a12b8] rounded-xl flex items-center justify-center">
+              <ShoppingBag size={16} className="text-white" />
             </div>
-          )}
-          <button
-            onClick={() => fetchOrders(true)}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-[#6a12b8] text-white rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-[#6b11b8] transition-colors disabled:opacity-60"
-          >
-            <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* Kanban board */}
-      <div className="flex-1 overflow-hidden p-5">
-        <div className="grid grid-cols-3 gap-5 h-full">
-          {COLUMNS.map(status => (
-            <KanbanColumn
-              key={status}
-              status={status}
-              orders={filteredOrders.filter(o => o.status === status)}
-              onMove={handleConfirm}
-              onPrint={handleReprintReceipt}
-              onPrintStickers={(o) => triggerPrint('stickers', o, o.customer_code || '001')}
-              updatingId={updatingId}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="shrink-0 px-6 py-2 bg-white border-t border-[#e9d5ff] flex items-center justify-center">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-          Auto-refreshing every 5 seconds
-        </span>
-      </div>
-
-      {/* Confirmation Modal */}
-      {confirmOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-
-            <div className={`px-6 py-5 ${confirmOrder.status === 'preparing' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  {confirmOrder.status === 'preparing'
-                    ? <ChefHat size={20} className="text-white" />
-                    : <CheckCircle2 size={20} className="text-white" />}
-                </div>
-                <div>
-                  <h2 className="text-white font-black text-base uppercase tracking-widest leading-tight">
-                    {confirmOrder.status === 'preparing' ? 'Start Preparing?' : 'Mark as Done?'}
-                  </h2>
-                  <p className="text-white/70 text-[11px] font-bold mt-0.5 font-mono">
-                    #{confirmOrder.customer_code || '—'} · {confirmOrder.invoice}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 py-4">
-              <p className="text-zinc-500 text-xs font-bold text-center">
-                {confirmOrder.status === 'preparing'
-                  ? 'This will move the order to Preparing.'
-                  : 'This will mark the order as Completed.'}
+            <div>
+              <h1 className="text-sm font-black uppercase tracking-widest text-[#1a0f2e]">Online Orders</h1>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                Last updated {lastRefresh.toLocaleTimeString()}
               </p>
             </div>
 
-            <div className="px-6 pb-6 flex gap-3">
-              <button
-                onClick={() => setConfirmOrder(null)}
-                className="flex-1 py-3 rounded-xl border-2 border-zinc-200 text-zinc-600 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (confirmOrder.status === 'preparing') {
-                    const order = orders.find(o => o.id === confirmOrder.id);
-                    if (order) setActivePaymentOrder(order);
-                    setConfirmOrder(null);
-                  } else {
-                    handleMove(confirmOrder.id, confirmOrder.status);
-                  }
-                }}
-                className={`flex-1 py-3 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${confirmOrder.status === 'preparing' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
-              >
-                {confirmOrder.status === 'preparing'
-                  ? <><Printer size={13} /> TAKE PAYMENT</>
-                  : <><Printer size={13} /> Mark as Done</>}
-              </button>
+            {/* Search bar */}
+            <div className="relative ml-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-4 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs w-48 focus:outline-none focus:ring-2 focus:ring-[#6a12b8]/20 focus:border-[#6a12b8] transition-all"
+              />
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            {error && (
+              <div className="flex items-center gap-1.5 text-red-500 text-[10px] font-bold uppercase">
+                <AlertCircle size={13} />
+                {error}
+              </div>
+            )}
+            <button
+              onClick={() => fetchOrders(true)}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-4 py-2 bg-[#6a12b8] text-white rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-[#6b11b8] transition-colors disabled:opacity-60"
+            >
+              <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* Payment workflow modals */}
-      <OnlineOrderPaymentModal
-        key={activePaymentOrder?.id ?? 'none'}
-        order={activePaymentOrder}
-        addOnsData={addOnsData}
-        discounts={discounts}
-        vatType={vatType}
-        onClose={() => setActivePaymentOrder(null)}
-        onConfirm={(data) => {
-          if (activePaymentOrder) {
-            setActiveNameOrder({ order: activePaymentOrder, ...data });
-            setActivePaymentOrder(null);
-          }
-        }}
-      />
+        {/* Kanban board */}
+        <div className="flex-1 overflow-hidden p-5">
+          <div className="grid grid-cols-3 gap-5 h-full">
+            {COLUMNS.map(status => (
+              <KanbanColumn
+                key={status}
+                status={status}
+                orders={filteredOrders.filter(o => o.status === status)}
+                onMove={handleConfirm}
+                onPrint={handleReprintReceipt}
+                onPrintStickers={(o) => triggerPrint('stickers', o, o.customer_code || '001')}
+                updatingId={updatingId}
+              />
+            ))}
+          </div>
+        </div>
 
-      {activeNameOrder && (
-        <CustomerNameModal
-          customerName={activeNameOrder.order.customer_name ?? ''}
-          onChange={(name) => setActiveNameOrder(prev => prev ? { ...prev, order: { ...prev.order, customer_name: name } } : null)}
-          onSkip={() => void completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
-          onConfirm={() => void completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
-          submitting={updatingId === activeNameOrder.order.id}
+        {/* Footer */}
+        <div className="shrink-0 px-6 py-2 bg-white border-t border-[#e9d5ff] flex items-center justify-center">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+            Auto-refreshing every 5 seconds
+          </span>
+        </div>
+
+        {/* Confirmation Modal */}
+        {confirmOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+
+              <div className={`px-6 py-5 ${confirmOrder.status === 'preparing' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    {confirmOrder.status === 'preparing'
+                      ? <ChefHat size={20} className="text-white" />
+                      : <CheckCircle2 size={20} className="text-white" />}
+                  </div>
+                  <div>
+                    <h2 className="text-white font-black text-base uppercase tracking-widest leading-tight">
+                      {confirmOrder.status === 'preparing' ? 'Start Preparing?' : 'Mark as Done?'}
+                    </h2>
+                    <p className="text-white/70 text-[11px] font-bold mt-0.5 font-mono">
+                      #{confirmOrder.customer_code || '—'} · {confirmOrder.invoice}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-4">
+                <p className="text-zinc-500 text-xs font-bold text-center">
+                  {confirmOrder.status === 'preparing'
+                    ? 'This will move the order to Preparing.'
+                    : 'This will mark the order as Completed.'}
+                </p>
+              </div>
+
+              <div className="px-6 pb-6 flex gap-3">
+                <button
+                  onClick={() => setConfirmOrder(null)}
+                  className="flex-1 py-3 rounded-xl border-2 border-zinc-200 text-zinc-600 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirmOrder.status === 'preparing') {
+                      const order = orders.find(o => o.id === confirmOrder.id);
+                      if (order) setActivePaymentOrder(order);
+                      setConfirmOrder(null);
+                    } else {
+                      handleMove(confirmOrder.id, confirmOrder.status);
+                    }
+                  }}
+                  className={`flex-1 py-3 rounded-xl text-white font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 ${confirmOrder.status === 'preparing' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                >
+                  {confirmOrder.status === 'preparing'
+                    ? <><Printer size={13} /> TAKE PAYMENT</>
+                    : <><Printer size={13} /> Mark as Done</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payment workflow modals */}
+        <OnlineOrderPaymentModal
+          key={activePaymentOrder?.id ?? 'none'}
+          order={activePaymentOrder}
+          addOnsData={addOnsData}
+          discounts={discounts}
+          vatType={vatType}
+          onClose={() => setActivePaymentOrder(null)}
+          onConfirm={(data) => {
+            if (activePaymentOrder) {
+              setActiveNameOrder({ order: activePaymentOrder, ...data });
+              setActivePaymentOrder(null);
+            }
+          }}
         />
-      )}
 
-      {activeSuccessOrder && (
-        <SuccessModal
-          orNumber={activeSuccessOrder.seqNumber}
-          hasStickers={true}
-          printedReceipt={activeSuccessOrder.printedReceipt}
-          printedKitchen={activeSuccessOrder.printedKitchen}
-          printedStickers={activeSuccessOrder.printedStickers}
-          onPrintReceipt={() => {
-            triggerPrint('receipt', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
-            setActiveSuccessOrder(prev => prev ? { ...prev, printedReceipt: true } : null);
-          }}
-          onPrintKitchen={() => {
-            triggerPrint('kitchen', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
-            setActiveSuccessOrder(prev => prev ? { ...prev, printedKitchen: true } : null);
-          }}
-          onPrintStickers={() => {
-            triggerPrint('stickers', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
-            setActiveSuccessOrder(prev => prev ? { ...prev, printedStickers: true } : null);
-          }}
-          onNewOrder={() => setActiveSuccessOrder(null)}
-          allowSkipPrint={true}
-        />
-      )}
+        {activeNameOrder && (
+          <CustomerNameModal
+            customerName={activeNameOrder.order.customer_name ?? ''}
+            onChange={(name) => setActiveNameOrder(prev => prev ? { ...prev, order: { ...prev.order, customer_name: name } } : null)}
+            onSkip={() => void completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
+            onConfirm={() => void completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
+            submitting={updatingId === activeNameOrder.order.id}
+          />
+        )}
+
+        {activeSuccessOrder && (
+          <SuccessModal
+            orNumber={activeSuccessOrder.seqNumber}
+            hasStickers={true}
+            printedReceipt={activeSuccessOrder.printedReceipt}
+            printedKitchen={activeSuccessOrder.printedKitchen}
+            printedStickers={activeSuccessOrder.printedStickers}
+            onPrintReceipt={() => {
+              triggerPrint('receipt', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
+              setActiveSuccessOrder(prev => prev ? { ...prev, printedReceipt: true } : null);
+            }}
+            onPrintKitchen={() => {
+              triggerPrint('kitchen', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
+              setActiveSuccessOrder(prev => prev ? { ...prev, printedKitchen: true } : null);
+            }}
+            onPrintStickers={() => {
+              triggerPrint('stickers', activeSuccessOrder.order, activeSuccessOrder.seqNumber);
+              setActiveSuccessOrder(prev => prev ? { ...prev, printedStickers: true } : null);
+            }}
+            onNewOrder={() => setActiveSuccessOrder(null)}
+            allowSkipPrint={true}
+          />
+        )}
 
 
-    </div>
+      </div>
 
       {/* Print area — rendered outside print:hidden div, matching SalesOrder pattern */}
       {printJob?.type === 'kitchen' && (
-        <KitchenPrint 
-          cart={mapOrderToCart(printJob.order)} 
+        <KitchenPrint
+          cart={mapOrderToCart(printJob.order)}
           branchName={printJob.order.branch_name ?? '—'}
           orNumber={orderInvoice(printJob.order)}
           queueNumber={printJob.seqNumber}
@@ -920,7 +922,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         />
       )}
       {printJob?.type === 'receipt' && (
-        <ReceiptPrint 
+        <ReceiptPrint
           cart={mapOrderToCart(printJob.order)}
           branchName={printJob.order.branch_name ?? '—'}
           brand={branchDetails.brand || "LUCKY BOBA MILKTEA"}
@@ -969,7 +971,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         />
       )}
       {printJob?.type === 'stickers' && (
-        <StickerPrint 
+        <StickerPrint
           cart={mapOrderToCart(printJob.order)}
           branchName={printJob.order.branch_name ?? '—'}
           orNumber={orderInvoice(printJob.order)}
