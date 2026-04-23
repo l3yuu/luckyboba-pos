@@ -44,6 +44,21 @@ interface CartItemForCalc {
   charges: { grab: boolean; panda: boolean };
 }
 
+interface TotalsType {
+  grossSubtotal: number;
+  vatableSales: number;
+  vatAmount: number;
+  vatExemptSales: number;
+  lessVat: number;
+  amtDue: number;
+  totalDiscountDisplay: number;
+  scDiscountAmount: number;
+  pwdDiscountAmount: number;
+  promoDiscountAmount: number;
+  totalCount: number;
+  hasPaxDiscount: boolean;
+}
+
 const buildInitialAssignments = (order: OrderForPayment | null): ItemPaxAssignments => {
   const initial: ItemPaxAssignments = {};
   (order?.items ?? []).forEach((item, i) => {
@@ -75,6 +90,9 @@ interface PaymentModalProps {
       lessVat: number;
       amtDue: number;
       totalDiscountDisplay: number;
+      scDiscountAmount: number;
+      pwdDiscountAmount: number;
+      promoDiscountAmount: number;
     }
   }) => void;
 }
@@ -105,7 +123,7 @@ export const OnlineOrderPaymentModal = ({
   const isVat = vatType === 'vat';
 
   // ── Calculations (Synced with SalesOrder.tsx) ─────────────────────────────
-  const totals = useMemo(() => {
+  const totals = useMemo<TotalsType | null>(() => {
     if (!order) return null;
     const items = order.items || [];
     const isGrab = order.source === 'grab' || paymentMethod === 'grab';
@@ -153,7 +171,8 @@ export const OnlineOrderPaymentModal = ({
     const scPct = scDiscount ? Number(scDiscount.amount) : 20;
     const pwdPct = pwdDiscount ? Number(pwdDiscount.amount) : 20;
 
-    let totalPaxDiscount = 0;
+    let scDiscountAmount = 0;
+    let pwdDiscountAmount = 0;
     let totalVatExemptSales = 0;
 
     cartItems.forEach((item, cartIndex) => {
@@ -164,12 +183,15 @@ export const OnlineOrderPaymentModal = ({
         const unitVatExcl = isVat ? unitPrice / 1.12 : unitPrice;
         const pct = assignment === 'sc' ? scPct : pwdPct;
         const discAmt = unitVatExcl * (pct / 100);
-        totalPaxDiscount += discAmt;
+        
+        if (assignment === 'sc') scDiscountAmount += discAmt;
+        else pwdDiscountAmount += discAmt;
+        
         totalVatExemptSales += unitVatExcl;
       });
     });
 
-    totalPaxDiscount = round(totalPaxDiscount);
+    const totalPaxDiscount = round(scDiscountAmount + pwdDiscountAmount);
     totalVatExemptSales = round(totalVatExemptSales);
     const hasPaxDiscount = totalPaxDiscount > 0;
 
@@ -179,6 +201,8 @@ export const OnlineOrderPaymentModal = ({
         ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
         : Number(selectedDiscount.amount)
       : 0;
+
+    const orderLevelDiscount = totalPaxDiscount + promoDiscount;
 
     const vatExemptSales = isVat && hasPaxDiscount ? Math.max(0, round(totalVatExemptSales - totalPaxDiscount)) : 0;
     const vatableBase = isVat
@@ -190,7 +214,7 @@ export const OnlineOrderPaymentModal = ({
 
     const amtDue = isVat
       ? Math.max(0, round(vatableBase + vatExemptSales))
-      : Math.max(0, round(grossSubtotal - promoDiscount));
+      : Math.max(0, round(grossSubtotal - orderLevelDiscount));
 
     const totalDiscountDisplay = totalPaxDiscount + promoDiscount;
 
@@ -202,6 +226,9 @@ export const OnlineOrderPaymentModal = ({
       lessVat,
       amtDue,
       totalDiscountDisplay,
+      scDiscountAmount: round(scDiscountAmount),
+      pwdDiscountAmount: round(pwdDiscountAmount),
+      promoDiscountAmount: round(promoDiscount),
       totalCount: cartItems.reduce((acc, i) => acc + i.qty, 0),
       hasPaxDiscount
     };
@@ -209,7 +236,17 @@ export const OnlineOrderPaymentModal = ({
 
   if (!order || !totals) return null;
 
-  const { amtDue, totalDiscountDisplay, vatableSales, vatAmount, vatExemptSales, lessVat } = totals;
+  const { 
+    amtDue, 
+    totalDiscountDisplay, 
+    vatableSales, 
+    vatAmount, 
+    vatExemptSales, 
+    lessVat,
+    scDiscountAmount,
+    pwdDiscountAmount,
+    promoDiscountAmount
+  } = totals;
   const change = cashTendered === '' ? 0 : Math.max(0, Number(cashTendered) - amtDue);
 
   const totalScUnits = Object.values(itemPaxAssignments).flat().filter(a => a === 'sc').length;
@@ -519,7 +556,10 @@ export const OnlineOrderPaymentModal = ({
                 onClick={() => onConfirm({ 
                   paymentMethod, cashTendered, referenceNumber, 
                   selectedDiscount, itemPaxAssignments, seniorIds, pwdIds, discountRemarks,
-                  calculations: { vatableSales, vatAmount, vatExemptSales, lessVat, amtDue, totalDiscountDisplay }
+                  calculations: { 
+                    vatableSales, vatAmount, vatExemptSales, lessVat, amtDue, totalDiscountDisplay,
+                    scDiscountAmount, pwdDiscountAmount, promoDiscountAmount
+                  }
                 })}
                 disabled={
                   (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||

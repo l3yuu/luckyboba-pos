@@ -61,9 +61,17 @@ class InventoryApiTest extends TestCase
     #[\PHPUnit\Framework\Attributes\Test]
     public function can_get_stock_alerts(): void
     {
-        $category = Category::factory()->create();
-        MenuItem::factory()->create(['category_id' => $category->id, 'quantity' => 2]); // Low stock
-        MenuItem::factory()->create(['category_id' => $category->id, 'quantity' => 20]); // Normal stock
+        $category = Category::factory()->create(['type' => 'drink']);
+        MenuItem::factory()->create([
+            'category_id' => $category->id, 
+            'quantity' => 2,
+            'branch_id' => $this->manager->branch_id
+        ]); // Low stock
+        MenuItem::factory()->create([
+            'category_id' => $category->id, 
+            'quantity' => 20,
+            'branch_id' => $this->manager->branch_id
+        ]); // Normal stock
 
         $response = $this->actingAs($this->manager, 'sanctum')
                          ->getJson('/api/inventory/alerts');
