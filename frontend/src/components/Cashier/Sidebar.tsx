@@ -62,14 +62,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     api.get('/add-ons').then(r => {
       if (Array.isArray(r.data)) localStorage.setItem('pos_addons_cache', JSON.stringify(r.data));
     }).catch(() => {});
-    api.get('/receipts/next-sequence').then(r => {
+    const branchId = user?.branch_id || localStorage.getItem('lucky_boba_user_branch_id');
+    api.get(`/receipts/next-sequence?branch_id=${branchId || ''}&source=pos&t=${Date.now()}`).then(r => {
       const seq = parseInt(r.data?.next_sequence, 10);
-      if (!isNaN(seq)) localStorage.setItem('last_or_sequence', String(seq));
+      if (!isNaN(seq)) {
+        const key = `last_or_sequence_${branchId || 'default'}`;
+        localStorage.setItem(key, String(seq));
+      }
     }).catch(() => {});
     api.get('/discounts').then(r => {
       if (Array.isArray(r.data)) localStorage.setItem('pos_discounts_cache', JSON.stringify(r.data));
     }).catch(() => {});
-  }, []);
+  }, [user?.branch_id]);
 
   useEffect(() => {
     const channel = new BroadcastChannel('pos-updates');

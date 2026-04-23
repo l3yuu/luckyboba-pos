@@ -37,7 +37,6 @@ import {
   AddOnModalShell,
   MixAndMatchDrinkModal,
   PaymentSelectModal,
-  KioskQueueManagementModal,
   type ItemPaxAssignments,
 } from '../components/Cashier/SalesOrderComponents/modals'
 
@@ -286,7 +285,6 @@ const SalesOrder = () => {
   const [printedReceipt, setPrintedReceipt] = useState(false)
   const [printedKitchen, setPrintedKitchen] = useState(false)
   const [printedStickers, setPrintedStickers] = useState(false)
-  const [isKioskQueueModalOpen, setIsKioskQueueModalOpen] = useState(false)
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
@@ -447,7 +445,7 @@ const SalesOrder = () => {
     if (!branchId) return;
 
     try {
-      const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&t=${Date.now()}`)
+      const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=pos&t=${Date.now()}`)
       const serverSeq = parseInt(data.next_sequence, 10)
       if (!isNaN(serverSeq)) {
         localStorage.setItem(seqKey, String(serverSeq))
@@ -1371,9 +1369,10 @@ const SalesOrder = () => {
     let finalOrNumber = orNumber;
     let finalQueueNumber = queueNumber;
 
-    if (navigator.onLine) {
+    if (navigator.onLine && branchId) {
       try {
-        const { data } = await api.get('/receipts/next-sequence');
+        // Fast-fail sequence fetch (5 seconds)
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=pos&t=${Date.now()}`, { timeout: 5000 });
         const serverSeq = parseInt(data.next_sequence, 10);
         if (!isNaN(serverSeq)) finalOrNumber = generateORNumber(serverSeq);
         const serverQueue = parseInt(data.next_queue, 10);
@@ -1381,9 +1380,20 @@ const SalesOrder = () => {
         
         setOrNumber(finalOrNumber);
         setQueueNumber(finalQueueNumber);
-      } catch {
-        // Fallback to cached state
+      } catch (err) {
+        console.error('[Sequence Fetch] Failed:', err);
+        // Fallback to local increment
+        const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1;
+        finalOrNumber = generateORNumber(lastSeq);
+        const lastQueue = parseInt(localStorage.getItem(queueKey) || '0', 10) + 1;
+        finalQueueNumber = generateQueueNumber(lastQueue);
       }
+    } else {
+      // Offline fallback
+      const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1;
+      finalOrNumber = generateORNumber(lastSeq);
+      const lastQueue = parseInt(localStorage.getItem(queueKey) || '0', 10) + 1;
+      finalQueueNumber = generateQueueNumber(lastQueue);
     }
 
     let scDiscountAmount = 0
@@ -1463,7 +1473,8 @@ const SalesOrder = () => {
 
     if (navigator.onLine) {
       try {
-        const res = await api.post('/sales', orderData);
+        // Fast-fail order submission (5 seconds)
+        const res = await api.post('/sales', orderData, { timeout: 5000 });
         if (res.data?.si_number) {
           finalOrNumber = res.data.si_number;
           setOrNumber(finalOrNumber);
@@ -1928,7 +1939,6 @@ const SalesOrder = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onHomeClick={() => handleNavClick('Home')}
-          onKioskClick={() => setIsKioskQueueModalOpen(true)}
         />
 
         <OfflineQueueBanner
@@ -2012,21 +2022,6 @@ const SalesOrder = () => {
                 </button>
               );
             })}
-
-            {!selectedCategory && (
-              <div className="flex items-center gap-2 ml-auto">
-                <div className="w-px h-4 bg-zinc-200 mx-1 shrink-0" />
-                <button
-                  onClick={() => setIsKioskQueueModalOpen(true)}
-                  className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-black transition-all bg-amber-500 text-white hover:bg-amber-600 shadow-sm active:scale-95 uppercase tracking-wider"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-                  </svg>
-                  <span>Kiosk</span>
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -2109,10 +2104,6 @@ const SalesOrder = () => {
             setSyncRequired(false);
           }}
         />
-      )}
-
-      {isKioskQueueModalOpen && (
-        <KioskQueueManagementModal onClose={() => setIsKioskQueueModalOpen(false)} />
       )}
     </>
   )

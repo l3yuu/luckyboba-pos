@@ -15,7 +15,8 @@ import { useAuth } from '../../../hooks/useAuth';
 import { CustomerNameModal, SuccessModal } from './modals';
 import { OnlineOrderPaymentModal } from './OnlineOrderPaymentModals';
 import { ReceiptPrint, KitchenPrint, StickerPrint } from './print';
-import { generateTerminalNumber } from './shared';
+import { generateTerminalNumber, generateORNumber } from './shared';
+import type { Discount } from './shared';
 import type { CartItem } from '../../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,7 +33,7 @@ interface SaleItem {
   cup_size_label?: string;
   sugar_level?: string;
   options?: string[];
-  add_ons?: (string | { name?: string; addon_name?: string })[];
+  add_ons?: (string | { name?: string; addon_name?: string; price?: number })[];
   remarks?: string;
 }
 
@@ -56,6 +57,12 @@ interface OnlineOrder {
   source?: string;
   created_at: string;
   items: SaleItem[];
+  sc_discount_amount?: number;
+  pwd_discount_amount?: number;
+  senior_id?: string;
+  pwd_id?: string;
+  pax_senior?: number;
+  pax_pwd?: number;
 }
 
 type Status = 'pending' | 'preparing' | 'completed';
@@ -127,7 +134,10 @@ const mapOrderToCart = (order: OnlineOrder): CartItem[] => {
       sugarLevel,
       remarks: item.remarks || '',
       options: Array.isArray(item.options) ? item.options : [],
-      addOns: Array.isArray(item.add_ons) ? item.add_ons.map((a: string | Record<string, string>) => typeof a === 'string' ? a : (a.name || a.addon_name || '')) : [],
+      addOns: Array.isArray(item.add_ons) 
+        ? item.add_ons.map((a: string | { name?: string; addon_name?: string; price?: number }) => 
+            typeof a === 'string' ? a : (a.name || a.addon_name || '')) 
+        : [],
       finalPrice: itemPrice(item),
     };
   }) as unknown as CartItem[];
@@ -147,6 +157,8 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
   const meta = STATUS_META[order.status as Status];
   const invoice = orderInvoice(order);
   const seqNumber = order.customer_code || '???';
+  // Only show SI# if it's a real receipt number (not a temporary KSK-/APP- placeholder)
+  const hasRealInvoice = invoice && !invoice.startsWith('KSK-') && !invoice.startsWith('APP-');
 
   const nextStatus: Record<Status, Status | null> = {
     pending: 'preparing',
@@ -164,7 +176,9 @@ const OrderCard = ({ order, onMove, onPrint, updating }: OrderCardProps) => {
         <div className="flex items-center gap-2">
           {meta.icon}
           <span className="font-black text-sm text-zinc-900">#{seqNumber}</span>
-          <span className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest">{invoice}</span>
+          {hasRealInvoice && (
+            <span className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest">{invoice}</span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {order.invoice_number?.startsWith('KSK-') ? (
@@ -384,11 +398,16 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   const [posFooter, setPosFooter] = useState<Record<string, unknown>>({});
   interface AddOnType { id: number; name: string; price: number; grab_price?: number; panda_price?: number; }
   const [addOnsData, setAddOnsData] = useState<AddOnType[]>([]);
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
   
   useEffect(() => {
     if (!user?.branch_id) return;
     
     api.get(`/addons`).then(res => setAddOnsData(res.data)).catch(console.error);
+    api.get('/discounts').then(res => {
+      const raw = res.data.data ?? res.data;
+      setDiscounts(Array.isArray(raw) ? raw : []);
+    }).catch(console.error);
 
     api.get(`/branches/${user.branch_id}/details`).then(res => {
       const b = res.data.data ?? res.data;
@@ -417,8 +436,26 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
   // New Workflow States
   const [activePaymentOrder, setActivePaymentOrder] = useState<OnlineOrder | null>(null);
-  const [activeNameOrder, setActiveNameOrder] = useState<{order: OnlineOrder, paymentMethod: string, cashTendered: number | '', referenceNumber: string} | null>(null);
-  const [activeSuccessOrder, setActiveSuccessOrder] = useState<{order: OnlineOrder, seqNumber: string, 
+  const [activeNameOrder, setActiveNameOrder] = useState<{
+    order: OnlineOrder;
+    paymentMethod: string;
+    cashTendered: number | '';
+    referenceNumber: string;
+    selectedDiscount: Discount | null;
+    itemPaxAssignments: Record<string, ('none' | 'sc' | 'pwd')[]>;
+    seniorIds: string[];
+    pwdIds: string[];
+    discountRemarks: string;
+    calculations: {
+      vatableSales: number;
+      vatAmount: number;
+      vatExemptSales: number;
+      lessVat: number;
+      amtDue: number;
+      totalDiscountDisplay: number;
+    };
+  } | null>(null);
+  const [activeSuccessOrder, setActiveSuccessOrder] = useState<{order: OnlineOrder, seqNumber: string,
     printedReceipt: boolean, printedKitchen: boolean, printedStickers: boolean} | null>(null);
 
   // What to render in the hidden print area: 'receipt' | 'kitchen' | null
@@ -474,8 +511,12 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     }, 150);
   }, []);
 
-  const completeWorkflow = async (nameObj: {order: OnlineOrder, paymentMethod: string, cashTendered: number | '', referenceNumber: string}, finalName: string) => {
-    const { order, paymentMethod, cashTendered } = nameObj;
+  const completeWorkflow = async (
+    nameObj: NonNullable<typeof activeNameOrder>,
+    finalName: string
+  ) => {
+    const { order, paymentMethod, cashTendered, referenceNumber, selectedDiscount,
+      itemPaxAssignments, seniorIds, pwdIds, discountRemarks, calculations } = nameObj;
     setActiveNameOrder(null);
     setUpdatingId(order.id);
     setError(null);
@@ -486,39 +527,110 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       // If it's a kiosk or app order awaiting an official receipt number
       if (invoice_number.startsWith('KSK-') || invoice_number.startsWith('APP-')) {
         try {
-          const res = await api.get(`/receipts/next-sequence?branch_id=${user?.branch_id || ''}`);
-          if (res.data?.sequence) {
-            invoice_number = res.data.sequence;
+          const res = await api.get(`/receipts/next-sequence?branch_id=${user?.branch_id || ''}&source=pos&t=${Date.now()}`);
+          if (res.data?.sequence || res.data?.next_sequence) {
+            invoice_number = res.data.sequence || generateORNumber(res.data.next_sequence);
           }
         } catch (e) {
-          console.error("Failed to fetch next sequence for online order", e);
+          console.error('Failed to fetch next sequence for online order', e);
         }
       }
 
-      await api.patch(`/online-orders/${order.id}/status`, { 
-        status: 'preparing', 
+      // Count SC/PWD pax from assignments
+      const allAssignments = Object.values(itemPaxAssignments).flat();
+      const paxSenior = allAssignments.filter(a => a === 'sc').length;
+      const paxPwd = allAssignments.filter(a => a === 'pwd').length;
+
+      // Derive per-type discount amounts
+      const scDiscountEntry = discounts.find(d => d.name.toUpperCase().includes('SENIOR'));
+      const pwdDiscountEntry = discounts.find(d => d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT'));
+      const isVatOrder = vatType === 'vat';
+      const scPct = scDiscountEntry ? Number(scDiscountEntry.amount) : 20;
+      const pwdPct = pwdDiscountEntry ? Number(pwdDiscountEntry.amount) : 20;
+
+      let scDiscountAmount = 0;
+      let pwdDiscountAmount = 0;
+
+      (order.items || []).forEach((item, cartIndex) => {
+        const assignments = itemPaxAssignments[String(cartIndex)] ?? [];
+        
+        const addOnCost = (item.add_ons || []).reduce((sum, add) => {
+          if (typeof add === 'object' && add.price !== undefined && Number(add.price) > 0) {
+            return sum + Number(add.price);
+          }
+          const name = typeof add === 'string' ? add : (add.name || add.addon_name);
+          const match = addOnsData.find(a => a.name.toLowerCase() === (name || '').toLowerCase());
+          if (!match) return sum;
+          if (paymentMethod === 'grab' && match.grab_price && Number(match.grab_price) > 0) return sum + Number(match.grab_price);
+          if (paymentMethod === 'food_panda' && match.panda_price && Number(match.panda_price) > 0) return sum + Number(match.panda_price);
+          return sum + Number(match.price);
+        }, 0);
+
+        const unitPrice = Number(item.unit_price ?? item.price ?? 0) + addOnCost;
+        
+        assignments.forEach(a => {
+          if (a === 'none') return;
+          const vatExcl = isVatOrder ? unitPrice / 1.12 : unitPrice;
+          if (a === 'sc') scDiscountAmount += vatExcl * (scPct / 100);
+          if (a === 'pwd') pwdDiscountAmount += vatExcl * (pwdPct / 100);
+        });
+      });
+
+      const promoDiscountAmount = selectedDiscount
+        ? selectedDiscount.type.includes('Percent')
+          ? calculations.amtDue * (Number(selectedDiscount.amount) / 100)
+          : Number(selectedDiscount.amount)
+        : 0;
+
+      await api.patch(`/online-orders/${order.id}/status`, {
+        status: 'preparing',
         branch_name: branchName,
         invoice_number: invoice_number !== orderInvoice(order) ? invoice_number : undefined,
         payment_method: paymentMethod,
         cash_tendered: cashTendered !== '' ? cashTendered : undefined,
+        reference_number: referenceNumber || undefined,
+        // Discount fields
+        discount_id: selectedDiscount?.id ?? undefined,
+        discount_amount: Math.round((scDiscountAmount + pwdDiscountAmount + promoDiscountAmount) * 100) / 100,
+        sc_discount_amount: Math.round(scDiscountAmount * 100) / 100,
+        pwd_discount_amount: Math.round(pwdDiscountAmount * 100) / 100,
+        discount_remarks: discountRemarks || undefined,
+        senior_id: seniorIds.filter(Boolean).join(',') || undefined,
+        pwd_id: pwdIds.filter(Boolean).join(',') || undefined,
+        pax_senior: paxSenior || undefined,
+        pax_pwd: paxPwd || undefined,
+        // VAT fields
+        vatable_sales: calculations.vatableSales,
+        vat_amount: calculations.vatAmount,
+        vat_exempt_sales: calculations.vatExemptSales,
       });
-      
-      const updatedOrder = { 
-        ...order, 
-        status: 'preparing' as Status, 
-        customer_name: finalName, 
+
+      const updatedOrder: OnlineOrder = {
+        ...order,
+        status: 'preparing' as Status,
+        customer_name: finalName,
         payment_method: paymentMethod,
         invoice_number: invoice_number,
+        vatable_sales: calculations.vatableSales,
+        vat_amount: calculations.vatAmount,
+        vat_exempt_sales: calculations.vatExemptSales,
+        discount_amount: Math.round((scDiscountAmount + pwdDiscountAmount + promoDiscountAmount) * 100) / 100,
+        sc_discount_amount: Math.round(scDiscountAmount * 100) / 100,
+        pwd_discount_amount: Math.round(pwdDiscountAmount * 100) / 100,
+        senior_id: seniorIds.filter(Boolean).join(',') || undefined,
+        pwd_id: pwdIds.filter(Boolean).join(',') || undefined,
+        pax_senior: paxSenior || undefined,
+        pax_pwd: paxPwd || undefined,
       };
       setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
       const seqNumber = updatedOrder.customer_code || '001';
-      
+
       setActiveSuccessOrder({
         order: updatedOrder,
         seqNumber,
         printedReceipt: false,
         printedKitchen: false,
-        printedStickers: false
+        printedStickers: false,
       });
     } catch (_err) {
       setError('Failed to update order status.');
@@ -742,11 +854,15 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
       {/* Payment workflow modals */}
       <OnlineOrderPaymentModal
+        key={activePaymentOrder?.id ?? 'none'}
         order={activePaymentOrder}
+        addOnsData={addOnsData}
+        discounts={discounts}
+        vatType={vatType}
         onClose={() => setActivePaymentOrder(null)}
-        onConfirm={(paymentMethod: string, cashTendered: number | '', referenceNumber: string) => {
+        onConfirm={(data) => {
           if (activePaymentOrder) {
-            setActiveNameOrder({ order: activePaymentOrder, paymentMethod, cashTendered, referenceNumber });
+            setActiveNameOrder({ order: activePaymentOrder, ...data });
             setActivePaymentOrder(null);
           }
         }}
@@ -756,8 +872,8 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         <CustomerNameModal
           customerName={activeNameOrder.order.customer_name ?? ''}
           onChange={(name) => setActiveNameOrder(prev => prev ? { ...prev, order: { ...prev.order, customer_name: name } } : null)}
-          onSkip={() => completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
-          onConfirm={() => completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
+          onSkip={() => void completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
+          onConfirm={() => void completeWorkflow(activeNameOrder, activeNameOrder.order.customer_name ?? '')}
           submitting={updatingId === activeNameOrder.order.id}
         />
       )}
@@ -837,6 +953,12 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           promoDiscount={printJob.order.discount_amount ?? 0}
           itemPaxAssignments={{}}
           customerName={printJob.order.customer_name ?? 'App Customer'}
+          seniorIds={printJob.order.senior_id ? printJob.order.senior_id.split(',') : []}
+          pwdIds={printJob.order.pwd_id ? printJob.order.pwd_id.split(',') : []}
+          paxSenior={printJob.order.pax_senior}
+          paxPwd={printJob.order.pax_pwd}
+          sc_discount_amount={printJob.order.sc_discount_amount}
+          pwd_discount_amount={printJob.order.pwd_discount_amount}
           orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
           formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
           formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}

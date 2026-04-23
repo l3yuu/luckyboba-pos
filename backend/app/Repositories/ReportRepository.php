@@ -116,84 +116,114 @@ class ReportRepository implements ReportRepositoryInterface
         ];
     }
 
-    public function getItemQuantities(string $date, ?int $branchId, string $cashierName): array
+    public function getItemQuantities(?string $date = null, ?int $branchId = null, ?string $cashierName = null): array
     {
-        $rawItems = DB::table('sale_items')
-            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-            ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
-            ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
-            ->leftJoin('bundles', 'sale_items.bundle_id', '=', 'bundles.id')
-            ->leftJoin('cups', 'categories.cup_id', '=', 'cups.id')
-            ->whereDate('sales.created_at', $date)
-            ->where('sales.status', 'completed')
-            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
-            ->select(
-                DB::raw("COALESCE(bundles.category, categories.name, 'UNCATEGORIZED') as category_name"),
-                DB::raw("COALESCE(categories.type, 'drink') as category_type"),
+        try {
+            $query = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->leftJoin('bundles', 'sale_items.bundle_id', '=', 'bundles.id')
+                ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
+                ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
+                ->leftJoin('cups', 'categories.cup_id', '=', 'cups.id')
+                ->where('sales.status', '!=', 'cancelled');
+
+            if ($date) {
+                $query->whereDate('sales.created_at', $date);
+            }
+
+            if ($branchId) {
+                $query->where('sales.branch_id', $branchId);
+            }
+
+            if ($cashierName) {
+                $query->where('sales.cashier_name', $cashierName);
+            }
+
+            $rawItems = $query->select(
                 'sale_items.*',
                 DB::raw("CASE WHEN sale_items.bundle_id IS NOT NULL THEN COALESCE(bundles.display_name, bundles.name, sale_items.product_name) ELSE sale_items.product_name END as resolved_product_name"),
+                DB::raw("COALESCE(bundles.category, categories.name, 'UNCATEGORIZED') as category_name"),
                 DB::raw("COALESCE(cups.size_m, 'M') as cup_size_m"),
                 DB::raw("COALESCE(cups.size_l, 'L') as cup_size_l")
             )
             ->get();
 
-        $globalAddonSummary = [];
+            $globalAddonSummary = [];
 
-        $groupedData = $rawItems->groupBy('category_name')->map(function ($items, $category) use (&$globalAddonSummary) {
-            $productSummary = $items->groupBy(function ($item) {
-                $name      = $item->resolved_product_name ?? $item->product_name;
-                $sizeLabel = $item->cup_size_label ?? null;
-                return $name . '||' . ($sizeLabel ?? 'none');
-            })->map(function ($pGroup) use (&$globalAddonSummary) {
-                $firstItem = $pGroup->first();
-                $sizeLabel = $firstItem->cup_size_label ?? null;
+            $groupedData = $rawItems->groupBy('category_name')->map(function ($items, $category) use (&$globalAddonSummary) {
+                $productSummary = $items->groupBy(function ($item) {
+                    $name = $item->resolved_product_name ?? $item->product_name;
+                    $sizeLabel = $item->cup_size_label ?? null;
+                    return $name . '||' . ($sizeLabel ?? 'none');
+                })->map(function ($pGroup) use (&$globalAddonSummary) {
+                    $firstItem = $pGroup->first();
+                    $quantity = (int) $pGroup->sum('quantity');
 
-                $productAddOnCounts = [];
-                foreach ($pGroup as $item) {
-                    $addons = json_decode($item->add_ons) ?? [];
-                    foreach ($addons as $addonName) {
-                        $productAddOnCounts[$addonName] = ($productAddOnCounts[$addonName] ?? 0) + $item->quantity;
-                        $globalAddonSummary[$addonName] = ($globalAddonSummary[$addonName] ?? 0) + $item->quantity;
+                    $addonCounts = [];
+                    foreach ($pGroup as $item) {
+                        if ($item->add_ons) {
+                            $addons = json_decode($item->add_ons, true);
+                            if (is_array($addons)) {
+                                foreach ($addons as $addon) {
+                                    $addonName = $addon['name'] ?? null;
+                                    if ($addonName) {
+                                        $addonCounts[$addonName] = ($addonCounts[$addonName] ?? 0) + ($addon['quantity'] ?? 1);
+                                        $globalAddonSummary[$addonName] = ($globalAddonSummary[$addonName] ?? 0) + ($addon['quantity'] ?? 1);
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
 
-                $formattedAddons = [];
-                foreach ($productAddOnCounts as $name => $qty) {
-                    $formattedAddons[] = ['name' => $name, 'qty' => $qty];
-                }
+                    ksort($addonCounts);
+                    $formattedAddons = [];
+                    foreach ($addonCounts as $name => $qty) {
+                        $formattedAddons[] = ['name' => $name, 'qty' => $qty];
+                    }
+
+                    return [
+                        'product_name' => $firstItem->resolved_product_name ?? $firstItem->product_name,
+                        'size'         => $firstItem->cup_size_label ?? 'none',
+                        'total_qty'    => $quantity,
+                        'total_sales'  => (float) $pGroup->sum('final_price'),
+                        'add_ons'      => $formattedAddons,
+                    ];
+                })->values();
 
                 return [
-                    'product_name' => $firstItem->resolved_product_name ?? $firstItem->product_name,
-                    'size'         => $sizeLabel,
-                    'total_qty'    => (int) $pGroup->sum('quantity'),
-                    'total_sales'  => (float) $pGroup->sum('final_price'),
-                    'add_ons'      => $formattedAddons,
+                    'category_name'  => $category,
+                    'products'       => $productSummary,
+                    'category_total' => (float) $productSummary->sum('total_sales'),
                 ];
             })->values();
 
+            ksort($globalAddonSummary);
+            $globalAddonList = [];
+            foreach ($globalAddonSummary as $name => $qty) {
+                $globalAddonList[] = ['name' => $name, 'qty' => $qty];
+            }
+
+            $grandTotal = (float) $rawItems->sum('final_price');
+
             return [
-                'category_name'  => $category,
-                'products'       => $productSummary,
-                'category_total' => (float) $productSummary->sum('total_sales'),
+                'date'                => $date,
+                'report_type'         => 'qty_items',
+                'categories'          => $groupedData,
+                'all_addons_summary'  => $globalAddonList,
+                'grand_total_revenue' => round($grandTotal, 2),
+                'vatable_sales'       => round($grandTotal / 1.12, 2),
+                'vat_amount'          => round($grandTotal - ($grandTotal / 1.12), 2),
+                'prepared_by'         => $cashierName,
             ];
-        })->values();
-
-        $grandTotal = (float) $rawItems->sum('final_price');
-        $addonsList = [];
-        foreach ($globalAddonSummary as $name => $qty) {
-            $addonsList[] = ['name' => $name, 'qty' => $qty];
+        } catch (\Throwable $e) {
+            Log::error("ReportRepository getItemQuantities Error: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'date' => $date,
+                'branchId' => $branchId,
+                'cashierName' => $cashierName
+            ]);
+            throw $e;
         }
-
-        return [
-            'date'                => $date,
-            'report_type'         => 'qty_items',
-            'categories'          => $groupedData,
-            'all_addons_summary'  => $addonsList,
-            'grand_total_revenue' => round($grandTotal, 2),
-            'vatable_sales'       => round($grandTotal / 1.12, 2),
-            'vat_amount'          => round($grandTotal - ($grandTotal / 1.12), 2),
-            'prepared_by'         => $cashierName,
-        ];
     }
 
     public function getHourlySales(string $date, ?int $branchId): mixed

@@ -22,7 +22,8 @@ import {
 } from 'lucide-react';
 import { KioskTicketPrint } from '../../components/Cashier/SalesOrderComponents/print';
 import { getImageUrl } from '../../utils/imageUtils';
-import { generateORNumber } from '../../components/Cashier/SalesOrderComponents/shared';
+import { useOfflineQueue } from '../../hooks/useOfflineQueue';
+
 
 // --- Types ---
 
@@ -95,6 +96,7 @@ const useKioskIdle = (onReset: () => void) => {
 // --- Main Component ---
 
 const KioskPage = () => {
+  const { enqueue } = useOfflineQueue();
   const [step, setStep] = useState<'locked' | 'splash' | 'order_type' | 'menu' | 'confirm' | 'select_branch'>('splash');
   const [orderType, setOrderType] = useState<'dine_in' | 'take_out' | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
@@ -104,6 +106,7 @@ const KioskPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [isOfflineOrder, setIsOfflineOrder] = useState(false);
 
   // --- Mix and Match State ---
   const [isMixMatchViewOpen, setIsMixMatchViewOpen] = useState(false);
@@ -582,13 +585,14 @@ const KioskPage = () => {
       const todayKey = new Date().toISOString().split('T')[0];
 
       try {
-        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=kiosk&t=${Date.now()}`);
+        // Fast-fail sequence fetch (3 seconds)
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=kiosk&t=${Date.now()}`, { timeout: 3000 });
         const serverSeq = parseInt(data.next_sequence, 10);
         const serverQueue = parseInt(data.next_queue, 10);
 
         if (!isNaN(serverSeq)) {
           seq = serverSeq;
-          nextQueue = !isNaN(serverQueue) ? serverQueue : 1;
+          nextQueue = !isNaN(serverQueue) ? Math.max(100, serverQueue) : 100;
 
           // Sync local storage as well
           const seqKey = `last_or_sequence_${branchId}`;
@@ -615,20 +619,23 @@ const KioskPage = () => {
         if (lastDate !== todayKey) {
           nextQueue = 100; // Reset for a new day (Kiosk starts at 100)
         } else {
-          nextQueue = parseInt(localStorage.getItem(queueKey) || '99', 10) + 1;
+          nextQueue = Math.max(100, parseInt(localStorage.getItem(queueKey) || '99', 10) + 1);
         }
         localStorage.setItem(queueKey, String(nextQueue));
         localStorage.setItem(dateKey, todayKey);
       }
 
-      const siNumber = generateORNumber(seq);
+      // Use a temporary KSK- prefix — the real SI# is assigned by the cashier
+      // when they click "Start Preparing" in the Online Orders panel
+      const formattedQueue = String(nextQueue).padStart(3, '0');
+      const tempInvoice = `KSK-${formattedQueue}`;
 
       const total = calculateTotal();
       const vatableSales = total / 1.12;
       const vatAmount = total - vatableSales;
 
       const payload = {
-        si_number: siNumber,
+        si_number: tempInvoice,
         branch_id: branchId,
         payment_method: 'cash',
         status: 'pending',
@@ -658,13 +665,18 @@ const KioskPage = () => {
         })
       };
 
-      const response = await api.post('/kiosk-sales', payload);
-      const finalSiNumber = response.data?.si_number || siNumber;
+      try {
+        // Fast-fail order submission (3 seconds)
+        await api.post('/kiosk-sales', payload, { timeout: 3000 });
+      } catch (err) {
+        console.warn('[Offline Mode] Saving kiosk order locally:', err);
+        enqueue(payload, '/kiosk-sales');
+        setIsOfflineOrder(true);
+      }
 
-      const formattedQueue = String(nextQueue).padStart(3, '0');
       setOrderNumber(formattedQueue);
       setPrintData({
-        invoice: finalSiNumber,
+        invoice: tempInvoice,
         cart: [...cart],
         queueNumber: formattedQueue
       });
@@ -1776,6 +1788,12 @@ const KioskPage = () => {
         </div>
 
         <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] w-full max-w-lg shadow-[0_30px_80px_rgba(0,0,0,0.04)] relative overflow-hidden flex flex-col items-center border border-purple-50/50 animate-in fade-in zoom-in-95 duration-1000 delay-300">
+          {isOfflineOrder && (
+            <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[8px] font-bold mb-4 flex items-center gap-1 uppercase tracking-widest animate-pulse">
+              <Clock className="w-2.5 h-2.5" />
+              {t.offlineSaved}
+            </div>
+          )}
           <p className="text-zinc-400 font-bold uppercase tracking-[0.3em] text-[9px] mb-4">{t.yourTicketNumber}</p>
 
           <div className="bg-purple-50/20 px-10 py-6 rounded-[2rem] mb-6 border border-purple-100/20 shadow-inner w-full text-center">

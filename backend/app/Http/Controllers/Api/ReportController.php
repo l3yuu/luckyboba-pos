@@ -66,9 +66,17 @@ class ReportController extends Controller
         try {
             $data = $this->reportRepo->getItemQuantities($date, $branchId, $cashierName);
             return response()->json($data);
-        } catch (\Exception $e) {
-            Log::error("Item Quantities Error: " . $e->getMessage());
-            return response()->json(['error' => 'Failed to fetch item quantities'], 500);
+        } catch (\Throwable $e) {
+            Log::error("Item Quantities Error: " . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error' => 'Failed to fetch item quantities',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
     }
 

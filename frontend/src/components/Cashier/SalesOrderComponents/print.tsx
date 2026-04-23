@@ -160,7 +160,7 @@ export const ReceiptPrint = ({
 
 
   const addOnUnitPrice = (item: CartItem, addonName: string): number => {
-    const a = addOnsData.find(x => x.name === addonName);
+    const a = addOnsData.find(x => x.name.toLowerCase() === addonName.toLowerCase());
     if (!a) return 0;
     return item.charges?.grab && Number(a.grab_price ?? 0) > 0
       ? Number(a.grab_price)
@@ -444,7 +444,7 @@ export const ReceiptPrint = ({
                     const groups = splitGroups.filter(g => g.discountType === type);
                     const discountTotal = groups.reduce((acc: number, g) => {
                       const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
-                        const a = addOnsData.find(x => x.name === name);
+                        const a = addOnsData.find(x => x.name.toLowerCase() === name.toLowerCase());
                         return sum + (a ? Number(a.price) : 0);
                       }, 0);
                       const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
@@ -452,7 +452,7 @@ export const ReceiptPrint = ({
                     }, 0);
                     const groupNetSubtotal = groups.reduce((acc: number, g) => {
                       const unitGross = Number(g.item.price) + (g.item.addOns ?? []).reduce((sum: number, name: string) => {
-                        const a = addOnsData.find(x => x.name === name);
+                        const a = addOnsData.find(x => x.name.toLowerCase() === name.toLowerCase());
                         return sum + (a ? Number(a.price) : 0);
                       }, 0);
                       const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
@@ -569,24 +569,26 @@ export const ReceiptPrint = ({
         </div>
 
         {/* Signature fields */}
-        <div className="text-xs mt-5 space-y-2">
-          {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature:'].map(label => (
-            <div key={label} className="flex justify-between items-end w-full">
-              <span>{label}</span>
-              <span className="border-b border-black w-[70%] relative">
-                {label === 'Name:' && customerName && (
-                  <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
-                )}
-                {/* FIX #3 — join arrays to a comma-separated string for display */}
-                {label === 'TIN/ID/SC:' && (seniorIds.length > 0 || pwdIds.length > 0) && (
-                  <span className="absolute left-1 bottom-0 text-[10px]">
-                    {[...seniorIds, ...pwdIds].join(', ')}
-                  </span>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
+        {(paxSenior > 0 || paxPwd > 0 || (seniorIds && seniorIds.length > 0) || (pwdIds && pwdIds.length > 0)) && (
+          <div className="text-xs mt-5 space-y-2">
+            {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature'].map(label => (
+              <div key={label} className="flex justify-between items-end w-full">
+                <span>{label}</span>
+                <span className="border-b border-black w-[70%] relative">
+                  {label === 'Name:' && customerName && (
+                    <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
+                  )}
+                  {/* FIX #3 — join arrays to a comma-separated string for display */}
+                  {label === 'TIN/ID/SC:' && ((seniorIds && seniorIds.length > 0) || (pwdIds && pwdIds.length > 0)) && (
+                    <span className="absolute left-1 bottom-0 text-[10px]">
+                      {[...(seniorIds || []), ...(pwdIds || [])].join(', ')}
+                    </span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
@@ -674,77 +676,104 @@ export const KioskTicketPrint = ({
           .printable-receipt-container {
             display: block !important;
             width: 80mm !important;
-            padding: 1mm;
+            padding: 0;
             background: white;
+          }
+          .receipt-area {
+            width: 70mm !important;
+            margin: 0 auto !important;
+            padding: 1mm 0 !important;
+            box-sizing: border-box !important;
+            color: #000 !important;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+            font-size: 10px !important;
+            line-height: 1.1 !important;
+            font-weight: 400 !important;
+            text-rendering: geometricPrecision !important;
+            -webkit-font-smoothing: none !important;
+            font-smooth: never !important;
+            letter-spacing: 0.1px !important;
+          }
+          .receipt-area * {
+            font-family: inherit !important;
+            font-weight: inherit !important;
+            line-height: inherit !important;
+            color: #000 !important;
+          }
+          .receipt-area strong,
+          .receipt-area b,
+          .receipt-area .font-bold {
+            font-weight: 700 !important;
+          }
+          .receipt-area .font-black {
+            font-weight: 800 !important;
+          }
+          .border-minimal {
+            border-bottom: 1px solid #000;
           }
         }
       `}</style>
-      <div className="receipt-area bg-white text-black leading-snug antialiased" style={{ 
-        fontFamily: 'Arial, Helvetica, sans-serif',
-        WebkitFontSmoothing: 'antialiased',
-        fontSmooth: 'always',
-        textRendering: 'optimizeLegibility'
-      }}>
+      <div className="receipt-area bg-white text-black">
         {/* Store header */}
-        <div className="text-center mb-1 pb-1 border-b border-dashed border-black">
-          <img src={logo} alt="Lucky Boba Logo" className="w-16 h-auto mx-auto mb-1" style={{ filter: 'grayscale(100%)', maxWidth: '30mm' }} />
-          <h1 className="uppercase font-black text-lg tracking-tighter">LUCKY BOBA</h1>
-          <p className="text-[10px] uppercase font-black tracking-widest">{branchName}</p>
+        <div className="text-center mb-2 pb-2 border-minimal">
+          <img src={logo} alt="Lucky Boba Logo" className="w-12 h-auto mx-auto mb-1 grayscale" style={{ filter: 'grayscale(100%)', maxWidth: '25mm' }} />
+          <h1 className="uppercase font-bold text-sm tracking-tight">LUCKY BOBA</h1>
+          <p className="text-[9px] uppercase font-bold tracking-widest">{branchName}</p>
         </div>
 
-        {/* Payment Instruction */}
-        <div className="bg-black text-white p-1 mb-1 text-center" style={{ width: '100%', boxSizing: 'border-box' }}>
-          <p className="text-[7px] font-bold uppercase tracking-widest mb-0.5">Status: PENDING</p>
-          <h2 className="text-sm font-black uppercase italic">PAY AT CASHIER</h2>
+        {/* Status indicator */}
+        <div className="text-center mb-2 py-1 border border-black rounded-sm">
+          <p className="text-[7px] font-bold uppercase tracking-[0.2em] mb-0.5">ORDER STATUS: PENDING</p>
+          <h2 className="text-xs font-bold uppercase">PLEASE PAY AT CASHIER</h2>
         </div>
 
         {/* Queue Number */}
-        <div className="text-center mb-1 pb-1">
-          <p className="text-[8px] font-black uppercase tracking-widest text-gray-500">Your Number:</p>
-          <h2 className="font-black tracking-tighter italic font-mono border-y border-black py-0.5 my-0.5"
-            style={{ fontSize: '28pt', lineHeight: 1, maxWidth: '100%' }}>
-            #{queueNumber}
-          </h2>
-          <p className="!text-[11px] !font-black !mt-1 !text-black !tracking-wider">
+        <div className="text-center mb-2">
+          <div className="inline-block px-3 py-1 border-y-2 border-black">
+            <h2 className="font-black tracking-tighter" style={{ fontSize: '28pt', lineHeight: 1 }}>
+              #{queueNumber}
+            </h2>
+          </div>
+          <p className="text-[9px] font-bold mt-1.5">
             {formattedDate} • {formattedTime}
           </p>
         </div>
 
         {/* Items Table Header */}
-        <div className="flex justify-between text-[10px] font-black uppercase border-b-2 border-black pb-0.5 mb-1">
-          <span>Item / Qty</span>
-          <span>Price</span>
+        <div className="flex justify-between text-[8px] font-bold uppercase border-b border-black pb-0.5 mb-1.5">
+          <span>PARTICULARS</span>
+          <span>AMOUNT</span>
         </div>
 
         {/* Items List */}
-        <div className="space-y-0.5 mb-1">
+        <div className="space-y-1 mb-2">
           {cart.map((item, i) => (
-            <div key={i} className="flex flex-col border-b border-gray-100 pb-0.5">
+            <div key={i} className="flex flex-col border-b border-gray-100 pb-1">
               <div className="flex justify-between items-start">
-                <div style={{ flex: 1, paddingRight: '1mm', minWidth: 0 }}>
+                <div style={{ flex: 1, paddingRight: '2mm', minWidth: 0 }}>
                   <div className="flex items-start gap-1">
-                    <span className="font-black text-[10px] shrink-0">{item.qty}x</span>
-                    <span className="uppercase font-bold text-[10px]" style={{ wordBreak: 'break-word' }}>{item.name}</span>
+                    <span className="font-bold text-[10px] shrink-0">{item.qty}x</span>
+                    <span className="uppercase font-bold text-[10px] leading-tight" style={{ wordBreak: 'break-word' }}>{item.name}</span>
                   </div>
-                  {item.cupSizeLabel && <div className="pl-3 text-[7px] font-bold uppercase text-gray-600 italic mt-0.5">{item.cupSizeLabel} SIZE</div>}
+                  {item.cupSizeLabel && <div className="pl-4 text-[8px] font-bold uppercase text-gray-600 italic mt-0.5">{item.cupSizeLabel} SIZE</div>}
                 </div>
-                <div className="font-black text-[11px]" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                <div className="font-bold text-[10px]" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
                   ₱{((item.itemTotal || Number(item.sellingPrice || item.price || item.finalPrice)) * item.qty).toFixed(2)}
                 </div>
               </div>
 
               {/* Add-ons/Options */}
-              <div className="pl-3 space-y-0 mt-0.5">
+              <div className="pl-4 space-y-0 mt-0.5">
                 {(item.selectedSugarLevel || item.sugarLevel) && (
-                  <div className="text-[7px] font-medium text-gray-500">
+                  <div className="text-[8px] font-bold text-gray-600">
                     • Sugar {item.selectedSugarLevel || item.sugarLevel}
                   </div>
                 )}
                 {item.selectedAddOns?.map(ao => (
-                  <div key={ao.id} className="text-[7px] font-bold text-gray-600 uppercase italic">• {ao.name}</div>
+                  <div key={ao.id} className="text-[8px] font-bold text-gray-600 uppercase italic">• {ao.name}</div>
                 ))}
                 {item.options?.map((o: string) => (
-                  <div key={o} className="text-[7px] font-medium text-gray-500">• {o}</div>
+                  <div key={o} className="text-[8px] font-bold text-gray-600">• {o}</div>
                 ))}
               </div>
             </div>
@@ -752,22 +781,32 @@ export const KioskTicketPrint = ({
         </div>
 
         {/* Totals Section */}
-        <div className="border-t-2 border-black pt-1 mb-1">
+        <div className="border-t border-black pt-1.5 mb-1.5">
           <div className="flex justify-between items-baseline">
-            <span className="text-[11px] font-black uppercase">TOTAL DUE</span>
-            <div className="flex items-baseline gap-1 font-black">
+            <span className="text-[9px] font-bold uppercase">TOTAL DUE</span>
+            <div className="flex items-baseline gap-1 font-bold">
               <span className="text-[10px]">₱</span>
               <span className="tracking-tighter" style={{ fontSize: '14pt' }}>{totalAmount.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
+        {/* Signature fields */}
+        <div className="text-[9px] mt-4 mb-4 space-y-2 border-t border-black pt-2">
+          {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature'].map(label => (
+            <div key={label} className="flex justify-between items-end w-full">
+              <span className="font-bold">{label}</span>
+              <span className="border-b border-black w-[70%] h-3"></span>
+            </div>
+          ))}
+        </div>
+
         {/* Footer */}
-        <div className="text-center pt-1 border-t border-dashed border-gray-300">
-          <p className="text-[7px] font-black uppercase tracking-widest mb-1">
+        <div className="text-center pt-1.5 border-t border-dashed border-gray-300 mt-1.5">
+          <p className="text-[8px] font-bold uppercase tracking-widest mb-0.5">
             NOT AN OFFICIAL RECEIPT. PRESENT TO COUNTER
           </p>
-          <div className="bg-gray-100 p-0.5 text-[6px] font-mono uppercase tracking-tighter opacity-80" style={{ wordBreak: 'break-all' }}>
+          <div className="bg-gray-100 p-0.5 text-[7px] font-bold uppercase tracking-tighter opacity-80" style={{ wordBreak: 'break-all' }}>
             {orNumber} | {formattedDate} {formattedTime}
           </div>
         </div>

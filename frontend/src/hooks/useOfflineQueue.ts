@@ -18,7 +18,8 @@ import api from '../services/api';
 
 export interface QueuedSale {
   id:         string;   // local UUID
-  payload:    unknown;  // the exact body sent to POST /api/sales
+  payload:    unknown;  // the exact body sent to POST
+  endpoint:   string;   // e.g. '/sales' or '/kiosk-sales'
   queuedAt:   string;   // ISO timestamp when it was queued
   attempts:   number;   // how many sync attempts have been made
   lastError?: string;   // last error message for display
@@ -26,7 +27,7 @@ export interface QueuedSale {
 
 export interface OfflineQueueState {
   /** Add a failed sale to the queue */
-  enqueue:    (payload: unknown) => void;
+  enqueue:    (payload: unknown, endpoint?: string) => void;
   /** Current number of queued (unsynced) sales */
   queueCount: number;
   /** True while a sync attempt is in progress */
@@ -82,10 +83,11 @@ export function useOfflineQueue(): OfflineQueueState {
   }, [queue]);
 
   // ── Enqueue ─────────────────────────────────────────────────────────────────
-  const enqueue = useCallback((payload: unknown) => {
+  const enqueue = useCallback((payload: unknown, endpoint: string = '/sales') => {
     const item: QueuedSale = {
       id:       uuid(),
       payload,
+      endpoint,
       queuedAt: new Date().toISOString(),
       attempts: 0,
     };
@@ -133,7 +135,9 @@ export function useOfflineQueue(): OfflineQueueState {
         if (item.attempts >= MAX_ATTEMPTS) continue;
 
         try {
-          await api.post('/sales', item.payload);
+          // Use the specific endpoint for this item (default to /sales)
+          const endpoint = item.endpoint || '/sales';
+          await api.post(endpoint, item.payload);
           updated = updated.filter(q => q.id !== item.id);
         } catch (err) {
           const status  = (err as { response?: { status?: number } })?.response?.status;
