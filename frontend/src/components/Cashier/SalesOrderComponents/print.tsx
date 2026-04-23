@@ -173,26 +173,6 @@ export const ReceiptPrint = ({
     <div className="printable-receipt-container hidden print:block">
       <style>{`
         @media print {
-          @page { 
-            size: 80mm auto;
-            margin: 0 !important; 
-          }
-          html, body { 
-            margin: 0 !important; 
-            padding: 0 !important; 
-            width: 80mm !important;
-            height: auto !important;
-          }
-          .printable-receipt-container {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            max-width: 76mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-          }
           .receipt-area {
             width: 66mm !important;
             margin: 0 auto !important;
@@ -825,26 +805,6 @@ export const KitchenPrint = ({
   <div className="printable-receipt-container hidden print:block">
     <style>{`
       @media print {
-        @page { 
-          size: 80mm auto;
-          margin: 0 !important; 
-        }
-        html, body { 
-          margin: 0 !important; 
-          padding: 0 !important; 
-          width: 80mm !important;
-          height: auto !important;
-        }
-        .printable-receipt-container {
-          position: absolute !important;
-          left: 0 !important;
-          top: 0 !important;
-          width: 100% !important;
-          max-width: 76mm !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          height: auto !important;
-        }
         .receipt-area {
           width: 66mm !important;
           margin: 0 auto !important;

@@ -414,10 +414,8 @@ return {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#f4f2fb] overflow-hidden relative">
-      <TopNavbar />
-
-      {/* ── Hidden print target ── */}
+    <>
+      {/* ── Hidden print target — MUST be outside the layout div ── */}
       {printPayload && printType && (() => {
         const props = buildPrintProps(printPayload, reprintSale?.display_order_number);
         return (
@@ -428,6 +426,9 @@ return {
           </>
         );
       })()}
+
+    <div className="flex flex-col h-full w-full bg-[#f4f2fb] overflow-hidden relative">
+      <TopNavbar />
 
       <div className={`flex-1 flex flex-col items-center justify-start p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-72' : ''}`}>
 
@@ -661,6 +662,7 @@ return {
         </div>
       )}
     </div>
+    </>
   );
 };
 
