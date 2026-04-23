@@ -545,7 +545,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       const paxPwd = allAssignments.filter(a => a === 'pwd').length;
 
       const scDiscountAmount = calculations.scDiscountAmount;
-      let pwdDiscountAmount = calculations.pwdDiscountAmount;
+      const pwdDiscountAmount = calculations.pwdDiscountAmount;
       const promoDiscountAmount = calculations.promoDiscountAmount;
 
       await api.patch(`/online-orders/${order.id}/status`, {
