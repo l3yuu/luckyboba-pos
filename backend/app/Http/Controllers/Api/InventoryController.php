@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Inventory\StockUpdateRequest;
 use App\Models\MenuItem;
 use App\Models\StockTransaction;
+use App\Models\Category;
+use App\Models\Branch;
 use App\Repositories\InventoryRepositoryInterface;
 use App\Exports\UsageReportExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class InventoryController extends Controller
@@ -116,7 +119,7 @@ class InventoryController extends Controller
     public function getCategories()
     {
         try {
-            $categories = \App\Models\Category::select('id', 'name')
+            $categories = Category::select('id', 'name')
                 ->where('type', '!=', 'standard')
                 ->orderBy('name', 'asc')
                 ->get();
@@ -169,7 +172,10 @@ class InventoryController extends Controller
     {
         try {
             $alerts = $this->inventoryRepository->getAlerts($request->query());
-            return response()->json($alerts);
+            return response()->json([
+                'count' => $alerts->count(),
+                'data' => $alerts
+            ]);
         } catch (\Exception $e) {
             Log::error('Inventory alerts error: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to load alerts.'], 500);
@@ -222,7 +228,7 @@ class InventoryController extends Controller
             $branchName = 'ALL BRANCHES';
             
             if ($request->has('branch_id')) {
-                $branch = \App\Models\Branch::find($request->branch_id);
+                $branch = Branch::find($request->branch_id);
                 if ($branch) {
                     $branchName = $branch->name;
                 }
@@ -231,8 +237,8 @@ class InventoryController extends Controller
             $filters = $request->query();
             $filters['branch_name'] = $branchName;
 
-            return \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\UsageReportExport($this->inventoryRepository, $period, $filters),
+            return Excel::download(
+                new UsageReportExport($this->inventoryRepository, $period, $filters),
                 "usage-report-{$period}.xlsx"
             );
         } catch (\Exception $e) {
