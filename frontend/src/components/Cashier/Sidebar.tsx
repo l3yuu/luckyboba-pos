@@ -34,6 +34,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [showZReadingBlockedModal, setShowZReadingBlockedModal] = useState(false);
   const [, setCurrentDate] = useState(new Date());
   const [isEodLocked, setIsEodLocked] = useState(false);
+  const [isTerminalLocked, setIsTerminalLocked] = useState(false);
+  const [currentShift, setCurrentShift] = useState<string | null>(null);
   const [isMenuLocked, setIsMenuLocked] = useState(true);
 
   const isMenuLockedRef = useRef(true);
@@ -42,9 +44,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   useEffect(() => {
     const checkEod = async () => {
       try {
-        const r = await api.get('/cash-counts/status');
+        const r = await api.get<{ isEodDone: boolean, isTerminalLocked: boolean, currentShift: string }>('/cash-counts/status');
         setIsEodLocked(r.data.isEodDone);
         isEodLockedRef.current = r.data.isEodDone;
+        setIsTerminalLocked(r.data.isTerminalLocked);
+        setCurrentShift(r.data.currentShift);
+        if (r.data.currentShift) localStorage.setItem('pos_current_shift', r.data.currentShift);
       } catch (e) { console.error("EOD Check failed", e); }
     };
     checkEod();
@@ -124,14 +129,17 @@ const Sidebar: React.FC<SidebarProps> = ({
   }, [currentTab]);
 
   useEffect(() => {
-    const fn = () => {
+    const fn = (e: any) => {
       setIsEodLocked(true);
       isEodLockedRef.current = true;
-      setIsMenuLocked(true);
-      isMenuLockedRef.current = true;
+      // Only lock the menu GLOBALLY if the terminal itself is locked (PM shift done)
+      if (e.detail?.shift === 'PM') {
+        setIsMenuLocked(true);
+        isMenuLockedRef.current = true;
+      }
     };
-    window.addEventListener('eod-completed', fn);
-    return () => window.removeEventListener('eod-completed', fn);
+    window.addEventListener('eod-completed' as any, fn);
+    return () => window.removeEventListener('eod-completed' as any, fn);
   }, []);
 
   useEffect(() => {
@@ -381,7 +389,7 @@ const salesReportItems: MenuItem[] = [
                     <div className="mx-3 my-1.5 px-1.5 py-1.5 bg-zinc-50/80 rounded-[0.625rem] border border-zinc-100 flex flex-col gap-0.5">
                       {dd.items.map((item) => {
                         const locked =
-                          (item.id === 'menu' && (isMenuLocked || isEodLocked)) ||
+                          (item.id === 'menu' && (isMenuLocked || isTerminalLocked)) ||
                           (item.id === 'z-reading' && !isEodLocked);
                         return (
                           <button
@@ -437,7 +445,9 @@ const salesReportItems: MenuItem[] = [
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-[11px] font-bold text-[#1a0f2e] truncate leading-tight">{user.name}</span>
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#6a12b8] leading-tight">{user.role}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#6a12b8] leading-tight">
+                  {user.role} {currentShift ? `· ${currentShift}` : ''}
+                </span>
               </div>
             </div>
           )}

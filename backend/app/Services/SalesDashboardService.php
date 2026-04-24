@@ -306,7 +306,7 @@ class SalesDashboardService
 
     // ─── Z-Reading ─────────────────────────────────────────────────────────────
 
-    public function generateZReading(string $fromStr, string $toStr, ?int $branchId = null): array
+    public function generateZReading(string $fromStr, string $toStr, ?int $branchId = null, ?string $shift = null): array
     {
         $start = Carbon::parse($fromStr)->startOfDay();
         $end   = Carbon::parse($toStr)->endOfDay();
@@ -317,11 +317,11 @@ class SalesDashboardService
             $isVat  = $branch?->vat_type !== 'non_vat';
         }
 
-        $voidAmount       = $this->saleRepo->getVoidSalesBetween($start, $end, $branchId);
-        $cash             = $this->saleRepo->getNetCashPayments($start, $end, $branchId);
-        $discounts        = $this->saleRepo->getDiscountsBreakdown($start, $end, $branchId);
-        $paymentBreakdown = $this->saleRepo->getPaymentMethodBreakdown($start, $end, $branchId);
-        $grossOrdered     = $this->saleRepo->getGrossItemSalesBetween($start, $end, $branchId);
+        $voidAmount       = $this->saleRepo->getVoidSalesBetween($start, $end, $branchId, $shift);
+        $cash             = $this->saleRepo->getNetCashPayments($start, $end, $branchId, $shift);
+        $discounts        = $this->saleRepo->getDiscountsBreakdown($start, $end, $branchId, $shift);
+        $paymentBreakdown = $this->saleRepo->getPaymentMethodBreakdown($start, $end, $branchId, $shift);
+        $grossOrdered     = $this->saleRepo->getGrossItemSalesBetween($start, $end, $branchId, $shift);
 
         $totalDiscounts = round(
             $discounts['sc_discount'] + $discounts['pwd_discount'] +
@@ -336,7 +336,7 @@ class SalesDashboardService
         $totalCollected = (float) $paymentBreakdown->sum('amount');
 
         if ($isVat) {
-            $taxAndVat      = $this->saleRepo->getTaxAndVatAggregates($start, $end, $branchId);
+            $taxAndVat      = $this->saleRepo->getTaxAndVatAggregates($start, $end, $branchId, $shift);
             $vatableSales   = (float) $taxAndVat->vatable_sales;
             $vatAmount      = (float) $taxAndVat->vat_amount;
             $vatExemptSales = (float) $taxAndVat->vat_exempt_sales;
@@ -355,15 +355,15 @@ class SalesDashboardService
         // Rounding adjustment = 0 by construction (golden rule)
         $roundingAdjustment = round($totalCollected - $netSales, 2);
 
-        $begSI        = $this->saleRepo->getFirstSiNumberBetween($start, $end, $branchId);
-        $endSI        = $this->saleRepo->getLastSiNumberBetween($start, $end, $branchId);
-        $totalQtySold = $this->saleRepo->getTotalQtySoldBetween($start, $end, $branchId);
-        $cashIn       = $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId);
-        $cashDrop     = $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId);
+        $begSI        = $this->saleRepo->getFirstSiNumberBetween($start, $end, $branchId, $shift);
+        $endSI        = $this->saleRepo->getLastSiNumberBetween($start, $end, $branchId, $shift);
+        $totalQtySold = $this->saleRepo->getTotalQtySoldBetween($start, $end, $branchId, $shift);
+        $cashIn       = $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId, $shift);
+        $cashDrop     = $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId, $shift);
 
         $isSingleDay         = ($fromStr === $toStr);
-        $zCounter            = $this->saleRepo->getZReadingsCountUpTo($start, $branchId, $isSingleDay);
-        $previousAccumulated = $this->saleRepo->getSalesAccumulatedUpTo($start, $branchId);
+        $zCounter            = $this->saleRepo->getZReadingsCountUpTo($start, $branchId, $isSingleDay, $shift);
+        $previousAccumulated = $this->saleRepo->getSalesAccumulatedUpTo($start, $branchId, $shift);
         $presentAccumulated  = round($previousAccumulated + $gross, 2);
         $actualNonCash       = (float) $paymentBreakdown->where('method', '!=', 'cash')->sum('amount');
 
@@ -376,7 +376,7 @@ class SalesDashboardService
             'net_total'            => $netTotal,
             'total_discounts'      => $totalDiscounts,
             'total_void_amount'    => $voidAmount,
-            'transaction_count'    => $this->saleRepo->getSalesCountBetween($start, $end, $branchId),
+            'transaction_count'    => $this->saleRepo->getSalesCountBetween($start, $end, $branchId, $shift),
             'total_qty_sold'       => $totalQtySold,
             'vatable_sales'        => $vatableSales,
             'vat_amount'           => $vatAmount,
@@ -390,13 +390,13 @@ class SalesDashboardService
             'non_cash_total'       => (float) $paymentBreakdown->where('method', '!=', 'cash')->sum('amount'),
             'total_payments'       => $totalCollected,
             'payment_breakdown'    => $paymentBreakdown,
-            'beg_si'               => $this->saleRepo->getFirstSiNumberBetween($start, $end, $branchId),
-            'end_si'               => $this->saleRepo->getLastSiNumberBetween($start, $end, $branchId),
-            'cash_in'              => $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId),
-            'cash_drop'            => $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId),
-            'cash_in_drawer'       => round($this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId) + $cash - $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId), 2),
-            'expected_amount'      => round($this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId) + $cash - $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId), 2),
-            'z_counter'            => $this->saleRepo->getZReadingsCountUpTo($start, $branchId, ($fromStr === $toStr)),
+            'beg_si'               => $this->saleRepo->getFirstSiNumberBetween($start, $end, $branchId, $shift),
+            'end_si'               => $this->saleRepo->getLastSiNumberBetween($start, $end, $branchId, $shift),
+            'cash_in'              => $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId, $shift),
+            'cash_drop'            => $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId, $shift),
+            'cash_in_drawer'       => round($this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId, $shift) + $cash - $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId, $shift), 2),
+            'expected_amount'      => round($this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId, $shift) + $cash - $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId, $shift), 2),
+            'z_counter'            => $this->saleRepo->getZReadingsCountUpTo($start, $branchId, ($fromStr === $toStr), $shift),
             'reset_counter'        => 0,
             'previous_accumulated' => $previousAccumulated,
             'present_accumulated'  => $presentAccumulated,
@@ -405,11 +405,12 @@ class SalesDashboardService
             'rounding_adjustment'  => $roundingAdjustment,
             'category_breakdown'   => [],
             'generated_at'         => now()->toDateTimeString(),
+            'shift'                => $shift,
         ];
 
         if ($isSingleDay) {
             ZReading::updateOrCreate(
-                ['reading_date' => $start->toDateString(), 'branch_id' => $branchId],
+                ['reading_date' => $start->toDateString(), 'branch_id' => $branchId, 'shift' => $shift],
                 [
                     'total_sales' => $gross,
                     'net_sales'   => $netSales,
@@ -441,21 +442,22 @@ class SalesDashboardService
         ];
     }
 
-    public function getZReadingHistory(?int $branchId = null, int $limit = 50): Collection
+    public function getZReadingHistory(?int $branchId = null, int $limit = 50, ?string $shift = null): Collection
     {
-        return $this->saleRepo->getZReadingsHistory($branchId, $limit);
+        return $this->saleRepo->getZReadingsHistory($branchId, $limit, $shift);
     }
 
-    public function checkZReadingStatus(string $date, ?int $branchId = null): array
+    public function checkZReadingStatus(string $date, ?int $branchId = null, ?string $shift = null): array
     {
         $day      = Carbon::parse($date)->toDateString();
         $zReading = ZReading::where('reading_date', $day)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($shift, fn($q) => $q->where('shift', $shift))
             ->first();
 
         $start    = Carbon::parse($day)->startOfDay();
         $end      = Carbon::parse($day)->endOfDay();
-        $hasSales = $this->saleRepo->getSalesCountBetween($start, $end, $branchId) > 0;
+        $hasSales = $this->saleRepo->getSalesCountBetween($start, $end, $branchId, $shift) > 0;
 
         return [
             'exists'    => (bool) $zReading,
@@ -463,6 +465,7 @@ class SalesDashboardService
             'closed_at' => $zReading?->closed_at,
             'has_sales' => $hasSales,
             'date'      => $day,
+            'shift'     => $shift,
         ];
     }
 

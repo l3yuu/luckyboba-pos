@@ -18,6 +18,11 @@ const authHeaders = () => ({
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
+const phCurrency = new Intl.NumberFormat('en-PH', {
+  style: 'currency',
+  currency: 'PHP',
+});
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ZReading {
   branch_id:      number;
@@ -45,6 +50,7 @@ interface ZHistory {
   net:        number;
   total_orders: number;
   closed_at:  string;
+  shift?:     string;
   cashier_name?: string;
 }
 interface CashierRow {
@@ -168,7 +174,7 @@ const CloseShiftModal: React.FC<{
   onCancel: () => void;
   loading: boolean;
 }> = ({ branchName, date, netSales, onConfirm, onCancel, loading }) => {
-  const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
   return createPortal(
     <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
       style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
@@ -195,7 +201,7 @@ const CloseShiftModal: React.FC<{
           </div>
           <div className="flex items-center justify-between border-t border-zinc-200 pt-1.5 mt-1.5">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Net Sales</span>
-            <span className="text-sm font-black text-emerald-600">{fmt(netSales)}</span>
+            <span className="text-sm font-black text-emerald-600">{phCurrency.format(netSales)}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 px-6 pb-6">
@@ -234,10 +240,11 @@ const ZReadingTab: React.FC = () => {
   const menuRef    = useRef<HTMLDivElement>(null);
   const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
   const [invoiceQuery, setInvoiceQuery] = useState("");
-  const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
+
   const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
+  const [shift, setShift] = useState("all");
 
   const handleBranchChange = (id: string) => {
     setBranchId(id);
@@ -247,7 +254,7 @@ const ZReadingTab: React.FC = () => {
   const [gaps, setGaps] = useState<string[]>([]);
   const [checkingStatus, setCheckingStatus] = useState(false);
 
-  const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -258,7 +265,9 @@ const ZReadingTab: React.FC = () => {
     if (!branchId) return;
     setCheckingStatus(true);
     try {
-      const res = await fetch(`/api/reports/z-reading/status?date=${dateFrom}&branch_id=${branchId}`, { headers: authHeaders() });
+      const params = new URLSearchParams({ date: dateFrom, branch_id: branchId });
+      if (shift !== "all") params.set("shift", shift);
+      const res = await fetch(`/api/reports/z-reading/status?${params}`, { headers: authHeaders() });
       const json = await res.json();
       if (json.success) setZStatus(json.data);
     } catch (err) {
@@ -266,7 +275,7 @@ const ZReadingTab: React.FC = () => {
     } finally {
       setCheckingStatus(false);
     }
-  }, [branchId, dateFrom]);
+  }, [branchId, dateFrom, shift]);
 
   const fetchGaps = useCallback(async () => {
     if (!branchId) return;
@@ -361,19 +370,17 @@ const ZReadingTab: React.FC = () => {
     setError("");
     setReportData(null);
     try {
-      const params = new URLSearchParams({ 
-        branch_id: branchId, 
-        date: dateFrom,
-        date_from: dateFrom,
-        date_to: dateTo,
+      const params = new URLSearchParams({
+        branch_id: branchId,
         from: dateFrom,
         to: dateTo
       });
+      if (shift !== "all") params.set("shift", shift);
 
       if (reportType === "summary") {
         const [summaryRes, qtyRes] = await Promise.all([
-          fetch(`/api/reports/sales-summary?from=${dateFrom}&to=${dateTo}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-          fetch(`/api/reports/item-quantities?from=${dateFrom}&to=${dateTo}&date=${dateFrom}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/sales-summary?${params}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/item-quantities?${params}`, { headers: authHeaders() }).then(r => r.json()),
         ]);
         const merged = { ...summaryRes, categories: qtyRes.categories ?? [], all_addons_summary: qtyRes.all_addons_summary ?? [] };
         setReportData({ ...normalizeResponse("summary", merged as Record<string, unknown>), report_type: "summary" });
@@ -402,7 +409,7 @@ const ZReadingTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, dateFrom, dateTo, reportType, invoiceQuery]);
+  }, [branchId, dateFrom, dateTo, reportType, invoiceQuery, shift]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -439,7 +446,9 @@ const ZReadingTab: React.FC = () => {
     setReportData(null);
     try {
       const p = new URLSearchParams({ branch_id: branchId, date: dateFrom, date_from: dateFrom, date_to: dateTo, from: dateFrom, to: dateTo });
+      if (shift !== "all") p.set("shift", shift);
       const extraParams = new URLSearchParams({ branch_id: branchId, date: dateTo });
+      if (shift !== "all") extraParams.set("shift", shift);
 
       const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
         fetch(`/api/reports/z-reading?${p}`, { headers: authHeaders() }).then(r => r.json()),
@@ -508,7 +517,7 @@ const ZReadingTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, dateFrom, dateTo, branches]);
+  }, [branchId, dateFrom, dateTo, branches, shift]);
 
   const fetchHistory = useCallback(async () => {
     if (!branchId) return;
@@ -516,6 +525,7 @@ const ZReadingTab: React.FC = () => {
     setHistory([]);   // ← clear stale history
     try {
         const params = new URLSearchParams({ branch_id: branchId });
+        if (shift !== "all") params.set("shift", shift);
         const res    = await fetch(`/api/reports/z-reading/history?${params}`, { headers: authHeaders() });
         if (!res.ok) { setHistory([]); return; } // ← add this line
         const json = await res.json();
@@ -546,7 +556,12 @@ const ZReadingTab: React.FC = () => {
       const res  = await fetch("/api/readings/z/close", {
         method:  "POST",
         headers: authHeaders(),
-        body:    JSON.stringify({ branch_id: branchId, date: dateFrom, date_to: dateTo }),
+        body:    JSON.stringify({ 
+          branch_id: branchId, 
+          date: dateFrom, 
+          date_to: dateTo,
+          shift: shift !== "all" ? shift : null
+        }),
       });
       const json = await res.json();
       if (json.success) {
@@ -1426,6 +1441,18 @@ const handlePrint = () => window.print();
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
         </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Shift</p>
+          <select 
+            value={shift} 
+            onChange={e => setShift(e.target.value)}
+            className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400"
+          >
+            <option value="all">All Shifts</option>
+            <option value="AM">AM Shift</option>
+            <option value="PM">PM Shift</option>
+          </select>
+        </div>
         <Btn onClick={() => reportType === "z_reading" ? fetchFullZReading() : fetchXReport()} disabled={loading || !branchId}>
           {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Load Reading"}
         </Btn>
@@ -1563,6 +1590,7 @@ const handlePrint = () => window.print();
                       : reportData?.report_type === "x_reading"
                       ? "X-READING"
                       : (reportData?.report_type ?? "REPORT").replace(/_/g, " ").toUpperCase()}
+                    {shift !== "all" && ` - ${shift}`}
                   </p>
                   <p className="text-[10px] text-zinc-500">
                     {dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom}
@@ -1605,7 +1633,7 @@ const handlePrint = () => window.print();
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  {["Date", "Branch", "Total Orders", "Gross Sales", "Net Sales", "Closed At", "Status"].map(h => (
+                  {["Date", "Shift", "Branch", "Total Orders", "Gross Sales", "Net Sales", "Closed At", "Status"].map(h => (
                     <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                   ))}
                 </tr>
@@ -1613,7 +1641,7 @@ const handlePrint = () => window.print();
               <tbody>
                 {histLoading && [...Array(5)].map((_, i) => (
                   <tr key={i} className="border-b border-zinc-50">
-                    {[...Array(7)].map((_, j) => (
+                    {[...Array(8)].map((_, j) => (
                       <td key={j} className="px-5 py-4">
                         <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${50 + Math.random() * 40}%` }} />
                       </td>
@@ -1622,7 +1650,7 @@ const handlePrint = () => window.print();
                 ))}
                 {!histLoading && history.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
+                    <td colSpan={8} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
                       No Z Reading history found for this branch.
                     </td>
                   </tr>
@@ -1630,10 +1658,21 @@ const handlePrint = () => window.print();
                 {!histLoading && history.map((h, i) => (
                   <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                     <td className="px-5 py-3.5 font-medium text-zinc-700 text-xs">{h.date}</td>
+                    <td className="px-5 py-3.5 text-zinc-600 text-xs">
+                      {h.shift ? (
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          h.shift === "AM" ? "bg-amber-100 text-amber-700" : "bg-violet-100 text-violet-700"
+                        }`}>
+                          {h.shift}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400">All</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3.5 text-zinc-600 text-xs">{h.branch_name}</td>
                     <td className="px-5 py-3.5 text-zinc-600 text-xs">{Number(h.total_orders).toLocaleString()}</td>
-                    <td className="px-5 py-3.5 font-bold text-[#6a12b8] text-xs">{fmt(Number(h.gross))}</td>
-                    <td className="px-5 py-3.5 font-bold text-emerald-600 text-xs">{fmt(Number(h.net))}</td>
+                    <td className="px-5 py-3.5 font-bold text-[#6a12b8] text-xs">{phCurrency.format(Number(h.gross))}</td>
+                    <td className="px-5 py-3.5 font-bold text-emerald-600 text-xs">{phCurrency.format(Number(h.net))}</td>
                     <td className="px-5 py-3.5 text-zinc-400 text-xs">
                       {h.closed_at ? new Date(h.closed_at).toLocaleString("en-PH", {
                         month: "short", day: "numeric",

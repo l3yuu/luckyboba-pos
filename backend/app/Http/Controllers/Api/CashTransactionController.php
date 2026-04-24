@@ -88,9 +88,15 @@ class CashTransactionController extends Controller
         }
 
         try {
+            // Resolve shift from request, user model, or time-of-day fallback
+            $shift = $request->input('shift')
+                  ?? $user?->current_shift
+                  ?? (now()->hour < 14 ? 'AM' : 'PM');
+
             $transaction = CashTransaction::create([
                 'user_id'   => $userId,
-                'branch_id' => $branchId, // ← added
+                'branch_id' => $branchId,
+                'shift'     => $shift,
                 'type'      => $validated['type'],
                 'amount'    => $validated['amount'],
                 'note'      => $validated['note'],
