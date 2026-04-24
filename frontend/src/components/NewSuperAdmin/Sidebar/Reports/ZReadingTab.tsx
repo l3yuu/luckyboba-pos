@@ -536,7 +536,7 @@ const ZReadingTab: React.FC = () => {
     } finally {
         setHistLoading(false);
     }
-    }, [branchId]);
+    }, [branchId, shift]);
 
   useEffect(() => {
     if (branchId) {

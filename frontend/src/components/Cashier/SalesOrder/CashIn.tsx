@@ -42,12 +42,12 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
         if (!cancelled) {
           setIsEodLocked(response.data.isEodDone);
           // Check which shifts are available
-          const statusRes = await api.get('/cash-transactions/status');
+          await api.get('/cash-transactions/status');
           // AM is done if there's already been a cash count for AM
           const cashCountRes = await api.get(`/cash-counts/summary?date=${new Date().toISOString().split('T')[0]}`);
           const cashCounts = cashCountRes.data?.denominations ? [cashCountRes.data] : (Array.isArray(cashCountRes.data) ? cashCountRes.data : []);
-          const amClosed = cashCounts.some((c: any) => c.shift === 'AM');
-          const pmClosed = cashCounts.some((c: any) => c.shift === 'PM');
+          const amClosed = cashCounts.some((c: { shift: string }) => c.shift === 'AM');
+          const pmClosed = cashCounts.some((c: { shift: string }) => c.shift === 'PM');
           
           setAmDone(amClosed);
           if (amClosed && !pmClosed) {

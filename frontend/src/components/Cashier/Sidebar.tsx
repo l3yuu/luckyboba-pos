@@ -129,17 +129,18 @@ const Sidebar: React.FC<SidebarProps> = ({
   }, [currentTab]);
 
   useEffect(() => {
-    const fn = (e: any) => {
+    const fn = (e: Event) => {
+      const customEvent = e as CustomEvent;
       setIsEodLocked(true);
       isEodLockedRef.current = true;
       // Only lock the menu GLOBALLY if the terminal itself is locked (PM shift done)
-      if (e.detail?.shift === 'PM') {
+      if (customEvent.detail?.shift === 'PM') {
         setIsMenuLocked(true);
         isMenuLockedRef.current = true;
       }
     };
-    window.addEventListener('eod-completed' as any, fn);
-    return () => window.removeEventListener('eod-completed' as any, fn);
+    window.addEventListener('eod-completed', fn);
+    return () => window.removeEventListener('eod-completed', fn);
   }, []);
 
   useEffect(() => {

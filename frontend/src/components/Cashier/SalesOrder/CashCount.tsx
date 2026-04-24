@@ -5,7 +5,7 @@ import type { Transaction } from '../../../types/cash-count';
 import api from '../../../services/api';
 import TopNavbar from '../../Cashier/TopNavbar';
 import { useToast } from '../../../hooks/useToast';
-import { Calculator, Printer, CheckCircle2, Lock, AlertTriangle, MessageSquare, RefreshCw, Banknote } from 'lucide-react';
+import { Calculator, Printer, CheckCircle2, AlertTriangle, MessageSquare, RefreshCw, Banknote } from 'lucide-react';
 
 interface CashCountProps {
   onSuccess?: () => void;
