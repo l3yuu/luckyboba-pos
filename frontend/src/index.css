@@ -18,46 +18,203 @@
   border-radius: 8px;
 }
 
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); transform: scale(1); }
+  50% { box-shadow: 0 0 30px 10px rgba(124, 58, 237, 0.2); transform: scale(1.02); }
+}
+
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes draw-line {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-slide-up { animation: slide-up-fade 0.5s ease-out forwards; }
+.animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
+.animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
+
+/* ── Utility Classes ─────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(24, 24, 27, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Kiosk menu polish */
+.kiosk-menu-shell {
+  font-family: "Speedee", "DIN Next", "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.kiosk-splash-shell {
+  font-family: "Speedee", "DIN Next", "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.012em;
+}
+
+.kiosk-splash-gradient {
+  background: radial-gradient(circle at 20% 16%, rgba(124, 58, 237, 0.1) 0%, rgba(124, 58, 237, 0) 42%),
+              radial-gradient(circle at 82% 78%, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0) 38%),
+              linear-gradient(160deg, #fcfcff 0%, #f5f2ff 48%, #f8f8ff 100%);
+}
+
+.kiosk-menu-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #fcfcff 100%);
+}
+
+.kiosk-menu-topbar {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.kiosk-menu-card {
+  border-color: #e4e4ef;
+  box-shadow: 0 3px 12px rgba(26, 26, 34, 0.05);
+}
+
+.kiosk-menu-card:hover {
+  border-color: #d3d2e7;
+  box-shadow: 0 8px 20px rgba(17, 17, 23, 0.09);
+}
+
 /* ── Print Styles ─────────────────────────────────────────────────────────── */
 @media print {
+  /* Paper: 80mm wide thermal roll, unlimited vertical height */
   @page {
     size: 80mm auto;
-    margin: 0;
+    margin: 0mm;
   }
 
+  /* Force color printing */
   * {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
   }
 
-  body {
-    margin: 0;
-    padding: 0;
-    background: white;
+  /* Constrain the root to 80mm */
+  html, body {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    height: auto !important;
   }
 
+  /* Step 1: Make everything invisible (keeps layout but hidden) */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Step 2: Re-show the printable container and ALL its children */
+  .printable-receipt-container,
+  .printable-receipt-container * {
+    visibility: visible !important;
+  }
+
+  /* Step 3: Position the container at top-left via absolute positioning
+     so it breaks out of the document flow — no blank space above it
+     even when invisible ancestor elements still occupy space. */
   .printable-receipt-container {
     display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
     width: 80mm !important;
+    max-width: 80mm !important;
     margin: 0 !important;
+    padding: 0 4mm !important;
+    background: white !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    height: auto !important;
+    z-index: 99999 !important;
+  }
+
+  /* Sticker mode overrides */
+  .printable-receipt-container.sticker-mode {
+    width: 38.5mm !important;
+    max-width: 38.5mm !important;
     padding: 0 !important;
   }
 
+  /* receipt-area: fills the padded container */
   .receipt-area {
-    width: 80mm !important;
-    min-height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 0 !important;
-    padding: 4mm !important;
+    padding: 2mm 0 !important;
+    overflow-x: hidden !important;
+    word-break: break-word !important;
   }
 
+  /* Sticker label */
   .sticker-area {
-    width: 57mm !important;
-    height: 30mm !important;
-    overflow: hidden;
+    width: 38.5mm !important;
+    height: 50.8mm !important;
+    margin: 0 auto !important;
+    padding: 2mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    visibility: visible !important;
   }
 
+  /* Page-break helper */
   .page-break {
-    page-break-after: always;
-    break-after: page;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  /* Utility: hide elements from print */
+  .print-hidden {
+    display: none !important;
   }
 }

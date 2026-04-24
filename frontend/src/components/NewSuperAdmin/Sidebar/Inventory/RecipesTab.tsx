@@ -2,48 +2,59 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
-  ChevronDown, CheckCircle, BookOpen, FlaskConical, Minus,
+  Search, Plus, Edit2, Trash2, X, AlertCircle,
+  ChevronDown, CheckCircle, BookOpen, FlaskConical, Minus, FileDown
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { createPortal } from 'react-dom';
 import api from '../../../../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface RecipeItem {
-  id:              number;
+  id: number;
   raw_material_id: number;
-  raw_material?:   { name: string; unit: string };
-  material_name?:  string;
-  unit?:           string;
-  quantity:        number | '';
-  notes?:          string;
+  raw_material?: { name: string; unit: string };
+  material_name?: string;
+  unit?: string;
+  quantity: number | '';
+  notes?: string;
 }
 
 interface Recipe {
-  id:          number;
+  id: number;
   menu_item_id: number;
-  menu_item?:  { name: string; category?: { name: string } };
+  menu_item?: { name: string; category?: { name: string } };
   menu_item_name?: string;
-  size?:       'M' | 'L' | null;
-  is_active:   boolean;
-  notes?:      string;
-  items?:      RecipeItem[];
+  size?: 'M' | 'L' | null;
+  is_active: boolean;
+  notes?: string;
+  items?: RecipeItem[];
   recipe_items?: RecipeItem[];
 }
 
-interface MenuItem { id: number; name: string; category?: { name: string }; }
 interface RawMaterial { id: number; name: string; unit: string; }
+interface RecipeMenuItem { id: number; name: string; category?: string; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const sizeLabel = (s?: string | null) => s === 'M' ? 'Medium' : s === 'L' ? 'Large' : 'Fixed';
+const sizeLabel = (s?: string | null) => {
+  if (!s || s === '' || s === 'none') return 'Fixed';
+  const mapping: Record<string, string> = {
+    'JR': 'Junior (JR)',
+    'SM': 'Small (SM)',
+    'M': 'Medium (M)',
+    'L': 'Large (L)',
+    'SL': 'Solo (SL)',
+  };
+  return mapping[s] || s;
+};
 
 const resolveItems = (r: Recipe): RecipeItem[] =>
   (r.items ?? r.recipe_items ?? []).map(i => ({
     ...i,
     material_name: i.raw_material?.name ?? i.material_name ?? '',
-    unit:          i.raw_material?.unit ?? i.unit ?? '',
+    unit: i.raw_material?.unit ?? i.unit ?? '',
   }));
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -64,20 +75,21 @@ const Field: React.FC<{ label: string; required?: boolean; error?: string; child
 // ─── Recipe Form Modal ────────────────────────────────────────────────────────
 
 const RecipeFormModal: React.FC<{
-  onClose:  () => void;
-  onSaved:  (r: Recipe) => void;
+  onClose: () => void;
+  onSaved: (r: Recipe) => void;
   editing?: Recipe | null;
 }> = ({ onClose, onSaved, editing }) => {
-  const [menuItemId,  setMenuItemId]  = useState<number | ''>(editing?.menu_item_id ?? '');
-  const [size,        setSize]        = useState<string>(editing?.size ?? '');
-  const [isActive,    setIsActive]    = useState(editing?.is_active ?? true);
-  const [notes,       setNotes]       = useState(editing?.notes ?? '');
+  const [menuItemId, setMenuItemId] = useState<number | ''>(editing?.menu_item_id ?? '');
+  const [size, setSize] = useState<string>(editing?.size ?? '');
+  const [isActive, setIsActive] = useState(editing?.is_active ?? true);
+  const [notes, setNotes] = useState(editing?.notes ?? '');
   const [recipeItems, setRecipeItems] = useState<RecipeItem[]>(resolveItems(editing ?? {} as Recipe));
-  const [menuItems,   setMenuItems]   = useState<MenuItem[]>([]);
+  const [menuItems, setMenuItems] = useState<RecipeMenuItem[]>([]); // Using RecipeMenuItem[] because m.category is a string here
+  const [catFilter, setCatFilter] = useState('');
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
-  const [saving,      setSaving]      = useState(false);
-  const [errors,      setErrors]      = useState<Record<string, string>>({});
-  const [apiErr,      setApiErr]      = useState('');
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiErr, setApiErr] = useState('');
 
   useEffect(() => {
     Promise.all([api.get('/menu-items'), api.get('/raw-materials')]).then(([mi, rm]) => {
@@ -122,14 +134,14 @@ const RecipeFormModal: React.FC<{
     try {
       const payload = {
         menu_item_id: menuItemId,
-        size:         size || null,
-        is_active:    isActive,
+        size: size || null,
+        is_active: isActive,
         notes,
         items: recipeItems.map(i => ({
           raw_material_id: i.raw_material_id,
-          quantity:        Number(i.quantity),
-          unit:            i.unit,
-          notes:           i.notes ?? '',
+          quantity: Number(i.quantity),
+          unit: i.unit,
+          notes: i.notes ?? '',
         })),
       };
       const res = editing
@@ -153,7 +165,7 @@ const RecipeFormModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <BookOpen size={15} className="text-[#3b2063]" />
+              <BookOpen size={15} className="text-[#6a12b8]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Recipe' : 'Add Recipe'}</p>
@@ -173,18 +185,34 @@ const RecipeFormModal: React.FC<{
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Menu Item" required error={errors.menu_item}>
-              <select value={menuItemId} onChange={e => { setMenuItemId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.menu_item; return n; }); }}
-                className={inputCls(errors.menu_item)}>
-                <option value="">Select menu item...</option>
-                {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            <Field label="Category Filter">
+              <select value={catFilter} onChange={e => { setCatFilter(e.target.value); setMenuItemId(''); }} className={inputCls()}>
+                <option value="">All Categories</option>
+                {Array.from(new Set(menuItems.map(m => m.category).filter(Boolean))).sort().map(cat => (
+                  <option key={cat as string} value={cat as string}>{cat as string}</option>
+                ))}
               </select>
             </Field>
+            <Field label="Menu Item" required error={errors.menu_item}>
+              <select value={menuItemId} onChange={e => { setMenuItemId(Number(e.target.value)); setErrors(p => { const n = { ...p }; delete n.menu_item; return n; }); }}
+                className={inputCls(errors.menu_item)}>
+                <option value="">Select menu item...</option>
+                {menuItems
+                  .filter(m => !catFilter || m.category === catFilter)
+                  .map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Size">
               <select value={size} onChange={e => setSize(e.target.value)} className={inputCls()}>
                 <option value="">Fixed (no size)</option>
+                <option value="JR">Junior (JR)</option>
+                <option value="SM">Small (SM)</option>
                 <option value="M">Medium (M)</option>
                 <option value="L">Large (L)</option>
+                <option value="SL">Solo (SL)</option>
               </select>
             </Field>
           </div>
@@ -196,7 +224,7 @@ const RecipeFormModal: React.FC<{
 
           {/* Active toggle */}
           <label className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:bg-[#faf9ff] transition-colors">
-            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${isActive ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}
+            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${isActive ? 'bg-[#6a12b8]' : 'bg-zinc-300'}`}
               onClick={() => setIsActive(v => !v)}>
               <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${isActive ? 'translate-x-4' : ''}`} />
             </div>
@@ -213,7 +241,7 @@ const RecipeFormModal: React.FC<{
                 Ingredients <span className="text-red-400">*</span>
               </label>
               <button onClick={addRow}
-                className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#3b2063] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
+                className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#6a12b8] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
                 <Plus size={11} /> Add Row
               </button>
             </div>
@@ -268,7 +296,7 @@ const RecipeFormModal: React.FC<{
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 bg-[#6a12b8] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create Recipe'}
           </button>
         </div>
@@ -281,12 +309,12 @@ const RecipeFormModal: React.FC<{
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 
 const DeleteModal: React.FC<{
-  recipe:    Recipe;
-  onClose:   () => void;
+  recipe: Recipe;
+  onClose: () => void;
   onDeleted: (id: number) => void;
 }> = ({ recipe, onClose, onDeleted }) => {
   const [saving, setSaving] = useState(false);
-  const [error,  setError]  = useState('');
+  const [error, setError] = useState('');
   const name = recipe.menu_item?.name ?? recipe.menu_item_name ?? `Recipe #${recipe.id}`;
 
   const handleDelete = async () => {
@@ -339,16 +367,21 @@ const DeleteModal: React.FC<{
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const RecipesTab: React.FC = () => {
-  const [recipes,      setRecipes]      = useState<Recipe[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [search,       setSearch]       = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [expanded,     setExpanded]     = useState<number | null>(null);
+interface RecipesTabProps {
+  readOnly?: boolean;
+}
 
-  const [addOpen,     setAddOpen]     = useState(false);
-  const [editTarget,  setEditTarget]  = useState<Recipe | null>(null);
-  const [delTarget,   setDelTarget]   = useState<Recipe | null>(null);
+const RecipesTab: React.FC<RecipesTabProps> = ({ readOnly = false }) => {
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Recipe | null>(null);
+  const [delTarget, setDelTarget] = useState<Recipe | null>(null);
 
   const fetchRecipes = useCallback(async () => {
     setLoading(true);
@@ -363,6 +396,7 @@ const RecipesTab: React.FC = () => {
   useEffect(() => { fetchRecipes(); }, [fetchRecipes]);
 
   const handleToggle = async (recipe: Recipe) => {
+    if (readOnly) return;
     try {
       const res = await api.patch(`/recipes/${recipe.id}/toggle`);
       const updated = res.data?.data ?? res.data;
@@ -370,47 +404,88 @@ const RecipesTab: React.FC = () => {
     } catch (e) { console.error(e); }
   };
 
+  const handleExport = () => {
+    const sortedRecipes = [...recipes].sort((a, b) => {
+      const catA = a.menu_item?.category?.name || '';
+      const catB = b.menu_item?.category?.name || '';
+      if (catA !== catB) return catA.localeCompare(catB);
+      const nameA = a.menu_item?.name ?? a.menu_item_name ?? '';
+      const nameB = b.menu_item?.name ?? b.menu_item_name ?? '';
+      return nameA.localeCompare(nameB);
+    });
+
+    const rows = sortedRecipes.flatMap(r => {
+      const items = r.items ?? r.recipe_items ?? [];
+      const baseInfo = {
+        'MENU ITEM': r.menu_item?.name ?? r.menu_item_name ?? '',
+        'CATEGORY': r.menu_item?.category?.name ?? 'Uncategorized',
+        'SIZE': sizeLabel(r.size),
+        'STATUS': r.is_active ? 'Active' : 'Inactive',
+        'NOTES': r.notes ?? ''
+      };
+
+      if (items.length === 0) {
+        return [{
+          'MENU ITEM': baseInfo['MENU ITEM'],
+          'CATEGORY': baseInfo['CATEGORY'],
+          'SIZE': baseInfo['SIZE'],
+          'STATUS': baseInfo['STATUS'],
+          'INGREDIENT': '(No Ingredients Defined)',
+          'QUANTITY': 0,
+          'UNIT': '-',
+          'NOTES': baseInfo['NOTES']
+        }];
+      }
+
+      return items.map((i, idx) => ({
+        'MENU ITEM': idx === 0 ? baseInfo['MENU ITEM'] : '',
+        'CATEGORY': idx === 0 ? baseInfo['CATEGORY'] : '',
+        'SIZE': idx === 0 ? baseInfo['SIZE'] : '',
+        'STATUS': idx === 0 ? baseInfo['STATUS'] : '',
+        'INGREDIENT': i.raw_material?.name ?? i.material_name ?? '',
+        'QUANTITY': i.quantity,
+        'UNIT': i.raw_material?.unit ?? i.unit ?? '',
+        'NOTES': idx === 0 ? baseInfo['NOTES'] : ''
+      }));
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'All Recipes');
+    ws['!cols'] = [
+      { wch: 35 }, { wch: 25 }, { wch: 15 }, { wch: 12 },
+      { wch: 40 }, { wch: 12 }, { wch: 12 }, { wch: 25 }
+    ];
+    XLSX.writeFile(wb, `LuckyBoba_All_Recipes_${new Date().toLocaleDateString('en-PH').replace(/\//g, '-')}.xlsx`);
+  };
+
   const filtered = recipes.filter(r => {
     const name = r.menu_item?.name ?? r.menu_item_name ?? '';
     const matchSearch = name.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'active'   ? r.is_active
-                      : statusFilter === 'inactive' ? !r.is_active
-                      : true;
-    return matchSearch && matchStatus;
+    const matchStatus = statusFilter === 'active' ? r.is_active
+      : statusFilter === 'inactive' ? !r.is_active
+        : true;
+    const matchCategory = !categoryFilter || r.menu_item?.category?.name === categoryFilter;
+    return matchSearch && matchStatus && matchCategory;
   });
 
-  const totalRecipes   = recipes.length;
-  const activeRecipes  = recipes.filter(r => r.is_active).length;
+  const uniqueCategories = Array.from(new Set(
+    recipes.map(r => r.menu_item?.category?.name).filter(Boolean)
+  )).sort();
+
+  const totalRecipes = recipes.length;
+  const activeRecipes = recipes.filter(r => r.is_active).length;
   const missingRecipes = recipes.filter(r => !r.items?.length && !r.recipe_items?.length).length;
 
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Recipes</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {loading ? 'Loading...' : `${recipes.length} recipes · ingredient composition`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={fetchRecipes} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button onClick={() => setAddOpen(true)}
-            className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
-            <Plus size={13} /> Add Recipe
-          </button>
-        </div>
-      </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
-          { label: 'Total Recipes',  value: totalRecipes,   color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
-          { label: 'Active',         value: activeRecipes,  color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+          { label: 'Total Recipes', value: totalRecipes, color: '#6a12b8', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Active', value: activeRecipes, color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
           { label: 'No Ingredients', value: missingRecipes, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
         ].map(s => (
           <div key={s.label} className="bg-white border rounded-[0.625rem] px-5 py-4 shadow-sm" style={{ borderColor: s.border }}>
@@ -432,22 +507,36 @@ const RecipesTab: React.FC = () => {
               placeholder="Search by menu item..." />
             {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={13} /></button>}
           </div>
+          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
+            <option value="">All Categories</option>
+            {uniqueCategories.map(cat => (
+              <option key={cat!} value={cat!}>{cat}</option>
+            ))}
+          </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
             className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
             <option value="">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">
-            {filtered.length} results
-          </span>
+          <button onClick={handleExport}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[#e9d5ff] text-[#6a12b8] rounded-lg text-xs font-bold hover:bg-[#f5f0ff] transition-all ml-auto md:ml-0">
+            <FileDown size={14} /> Export All
+          </button>
+          {!readOnly && (
+            <button onClick={() => setAddOpen(true)}
+              className="bg-[#6a12b8] hover:bg-[#6a12b8] shrink-0 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
+              <Plus size={13} /> Add Recipe
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {['Menu Item', 'Size', 'Status', 'Ingredients', 'Actions'].map(h => (
+                {['Menu Item', 'Size', 'Status', 'Ingredients', ...(readOnly ? [] : ['Actions'])].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -464,7 +553,7 @@ const RecipesTab: React.FC = () => {
               ))}
 
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={5} className="py-16 text-center">
+                <tr><td colSpan={readOnly ? 4 : 5} className="py-16 text-center">
                   <BookOpen size={32} className="mx-auto text-zinc-200 mb-3" />
                   <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">
                     {search || statusFilter ? 'No recipes match your filters' : 'No recipes found'}
@@ -473,7 +562,7 @@ const RecipesTab: React.FC = () => {
               )}
 
               {!loading && filtered.map(r => {
-                const name  = r.menu_item?.name ?? r.menu_item_name ?? `Recipe #${r.id}`;
+                const name = r.menu_item?.name ?? r.menu_item_name ?? `Recipe #${r.id}`;
                 const items = resolveItems(r);
                 const isExpanded = expanded === r.id;
                 const hasItems = items.length > 0;
@@ -484,7 +573,7 @@ const RecipesTab: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                            <BookOpen size={12} className="text-[#3b2063]" />
+                            <BookOpen size={12} className="text-[#6a12b8]" />
                           </div>
                           <div>
                             <p className="font-bold text-[#1a0f2e] text-xs">{name}</p>
@@ -500,20 +589,26 @@ const RecipesTab: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <button onClick={() => handleToggle(r)}
-                          className="flex items-center gap-2 group">
-                          <div className={`w-9 h-5 rounded-full transition-colors flex items-center ${r.is_active ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}>
-                            <div className={`w-3.5 h-3.5 bg-white rounded-full mx-0.5 transition-transform ${r.is_active ? 'translate-x-4' : ''}`} />
-                          </div>
-                          <span className={`text-[10px] font-bold uppercase tracking-widest ${r.is_active ? 'text-[#3b2063]' : 'text-zinc-400'}`}>
+                        {readOnly ? (
+                          <span className={`text-[10px] font-bold uppercase tracking-widest ${r.is_active ? 'text-[#6a12b8]' : 'text-zinc-400'}`}>
                             {r.is_active ? 'Active' : 'Inactive'}
                           </span>
-                        </button>
+                        ) : (
+                          <button onClick={() => handleToggle(r)}
+                            className="flex items-center gap-2 group">
+                            <div className={`w-9 h-5 rounded-full transition-colors flex items-center ${r.is_active ? 'bg-[#6a12b8]' : 'bg-zinc-300'}`}>
+                              <div className={`w-3.5 h-3.5 bg-white rounded-full mx-0.5 transition-transform ${r.is_active ? 'translate-x-4' : ''}`} />
+                            </div>
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${r.is_active ? 'text-[#6a12b8]' : 'text-zinc-400'}`}>
+                              {r.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </button>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         {hasItems ? (
                           <button onClick={() => setExpanded(isExpanded ? null : r.id)}
-                            className="flex items-center gap-1.5 text-xs font-bold text-[#3b2063] hover:text-[#6a12b8] transition-colors">
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#6a12b8] hover:text-[#6a12b8] transition-colors">
                             <CheckCircle size={12} className="text-emerald-500" />
                             {items.length} ingredient{items.length !== 1 ? 's' : ''}
                             {isExpanded ? <ChevronDown size={12} /> : <ChevronDown size={12} className="-rotate-90" />}
@@ -525,28 +620,30 @@ const RecipesTab: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => setEditTarget(r)} title="Edit"
-                            className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
-                            <Edit2 size={13} />
-                          </button>
-                          <button onClick={() => setDelTarget(r)} title="Delete"
-                            className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors">
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
+                      {!readOnly && (
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => setEditTarget(r)} title="Edit"
+                              className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
+                              <Edit2 size={13} />
+                            </button>
+                            <button onClick={() => setDelTarget(r)} title="Delete"
+                              className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
 
                     {/* Expanded ingredient rows */}
                     {isExpanded && (
                       <tr className="border-b border-zinc-100 bg-[#faf9ff]">
-                        <td colSpan={5} className="px-5 pb-3 pt-1">
+                        <td colSpan={readOnly ? 4 : 5} className="px-5 pb-3 pt-1">
                           <div className="ml-10 border border-[#e9d5ff] rounded-xl overflow-hidden">
                             <div className="grid grid-cols-3 bg-[#f5f0ff] px-4 py-2 border-b border-[#e9d5ff]">
                               {['Material', 'Qty / Serving', 'Unit'].map(h => (
-                                <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#3b2063]">{h}</p>
+                                <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#6a12b8]">{h}</p>
                               ))}
                             </div>
                             {items.map((item, idx) => (
@@ -572,20 +669,20 @@ const RecipesTab: React.FC = () => {
       </div>
 
       {/* Modals */}
-      {addOpen && (
+      {!readOnly && addOpen && (
         <RecipeFormModal
           onClose={() => setAddOpen(false)}
           onSaved={r => setRecipes(p => [r, ...p])}
         />
       )}
-      {editTarget && (
+      {!readOnly && editTarget && (
         <RecipeFormModal
           onClose={() => setEditTarget(null)}
           onSaved={r => { setRecipes(p => p.map(x => x.id === r.id ? r : x)); setEditTarget(null); }}
           editing={editTarget}
         />
       )}
-      {delTarget && (
+      {!readOnly && delTarget && (
         <DeleteModal
           recipe={delTarget}
           onClose={() => setDelTarget(null)}

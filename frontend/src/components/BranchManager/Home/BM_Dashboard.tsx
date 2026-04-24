@@ -5,7 +5,7 @@ import api from '../../../services/api';
 import {
   TrendingUp, TrendingDown, DollarSign, AlertCircle,
   ShoppingBag, Activity, ArrowUpRight, ArrowDownRight,
-  Wallet, RefreshCw, Download,
+  Wallet, Download,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -141,7 +141,7 @@ interface BtnProps {
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
   };
   return (
@@ -247,6 +247,23 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    const onSaleRecorded = () => fetchData();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'lucky_boba_live_sales_tick') fetchData();
+    };
+
+    window.addEventListener('luckyboba:sale-recorded', onSaleRecorded as EventListener);
+    window.addEventListener('storage', onStorage);
+    const id = setInterval(fetchData, 10000);
+
+    return () => {
+      window.removeEventListener('luckyboba:sale-recorded', onSaleRecorded as EventListener);
+      window.removeEventListener('storage', onStorage);
+      clearInterval(id);
+    };
+  }, [fetchData]);
+
   // ── Formatters ─────────────────────────────────────────────────────────────
   const fmt = (v?: number | string) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
   const fmtK = (v: number) => {
@@ -310,7 +327,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
   const sellersAllTime: TopSellerItem[] = [];
   const allTimeMax = 1;
 
-  const PURPLES = ['#3b2063', '#6d28d9', '#7c3aed', '#a78bfa', '#c4b5fd', '#ede9fe'];
+  const PURPLES = ['#6a12b8', '#6d28d9', '#7c3aed', '#a78bfa', '#c4b5fd', '#ede9fe'];
 
   // ── Quick stats ────────────────────────────────────────────────────────────
   const avgOrderVal = fmt(
@@ -351,28 +368,22 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
       <GlobalStyles />
       <div className="p-6 md:p-8 flex flex-col gap-6 fade-in">
 
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-[#1a0f2e]">Overview</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">Real-time summary for your branch today</p>
-          </div>
-          <div className="flex items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          <div className="flex rounded-xl overflow-hidden border border-zinc-200 shadow-sm shrink-0">
             {([
               { key: 'daily', label: 'Daily' },
               { key: 'weekly', label: 'Weekly' },
               { key: 'monthly', label: 'Monthly' },
             ] as const).map(({ key, label }) => (
               <button key={key} onClick={() => setTimeFilter(key)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${timeFilter === key ? 'bg-[#3b2063] text-white' : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}>
+                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${timeFilter === key ? 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}>
                 {label}
               </button>
             ))}
-            <Btn variant="secondary" onClick={fetchData} disabled={loading}>
-              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-            </Btn>
           </div>
         </div>
+      </div>
 
         {/* ── Stat Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -480,8 +491,8 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                 <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="bmGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b2063" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#6a12b8" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#6a12b8" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
@@ -491,9 +502,9 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                     tick={{ fontSize: 11, fill: '#a1a1aa', fontWeight: 600 }} tickFormatter={fmtK} />
                   <Tooltip content={(props) => <ChartTip {...props} avgRevenue={avgRevenue} />}
                     cursor={{ stroke: '#ddd6f7', strokeWidth: 1, strokeDasharray: '3 3' }} />
-                  <Area type="monotone" dataKey="value" name="Revenue" stroke="#3b2063" strokeWidth={2.5}
+                  <Area type="monotone" dataKey="value" name="Revenue" stroke="#6a12b8" strokeWidth={2.5}
                     fillOpacity={1} fill="url(#bmGrad)"
-                    activeDot={{ r: 4, fill: '#3b2063', stroke: '#fff', strokeWidth: 2 }} />
+                    activeDot={{ r: 4, fill: '#6a12b8', stroke: '#fff', strokeWidth: 2 }} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -529,7 +540,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
-                            style={{ background: i === 0 ? '#3b2063' : '#f4f4f5', color: i === 0 ? '#fff' : '#71717a' }}>
+                            style={{ background: i === 0 ? '#6a12b8' : '#f4f4f5', color: i === 0 ? '#fff' : '#71717a' }}>
                             <span style={{ fontSize: 9, fontWeight: 800 }}>{i + 1}</span>
                           </div>
                           <span className="text-xs font-semibold text-zinc-700 truncate max-w-32.5">{item.product_name}</span>
@@ -572,7 +583,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                   />
                   <Bar dataKey="qty" radius={[4, 4, 0, 0]}>
                     {sellersAllTime.slice(0, 6).map((_: TopSellerItem, i: number) => (
-                      <Cell key={i} fill={i === 0 ? '#3b2063' : `hsl(${265 - i * 15},${70 - i * 8}%,${60 + i * 5}%)`} />
+                      <Cell key={i} fill={i === 0 ? '#6a12b8' : `hsl(${265 - i * 15},${70 - i * 8}%,${60 + i * 5}%)`} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -587,7 +598,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                   return (
                     <div key={i} className="flex items-center gap-3">
                       <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
-                        style={{ background: i === 0 ? '#3b2063' : i === 1 ? '#ede8ff' : '#f4f4f5', color: i === 0 ? '#fff' : i === 1 ? '#3b2063' : '#71717a' }}>
+                        style={{ background: i === 0 ? '#6a12b8' : i === 1 ? '#ede8ff' : '#f4f4f5', color: i === 0 ? '#fff' : i === 1 ? '#6a12b8' : '#71717a' }}>
                         <span style={{ fontSize: 9, fontWeight: 800 }}>{i + 1}</span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -596,7 +607,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                           <span className="text-[10px] font-bold text-zinc-500 ml-2 shrink-0">{item.total_qty.toLocaleString()}</span>
                         </div>
                         <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: i === 0 ? '#3b2063' : '#d4d4d8' }} />
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: i === 0 ? '#6a12b8' : '#d4d4d8' }} />
                         </div>
                       </div>
                       <span className="text-[10px] font-bold text-zinc-400 shrink-0 w-8 text-right">{pct}%</span>

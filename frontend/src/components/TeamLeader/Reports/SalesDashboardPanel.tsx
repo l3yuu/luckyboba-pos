@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback, type ElementType } from 'react';
 import api from '../../../services/api';
 import { 
-  TrendingUp, ShoppingBag, DollarSign, Calendar, 
+  PhilippinePeso, ShoppingBag, 
   ArrowUpRight, ArrowDownRight, Activity, 
-  RefreshCw, FileText
+  FileText
 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
+import { SkeletonBox } from '../SharedSkeletons';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface SalesData {
@@ -43,12 +44,10 @@ const STYLES = `
   
   .sdb-tile { 
     background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; 
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .sdb-tile:hover { 
     border-color: #cbd5e1; 
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);
-    transform: translateY(-2px);
   }
 
   .sdb-filter-group {
@@ -59,15 +58,12 @@ const STYLES = `
     transition: all 0.2s; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;
   }
   .sdb-filter-btn.active { 
-    background: #ffffff; color: #3b2063; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background: #ffffff; color: #6a12b8; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
 
   .sdb-label { font-size: 0.62rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.12em; }
   .sdb-value { font-size: 1.65rem; font-weight: 800; color: #0f172a; letter-spacing: -0.04em; line-height: 1.2; }
 
-  @keyframes sdb-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  .sdb-pulse { animation: sdb-pulse 1.5s ease-in-out infinite; }
-  .sdb-skeleton { background: #f1f5f9; border-radius: 0.5rem; }
   
   @keyframes sdb-spin { to { transform: rotate(360deg); } }
   .sdb-spin { animation: sdb-spin 1s linear infinite; }
@@ -109,7 +105,7 @@ const SalesTile = ({ label, value, icon: Icon, color, trend }: SalesTileProps) =
 const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
   const [data,       setData]       = useState<SalesData[]>([]);
   const [loading,    setLoading]    = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
   const [period,     setPeriod]     = useState<'7days' | '30days' | '3months'>('7days');
 
   const load = useCallback(async (isRefresh = false) => {
@@ -158,73 +154,52 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
   if (loading) return (
     <div className="p-8 sdb-root">
       <style>{STYLES}</style>
-      <div className="h-10 w-48 sdb-skeleton sdb-pulse mb-10" />
+      <SkeletonBox className="h-10 w-48 mb-10" />
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-        {[1,2,3,4].map(i => <div key={i} className="h-32 sdb-skeleton sdb-pulse" />)}
+        {[1,2,3,4].map(i => <SkeletonBox key={i} className="h-32" />)}
       </div>
-      <div className="h-[450px] sdb-skeleton sdb-pulse" />
+      <SkeletonBox className="h-[450px]" />
     </div>
   );
 
   return (
-    <div className="sdb-root p-8 md:p-12 animate-in fade-in duration-1000">
+    <div className="sdb-root p-8 md:p-12">
       <style>{STYLES}</style>
-
-      {/* ── OFFICIAL REPORT HEADER ── */}
-      <div className="sdb-report-header flex flex-col md:flex-row md:items-end justify-between gap-8">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-[#3b2063]" />
-            <p className="sdb-label !text-[#3b2063]">Reporting & Internal Audit</p>
-          </div>
-          <h1 className="text-[2.2rem] font-black text-[#0f172a] tracking-tight leading-none">
-            Sales Performance Audit
-          </h1>
-          <p className="text-[0.75rem] font-bold text-slate-400 mt-3 flex items-center gap-2">
-            <Calendar size={14} className="text-slate-300" />
-            Comparative analysis for the last {period.replace('days',' days').replace('months',' months')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="sdb-filter-group">
-            {(['7days', '30days', '3months'] as const).map(p => (
-              <button key={p} onClick={() => setPeriod(p)} className={`sdb-filter-btn ${period === p ? 'active' : ''}`}>
-                {p === '7days' ? '7D' : p === '30days' ? '30D' : '3M'}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => load(true)} className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-[#3b2063] hover:border-[#3b206330] rounded-xl transition-all shadow-sm">
-            <RefreshCw size={16} className={refreshing ? 'sdb-spin' : ''} />
-          </button>
-        </div>
-      </div>
 
       {/* ── HIGH-DENSITY KPI TILES ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <SalesTile label="Fiscal Revenue" value={fmtS(totalSales)} icon={DollarSign} color="#3b2063" trend={12} />
+        <SalesTile label="Fiscal Revenue" value={fmtS(totalSales)} icon={PhilippinePeso} color="#6a12b8" trend={12} />
         <SalesTile label="Operational Volume" value={totalOrders.toLocaleString()} icon={ShoppingBag} color="#0891b2" trend={5} />
         <SalesTile label="Efficiency (AOV)" value={fmtS(avgOrderValue)} icon={Activity} color="#d97706" />
-        <SalesTile label="Peak Liquidity" value={bestDay ? fmtS(bestDay.sales) : '—'} icon={TrendingUp} color="#059669" />
+        <SalesTile label="Peak Liquidity" value={bestDay ? fmtS(bestDay.sales) : '—'} icon={PhilippinePeso} color="#059669" />
       </div>
 
       {/* ── TREND VISUALIZATION ── */}
       <div className="sdb-tile bg-white p-8 mb-10 overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-1 h-full bg-[#3b2063]" />
+        <div className="absolute top-0 left-0 w-1 h-full bg-[#6a12b8]" />
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
           <div>
             <h3 className="font-black text-slate-800 tracking-tight uppercase text-xs">Revenue Trend Distribution</h3>
             <p className="sdb-label mt-1">Real-time daily aggregate values</p>
           </div>
-          <div className="flex items-center gap-6 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#3b2063]" />
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Gross Sales</span>
+          <div className="flex items-center gap-4">
+            <div className="sdb-filter-group">
+              {(['7days', '30days', '3months'] as const).map(p => (
+                <button key={p} onClick={() => setPeriod(p)} className={`sdb-filter-btn ${period === p ? 'active' : ''}`}>
+                  {p === '7days' ? '7D' : p === '30days' ? '30D' : '3M'}
+                </button>
+              ))}
             </div>
-            <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-              <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Audit Avg</span>
+            <div className="flex items-center gap-6 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#6a12b8]" />
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Gross Sales</span>
+              </div>
+              <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Audit Avg</span>
+              </div>
             </div>
           </div>
         </div>
@@ -251,19 +226,18 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
                 contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 20px 40px -8px rgba(0,0,0,0.2)', background: '#0f172a', padding: '12px 16px' }}
                 itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 700, padding: 0 }}
                 labelStyle={{ fontSize: '9px', color: '#6366f1', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.08em' }}
-                cursor={{ stroke: '#3b206320', strokeWidth: 1 }}
+                cursor={{ stroke: '#6a12b820', strokeWidth: 1 }}
                 formatter={(v) => [fmt(Number(v)), 'DAILY TOTAL']}
               />
               <ReferenceLine y={avgOrderValue} stroke="#e2e8f0" strokeWidth={1.5} strokeDasharray="8 4" />
               <Line 
                 type="monotone" 
                 dataKey="sales" 
-                stroke="#3b2063" 
+                stroke="#6a12b8" 
                 strokeWidth={3.5} 
-                dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#3b2063' }}
-                activeDot={{ r: 7, strokeWidth: 3, fill: '#fff', stroke: '#3b2063' }}
-                animationDuration={2500}
-                isAnimationActive={true}
+                dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#6a12b8' }}
+                activeDot={{ r: 7, strokeWidth: 3, fill: '#fff', stroke: '#6a12b8' }}
+                isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -274,7 +248,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
       <div className="sdb-tile bg-white overflow-hidden shadow-sm">
         <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[#3b2063]"><FileText size={16}/></div>
+            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[#6a12b8]"><FileText size={16}/></div>
             <h3 className="font-black text-slate-800 tracking-tight uppercase text-xs">Detailed Transaction Log</h3>
           </div>
           <p className="sdb-label">Page 1 of 1</p>
@@ -294,7 +268,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
               {data.slice().reverse().map((row, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-8 py-5 font-bold text-slate-900">{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                  <td className="px-8 py-5 font-black text-[#3b2063] tabular-nums">{fmt(row.sales)}</td>
+                  <td className="px-8 py-5 font-black text-[#6a12b8] tabular-nums">{fmt(row.sales)}</td>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
                       <span className="font-bold text-slate-600 w-6">{row.orders}</span>

@@ -42,14 +42,28 @@ export const getItemSurcharge = (item: {
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
-export const DrinkIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className={className} fill="currentColor">
+export const DrinkIcon = ({ className, size }: { className?: string; size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className={className} 
+    fill="currentColor" style={size ? { width: size, height: size } : undefined}>
     <path d="m187.4 22.88l-21.5 4.54l22.7 108.08c7.2-.7 14.6-1.2 22-1.6zM256 147.7c-41.2 0-82.3 3.7-123.5 11.1l-11.6 1.1l4.3 22.1l10.6-2.1c20.1-3.2 40.1-6.3 61.2-7.4l8.4 40.1h22.2l-8.4-42.2c51.6-2.1 104.4 1.1 157.1 9.5l10.6 2.1l4.2-22.1l-11.6-1.1c-41.2-7.4-82.3-11.1-123.5-11.1m-119.1 51.6l26.4 281.3l8.3 1c56.2 9.5 112.3 10.6 168.5 0l8.1-1l26.5-281.3h-22.1l-3.6 37.8H232.2l42.3 202.3l-24.3-9.5l-40.4-192.8h-47.3l-3.6-37.8zm188.8 155.3c7.4 0 13.5 6 13.5 13.5s-6.1 13.5-13.5 13.5c-7.5 0-13.5-6-13.5-13.5s6-13.5 13.5-13.5M292 380.2c7.4 0 13.6 6.1 13.6 13.5c0 7.5-6.2 13-13.6 13s-13.6-5.5-13.6-13c0-7.4 6.2-13.5 13.6-13.5m-74.2 5.1c7.5 0 13.5 6.1 13.5 13.5c0 7.9-6 13.2-13.5 13.2c-7.4 0-13.5-5.3-13.5-13.2c0-7.4 6.1-13.5 13.5-13.5m107 7.8c7.5 0 13.6 6 13.6 13.6c0 7.4-6.1 13.7-13.6 13.7c-7.4 0-13.5-6.3-13.5-13.7c0-7.6 6.1-13.6 13.5-13.6m-140.9 10.5c7.5 0 13.5 5.2 13.5 12.6s-6 13.7-13.5 13.7s-13.5-6.3-13.5-13.7s6-12.6 13.5-12.6m111.2 12.6c7.5 0 13.5 6.3 13.5 13.7s-6 13.7-13.5 13.7s-13.5-6.3-13.5-13.7s6-13.7 13.5-13.7m-76.1 7.4c7.5 0 13.6 6.3 13.6 13.7S226.5 451 219 451c-7.4 0-13.5-6.3-13.5-13.7s6.1-13.7 13.5-13.7m-32.7 14.8c7.5 0 13.5 5.2 13.5 12.6s-6 13.7-13.5 13.7c-7.4 0-13.5-6.3-13.5-13.7s6.1-12.6 13.5-12.6m134.7 2.1c7.5 0 13.5 6.3 13.5 13.7s-6 13.7-13.5 13.7s-13.5-6.3-13.5-13.7s6-13.7 13.5-13.7m-66.5 4.2c7.4 0 13.5 5.3 13.5 12.7c0 7.3-6.1 13.7-13.5 13.7c-7.5 0-13.5-6.4-13.5-13.7c0-7.4 6-12.7 13.5-12.7" strokeWidth="13" stroke="currentColor" />
   </svg>
 );
 
-export const ChevronRight = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 opacity-40">
+export interface IconProps {
+  className?: string;
+  size?: number;
+}
+
+export const ChevronRight: React.FC<IconProps> = ({ className, size }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+    stroke="currentColor"
+    className={className || "w-4 h-4 opacity-40"}
+    style={size ? { width: size, height: size } : undefined}
+  >
     <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
   </svg>
 );
@@ -72,8 +86,16 @@ export const MinusIcon = () => (
   </svg>
 );
 
-export const ArrowRightIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+export const ArrowRightIcon: React.FC<IconProps> = ({ className, size }: IconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={2.5}
+    stroke="currentColor"
+    className={className || "w-4 h-4"}
+    style={size ? { width: size, height: size } : undefined}
+  >
     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
   </svg>
 );
@@ -93,11 +115,11 @@ export const PAYMENT_METHODS = [
 export const TYPE_BADGE = {
   food:  { pill: 'bg-orange-500 text-white', card: 'hover:bg-orange-500 hover:border-orange-500 hover:text-white' },
   wings: { pill: 'bg-orange-500 text-white', card: 'hover:bg-orange-500 hover:border-orange-500 hover:text-white' },
-  drink: { pill: 'bg-[#3b2063] text-white',  card: 'hover:bg-[#3b2063] hover:border-[#3b2063] hover:text-white'  },
+  drink: { pill: 'bg-[#6a12b8] text-white',  card: 'hover:bg-[#6a12b8] hover:border-[#6a12b8] hover:text-white'  },
   promo: { pill: 'bg-emerald-600 text-white', card: 'hover:bg-emerald-600 hover:border-emerald-600 hover:text-white' },
 };
 
-export const BASE_CARD = 'bg-white font-black text-sm uppercase p-4 rounded-[0.625rem] h-24 shadow-sm border-2 border-zinc-200 transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 text-black flex items-center justify-center text-center';
+export const BASE_CARD = 'bg-white font-black text-sm uppercase p-4 rounded-md h-24 shadow-sm border-2 border-zinc-200 transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 text-black flex items-center justify-center text-center';
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -112,14 +134,14 @@ export const QtyControl = ({
   <div className={`flex items-center justify-between bg-[#f5f0ff] rounded-[0.625rem] p-2 border-2 border-[#e9d5ff] ${className}`}>
     <button
       onClick={onDecrement}
-      className="w-11 h-11 bg-white rounded-lg border border-[#e9d5ff] text-[#3b2063] hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm"
+      className="w-11 h-11 bg-white rounded-lg border border-[#e9d5ff] text-[#6a12b8] hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm"
     >
       <MinusIcon />
     </button>
     <span className="font-black text-2xl text-black w-16 text-center tabular-nums">{value}</span>
     <button
       onClick={onIncrement}
-      className="w-11 h-11 bg-[#3b2063] rounded-lg text-white flex items-center justify-center hover:bg-[#6a12b8] transition-colors shadow-sm"
+      className="w-11 h-11 bg-[#6a12b8] rounded-lg text-white flex items-center justify-center hover:bg-[#6a12b8] transition-colors shadow-sm"
     >
       <PlusIcon />
     </button>
@@ -148,8 +170,8 @@ export const AddOnGrid = ({
           onClick={() => onToggle(addon.name)}
           className={`p-3 rounded-[0.625rem] text-left border-2 transition-all h-24 flex flex-col justify-between
             ${selected.includes(addon.name)
-              ? 'bg-[#3b2063] border-[#3b2063] text-white'
-              : 'bg-white border-[#e9d5ff] text-black hover:border-[#3b2063]/40 hover:bg-[#f5f0ff]'
+              ? 'bg-[#6a12b8] border-[#6a12b8] text-white'
+              : 'bg-white border-[#e9d5ff] text-black hover:border-[#6a12b8]/40 hover:bg-[#f5f0ff]'
             }`}
         >
           <span className="text-[10px] font-black uppercase leading-tight">{addon.name}</span>
@@ -189,7 +211,7 @@ export const AddOnModalShell = ({
 }) => (
   <div className={`fixed inset-0 ${zIndex} flex items-center justify-center bg-black/60 backdrop-blur-sm p-4`}>
     <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col h-[80vh]">
-      <div className="bg-[#3b2063] p-6 text-white text-center relative shrink-0">
+      <div className="bg-[#6a12b8] p-6 text-white text-center relative shrink-0">
         <h2 className="text-lg font-black uppercase tracking-wider">{title}</h2>
         {/* Show active charge badge */}
         {orderCharge && (
@@ -211,7 +233,7 @@ export const AddOnModalShell = ({
       <div className="p-4 border-t border-[#e9d5ff] bg-white">
         <button
           onClick={onClose}
-          className="w-full bg-[#3b2063] text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg"
+          className="w-full bg-[#6a12b8] text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg"
         >
           Confirm Selection ({selected.length})
         </button>

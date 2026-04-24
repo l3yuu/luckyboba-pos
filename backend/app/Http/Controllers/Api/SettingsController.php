@@ -3,10 +3,35 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog; // Ensure you created this model
+use App\Models\AuditLog;
+use App\Models\Branch;
+use App\Models\CashCount;
+use App\Models\CashTransaction;
+use App\Models\CardUsageLog;
+use App\Models\Expense;
+use App\Models\PerkUsage;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
+use App\Models\RawMaterialLog;
+use App\Models\Receipt;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\Setting;
+use App\Models\StockDeduction;
+use App\Models\StockMovement;
+use App\Models\StockTransaction;
+use App\Models\StockTransfer;
+use App\Models\StockTransferItem;
+use App\Models\User;
+use App\Models\VoidRequest;
+use App\Models\ZReading;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class SettingsController extends Controller
 {
@@ -19,13 +44,15 @@ class SettingsController extends Controller
         
         $branchId = $request->query('branch_id');
         if ($branchId) {
-            $branch = \App\Models\Branch::find($branchId);
+            $branch = Branch::find($branchId);
             if ($branch) {
                 // Override or add branch-specific payment settings
                 $settings['gcash_qr_url'] = $branch->gcash_qr ? url('storage/' . $branch->gcash_qr) : ($settings['gcash_qr_url'] ?? null);
                 $settings['maya_qr_url']  = $branch->maya_qr ? url('storage/' . $branch->maya_qr) : ($settings['maya_qr_url'] ?? null);
                 $settings['gcash_number'] = $branch->gcash_number ?: ($settings['gcash_number'] ?? '');
                 $settings['maya_number']  = $branch->maya_number ?: ($settings['maya_number'] ?? '');
+                $settings['gcash_name']   = $branch->gcash_name ?: ($settings['gcash_name'] ?? '');
+                $settings['maya_name']    = $branch->maya_name ?: ($settings['maya_name'] ?? '');
                 $settings['account_name'] = $branch->owner_name ?: $branch->name;
             }
         }
@@ -64,10 +91,10 @@ class SettingsController extends Controller
 public function getAuditLogs(Request $request)
 {
     try {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
 
-        $logs = \App\Models\AuditLog::with('user')
+        $logs = AuditLog::with('user')
             ->latest()
             ->take(10)
             ->get()
@@ -85,7 +112,7 @@ public function getAuditLogs(Request $request)
             'logs' => $logs
         ]);
     } catch (\Exception $e) {
-        \Log::error("Audit Fetch Error: " . $e->getMessage());
+        Log::error("Audit Fetch Error: " . $e->getMessage());
         return response()->json(['error' => 'Internal Server Error'], 500);
     }
 }
@@ -95,7 +122,7 @@ public function getAuditLogs(Request $request)
  */
 public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedResponse
 {
-    $logs = \App\Models\AuditLog::with('user')->latest()->get();
+    $logs = AuditLog::with('user')->latest()->get();
     $fileName = 'lucky_boba_audit_log_' . now()->format('Y-m-d') . '.txt';
 
     $headers = [
@@ -130,9 +157,9 @@ public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedRes
     public function clearAuditLogs(Request $request)
     {
         try {
-            \App\Models\AuditLog::truncate();
+            AuditLog::truncate();
             
-            \App\Models\AuditLog::create([
+            AuditLog::create([
                 'user_id' => $request->user()->id,
                 'action' => 'Cleared all audit logs',
                 'module' => 'Settings',
@@ -152,28 +179,37 @@ public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedRes
     public function resetSystem(Request $request)
     {
         try {
-            // Disable foreign key checks so we can truncate safely
-            \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+            // 0. VERIFY PASSWORD
+            $request->validate([
+                'password' => 'required|string',
+            ]);
 
+            if (!Hash::check($request->password, $request->user()->password)) {
+                return response()->json(['error' => 'Invalid password'], 422);
+            }
+
+            // Disable foreign key checks so we can truncate safely
+            Schema::disableForeignKeyConstraints();
+ 
             // 1. TRUNCATE ALL TRANSACTIONAL DATA (Sales, Cash, Receipts, Stock Logs)
-            \App\Models\Sale::truncate();
-            \App\Models\SaleItem::truncate();
-            \App\Models\CashCount::truncate();
-            \App\Models\CashTransaction::truncate();
-            \App\Models\Expense::truncate();
-            \App\Models\Receipt::truncate();
-            \App\Models\ZReading::truncate();
-            \App\Models\VoidRequest::truncate();
-            \App\Models\PurchaseOrder::truncate();
-            \App\Models\PurchaseOrderItem::truncate();
-            \App\Models\StockTransfer::truncate();
-            \App\Models\StockTransferItem::truncate();
-            \App\Models\StockTransaction::truncate();
-            \App\Models\StockMovement::truncate();
-            \App\Models\StockDeduction::truncate();
-            \App\Models\RawMaterialLog::truncate();
-            if (class_exists(\App\Models\CardUsageLog::class)) \App\Models\CardUsageLog::truncate();
-            if (class_exists(\App\Models\PerkUsage::class)) \App\Models\PerkUsage::truncate();
+            Sale::truncate();
+            SaleItem::truncate();
+            CashCount::truncate();
+            CashTransaction::truncate();
+            Expense::truncate();
+            Receipt::truncate();
+            ZReading::truncate();
+            VoidRequest::truncate();
+            PurchaseOrder::truncate();
+            PurchaseOrderItem::truncate();
+            StockTransfer::truncate();
+            StockTransferItem::truncate();
+            StockTransaction::truncate();
+            StockMovement::truncate();
+            StockDeduction::truncate();
+            RawMaterialLog::truncate();
+            if (class_exists(CardUsageLog::class)) CardUsageLog::truncate();
+            if (class_exists(PerkUsage::class)) PerkUsage::truncate();
 
             // 2. RESET SETTINGS
             Setting::truncate();
@@ -187,7 +223,9 @@ public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedRes
                 'currency' => 'PHP – Philippine Peso',
                 'notifications' => 'true',
                 'auto_reports' => 'true',
-                'two_factor' => 'false'
+                'two_factor' => 'false',
+                'global_kiosk_pin' => '1234',
+                'global_kiosk_password' => 'luckyboba',
             ];
 
             foreach ($defaults as $key => $value) {
@@ -195,8 +233,8 @@ public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedRes
             }
 
             // 3. WIPE AUDIT LOGS AND INSERT FACTORY RESET EVENT
-            \App\Models\AuditLog::truncate();
-            \App\Models\AuditLog::create([
+            AuditLog::truncate();
+            AuditLog::create([
                 'user_id' => $request->user()->id,
                 'action' => 'Factory Reset System',
                 'module' => 'Settings',
@@ -204,11 +242,11 @@ public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedRes
                 'ip_address' => $request->ip()
             ]);
 
-            \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+            Schema::enableForeignKeyConstraints();
 
             return response()->json(['message' => 'System successfully reset to factory defaults.']);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+            Schema::enableForeignKeyConstraints();
             return response()->json(['error' => 'Failed to reset system: ' . $e->getMessage()], 500);
         }
     }
@@ -219,7 +257,7 @@ public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedRes
     public function getSystemInfo()
     {
         try {
-            $dbStatus = \Illuminate\Support\Facades\DB::connection()->getPdo() ? 'Connected' : 'Disconnected';
+            $dbStatus = DB::connection()->getPdo() ? 'Connected' : 'Disconnected';
         } catch (\Exception $e) {
             $dbStatus = 'Disconnected';
         }
@@ -233,7 +271,7 @@ public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedRes
                 usort($files, function($a, $b) {
                     return filemtime($b) - filemtime($a);
                 });
-                $lastBackupStr = \Carbon\Carbon::createFromTimestamp(filemtime($files[0]))
+                $lastBackupStr = Carbon::createFromTimestamp(filemtime($files[0]))
                     ->timezone('Asia/Manila')
                     ->format('M d, Y h:i A');
             }

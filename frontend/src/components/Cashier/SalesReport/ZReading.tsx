@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
@@ -63,7 +63,7 @@ const AdminPinOverlay = ({
   return (
     <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden">
-        <div className="bg-[#3b2063] px-6 py-5 text-white text-center">
+        <div className="bg-[#6a12b8] px-6 py-5 text-white text-center">
           <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
           <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
           <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to generate this report</p>
@@ -76,7 +76,7 @@ const AdminPinOverlay = ({
             onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             placeholder="••••"
             autoFocus
-            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#3b2063] transition-colors"
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#6a12b8] transition-colors"
           />
           {error && (
             <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest text-center">{error}</p>
@@ -91,7 +91,7 @@ const AdminPinOverlay = ({
             <button
               onClick={handleSubmit}
               disabled={loading || !pin.trim()}
-              className="flex-1 py-3 rounded-[0.625rem] bg-[#3b2063] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 py-3 rounded-[0.625rem] bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? '...' : 'Confirm'}
             </button>
@@ -111,6 +111,7 @@ interface ZReadingReport {
   transaction_count?: number;
   cash_total?: number;
   non_cash_total?: number;
+  total_payments?: number;
   report_type?: string;
   logs?: { id: string; reason: string; amount: number; time: string }[];
   items?: { product_name: string; total_qty: number; total_sales?: number }[];
@@ -192,28 +193,36 @@ interface ZReadingReport {
   over_short?: number;
   net_total?: number;
   expected_amount?: number;
+  less_vat?: number;
   vat_type?:   string;
   vat_exempt?: number;
-  is_vat?: boolean;           // ← add
-  vat_exempt_sales?: number;  // ← add
+  is_vat?: boolean;
+  vat_exempt_sales?: number;
   other_discount?: number;
+  rounding_adjustment?: number;
 }
 
-const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
-  <div className={`flex justify-between text-[12px] leading-snug font-medium ${indent ? 'pl-3' : ''}`}>
-    <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%] font-bold">{value}</span>
+const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
+  <div className={`flex justify-between text-[12px] leading-snug font-bold ${indent ? 'pl-3' : ''}`}>
+    <span className="uppercase w-[60%] leading-tight text-black">{label}</span>
+    <span className="text-right w-[40%] font-black text-black whitespace-pre-line">{value}</span>
   </div>
 );
 
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
 
 const ZReading = () => {
+  const getLocalDate = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localNow = new Date(now.getTime() - (offset * 60 * 1000));
+    return localNow.toISOString().split('T')[0];
+  };
+
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDate());
+  const [fromDate, setFromDate] = useState(getLocalDate());
+  const [toDate, setToDate] = useState(getLocalDate());
   const { showToast } = useToast();
-  const today = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [fromDate, setFromDate] = useState(today);
-  const [toDate, setToDate] = useState(today);
   const [dateMode, setDateMode] = useState<'single' | 'range'>('single');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [reportData, setReportData] = useState<ZReadingReport | null>(null);
@@ -223,20 +232,53 @@ const ZReading = () => {
   const [rawApiResponse, setRawApiResponse] = useState<Record<string, unknown> | unknown[] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+  const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   const localVatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = reportData?.is_vat !== undefined ? reportData.is_vat : localVatType === 'vat';
   const [cashierName, setCashierName] = useState("ADMIN USER");
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const [showBreakdown, setShowBreakdown] = useState(true);
+  const [zStatus, setZStatus] = useState<{ exists: boolean; is_closed: boolean; has_sales: boolean } | null>(null);
+  const [gaps, setGaps] = useState<string[]>([]);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const branchId = localStorage.getItem('lucky_boba_user_branch_id') || '';
 
   // ── PIN overlay state ──────────────────────────────────────────────────────
   const [showPinOverlay, setShowPinOverlay]         = useState(false);
   const [pendingReportType, setPendingReportType]   = useState<string | null>(null);
 
+  const fetchStatus = useCallback(async () => {
+    setCheckingStatus(true);
+    try {
+      const res = await api.get('/reports/z-reading/status', { params: { date: selectedDate } });
+      setZStatus(res.data.data);
+    } catch (err) {
+      console.error("Status check failed", err);
+    } finally {
+      setCheckingStatus(false);
+    }
+  }, [selectedDate]);
+
+  const fetchGaps = useCallback(async () => {
+    try {
+      const res = await api.get('/reports/z-reading/gaps');
+      setGaps(res.data.data);
+    } catch (err) {
+      console.error("Gap check failed", err);
+    }
+  }, []);
+
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) { const user = JSON.parse(storedUser); setCashierName(user.name || "ADMIN USER"); }
-  }, []);
+    fetchGaps();
+  }, [fetchGaps]);
+
+  useEffect(() => {
+    if (dateMode === 'single') {
+      fetchStatus();
+    }
+  }, [selectedDate, dateMode, fetchStatus]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -250,25 +292,46 @@ const ZReading = () => {
     setLoading(true); setError(null); setRawApiResponse(null);
     try {
       if (type === 'summary') {
+        const commonParams: Record<string, string | number> = {};
+        if (branchId) commonParams.branch_id = branchId;
+
+        const sParams = { 
+          ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { from: selectedDate, to: selectedDate }),
+          ...commonParams 
+        };
+        const qParams = { 
+          ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }),
+          ...commonParams 
+        };
+
         const [summaryRes, qtyRes] = await Promise.all([
-          api.get('/reports/sales-summary',   { params: { from: selectedDate, to: selectedDate } }),
-          api.get('/reports/item-quantities', { params: { date: selectedDate } }),
+          api.get('/reports/sales-summary',   { params: sParams }),
+          api.get('/reports/item-quantities', { params: qParams }),
         ]);
-        const merged = { ...summaryRes.data, categories: qtyRes.data.categories ?? [], all_addons_summary: qtyRes.data.all_addons_summary ?? [] };
+        const merged = { 
+          ...summaryRes.data, 
+          categories: qtyRes.data.categories ?? [], 
+          all_addons_summary: qtyRes.data.all_addons_summary ?? [] 
+        };
         setRawApiResponse(merged as Record<string, unknown>);
         setReportData({ ...normalizeResponse(type, merged), report_type: type });
         return;
       }
       if (type === 'z_reading') {
-        const zParams = dateMode === 'range'
-          ? { from: fromDate, to: toDate }
-          : { from: selectedDate, to: selectedDate };
+        const commonParams: Record<string, string | number> = {};
+        if (branchId) commonParams.branch_id = branchId;
+
+        const zParams = {
+          ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { from: selectedDate, to: selectedDate }),
+          ...commonParams
+        };
+
         const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
-  api.get('/reports/z-reading',       { params: zParams }),
-  api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
-  api.get('/reports/item-quantities', { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
-  api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
-]);
+          api.get('/reports/z-reading',       { params: zParams }),
+          api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams } }),
+          api.get('/reports/item-quantities', { params: { ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }), ...commonParams } }),
+          api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams } }),
+        ]);
 
 
 
@@ -296,7 +359,8 @@ const ZReading = () => {
         const pwdDisc   = Number(zData.pwd_discount      ?? 0);
         const otherDisc = Number(zData.diplomat_discount ?? 0) + Number(zData.other_discount ?? 0);
         const totalDisc = scDisc + pwdDisc + otherDisc;
-        const computedGross = rawGross > 0 ? rawGross : (netSales + totalDisc);
+        const lessVat   = Number(zData.less_vat ?? 0);
+        const computedGross = rawGross > 0 ? rawGross : (netSales + totalDisc + lessVat);
 
         const merged = {
           ...zData,
@@ -304,7 +368,8 @@ const ZReading = () => {
           cash_denominations: cashDenominations,
           total_cash_count:   totalCashCount,
           expected_amount:    expectedAmount,
-          over_short:         totalCashCount - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+          less_vat:           lessVat,
+          over_short:         totalCashCount - expectedAmount,
           categories:         (qtyRes.data as Record<string, unknown>).categories ?? [],
           all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [],
           logs:               (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : []),
@@ -313,16 +378,19 @@ const ZReading = () => {
         setReportData({ ...merged as unknown as ZReadingReport, report_type: type });
         return;
       }
-      const endpointMap: Record<string, { url: string; params: Record<string, string> }> = {
+      const commonParams: Record<string, string | number> = {};
+      if (branchId) commonParams.branch_id = branchId;
+
+      const endpointMap: Record<string, { url: string; params: Record<string, string | number> }> = {
         hourly_sales: { url: '/reports/hourly-sales',    params: { date: selectedDate } },
-        void_logs:    { url: '/reports/void-logs',       params: { date: selectedDate } },
-        qty_items:    { url: '/reports/item-quantities', params: { date: selectedDate } },
-        cash_count:   { url: '/cash-counts/summary',     params: { date: selectedDate } },
-        search:       { url: '/receipts/search',         params: { query: invoiceQuery, date: selectedDate } },
-        detailed:     { url: '/reports/sales-detailed',  params: { date: selectedDate } },
+        void_logs:    { url: '/reports/void-logs',       params: { date: dateMode === 'range' ? toDate : selectedDate } },
+        qty_items:    { url: '/reports/item-quantities', params: dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate } },
+        cash_count:   { url: '/cash-counts/summary',     params: { date: dateMode === 'range' ? toDate : selectedDate } },
+        search:       { url: '/receipts/search',         params: { query: invoiceQuery, date: dateMode === 'range' ? toDate : selectedDate } },
+        detailed:     { url: '/reports/sales-detailed',  params: { date: dateMode === 'range' ? toDate : selectedDate } },
       };
       const { url, params } = endpointMap[type];
-      const response = await api.get(url, { params });
+      const response = await api.get(url, { params: { ...params, ...commonParams } });
       setRawApiResponse(response.data as Record<string, unknown>);
       setReportData({ ...normalizeResponse(type, response.data), report_type: type });
     } catch (err: unknown) {
@@ -347,7 +415,7 @@ const ZReading = () => {
         return { ...data, summary_data: summaryData ?? [] } as unknown as ZReadingReport;
       }
       case 'search': {
-        const raw = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
+        const raw = (Array.isArray(data) ? data : (data.results ?? [])) as Record<string, unknown>[];
         return { ...data, transactions: raw.map(r => ({ Invoice: r.si_number ?? r.Invoice ?? '', Amount: r.total_amount ?? r.Amount ?? 0, Status: r.status ?? r.Status ?? '', Date_Time: r.created_at ?? r.Date_Time ?? '' })) } as unknown as ZReadingReport;
       }
       case 'hourly_sales': {
@@ -407,16 +475,16 @@ const ZReading = () => {
   const handlePrint = () => window.print();
 
   const menuCards = [
-    { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#3b2063]" },
+    { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#6a12b8]" },
     { label: "OVERVIEW",        title: "SALES SUMMARY REPORT", type: "summary",      color: "border-amber-400" },
-    { label: "AUDIT",           title: "VOID LOGS",            type: "void_logs",    color: "border-[#3b2063]" },
-    { label: "TRANSACTION",     title: "SEARCH RECEIPT",       type: "search",       color: "border-[#3b2063]" },
-    { label: "DATA MANAGEMENT", title: "EXPORT SALES",         type: "export_sales", color: "border-[#3b2063]" },
-    { label: "ANALYSIS",        title: "SALES DETAILED",       type: "detailed",     color: "border-[#3b2063]" },
-    { label: "INVENTORY",       title: "EXPORT ITEMS",         type: "export_items", color: "border-[#3b2063]" },
-    { label: "INVENTORY",       title: "QTY ITEMS",            type: "qty_items",    color: "border-[#3b2063]" },
+    { label: "AUDIT",           title: "VOID LOGS",            type: "void_logs",    color: "border-[#6a12b8]" },
+    { label: "TRANSACTION",     title: "SEARCH RECEIPT",       type: "search",       color: "border-[#6a12b8]" },
+    { label: "DATA MANAGEMENT", title: "EXPORT SALES",         type: "export_sales", color: "border-[#6a12b8]" },
+    { label: "ANALYSIS",        title: "SALES DETAILED",       type: "detailed",     color: "border-[#6a12b8]" },
+    { label: "INVENTORY",       title: "EXPORT ITEMS",         type: "export_items", color: "border-[#6a12b8]" },
+    { label: "INVENTORY",       title: "QTY ITEMS",            type: "qty_items",    color: "border-[#6a12b8]" },
     { label: "Z-READING",  title: "", isAction: true, type: "z_reading",  actionLabel: "Z-READING",  actionText: "PRINT", color: "border-emerald-500" },
-    { label: "CASH COUNT", title: "", isAction: true, type: "cash_count", actionLabel: "CASH COUNT", actionText: "VIEW",  color: "border-[#3b2063]" },
+    { label: "CASH COUNT", title: "", isAction: true, type: "cash_count", actionLabel: "CASH COUNT", actionText: "VIEW",  color: "border-[#6a12b8]" },
   ];
 
   const renderHourlySales = () => {
@@ -428,8 +496,8 @@ const ZReading = () => {
     return (
       <div className="my-2">
         <Divider />
-        <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[40%] uppercase">HOUR</span><span className="w-[20%] text-center uppercase">QTY</span><span className="w-[40%] text-right uppercase">AMOUNT</span></div>
-        {HOUR_LABELS.map((label, h) => { const d = salesMap.get(h) ?? { total: 0, count: 0 }; return (<div key={h} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300"><span className="w-[40%] uppercase">{label}</span><span className="w-[20%] text-center">{d.count}</span><span className="w-[40%] text-right">{phCurrency.format(d.total)}</span></div>); })}
+        <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5"><span className="w-[40%] uppercase">HOUR</span><span className="w-[20%] text-center uppercase">QTY</span><span className="w-[40%] text-right uppercase">AMOUNT</span></div>
+        {HOUR_LABELS.map((label, h) => { const d = salesMap.get(h) ?? { total: 0, count: 0 }; return (<div key={h} className="flex text-[11px] leading-snug font-bold border-b border-dotted border-zinc-300"><span className="w-[40%] uppercase">{label}</span><span className="w-[20%] text-center">{d.count}</span><span className="w-[40%] text-right">{phCurrency.format(d.total)}</span></div>); })}
         <Divider />
         <Row label="TOTAL ITEMS SOLD" value={totalItems} />
         <Row label="TOTAL REVENUE" value={phCurrency.format(totalSales)} />
@@ -440,9 +508,9 @@ const ZReading = () => {
   const renderVoidLogs = () => (
     <div className="my-2">
       <Divider />
-      <p className="text-[11px] uppercase mb-0.5">VOIDED TRANSACTIONS</p>
-      <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[25%] uppercase">TIME</span><span className="w-[50%] uppercase">REASON</span><span className="w-[25%] text-right uppercase">AMT</span></div>
-      {reportData?.logs?.length ? reportData.logs.map((log, i) => (<div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300"><span className="w-[25%]">{log.time}</span><span className="w-[50%] uppercase">{log.reason}</span><span className="w-[25%] text-right">{phCurrency.format(log.amount)}</span></div>)) : <p className="text-[11px]">No voids recorded today.</p>}
+      <p className="text-[11px] uppercase font-bold mb-0.5">VOIDED TRANSACTIONS</p>
+      <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5"><span className="w-[25%] uppercase">TIME</span><span className="w-[50%] uppercase">REASON</span><span className="w-[25%] text-right uppercase">AMT</span></div>
+      {reportData?.logs?.length ? reportData.logs.map((log, i) => (<div key={i} className="flex text-[11px] leading-snug font-bold border-b border-dotted border-zinc-300"><span className="w-[25%]">{log.time}</span><span className="w-[50%] uppercase">{log.reason}</span><span className="w-[25%] text-right">{phCurrency.format(log.amount)}</span></div>)) : <p className="text-[11px] font-bold">No voids recorded today.</p>}
       <Divider />
       <Row label="TOTAL VOIDS" value={reportData?.logs?.length ?? 0} />
       <Row label="TOTAL AMOUNT" value={phCurrency.format(reportData?.logs?.reduce((a, l) => a + l.amount, 0) ?? 0)} />
@@ -456,7 +524,7 @@ const ZReading = () => {
     return (
       <div className="my-2">
         <Divider />
-        <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[75%] uppercase">DESCRIPTION</span><span className="w-[25%] text-right uppercase">QTY</span></div>
+        <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5"><span className="w-[75%] uppercase">DESCRIPTION</span><span className="w-[25%] text-right uppercase">QTY</span></div>
         {reportData.categories.map((cat, catIdx) => {
           const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined);
           const sizeGroups = new Map<string | null, typeof cat.products>();
@@ -466,15 +534,109 @@ const ZReading = () => {
           return (
             <div key={catIdx} className="mb-1">
               <p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>
-              {orderedKeys.map((sizeKey, si) => { const products = sizeGroups.get(sizeKey) ?? []; return (<div key={si}>{hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}{products.map((item, i) => (<div key={i} className="flex text-[11px] leading-snug"><span className={`w-[75%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span><span className="w-[25%] text-right">{item.total_qty}</span></div>))}</div>); })}
+              {orderedKeys.map((sizeKey, si) => { const products = sizeGroups.get(sizeKey) ?? []; return (<div key={si}>{hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2 font-bold">{sizeKey}:</p>}{products.map((item, i) => (<div key={i} className="flex text-[11px] leading-snug font-bold"><span className={`w-[75%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span><span className="w-[25%] text-right">{item.total_qty}</span></div>))}</div>); })}
               <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5"><span className="uppercase">T. PER: {cat.category_name}</span><span>QTY: {catTotal}</span></div>
               <Divider />
             </div>
           );
         })}
-        {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (<div className="mt-1"><p className="text-[11px] uppercase">ADD ONS</p>{reportData.all_addons_summary.map((addon, idx) => (<div key={idx} className="flex text-[11px] leading-snug"><span className="w-[75%] uppercase pl-2">{addon.name}</span><span className="w-[25%] text-right">{addon.qty}</span></div>))}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div></div>)}
+        {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (<div className="mt-1"><p className="text-[11px] uppercase font-bold">ADD ONS</p>{reportData.all_addons_summary.map((addon, idx) => (<div key={idx} className="flex text-[11px] leading-snug font-bold"><span className="w-[75%] uppercase pl-2">{addon.name}</span><span className="w-[25%] text-right">{addon.qty}</span></div>))}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5 font-bold"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div></div>)}
+        {(() => {
+          const cupGroups = [
+            { name: 'Standard Cup', sizes: ['SM', 'SL'] },
+            { name: 'Junior Cup', sizes: ['JR'] },
+            { name: 'Upturn Cup', sizes: ['UM', 'UL'] },
+            { name: 'Plastic Cup', sizes: ['PCM', 'PCL'] },
+          ];
+          
+          const groupData = cupGroups.map(group => {
+            const sizeMap = new Map<string, number>();
+            group.sizes.forEach(s => sizeMap.set(s, 0));
+            return { ...group, sizeMap, total: 0 };
+          });
+
+          let otherTotal = 0;
+          let hasAnyCups = false;
+          let grandTotalCups = 0;
+
+          reportData.categories.forEach(cat => {
+            cat.products.forEach(product => {
+              if (product.size) {
+                 const group = groupData.find(g => g.sizes.includes(product.size!));
+                 if (group) {
+                   group.sizeMap.set(product.size, (group.sizeMap.get(product.size) ?? 0) + product.total_qty);
+                   group.total += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
+                 } else {
+                   otherTotal += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
+                 }
+              } else {
+                 otherTotal += product.total_qty;
+                 grandTotalCups += product.total_qty;
+                 hasAnyCups = true;
+              }
+            });
+          });
+
+          if (!hasAnyCups) return null;
+
+          return (
+            <div className="mt-1">
+              <Divider />
+              {groupData.map(group => {
+                if (group.total === 0) return null;
+                return (
+                  <div key={group.name} className="mb-1.5">
+                    <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                      <span className="w-[75%] uppercase">{group.name}</span>
+                      <span className="w-[25%] text-right uppercase">QTY</span>
+                    </div>
+                    {group.sizes.map(size => {
+                       const qty = group.sizeMap.get(size) ?? 0;
+                       if (qty === 0) return null;
+                       return (
+                         <div key={size} className="flex text-[11px] leading-snug">
+                           <span className="w-[75%] uppercase pl-2">{size}</span>
+                           <span className="w-[25%] text-right">{qty}</span>
+                         </div>
+                       );
+                    })}
+                    <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                       <span className="uppercase">TOTAL ({group.name})</span>
+                       <span>{group.total}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {otherTotal > 0 && (
+                <div key="other" className="mb-1.5">
+                  <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                    <span className="w-[75%] uppercase">Other / No Size</span>
+                    <span className="w-[25%] text-right uppercase">QTY</span>
+                  </div>
+                  <div className="flex text-[11px] leading-snug">
+                    <span className="w-[75%] uppercase pl-2">BUNDLES / EXTRAS</span>
+                    <span className="w-[25%] text-right">{otherTotal}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                     <span className="uppercase">TOTAL (Other)</span>
+                     <span>{otherTotal}</span>
+                  </div>
+                </div>
+              )}
+              <Divider />
+              <div className="flex justify-between text-[11px] font-bold mt-0.5 pt-0.5">
+                <span className="uppercase">TOTAL CUPS</span>
+                <span>QTY: {grandTotalCups}</span>
+              </div>
+            </div>
+          );
+        })()}
         <Divider />
-        <div className="flex justify-between text-[11px]"><span className="uppercase">ALL DAY MEAL</span><span>QTY: {totalItems}</span></div>
+        <div className="flex justify-between text-[11px] font-bold"><span className="uppercase">ALL DAY MEAL</span><span>QTY: {totalItems}</span></div>
       </div>
     );
   };
@@ -485,8 +647,8 @@ const ZReading = () => {
     return (
       <div className="my-2">
         <Divider />
-        <p className="text-[11px] uppercase border-b border-black pb-0.5 mb-0.5">DENOMINATION BREAKDOWN</p>
-        {!denominations || denominations.length === 0 ? <p className="text-[11px]">No denomination data available.</p> : (<><div className="flex text-[11px] mb-0.5"><span className="w-[45%] uppercase">DENOM</span><span className="w-[20%] text-center uppercase">QTY</span><span className="w-[35%] text-right uppercase">TOTAL</span></div>{denominations.map((d, i) => (<div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300"><span className="w-[45%] uppercase">{d.label}</span><span className="w-[20%] text-center">x{d.qty}</span><span className="w-[35%] text-right">{phCurrency.format(d.total)}</span></div>))}</>)}
+        <p className="text-[11px] uppercase border-b border-black pb-0.5 mb-0.5 font-bold">DENOMINATION BREAKDOWN</p>
+        {!denominations || denominations.length === 0 ? <p className="text-[11px] font-bold">No denomination data available.</p> : (<><div className="flex text-[11px] mb-0.5 font-bold"><span className="w-[45%] uppercase">DENOM</span><span className="w-[20%] text-center uppercase">QTY</span><span className="w-[35%] text-right uppercase">TOTAL</span></div>{denominations.map((d, i) => (<div key={i} className="flex text-[11px] leading-snug font-bold border-b border-dotted border-zinc-300"><span className="w-[45%] uppercase">{d.label}</span><span className="w-[20%] text-center">x{d.qty}</span><span className="w-[35%] text-right">{phCurrency.format(d.total)}</span></div>))}</>)}
         <Divider />
         <Row label="GRAND TOTAL" value={phCurrency.format(grandTotal)} />
       </div>
@@ -504,7 +666,18 @@ const ZReading = () => {
         <div className="my-2">
           <Divider />
           <div className="flex text-[8px] border-b border-black pb-0.5 mb-0.5 font-bold uppercase leading-tight"><span className="w-[30%]">SI # / TIME</span><span className="w-[10%] text-center">QTY</span><span className="w-[20%] text-center">CASHIER</span><span className="w-[20%] text-right">VATABLE</span><span className="w-[20%] text-right">TOTAL</span></div>
-          {rows.length === 0 ? <p className="text-[11px] text-center py-2">No transactions found.</p> : rows.map((tx, i) => { const isCancelled = tx.Status?.toLowerCase() === 'cancelled'; const timeOnly = tx.Date_Time ? new Date(tx.Date_Time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''; const siDisplay = String(tx.Invoice).replace(/^OR-0+/, '#').replace(/^OR-/, '#'); return (<div key={i} className={`border-b border-dotted border-zinc-300 py-0.5 ${isCancelled ? 'opacity-50' : ''}`}><div className="flex text-[8px] leading-snug items-start"><span className="w-[30%] uppercase leading-tight">{siDisplay}<br /><span className="text-zinc-500 text-[7px]">{timeOnly}</span></span><span className="w-[10%] text-center text-zinc-600">{tx.Items_Count ? tx.Items_Count : <span className="text-zinc-400">—</span>}</span><span className="w-[20%] text-center text-zinc-600 truncate" style={{ fontSize: '7px' }}>{tx.Cashier || <span className="text-zinc-400">—</span>}</span><span className="w-[20%] text-right text-zinc-600">{tx.Vatable ? phCurrency.format(tx.Vatable) : <span className="text-zinc-400">—</span>}</span><span className={`w-[20%] text-right font-medium ${isCancelled ? 'line-through text-zinc-400' : ''}`}>{phCurrency.format(tx.Amount)}</span></div></div>); })}
+          {rows.length === 0 ? <p className="text-[11px] text-center py-2">No transactions found.</p> : rows.map((tx, i) => { const isCancelled = tx.Status?.toLowerCase() === 'cancelled'; const timeOnly = tx.Date_Time ? new Date(tx.Date_Time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''; const siDisplay = String(tx.Invoice).replace(/^OR-0+/, '#').replace(/^OR-/, '#');            return (
+              <div key={i} className={`border-b border-dotted border-zinc-300 py-0.5 ${isCancelled ? 'opacity-50' : ''}`}>
+                <div className="flex text-[9px] font-bold leading-snug items-start">
+                  <span className="w-[30%] uppercase leading-tight">{siDisplay}<br /><span className="text-zinc-600 text-[8px]">{timeOnly}</span></span>
+                  <span className="w-[10%] text-center text-zinc-900">{tx.Items_Count ? tx.Items_Count : <span className="text-zinc-500">—</span>}</span>
+                  <span className="w-[20%] text-center text-zinc-900 truncate" style={{ fontSize: '8px' }}>{tx.Cashier || <span className="text-zinc-500">—</span>}</span>
+                  <span className="w-[20%] text-right text-zinc-900">{tx.Vatable ? phCurrency.format(tx.Vatable) : <span className="text-zinc-500">—</span>}</span>
+                  <span className={`w-[20%] text-right font-black ${isCancelled ? 'line-through text-zinc-500' : 'text-black'}`}>{phCurrency.format(tx.Amount)}</span>
+                </div>
+              </div>
+            );
+          })}
           <Divider />
           <div className="flex text-[9px] justify-between mb-0.5 text-zinc-500"><span className="uppercase">Cancelled</span><span>{phCurrency.format(cancelledTotal)}</span></div>
           <div className="flex text-[10px] font-bold justify-between"><span className="uppercase">Total Sales</span><span>{phCurrency.format(completedTotal)}</span></div>
@@ -681,6 +854,17 @@ const ZReading = () => {
                   <span className="w-[35%] text-right">{r.value}</span>
                 </div>
               ))}
+              <div className="flex text-[11px] leading-snug border-t border-black mt-0.5 pt-0.5">
+                <span className="flex-1 text-right uppercase pr-1 font-bold">NET SALES:</span>
+                <span className="w-[35%] text-right font-bold">{phCurrency.format(vatableSales + vatAmt + (reportData?.vat_exempt_sales || 0))}</span>
+              </div>
+              <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+              </div>
+              <Divider />
+              <div className="flex text-[11px] leading-snug">
+                <span className="flex-1 text-right uppercase pr-1 font-bold">ROUNDING ADJ:</span>
+                <span className="w-[35%] text-right font-bold">{phCurrency.format(reportData?.rounding_adjustment || 0)}</span>
+              </div>
               <Divider />
               <div className="flex text-[11px] leading-snug">
                 <span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span>
@@ -712,16 +896,21 @@ const ZReading = () => {
     const otherDiscount  = reportData?.other_discount || 0;
 
     // ✅ totalDisc declared BEFORE netSales uses it
-    const totalDisc = reportData?.total_discounts
-      ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
-
-    // ✅ netSales now has a valid fallback
-    const netSales  = reportData?.net_sales ?? (gross - totalDisc);
-    const netTotal  = reportData?.net_sales ?? reportData?.net_total ?? (gross - totalDisc);
+    const totalDisc = roundTo2(
+      reportData?.total_discounts
+      ?? (scDiscount + pwdDiscount + diplomat + otherDiscount)
+    );
 
     const txCount            = reportData?.transaction_count || 0;
     const vatableSales       = reportData?.vatable_sales || 0;
     const vatAmount          = reportData?.vat_amount || 0;
+    const vatExemptSales     = reportData?.vat_exempt_sales || 0;
+    const scPwdVat           = reportData?.less_vat || 0;
+
+    // ✅ netSales now has a mathematically exact fallback equal to vatable + vat_amount + vat_exempt
+    const netSales      = roundTo2(isVat ? (vatableSales + vatAmount + vatExemptSales) : (gross - totalDisc));
+    const netInclusive  = netSales;
+
     const voids              = reportData?.total_void_amount || 0;
     const qtyTotal           = reportData?.total_qty_sold || 0;
     const cashDrop           = reportData?.cash_drop || 0;
@@ -730,7 +919,7 @@ const ZReading = () => {
     const zCounter           = reportData?.z_counter ?? 1;
     const presentAccumulated = reportData?.present_accumulated ?? gross;
     const previousAccumulated = reportData?.previous_accumulated ?? 0;
-    const salesForDay        = reportData?.sales_for_the_day ?? gross;
+    const salesForDay        = netSales; // Sales for the day equals the strictly validated NET SALES
 
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
     const METHOD_ALIASES: Record<string, string> = {
@@ -763,12 +952,13 @@ const ZReading = () => {
     const totalDebit   = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalCard    = totalCredit + totalDebit;
     const actualCash = paymentMap.get('cash') || 0;
-    const actualNonCash = gross - actualCash;
+    const totalPaymentsReceived = roundTo2(reportData?.total_payments ?? Array.from(paymentMap.values()).reduce((a, b) => a + b, 0));
+    const actualNonCash = roundTo2(reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash));
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
     const apiExpected = reportData?.expected_amount ?? 0;
-    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
-    const overShort   = reportData?.over_short ?? (totalCashCount - expectedEOD);
+    const expectedEOD = roundTo2(apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop));
+    const overShort   = roundTo2(reportData?.over_short ?? (totalCashCount - expectedEOD));
     const isRange = dateMode === 'range';
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -779,8 +969,8 @@ const ZReading = () => {
         <Divider />
         <Row label="Report Date" value={new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} />
         <Row label="Report Time" value={timeStr} />
-        <Row label="Start Date & Time" value={`${startDate} ${timeStr}`} />
-        <Row label="End Date & Time" value={`${endDate} ${timeStr}`} />
+        <Row label="Start Date & Time" value={`${startDate}\n${timeStr}`} />
+        <Row label="End Date & Time" value={`${endDate}\n${timeStr}`} />
         <Row label="Terminal #" value="ALL" />
         <Row label="Cashier" value={reportData?.prepared_by || cashierName} />
         <Row label="Beg. SI #" value={reportData?.beg_si || '0000000000'} />
@@ -800,6 +990,10 @@ const ZReading = () => {
         <Divider />
         <Row label="Service Charge" value={phCurrency.format(0)} />
         <Row label="NET SALES" value={phCurrency.format(netSales)} />
+        <Row label="SC/PWD VAT"       value={phCurrency.format(scPwdVat)} />
+        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1">
+          <span></span>
+        </div>
         <Row label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <Row label="GROSS Amount" value={phCurrency.format(gross)} />
         <Divider />
@@ -808,7 +1002,8 @@ const ZReading = () => {
         <Row label="PWD Disc." value={phCurrency.format(pwdDiscount)} />
         <Row label="NAAC Disc." value={phCurrency.format(0)} />
         <Row label="Solo Parent Disc." value={phCurrency.format(0)} />
-        <Row label="Other Disc." value={phCurrency.format(diplomat)} />
+        <Row label="Diplomat Disc." value={phCurrency.format(diplomat)} />
+        <Row label="Other Disc." value={phCurrency.format(otherDiscount)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
         <Row label={`Canceled (${voids > 0 ? reportData?.logs?.length ?? 0 : 0})`} value={phCurrency.format(voids)} />
@@ -834,7 +1029,10 @@ const ZReading = () => {
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(roundTo2(netInclusive + (reportData?.rounding_adjustment || 0)))} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />
@@ -874,7 +1072,7 @@ const ZReading = () => {
         </div>
         <div className="flex text-[11px] font-bold justify-between">
           <span className="uppercase">NET TOTAL</span>
-          <span>{phCurrency.format(netTotal)}</span>
+          <span>{phCurrency.format(netSales)}</span>
         </div>
       </div>
     );
@@ -934,10 +1132,9 @@ const ZReading = () => {
               padding: 2mm !important; 
               box-sizing: border-box !important; 
               background: white !important; 
-              color: #000 !important; 
               font-family: Arial, Helvetica, sans-serif !important; 
-              font-size: 12px !important; 
-              font-weight: 500 !important;
+              font-size: 13px !important; 
+              font-weight: bold !important;
               line-height: 1.5 !important; 
               box-shadow: none !important; 
               border: none !important; 
@@ -947,24 +1144,54 @@ const ZReading = () => {
             }
             .receipt-area * {
               overflow: visible !important;
+              font-weight: 900 !important;
               -webkit-font-smoothing: none !important;
             }
             .receipt-area > div > div {
               break-inside: avoid !important;
             }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
-            table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
-            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 500 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 12px !important; }
+            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: bold !important; font-size: 13px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 13px !important; font-weight: bold !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
           }
         `}</style>
+
+        {/* ── GAP WARNING BANNER ── */}
+        {gaps.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 p-4 mb-6 flex items-center justify-between shadow-sm rounded-[0.625rem] print:hidden">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-100 p-2 rounded-full text-amber-600">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-amber-900 font-black text-sm uppercase tracking-tight">Missing Z-Readings detected</h4>
+                <p className="text-amber-700 text-xs font-bold leading-tight mt-0.5">There are {gaps.length} days with sales that haven't been finalized.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+               {gaps.slice(0, 3).map(gapDate => (
+                 <button 
+                  key={gapDate} 
+                  onClick={() => { setSelectedDate(gapDate); setDateMode('single'); }}
+                  className="bg-white border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-colors"
+                 >
+                   {gapDate}
+                 </button>
+               ))}
+               {gaps.length > 3 && <span className="text-amber-500 font-bold self-center text-xs">+{gaps.length - 3} more</span>}
+            </div>
+          </div>
+        )}
 
         {/* ── CONTROLS ── */}
         <div className="bg-white p-3 border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-3 relative z-50 print:hidden shadow-sm rounded-[0.625rem]">
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-[0.625rem] ${isMenuOpen ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'text-zinc-700 border-zinc-300 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'}`}
+              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-[0.625rem] ${isMenuOpen ? 'bg-[#6a12b8] text-white border-[#6a12b8]' : 'text-zinc-700 border-zinc-300 hover:border-[#6a12b8] hover:text-[#6a12b8] hover:bg-[#f5f0ff]'}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -978,7 +1205,7 @@ const ZReading = () => {
                     <div key={index} onClick={() => handleMenuAction(card.type)}
                       className={`bg-white border-l-4 ${card.color} shadow-sm p-4 h-20 flex flex-col justify-center cursor-pointer group hover:bg-[#f5f0ff] transition-all rounded-[0.625rem]`}>
                       <h3 className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1">{card.label}</h3>
-                      <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#3b2063]">{card.title || card.actionLabel}</h2>
+                      <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#6a12b8]">{card.title || card.actionLabel}</h2>
                     </div>
                   ))}
                 </div>
@@ -989,28 +1216,50 @@ const ZReading = () => {
           <div className="flex-1 w-full flex gap-2">
             {(!reportData || reportData.report_type === 'z_reading') && (
               <div className="flex border border-zinc-300 rounded-[0.625rem] overflow-hidden shrink-0">
-                <button onClick={() => setDateMode('single')} className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors ${dateMode === 'single' ? 'bg-[#3b2063] text-white' : 'bg-white text-zinc-500 hover:bg-[#f5f0ff]'}`}>Day</button>
-                <button onClick={() => setDateMode('range')} className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors border-l border-zinc-300 ${dateMode === 'range' ? 'bg-[#3b2063] text-white' : 'bg-white text-zinc-500 hover:bg-[#f5f0ff]'}`}>Range</button>
+                <button onClick={() => setDateMode('single')} className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors ${dateMode === 'single' ? 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-500 hover:bg-[#f5f0ff]'}`}>Day</button>
+                <button onClick={() => setDateMode('range')} className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors border-l border-zinc-300 ${dateMode === 'range' ? 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-500 hover:bg-[#f5f0ff]'}`}>Range</button>
               </div>
             )}
             {dateMode === 'range' && (!reportData || reportData.report_type === 'z_reading') ? (
               <div className="flex gap-2 flex-1">
                 <div className="flex items-center gap-1.5 flex-1">
                   <span className="text-[10px] font-black uppercase text-zinc-400 shrink-0">From</span>
-                  <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="flex-1 px-3 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
+                  <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="flex-1 px-3 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#6a12b8]" />
                 </div>
                 <div className="flex items-center gap-1.5 flex-1">
                   <span className="text-[10px] font-black uppercase text-zinc-400 shrink-0">To</span>
-                  <input type="date" value={toDate} min={fromDate} onChange={(e) => setToDate(e.target.value)} className="flex-1 px-3 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
+                  <input type="date" value={toDate} min={fromDate} onChange={(e) => setToDate(e.target.value)} className="flex-1 px-3 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#6a12b8]" />
                 </div>
               </div>
             ) : (
-              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
+              <div className="flex-1 relative flex items-center">
+                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#6a12b8]" />
+                <div className="absolute right-3">
+                  {checkingStatus ? (
+                    <div className="w-4 h-4 border-2 border-[#6a12b8] border-t-transparent rounded-full animate-spin" />
+                  ) : zStatus?.is_closed ? (
+                    <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border border-emerald-200">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4.001-5.509Z" clipRule="evenodd" />
+                      </svg>
+                      Closed
+                    </span>
+                  ) : zStatus?.has_sales ? (
+                    <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border border-amber-200">
+                      Pending
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 bg-zinc-100 text-zinc-400 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border border-zinc-200">
+                      Empty
+                    </span>
+                  )}
+                </div>
+              </div>
             )}
             {reportData?.report_type === 'search' && (
               <div className="flex gap-2 flex-1">
-                <input type="text" value={invoiceQuery} onChange={(e) => setInvoiceQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchReportData('search')} placeholder="Search invoice / cashier..." className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
-                <button onClick={() => fetchReportData('search')} disabled={loading} className="px-5 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors disabled:opacity-50 rounded-[0.625rem]">Search</button>
+                <input type="text" value={invoiceQuery} onChange={(e) => setInvoiceQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchReportData('search')} placeholder="Search invoice / cashier..." className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#6a12b8]" />
+                <button onClick={() => fetchReportData('search')} disabled={loading} className="px-5 h-11 bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors disabled:opacity-50 rounded-[0.625rem]">Search</button>
               </div>
             )}
 
@@ -1021,7 +1270,7 @@ const ZReading = () => {
                   type="checkbox" 
                   checked={showBreakdown} 
                   onChange={(e) => setShowBreakdown(e.target.checked)}
-                  className="w-4 h-4 rounded border-zinc-300 text-[#3b2063] focus:ring-[#3b2063]"
+                  className="w-4 h-4 rounded border-zinc-300 text-[#6a12b8] focus:ring-[#6a12b8]"
                 />
                 <span className="text-[10px] font-black uppercase text-zinc-600">Show Breakdown</span>
               </label>
@@ -1029,12 +1278,14 @@ const ZReading = () => {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={handleGenerate} disabled={loading}
-              className="px-6 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] active:bg-[#5a0fa0] transition-colors disabled:opacity-50 rounded-[0.625rem] border border-[#3b2063]">
-              {loading ? 'Processing...' : 'Generate'}
+            <button 
+              onClick={handleGenerate} 
+              disabled={loading || zStatus?.is_closed}
+              className={`px-6 h-11 text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] border ${zStatus?.is_closed ? 'bg-zinc-400 border-zinc-400 cursor-not-allowed opacity-60' : 'bg-[#6a12b8] border-[#6a12b8] hover:bg-[#6a12b8] active:bg-[#5a0fa0] disabled:opacity-50'}`}>
+              {loading ? 'Processing...' : zStatus?.is_closed ? 'Day Closed' : 'Generate'}
             </button>
             <button onClick={handlePrint}
-              className="px-6 h-11 bg-white text-[#3b2063] font-bold text-xs uppercase tracking-widest border border-[#3b2063] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]">
+              className="px-6 h-11 bg-white text-[#6a12b8] font-bold text-xs uppercase tracking-widest border border-[#6a12b8] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]">
               Print
             </button>
           </div>
@@ -1052,12 +1303,12 @@ const ZReading = () => {
         <div className="flex-1 flex flex-col items-center justify-start py-10">
           {loading ? (
             <div className="flex flex-col items-center mt-20 opacity-50">
-              <div className="w-8 h-8 border-4 border-[#3b2063] border-t-transparent rounded-full animate-spin mb-3" />
+              <div className="w-8 h-8 border-4 border-[#6a12b8] border-t-transparent rounded-full animate-spin mb-3" />
               <p className="text-sm text-zinc-400 font-bold uppercase">Generating report...</p>
             </div>
           ) : reportData ? (
             <div className="printable-receipt-container">
-              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem', fontWeight: 500 }}>
+              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem', fontWeight: 'bold' }}>
                 <div className="text-center">
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>

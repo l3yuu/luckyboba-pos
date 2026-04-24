@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
+  Search, Edit2, Trash2, X, AlertCircle,
   ChevronDown, History, TrendingUp, TrendingDown, Minus,
   Package, CheckCircle, FlaskConical,
 } from 'lucide-react';
@@ -13,7 +13,7 @@ import api from '../../../services/api';
 
 type Unit     = 'PC' | 'PK' | 'BAG' | 'BTL' | 'BX' | 'ML' | 'G' | 'KG' | 'L';
 type Category = 'Packaging' | 'Ingredients' | 'Intermediate' | 'Equipment';
-type AdjType  = 'add' | 'subtract' | 'set';
+type AdjType  = 'add' | 'subtract' | 'set' | 'waste';
 
 interface RawMaterial {
   id:             number;
@@ -53,7 +53,7 @@ const CATEGORIES: Category[] = ['Packaging', 'Ingredients', 'Intermediate', 'Equ
 
 const CATEGORY_COLORS: Record<Category, { bg: string; text: string; border: string }> = {
   Packaging:    { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
-  Ingredients:  { bg: '#f5f0ff', text: '#3b2063', border: '#e9d5ff' },
+  Ingredients:  { bg: '#f5f0ff', text: '#6a12b8', border: '#e9d5ff' },
   Intermediate: { bg: '#fffbeb', text: '#d97706', border: '#fde68a' },
   Equipment:    { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },
 };
@@ -119,10 +119,10 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
   const typeIcon = (t: AdjType) => {
     if (t === 'add')      return <TrendingUp  size={12} color="#16a34a" />;
     if (t === 'subtract') return <TrendingDown size={12} color="#dc2626" />;
-    return                       <Minus        size={12} color="#3b2063" />;
+    return                       <Minus        size={12} color="#6a12b8" />;
   };
 
-  const typeColor = (t: AdjType) => t === 'add' ? '#16a34a' : t === 'subtract' ? '#dc2626' : '#3b2063';
+  const typeColor = (t: AdjType) => t === 'add' ? '#16a34a' : t === 'subtract' ? '#dc2626' : '#6a12b8';
 
   return createPortal(
     <div className="fixed inset-0 z-9999 flex justify-end"
@@ -131,7 +131,7 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
       <div className="relative bg-white w-full max-w-sm h-full flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#3b2063] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#6a12b8] rounded-lg flex items-center justify-center">
               <History size={14} className="text-white" />
             </div>
             <div>
@@ -181,6 +181,15 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
   );
 };
 
+// ─── Constants ─────────────────────────────────────────────────────────────
+
+const REASONS = {
+  add: ['Delivery', 'Production', 'Cooked', 'Correction', 'Other'],
+  subtract: ['Production', 'Cooked', 'Sales', 'Transfer Out', 'Correction', 'Other'],
+  waste: ['Spoilage', 'Expired', 'Damage', 'Theft', 'Other'],
+  set: ['Physical Count', 'Initial Stock', 'Correction', 'Other']
+};
+
 // ─── Adjust Modal ─────────────────────────────────────────────────────────────
 
 const AdjustModal: React.FC<{
@@ -190,7 +199,8 @@ const AdjustModal: React.FC<{
 }> = ({ item, onClose, onDone }) => {
   const [adjType, setAdjType] = useState<AdjType>('add');
   const [qty,     setQty]     = useState<number | ''>('');
-  const [reason,  setReason]  = useState('');
+  const [reasonSelect, setReasonSelect] = useState('');
+  const [customReason, setCustomReason] = useState('');
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState(false);
@@ -203,11 +213,15 @@ const AdjustModal: React.FC<{
   };
 
   const handleSubmit = async () => {
-    if (qty === '' || !reason.trim()) { setError('Quantity and reason are required.'); return; }
+    const finalReason = reasonSelect === 'Other' ? customReason : reasonSelect;
+    if (qty === '' || !finalReason.trim()) { setError('Quantity and reason are required.'); return; }
     setSaving(true); setError('');
     try {
       const res = await api.post(`/raw-materials/${item.id}/adjust`, {
-        type: adjType, quantity: Number(qty), reason,
+        type: adjType === 'waste' ? 'subtract' : adjType, 
+        quantity: Number(qty), 
+        reason: finalReason,
+        is_waste: adjType === 'waste'
       });
       onDone(res.data?.data ?? res.data);
       setSuccess(true);
@@ -221,7 +235,8 @@ const AdjustModal: React.FC<{
   const typeConfig = {
     add:      { label: 'Add Stock',      color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: <TrendingUp  size={14} /> },
     subtract: { label: 'Subtract Stock', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: <TrendingDown size={14} /> },
-    set:      { label: 'Set Stock',      color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus        size={14} /> },
+    waste:    { label: 'Spoilage',       color: '#ea580c', bg: '#fff7ed', border: '#ffedd5', icon: <AlertCircle size={14} /> },
+    set:      { label: 'Set Stock',      color: '#6a12b8', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus        size={14} /> },
   };
 
   return createPortal(
@@ -232,7 +247,7 @@ const AdjustModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <Package size={15} className="text-[#3b2063]" />
+              <Package size={15} className="text-[#6a12b8]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">Adjust Stock</p>
@@ -253,10 +268,13 @@ const AdjustModal: React.FC<{
           ) : (
             <>
               {/* Type selector */}
-              <div className="grid grid-cols-3 gap-2">
-                {(Object.entries(typeConfig) as [AdjType, typeof typeConfig.add][]).map(([key, cfg]) => (
-                  <button key={key} onClick={() => setAdjType(key)}
-                    className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-lg border text-xs font-bold transition-all"
+              <div className="grid grid-cols-4 gap-2">
+                {(Object.entries(typeConfig) as [AdjType | 'waste', typeof typeConfig.add][]).map(([key, cfg]) => (
+                  <button key={key} onClick={() => {
+                    setAdjType(key as AdjType | 'waste');
+                    setReasonSelect('');
+                  }}
+                    className="flex flex-col items-center gap-1 py-1 px-1 rounded-lg border text-[10px] font-bold transition-all"
                     style={adjType === key
                       ? { background: cfg.bg, color: cfg.color, borderColor: cfg.border }
                       : { background: 'white', color: '#71717a', borderColor: '#e4e4e7' }}>
@@ -288,9 +306,29 @@ const AdjustModal: React.FC<{
               </Field>
 
               <Field label="Reason" required>
-                <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2}
-                  className={`${inputCls()} resize-none`} placeholder="e.g. Received from supplier, damaged goods..." />
+                <select 
+                  value={reasonSelect} 
+                  onChange={e => setReasonSelect(e.target.value)}
+                  className={inputCls()}
+                >
+                  <option value="">Select a reason...</option>
+                  {(REASONS[adjType as keyof typeof REASONS] || []).map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
               </Field>
+
+              {reasonSelect === 'Other' && (
+                <Field label="Custom Reason" required>
+                  <textarea 
+                    value={customReason} 
+                    onChange={e => setCustomReason(e.target.value)} 
+                    rows={2}
+                    className={`${inputCls()} resize-none`} 
+                    placeholder="Enter custom reason..." 
+                  />
+                </Field>
+              )}
 
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -372,7 +410,7 @@ const MaterialFormModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <FlaskConical size={15} className="text-[#3b2063]" />
+              <FlaskConical size={15} className="text-[#6a12b8]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Material' : 'Add Raw Material'}</p>
@@ -427,7 +465,7 @@ const MaterialFormModal: React.FC<{
           </Field>
 
           <label className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:bg-[#faf9ff] transition-colors">
-            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_intermediate ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}
+            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_intermediate ? 'bg-[#6a12b8]' : 'bg-zinc-300'}`}
               onClick={() => setForm(p => ({ ...p, is_intermediate: !p.is_intermediate }))}>  
               <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${form.is_intermediate ? 'translate-x-4' : ''}`} />
             </div>
@@ -444,7 +482,7 @@ const MaterialFormModal: React.FC<{
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 bg-[#6a12b8] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Add Material'}
           </button>
         </div>
@@ -516,12 +554,12 @@ const DeleteModal: React.FC<{
 
 const BM_InventoryList: React.FC = () => {
   const [materials,   setMaterials]   = useState<RawMaterial[]>([]);
+  const [branchId,    setBranchId]    = useState<number | null>(null);
   const [loading,     setLoading]     = useState(true);
   const [search,      setSearch]      = useState('');
   const [catFilter,   setCatFilter]   = useState('');
   const [stockFilter, setStockFilter] = useState('');
 
-  const [addOpen,     setAddOpen]     = useState(false);
   const [editTarget,  setEditTarget]  = useState<RawMaterial | null>(null);
   const [delTarget,   setDelTarget]   = useState<RawMaterial | null>(null);
   const [adjTarget,   setAdjTarget]   = useState<RawMaterial | null>(null);
@@ -535,15 +573,26 @@ const BM_InventoryList: React.FC = () => {
     });  
     
     const fetchMaterials = useCallback(async () => {
+    if (branchId == null) {
+      setMaterials([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-        const res = await api.get('/raw-materials');
+        const res = await api.get('/raw-materials', { params: { branch_id: branchId } });
         const data = res.data;
         const raw = Array.isArray(data) ? data : data?.data ?? [];
         setMaterials(raw.map(normalize)); // ← add .map(normalize) here
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-    }, []);
+    }, [branchId]);
+
+  useEffect(() => {
+    api.get('/user')
+      .then(res => setBranchId(res.data?.branch_id ?? null))
+      .catch(() => setBranchId(null));
+  }, []);
 
   useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
 
@@ -565,30 +614,42 @@ const BM_InventoryList: React.FC = () => {
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Raw Materials</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {loading ? 'Loading...' : `${materials.length} materials · inventory management`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={fetchMaterials} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button onClick={() => setAddOpen(true)}
-            className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
-            <Plus size={13} /> Add Material
-          </button>
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          <div className="relative group flex-1 w-full md:w-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
+            <input
+              type="text"
+              placeholder="Search materials..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0">
+              <option value="">All Categories</option>
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={stockFilter} onChange={e => setStockFilter(e.target.value)}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0">
+              <option value="">All Stock</option>
+              <option value="ok">In Stock</option>
+              <option value="low">Low Stock</option>
+              <option value="out">Out of Stock</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto" />
         </div>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {[
-          { label: 'Total Items',    value: totalItems,      color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Total Items',    value: totalItems,      color: '#6a12b8', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Low Stock',      value: lowStockCnt,     color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
           { label: 'Out of Stock',   value: outOfStockCnt,   color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
           { label: 'Intermediate',   value: intermediateCnt, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
@@ -604,30 +665,7 @@ const BM_InventoryList: React.FC = () => {
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
 
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
-          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 flex-1 min-w-40">
-            <Search size={13} className="text-zinc-400 shrink-0" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search materials..." />
-            {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500 transition-colors"><X size={13} /></button>}
-          </div>
-          <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
-            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-            <option value="">All Categories</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={stockFilter} onChange={e => setStockFilter(e.target.value)}
-            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-            <option value="">All Stock</option>
-            <option value="ok">In Stock</option>
-            <option value="low">Low Stock</option>
-            <option value="out">Out of Stock</option>
-          </select>
-          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">
-            {filtered.length} results
-          </span>
-        </div>
+
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -701,15 +739,15 @@ const BM_InventoryList: React.FC = () => {
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1">
                         <button onClick={() => setAdjTarget(m)} title="Adjust Stock"
-                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                           <ChevronDown size={13} />
                         </button>
                         <button onClick={() => setHistTarget(m)} title="View History"
-                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                           <History size={13} />
                         </button>
                         <button onClick={() => setEditTarget(m)} title="Edit"
-                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                           <Edit2 size={13} />
                         </button>
                         <button onClick={() => setDelTarget(m)} title="Delete"
@@ -727,12 +765,6 @@ const BM_InventoryList: React.FC = () => {
       </div>
 
       {/* Modals */}
-      {addOpen && (
-        <MaterialFormModal
-          onClose={() => setAddOpen(false)}
-          onSaved={m => setMaterials(p => [m, ...p])}
-        />
-      )}
       {editTarget && (
         <MaterialFormModal
           onClose={() => setEditTarget(null)}

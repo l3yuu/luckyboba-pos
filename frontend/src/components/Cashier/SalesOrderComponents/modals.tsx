@@ -3,7 +3,7 @@
 
 import React from 'react';
 import {
-  type CartItem, type Bundle, type MenuItem,
+  type CartItem, type Bundle, type MenuItem, type BundleComponent, type BundleComponentCustomization,
   EXTRA_OPTIONS,
 } from '../../../types/index';
 import {
@@ -29,8 +29,8 @@ const AdminPinOverlay = ({
   onCancel: () => void;
   onSuccess: () => void;
 }) => {
-  const [pin, setPin]         = React.useState('');
-  const [error, setError]     = React.useState('');
+  const [pin, setPin] = React.useState('');
+  const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
@@ -53,10 +53,10 @@ const AdminPinOverlay = ({
     setLoading(true);
     setError('');
     try {
-      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
-        method:  'POST',
+      const res = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method: 'POST',
         headers: getHeaders(),
-        body:    JSON.stringify({ pin }),
+        body: JSON.stringify({ pin }),
       });
       const json = await res.json();
       if (json.success) {
@@ -76,7 +76,7 @@ const AdminPinOverlay = ({
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-[0.625rem]">
       <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden">
-        <div className="bg-[#3b2063] px-6 py-5 text-white text-center">
+        <div className="bg-[#6a12b8] px-6 py-5 text-white text-center">
           <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
           <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
           <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to cancel this order</p>
@@ -89,7 +89,7 @@ const AdminPinOverlay = ({
             onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             placeholder="••••"
             autoFocus
-            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#3b2063] transition-colors"
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#6a12b8] transition-colors"
           />
           {error && (
             <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest text-center">{error}</p>
@@ -146,7 +146,7 @@ export const CartItemEditModal = ({
   return (
     <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="bg-[#3b2063] px-6 pt-5 pb-5 text-white relative shrink-0">
+        <div className="bg-[#6a12b8] px-6 pt-5 pb-5 text-white relative shrink-0">
           <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Edit Item</p>
           <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
             {editingCartItem.name}
@@ -160,15 +160,15 @@ export const CartItemEditModal = ({
           {(editingCartItem.sugarLevel != null || (editingCartItem.options?.length ?? 0) > 0 ||
             (editingCartItem.addOns?.length ?? 0) > 0 || editingCartItem.charges?.grab ||
             editingCartItem.charges?.panda || editingCartItem.remarks) && (
-            <div className="flex flex-wrap gap-1.5 pb-1">
-              {editingCartItem.sugarLevel != null && <span className="inline-flex items-center bg-[#3b2063]/10 text-black border border-[#3b2063]/20 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>}
-              {editingCartItem.options?.map(opt => <span key={opt} className="inline-flex items-center bg-sky-50 text-sky-700 border border-sky-200 text-[10px] px-2 py-1 rounded-md font-semibold">{opt}</span>)}
-              {editingCartItem.addOns?.map(a => <span key={a} className="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-1 rounded-md font-semibold">+{a}</span>)}
-              {editingCartItem.charges?.grab && <span className="inline-flex items-center bg-green-50 text-green-700 border border-green-200 text-[10px] px-2 py-1 rounded-md font-semibold">🛵 Grab</span>}
-              {editingCartItem.charges?.panda && <span className="inline-flex items-center bg-pink-50 text-pink-700 border border-pink-200 text-[10px] px-2 py-1 rounded-md font-semibold">🐼 Panda</span>}
-              {editingCartItem.remarks && <span className="inline-flex items-center bg-zinc-100 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-1 rounded-md font-semibold italic">📝 {editingCartItem.remarks}</span>}
-            </div>
-          )}
+              <div className="flex flex-wrap gap-1.5 pb-1">
+                {editingCartItem.sugarLevel != null && <span className="inline-flex items-center bg-[#6a12b8]/10 text-black border border-[#6a12b8]/20 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>}
+                {editingCartItem.options?.map(opt => <span key={opt} className="inline-flex items-center bg-sky-50 text-sky-700 border border-sky-200 text-[10px] px-2 py-1 rounded-md font-semibold">{opt}</span>)}
+                {editingCartItem.addOns?.map(a => <span key={a} className="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-1 rounded-md font-semibold">+{a}</span>)}
+                {editingCartItem.charges?.grab && <span className="inline-flex items-center bg-green-50 text-green-700 border border-green-200 text-[10px] px-2 py-1 rounded-md font-semibold">🛵 Grab</span>}
+                {editingCartItem.charges?.panda && <span className="inline-flex items-center bg-pink-50 text-pink-700 border border-pink-200 text-[10px] px-2 py-1 rounded-md font-semibold">🐼 Panda</span>}
+                {editingCartItem.remarks && <span className="inline-flex items-center bg-zinc-100 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-1 rounded-md font-semibold italic">📝 {editingCartItem.remarks}</span>}
+              </div>
+            )}
           <div>
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Quantity</label>
             <QtyControl value={editingCartItem.qty} onDecrement={() => onAdjustQty(-1)} onIncrement={() => onAdjustQty(1)} />
@@ -182,10 +182,10 @@ export const CartItemEditModal = ({
                 return (
                   <button key={String(option.id)}
                     onClick={() => { onSetDiscountId(option.id); onSetDiscountType(option.type); onSetDiscountValue(option.value || ''); }}
-                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${isSelected ? isNone ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50'}`}>
+                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${isSelected ? isNone ? 'bg-red-500 text-white' : 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50'}`}>
                     <div className="flex items-center gap-3">
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-white bg-white' : 'border-zinc-300'}`}>
-                        {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#3b2063]'}`} />}
+                        {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#6a12b8]'}`} />}
                       </div>
                       <span className="text-xs font-black uppercase tracking-wider">{option.label}</span>
                     </div>
@@ -212,11 +212,11 @@ export const CartItemEditModal = ({
         <div className="px-6 py-4 bg-[#f5f0ff] border-t border-[#e9d5ff] flex gap-3 shrink-0">
           <button onClick={onRemove} className="flex-1 py-3 rounded-[0.625rem] border-2 border-red-100 bg-white text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
             </svg>
             Remove
           </button>
-          <button onClick={onSave} className="flex-2 py-3 rounded-[0.625rem] bg-[#3b2063] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-all shadow-sm">
+          <button onClick={onSave} className="flex-2 py-3 rounded-[0.625rem] bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-all shadow-sm">
             Save Changes
           </button>
         </div>
@@ -251,31 +251,33 @@ interface ItemSelectionModalProps {
   onAddToOrder: () => void;
   onClose: () => void;
   sugarLevels?: { id: number; label: string; value: string }[];
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
 }
 
 export const ItemSelectionModal = ({
   selectedItem, qty, remarks, sugarLevel, selectedOptions, selectedAddOns,
   orderCharge, isDrink, isCombo, isWaffleCategory, onQtyChange, onRemarksChange, isFoodCategory, filteredAddOns,
   onSugarChange, onToggleOption, onToggleOrderCharge, onOpenAddOns, onAddToOrder, onClose, sugarLevels,
+  orderType = 'take-out',
 }: ItemSelectionModalProps) => {
   const itemOpts = (selectedItem as { options?: string[] })?.options ?? [];
   const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
     const pearlOpts = ['NO PRL', 'W/ PRL'];
-    const iceOpts   = ['NO ICE', '-ICE', '+ICE'];
+    const iceOpts = ['NO ICE', '-ICE', '+ICE'];
     if (pearlOpts.includes(opt)) return itemOpts.includes('pearl');
-    if (iceOpts.includes(opt))   return itemOpts.includes('ice');
-    if (opt === 'WARM')          return false;
+    if (iceOpts.includes(opt)) return itemOpts.includes('ice');
+    if (opt === 'WARM') return false;
     return true;
   });
   const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includes('pearl') ?? false;
   const hasSugarLevels = sugarLevels && sugarLevels.length > 0;
-  const sugarSelected  = !isDrink || !hasSugarLevels || sugarLevel !== '';
+  const sugarSelected = !isDrink || !hasSugarLevels || sugarLevel !== '';
   const canAdd = sugarSelected && (isCombo || !isDrink || !hasPearlOption || selectedOptions.some((o: string) => ['NO PRL', 'W/ PRL'].includes(o)));
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
+        <div className="bg-[#6a12b8] p-5 text-white text-center relative shrink-0">
           <h2 className="text-lg font-black uppercase tracking-wider">{selectedItem.name}</h2>
           {isCombo && <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Includes Classic Pearl</div>}
           <button onClick={onClose} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors"><CloseIcon size={6} /></button>
@@ -284,7 +286,7 @@ export const ItemSelectionModal = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white p-3 rounded-[0.625rem] border-2 border-zinc-200">
               <span className="text-sm font-bold text-zinc-900 uppercase tracking-widest block mb-1">Barcode</span>
-              <span className="text-sm font-black text-[#3b2063]">{selectedItem.barcode}</span>
+              <span className="text-sm font-black text-[#6a12b8]">{selectedItem.barcode}</span>
             </div>
             <div className="bg-white p-3 rounded-[0.625rem] border-2 border-zinc-200">
               <span className="text-sm font-bold text-zinc-900 uppercase tracking-widest block mb-1">Unit Price</span>
@@ -296,7 +298,7 @@ export const ItemSelectionModal = ({
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
             </button>
             <input type="text" value={qty} readOnly className="bg-transparent text-center font-black text-2xl text-black w-20 outline-none" />
-            <button onClick={() => onQtyChange(qty + 1)} className="w-12 h-12 bg-[#3b2063] rounded-[0.625rem] shadow-lg text-white transition-colors flex items-center justify-center">
+            <button onClick={() => onQtyChange(qty + 1)} className="w-12 h-12 bg-[#6a12b8] rounded-[0.625rem] shadow-lg text-white transition-colors flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             </button>
           </div>
@@ -306,7 +308,7 @@ export const ItemSelectionModal = ({
               <div className="flex gap-2">
                 {sugarLevels.map(lvl => (
                   <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
-                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === lvl.value ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === lvl.value ? 'bg-[#6a12b8] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                     {lvl.label}
                   </button>
                 ))}
@@ -338,7 +340,7 @@ export const ItemSelectionModal = ({
               <div className="flex flex-wrap gap-2">
                 {visibleOpts.map((opt: string) => (
                   <button key={opt} onClick={() => onToggleOption(opt)}
-                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#6a12b8] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                     {opt}
                   </button>
                 ))}
@@ -354,19 +356,20 @@ export const ItemSelectionModal = ({
           <div>
             <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
               Charges
-              {orderCharge === 'grab' && Number((selectedItem as { grab_price?: number })?.grab_price ?? 0) > 0 ? ` (+₱${Number((selectedItem as { grab_price?: number })?.grab_price).toFixed(2)})` : ''}
-              {orderCharge === 'panda' && Number((selectedItem as { panda_price?: number })?.panda_price ?? 0) > 0 ? ` (+₱${Number((selectedItem as { panda_price?: number })?.panda_price).toFixed(2)})` : ''}
+              {orderCharge === 'grab' && Number((selectedItem as { grab_price?: number })?.grab_price ?? 0) > 0 ? ` (+₱${(Number((selectedItem as { grab_price?: number })?.grab_price) - Number(selectedItem.price)).toFixed(2)})` : ''}
+              {orderCharge === 'panda' && Number((selectedItem as { panda_price?: number })?.panda_price ?? 0) > 0 ? ` (+₱${(Number((selectedItem as { panda_price?: number })?.panda_price) - Number(selectedItem.price)).toFixed(2)})` : ''}
             </label>
             <div className="grid grid-cols-2 gap-3">
               {(['grab', 'panda'] as const).map(type => {
-                const isActive   = orderCharge === type;
-                const isDisabled = orderCharge !== null && orderCharge !== type;
+                const isActive = orderCharge === type;
+                const isLockedByOrderType = orderType !== 'delivery';
+                const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
                 return (
                   <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
                     className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2
                       ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40'
                         : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700'
-                        : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
+                          : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
                     <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
                   </button>
                 );
@@ -376,10 +379,10 @@ export const ItemSelectionModal = ({
           <div>
             <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Remarks</label>
             <textarea value={remarks} onChange={e => onRemarksChange(e.target.value)} placeholder="Additional notes..."
-              className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#3b2063] focus:bg-white transition-all" />
+              className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#6a12b8] focus:bg-white transition-all" />
           </div>
           <button onClick={onAddToOrder} disabled={!canAdd}
-            className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canAdd ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
+            className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canAdd ? 'bg-[#6a12b8] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
             {isCombo ? 'Next: Customize Drink →' : !sugarSelected && hasSugarLevels ? '⚠ Select Sugar Level First' : canAdd ? 'Add Order' : 'Select Pearl Option First'}
           </button>
         </div>
@@ -394,12 +397,12 @@ export const ItemSelectionModal = ({
 
 interface BundleModalProps {
   activeBundleItem: Bundle;
+  flattenedBundleItems: (BundleComponent & { menuItem?: MenuItem })[];
+  bundleSelections: BundleComponentCustomization[];
   bundleComponentIndex: number;
-  bundleComponentSugar: string;
-  bundleComponentOptions: string[];
-  bundleComponentAddOns: string[];
   filteredAddOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
-  bundleComponentAddOnModalOpen: boolean;
+  addonModalOpen: boolean;
+  activeAddOnIndex: number | null;
   sugarLevels?: { id: number; label: string; value: string }[];
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
@@ -410,107 +413,139 @@ interface BundleModalProps {
   onClose: () => void;
   orderCharge?: 'grab' | 'panda' | null;
   onToggleOrderCharge?: (type: 'grab' | 'panda') => void;
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
   bundleGrabPrice: number;
   bundlePandaPrice: number;
 }
 
 export const BundleModal = ({
-  activeBundleItem, bundleComponentIndex, bundleComponentSugar, bundleComponentOptions,
-  bundleComponentAddOns, bundleGrabPrice, bundlePandaPrice, filteredAddOns,
-  bundleComponentAddOnModalOpen, sugarLevels, onSugarChange, onToggleOption,
+  activeBundleItem, flattenedBundleItems, bundleSelections,
+  bundleComponentIndex, bundleGrabPrice, bundlePandaPrice, filteredAddOns,
+  addonModalOpen, activeAddOnIndex, sugarLevels, onSugarChange, onToggleOption,
   onOpenAddOns, onCloseAddOns, onToggleAddOn, onConfirm, onClose, orderCharge, onToggleOrderCharge,
+  orderType = 'take-out',
 }: BundleModalProps) => {
-  const component   = activeBundleItem.items[bundleComponentIndex];
-  const totalSteps  = activeBundleItem.items.length;
-  const isLastStep  = bundleComponentIndex === totalSteps - 1;
-  const displayName = component.display_name ?? component.custom_name ?? '';
-  const isMilkTea   = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea');
-  const hasPearl    = bundleComponentOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
-  const hasSugarLevels = sugarLevels && sugarLevels.length > 0;
-  const canNext = (!hasSugarLevels || bundleComponentSugar !== '') && (!isMilkTea || hasPearl);
+  const currentStep = bundleComponentIndex;
+  const totalSteps = flattenedBundleItems.length;
+  const isLastStep = currentStep === totalSteps - 1;
+  const component = flattenedBundleItems[currentStep];
+  const selection = bundleSelections[currentStep];
+
+  if (!selection || !component) return null;
+
+  const itemDetail = component.menuItem;
+  const itemName = (selection.name || '').toLowerCase();
+  const hasSugar = (itemDetail?.sugar_levels?.length ?? 0) > 0 ||
+    itemDetail?.category_id != null ||
+    itemName.includes('tea') ||
+    itemName.includes('drink') ||
+    itemName.includes('coffee') ||
+    itemName.includes('boba') ||
+    itemName.includes('milk') ||
+    itemName.includes('latte') ||
+    itemName.includes('cooler') ||
+    itemName.includes('punch');
+
+  const itemOpts = itemDetail?.options ?? [];
+  const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
+    const pearlOpts = ['NO PRL', 'W/ PRL'];
+    const iceOpts = ['NO ICE', '-ICE', '+ICE'];
+    if (pearlOpts.includes(opt)) return itemOpts.includes('pearl');
+    if (iceOpts.includes(opt)) return itemOpts.includes('ice');
+    return true;
+  });
 
   return (
     <>
       <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-          <div className="bg-[#3b2063] p-5 text-white relative shrink-0">
-            <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Bundle — {activeBundleItem.display_name ?? activeBundleItem.name}</div>
+        <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+          <div className="bg-[#6a12b8] p-5 text-white relative shrink-0">
+            <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Bundle Configuration — {activeBundleItem.display_name ?? activeBundleItem.name}</div>
             <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
-              Drink {bundleComponentIndex + 1} of {totalSteps}: {displayName}
-              {component.quantity > 1 && <span className="ml-2 text-white/50 font-bold text-sm">×{component.quantity}</span>}
+              Drink {currentStep + 1} of {totalSteps}: {selection.name}
             </h2>
             <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
-              <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((bundleComponentIndex + 1) / totalSteps) * 100}%` }} />
+              <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }} />
             </div>
-            <div className="mt-2 flex items-center gap-3">
-              <span className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Bundle Price</span>
-              <span className="text-white font-black text-sm">₱{Number(activeBundleItem.price).toFixed(2)}</span>
-              {bundleGrabPrice > 0 && orderCharge === 'grab' && <span className="text-green-300 font-black text-sm">+₱{bundleGrabPrice.toFixed(2)} Grab</span>}
-              {bundlePandaPrice > 0 && orderCharge === 'panda' && <span className="text-pink-300 font-black text-sm">+₱{bundlePandaPrice.toFixed(2)} Panda</span>}
+            <div className="mt-2 flex items-center gap-3 text-[11px]">
+              <span className="text-white font-black">₱{Number(activeBundleItem.price).toFixed(2)}</span>
+              {orderCharge === 'grab' && bundleGrabPrice > 0 && <span className="text-green-300 font-black">+₱{(bundleGrabPrice - Number(activeBundleItem.price)).toFixed(2)} Grab</span>}
+              {orderCharge === 'panda' && bundlePandaPrice > 0 && <span className="text-pink-300 font-black">+₱{(bundlePandaPrice - Number(activeBundleItem.price)).toFixed(2)} Panda</span>}
             </div>
             <button onClick={onClose} className="absolute top-5 right-5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
               <CloseIcon size={4} />
             </button>
           </div>
-          <div className="p-6 space-y-5 overflow-y-auto bg-white">
-            {sugarLevels && sugarLevels.length > 0 && (
-              <div>
-                <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-                <div className="flex gap-2">
-                  {sugarLevels.map((lvl: { id: number; label: string; value: string }) => (
-                    <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
-                      className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === lvl.value ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                      {lvl.label}
-                    </button>
-                  ))}
-                </div>
-                {bundleComponentSugar === '' && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>}
-              </div>
-            )}
-            <div>
-              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
-              <div className="flex flex-wrap gap-2">
-                {EXTRA_OPTIONS.map((opt: string) => (
-                  <button key={opt} onClick={() => onToggleOption(opt)}
-                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${bundleComponentOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra Add-ons</label>
-              <AddOnTriggerButton count={bundleComponentAddOns.length} onClick={onOpenAddOns} />
-            </div>
-            {onToggleOrderCharge && (
-              <div>
-                <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
-                  Charges
-                  {orderCharge === 'grab' && bundleGrabPrice > 0 && ` (+₱${bundleGrabPrice.toFixed(2)})`}
-                  {orderCharge === 'panda' && bundlePandaPrice > 0 && ` (+₱${bundlePandaPrice.toFixed(2)})`}
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {(['grab', 'panda'] as const).map(type => {
-                    const isActive = orderCharge === type;
-                    return (
-                      <button key={type} type="button" onClick={() => onToggleOrderCharge(type)}
-                        className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center ${isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
-                        <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
+
+          <div className="p-6 space-y-6 overflow-y-auto bg-white flex-1 custom-scrollbar">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {hasSugar && sugarLevels && sugarLevels.length > 0 && (
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1 mb-2 block">Sugar Level</label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {sugarLevels.map((lvl) => (
+                      <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
+                        className={`flex-1 min-w-[50px] py-2.5 rounded-xl text-[11px] font-black transition-all ${selection.sugarLevel === lvl.value ? 'bg-[#6a12b8] text-white shadow-md' : 'bg-[#f5f0ff] text-zinc-600 border border-[#e9d5ff] hover:bg-white'}`}>
+                        {lvl.label}
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
+                  {selection.sugarLevel === '' && <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>}
                 </div>
+              )}
+
+              {visibleOpts.length > 0 && (
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1 mb-2 block">Options</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {visibleOpts.map((opt: string) => (
+                      <button key={opt} onClick={() => onToggleOption(opt)}
+                        className={`px-3.5 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selection.options.includes(opt) ? 'bg-[#6a12b8] text-white shadow-md' : 'bg-[#f5f0ff] text-zinc-600 border border-[#e9d5ff] hover:bg-white'}`}>
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1 mb-2 block">Extras</label>
+                <AddOnTriggerButton count={selection.addOns.length} onClick={onOpenAddOns} />
               </div>
-            )}
-            <button onClick={onConfirm} disabled={!canNext}
-              className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
-              {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
+
+              {onToggleOrderCharge && (
+                <div className="pt-2 border-t border-zinc-100 mt-6">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1 mb-2 block">Platform Charges</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(['grab', 'panda'] as const).map(type => {
+                      const isActive = orderCharge === type;
+                      const isLockedByOrderType = orderType !== 'delivery';
+                      const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
+                      return (
+                        <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
+                          className={`p-3 rounded-xl border-2 transition-all flex items-center justify-center ${isDisabled ? 'border-zinc-100 bg-zinc-50 text-zinc-300 opacity-40' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : 'border-zinc-200 bg-white text-zinc-500 hover:border-[#6a12b8] hover:text-[#6a12b8]'}`}>
+                          <span className="font-bold text-[10px] uppercase">{type === 'grab' ? '🛵 Grab Food' : '🐼 Food Panda'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-5 bg-zinc-50 border-t border-zinc-100 shrink-0">
+            <button onClick={onConfirm}
+              className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-all bg-[#6a12b8] text-white hover:bg-[#6a12b8] active:scale-[0.98]`}>
+              {isLastStep ? '✓ Add Bundle to Order' : `Next: Item ${currentStep + 2} of ${totalSteps} →`}
             </button>
           </div>
         </div>
       </div>
-      {bundleComponentAddOnModalOpen && (
-        <AddOnModalShell title="Bundle Drink Add-ons" addOns={filteredAddOns} selected={bundleComponentAddOns}
+      {addonModalOpen && activeAddOnIndex !== null && (
+        <AddOnModalShell title={`Add-ons: ${bundleSelections[activeAddOnIndex]?.name}`}
+          addOns={filteredAddOns}
+          selected={bundleSelections[activeAddOnIndex]?.addOns || []}
           onToggle={onToggleAddOn} onClose={onCloseAddOns} zIndex="z-[110]" orderCharge={orderCharge} />
       )}
     </>
@@ -547,7 +582,7 @@ export const ComboDrinkModal = ({
   <>
     <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
+        <div className="bg-[#6a12b8] p-5 text-white text-center relative shrink-0">
           <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">Step 2 of 2 — Combo Drink for</div>
           <h2 className="text-base font-black uppercase tracking-wider leading-tight">{pendingComboCart.name}</h2>
           <div className="mt-2 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">
@@ -562,7 +597,7 @@ export const ComboDrinkModal = ({
               <div className="flex gap-2">
                 {sugarLevels.map((lvl: { id: number; label: string; value: string }) => (
                   <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
-                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === lvl.value ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === lvl.value ? 'bg-[#6a12b8] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                     {lvl.label}
                   </button>
                 ))}
@@ -578,19 +613,19 @@ export const ComboDrinkModal = ({
             <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
             <div className="flex flex-wrap gap-2">
               {EXTRA_OPTIONS.filter((opt: string) => {
-                const isPizzaCombo   = pendingComboCart.name?.toUpperCase().includes('PIZZA +');
+                const isPizzaCombo = pendingComboCart.name?.toUpperCase().includes('PIZZA +');
                 const isClassicPearl = pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL');
                 if (['NO PRL', 'W/ PRL'].includes(opt)) return isPizzaCombo && !isClassicPearl;
                 return true;
               }).map((opt: string) => (
                 <button key={opt} onClick={() => onToggleOption(opt)}
-                  className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                  className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#6a12b8] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                   {opt}
                 </button>
               ))}
             </div>
           </div>
-          <button onClick={onConfirm} className="w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors bg-[#3b2063] text-white hover:bg-[#6a12b8]">
+          <button onClick={onConfirm} className="w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors bg-[#6a12b8] text-white hover:bg-[#6a12b8]">
             🧋 Confirm & Add to Order
           </button>
         </div>
@@ -617,6 +652,7 @@ interface MixAndMatchDrinkModalProps {
   filteredAddOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
   drinkAddOnModalOpen: boolean;
   orderCharge: 'grab' | 'panda' | null;
+  orderType?: 'dine-in' | 'take-out' | 'delivery';
   onSelectDrink: (item: MenuItem) => void;
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
@@ -633,19 +669,19 @@ export const MixAndMatchDrinkModal = ({
   pendingMixMatchCart, drinkItems, selectedDrink, drinkSugar, drinkOptions, drinkAddOns,
   filteredAddOns, drinkAddOnModalOpen, orderCharge, onSelectDrink, onSugarChange,
   onToggleOption, onOpenAddOns, onCloseAddOns, onToggleAddOn, onToggleOrderCharge,
-  onConfirm, onClose, drinkSugarLevels,
+  onConfirm, onClose, drinkSugarLevels, orderType = 'take-out',
 }: MixAndMatchDrinkModalProps) => {
-  const drinkOpts           = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
-  const hasPearlOption      = drinkOpts.includes('pearl');
-  const hasPearlSelected    = drinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
+  const drinkOpts = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
+  const hasPearlOption = drinkOpts.includes('pearl');
+  const hasPearlSelected = drinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
   const hasDrinkSugarLevels = drinkSugarLevels && drinkSugarLevels.length > 0;
-  const canConfirm          = selectedDrink !== null && (!hasDrinkSugarLevels || drinkSugar !== '') && (!hasPearlOption || hasPearlSelected);
+  const canConfirm = selectedDrink !== null && (!hasDrinkSugarLevels || drinkSugar !== '') && (!hasPearlOption || hasPearlSelected);
 
   return (
     <>
       <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-white w-full max-w-2xl rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-          <div className="bg-[#3b2063] p-5 text-white relative shrink-0">
+          <div className="bg-[#6a12b8] p-5 text-white relative shrink-0">
             <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">Step 2 of 2 — Choose Your Drink</div>
             <h2 className="text-base font-black uppercase tracking-wider leading-tight">{pendingMixMatchCart.name}</h2>
             <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Select a drink to complete your Mix & Match</div>
@@ -658,22 +694,22 @@ export const MixAndMatchDrinkModal = ({
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {drinkItems.map(drink => (
                     <button key={drink.id} onClick={() => onSelectDrink(drink)}
-                      className="p-4 rounded-[0.625rem] border-2 border-[#e9d5ff] bg-white hover:border-[#3b2063] hover:bg-[#f5f0ff] transition-all text-left flex flex-col gap-1">
+                      className="p-4 rounded-[0.625rem] border-2 border-[#e9d5ff] bg-white hover:border-[#6a12b8] hover:bg-[#f5f0ff] transition-all text-left flex flex-col gap-1">
                       <span className="text-xs font-black uppercase leading-tight text-black">{drink.name}</span>
                       {drink.size && drink.size !== 'none' && <span className="text-[10px] font-bold text-zinc-400 uppercase">{drink.size}</span>}
-                      <span className="text-sm font-black text-[#3b2063] mt-1">₱{Number(drink.price).toFixed(2)}</span>
+                      <span className="text-sm font-black text-[#6a12b8] mt-1">₱{Number(drink.price).toFixed(2)}</span>
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
               <div className="p-6 space-y-5">
-                <div className="flex items-center justify-between bg-[#f5f0ff] border-2 border-[#3b2063]/30 rounded-[0.625rem] px-4 py-3">
+                <div className="flex items-center justify-between bg-[#f5f0ff] border-2 border-[#6a12b8]/30 rounded-[0.625rem] px-4 py-3">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Selected Drink</p>
                     <p className="font-black text-sm text-black uppercase">{selectedDrink.name}</p>
                   </div>
-                  <button onClick={() => onSelectDrink(null as unknown as MenuItem)} className="text-[10px] font-black uppercase text-[#3b2063] hover:text-red-500 transition-colors">Change</button>
+                  <button onClick={() => onSelectDrink(null as unknown as MenuItem)} className="text-[10px] font-black uppercase text-[#6a12b8] hover:text-red-500 transition-colors">Change</button>
                 </div>
                 {drinkSugarLevels && drinkSugarLevels.length > 0 && (
                   <div>
@@ -681,7 +717,7 @@ export const MixAndMatchDrinkModal = ({
                     <div className="flex gap-2">
                       {drinkSugarLevels.map((lvl: { id: number; label: string; value: string }) => (
                         <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
-                          className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === lvl.value ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                          className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === lvl.value ? 'bg-[#6a12b8] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                           {lvl.label}
                         </button>
                       ))}
@@ -704,7 +740,7 @@ export const MixAndMatchDrinkModal = ({
                       <div className="flex flex-wrap gap-2">
                         {visibleOpts.map((opt: string) => (
                           <button key={opt} onClick={() => onToggleOption(opt)}
-                            className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${drinkOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                            className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${drinkOptions.includes(opt) ? 'bg-[#6a12b8] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                             {opt}
                           </button>
                         ))}
@@ -720,8 +756,9 @@ export const MixAndMatchDrinkModal = ({
                   <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Charges</label>
                   <div className="grid grid-cols-2 gap-3">
                     {(['grab', 'panda'] as const).map(type => {
-                      const isActive   = orderCharge === type;
-                      const isDisabled = orderCharge !== null && orderCharge !== type;
+                      const isActive = orderCharge === type;
+                      const isLockedByOrderType = orderType !== 'delivery';
+                      const isDisabled = (orderCharge !== null && orderCharge !== type) || isLockedByOrderType;
                       return (
                         <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
                           className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2 ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40 cursor-not-allowed' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
@@ -732,7 +769,7 @@ export const MixAndMatchDrinkModal = ({
                   </div>
                 </div>
                 <button onClick={onConfirm} disabled={!canConfirm}
-                  className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canConfirm ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
+                  className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canConfirm ? 'bg-[#6a12b8] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
                   {hasDrinkSugarLevels && !drinkSugar ? '⚠ Select Sugar Level First' : hasPearlOption && !hasPearlSelected ? 'Select Pearl Option First' : '✓ Add Mix & Match to Order'}
                 </button>
               </div>
@@ -761,6 +798,7 @@ interface ConfirmOrderModalProps {
   vatableSales: number;
   vatAmount: number;
   vatExemptSales?: number;
+  lessVat?: number;
   change: number;
   totalDiscountDisplay: number;
   orderCharge: 'grab' | 'panda' | null;
@@ -792,15 +830,17 @@ interface ConfirmOrderModalProps {
   onClose: () => void;
   onResetOrder?: () => void;
   vatType?: 'vat' | 'non_vat';
+  orderType?: 'dine-in' | 'take-out' | 'delivery'; // ← ADD
   addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
 }
 
 export const ConfirmOrderModal = ({
   cart, cashierName, totalCount, subtotal, amtDue,
-  vatableSales, vatAmount, vatExemptSales: _vatExemptSales = 0, change, totalDiscountDisplay,
+  vatableSales, vatAmount, vatExemptSales: _vatExemptSales = 0, lessVat = 0, change, totalDiscountDisplay,
   orderCharge, selectedDiscount, paymentMethod, cashTendered,
   referenceNumber, discountRemarks, itemPaxAssignments, seniorIds, pwdIds, discounts,
-  activeTab, submitting, vatType = 'vat', addOnsData = [],
+  activeTab, submitting, vatType = 'vat', orderType = 'take-out',
+  addOnsData = [],
   onTabChange, onPaymentMethodChange, onCashTenderedChange, onReferenceNumberChange,
   onDiscountChange, onDiscountRemarksChange,
   onItemPaxAssignmentsChange, onSeniorIdsChange, onPwdIdsChange,
@@ -833,7 +873,7 @@ export const ConfirmOrderModal = ({
   };
 
   const typeBadge = (type: 'none' | 'sc' | 'pwd') => {
-    if (type === 'sc')  return <span className="text-[9px] font-black bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded uppercase">SC</span>;
+    if (type === 'sc') return <span className="text-[9px] font-black bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded uppercase">SC</span>;
     if (type === 'pwd') return <span className="text-[9px] font-black bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded uppercase">PWD</span>;
     return null;
   };
@@ -851,7 +891,7 @@ export const ConfirmOrderModal = ({
           )}
 
           {/* Header */}
-          <div className="bg-[#3b2063] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center">
+          <div className="bg-[#6a12b8] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center">
             <div className="w-1/3" />
             <div className="w-1/3">
               <h2 className="text-xl font-black uppercase tracking-widest">Payment Details</h2>
@@ -915,14 +955,14 @@ export const ConfirmOrderModal = ({
                           <div className="flex justify-between items-start">
                             <div>
                               <p className="font-black text-sm text-black shrink-0 ml-2">
-                              {/* Show strikethrough original if item has a discount */}
-                              {discountType === 'none' && item.discountLabel && Number(item.discountValue) > 0 && (
-                                <span className="line-through text-zinc-400 text-xs mr-1">
-                                  ₱ {(unitTotal * count).toFixed(2)}
-                                </span>
-                              )}
-                              ₱ {groupPrice.toFixed(2)}
-                            </p>
+                                {/* Show strikethrough original if item has a discount */}
+                                {discountType === 'none' && item.discountLabel && Number(item.discountValue) > 0 && (
+                                  <span className="line-through text-zinc-400 text-xs mr-1">
+                                    ₱ {(unitTotal * count).toFixed(2)}
+                                  </span>
+                                )}
+                                ₱ {groupPrice.toFixed(2)}
+                              </p>
                               {/* Show sugar/options/remarks only on first group per item */}
                               {isFirstGroupForItem && (
                                 <div className="text-[10px] text-zinc-500 mt-1 ml-2">
@@ -971,6 +1011,15 @@ export const ConfirmOrderModal = ({
                     <>
                       <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
                       <div className="flex justify-between"><span>VAT Amount (12%)</span><span>₱ {vatAmount.toFixed(2)}</span></div>
+                      {_vatExemptSales > 0 && (
+                        <div className="flex justify-between"><span>VAT Exempt Sales</span><span>₱ {_vatExemptSales.toFixed(2)}</span></div>
+                      )}
+                      {lessVat > 0 && (
+                        <div className="flex justify-between text-yellow-600 font-bold">
+                          <span>Less VAT</span>
+                          <span>- ₱ {lessVat.toFixed(2)}</span>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="flex justify-between text-zinc-400 text-[10px]"><span>VAT Exempt</span><span>Non-VAT</span></div>
@@ -993,13 +1042,13 @@ export const ConfirmOrderModal = ({
             <div className="flex-1 flex flex-col bg-white overflow-hidden">
               <div className="flex border-b border-[#e9d5ff] shrink-0 bg-[#f5f0ff] p-2 gap-2">
                 {([
-                  { id: 'payment',  label: 'Payment',    dot: false },
-                  { id: 'discount', label: 'Promo',      dot: !!selectedDiscount },
-                  { id: 'pax',      label: 'Senior/PWD', dot: hasAnyAssignment },
+                  { id: 'payment', label: 'Payment', dot: false },
+                  { id: 'discount', label: 'Promo', dot: !!selectedDiscount },
+                  { id: 'pax', label: 'Senior/PWD', dot: hasAnyAssignment },
                 ] as const).map(tab => (
                   <button key={tab.id} onClick={() => onTabChange(tab.id)}
                     className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] transition-all border-2 relative
-                      ${activeTab === tab.id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-white text-black border-[#e9d5ff] hover:border-[#3b2063]/40 hover:bg-[#f5f0ff]'}`}>
+                      ${activeTab === tab.id ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-md' : 'bg-white text-black border-[#e9d5ff] hover:border-[#6a12b8]/40 hover:bg-[#f5f0ff]'}`}>
                     {tab.label}
                     {tab.dot && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />}
                   </button>
@@ -1016,10 +1065,19 @@ export const ConfirmOrderModal = ({
                       <div className="grid grid-cols-3 gap-2 mb-5">
                         {PAYMENT_METHODS.map(({ id, label }) => {
                           const isDeliveryMethod = id === 'grab' || id === 'food_panda';
-                          const isLocked = (orderCharge === 'grab' && id !== 'grab') || (orderCharge === 'panda' && id !== 'food_panda') || (!orderCharge && isDeliveryMethod);
+                          const isLocked = orderType === 'delivery'
+                            ? !isDeliveryMethod // If delivery, non-delivery methods are locked
+                            : isDeliveryMethod;  // If not delivery, Grab/Panda are locked
+
+                          // Also maintain the orderCharge lock if one is active
+                          const isChargeLocked = (orderCharge === 'grab' && id !== 'grab') ||
+                            (orderCharge === 'panda' && id !== 'food_panda');
+
+                          const finalLocked = isLocked || isChargeLocked;
+
                           return (
-                            <button key={id} onClick={() => { if (!isLocked) { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); }}} disabled={isLocked}
-                              className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${isLocked ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40' : paymentMethod === id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#3b2063]/40'}`}>
+                            <button key={id} onClick={() => { if (!finalLocked) { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); } }} disabled={finalLocked}
+                              className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1 ${finalLocked ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40' : paymentMethod === id ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#6a12b8]/40'}`}>
                               {label}
                             </button>
                           );
@@ -1029,17 +1087,17 @@ export const ConfirmOrderModal = ({
                         <>
                           <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase mb-2">Cash Tendered</h3>
                           <div className="relative mb-3">
-                            <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#3b2063]/30">₱</span>
+                            <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#6a12b8]/30">₱</span>
                             <input type="number" value={cashTendered} onChange={e => onCashTenderedChange(e.target.value ? Number(e.target.value) : '')}
-                              className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors" placeholder="0.00" />
+                              className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#6a12b8] focus:bg-white transition-colors" placeholder="0.00" />
                           </div>
                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
-                            <button onClick={() => onCashTenderedChange(amtDue)} className="col-span-2 lg:col-span-4 bg-[#3b2063] hover:bg-[#6a12b8] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest transition-all shadow-md border-2 border-[#3b2063]">
+                            <button onClick={() => onCashTenderedChange(amtDue)} className="col-span-2 lg:col-span-4 bg-[#6a12b8] hover:bg-[#6a12b8] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest transition-all shadow-md border-2 border-[#6a12b8]">
                               Exact Amount (₱ {amtDue.toFixed(2)})
                             </button>
                             {[100, 200, 500, 1000].map(amount => (
                               <button key={amount} onClick={() => onCashTenderedChange(amount)}
-                                className="bg-[#f5f0ff] hover:bg-[#3b2063] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#3b2063]">
+                                className="bg-[#f5f0ff] hover:bg-[#6a12b8] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#6a12b8]">
                                 ₱ {amount}
                               </button>
                             ))}
@@ -1061,7 +1119,7 @@ export const ConfirmOrderModal = ({
                                 onReferenceNumberChange(v);
                               }}
                               maxLength={13}
-                              className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
+                              className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#6a12b8] focus:bg-white transition-colors"
                               placeholder={paymentMethod === 'grab' ? 'GRAB-XXXXXX' : paymentMethod === 'food_panda' ? 'FP-XXXXXX' : 'REF#'} />
 
                             {['gcash', 'paymaya', 'credit', 'debit'].includes(paymentMethod) && referenceNumber.length < 13 && (
@@ -1074,17 +1132,17 @@ export const ConfirmOrderModal = ({
                             <div className="space-y-2">
                               <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Cash Sent to {paymentMethod === 'grab' ? 'GrabFood' : 'FoodPanda'} Credits</h3>
                               <div className="relative">
-                                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#3b2063]/30">₱</span>
+                                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#6a12b8]/30">₱</span>
                                 <input type="number" value={cashTendered} onChange={e => onCashTenderedChange(e.target.value ? Number(e.target.value) : '')}
-                                  className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors" placeholder="0.00" />
+                                  className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#6a12b8] focus:bg-white transition-colors" placeholder="0.00" />
                               </div>
                               <div className="grid grid-cols-4 gap-2">
-                                <button onClick={() => onCashTenderedChange(amtDue)} className="col-span-4 bg-[#3b2063] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest">
+                                <button onClick={() => onCashTenderedChange(amtDue)} className="col-span-4 bg-[#6a12b8] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest">
                                   Exact Amount (₱ {amtDue.toFixed(2)})
                                 </button>
                                 {[100, 200, 500, 1000].map(amount => (
                                   <button key={amount} onClick={() => onCashTenderedChange(amount)}
-                                    className="bg-[#f5f0ff] hover:bg-[#3b2063] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#3b2063]">
+                                    className="bg-[#f5f0ff] hover:bg-[#6a12b8] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#6a12b8]">
                                     ₱{amount}
                                   </button>
                                 ))}
@@ -1107,7 +1165,7 @@ export const ConfirmOrderModal = ({
                 {activeTab === 'discount' && (
                   <div className="space-y-6">
                     <div className="space-y-3">
-                      <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Select Promo</h3>
+                      <h3 className="font-black text-sm text-[#6a12b8] uppercase tracking-wider">Select Promo</h3>
                       <div className="grid grid-cols-2 gap-2">
                         <button onClick={() => onDiscountChange(null)}
                           className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center ${!selectedDiscount ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-zinc-50 text-red-500 border-red-100 hover:border-red-300'}`}>
@@ -1125,7 +1183,7 @@ export const ConfirmOrderModal = ({
                       <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Discount Remarks</h3>
                       <textarea value={discountRemarks} onChange={e => onDiscountRemarksChange(e.target.value)}
                         placeholder="Enter notes (e.g., Manager's Approval, Birthday Promo)"
-                        className="w-full text-sm font-bold p-4 bg-zinc-50 border-2 border-zinc-200 rounded-[0.625rem] outline-none focus:border-[#3b2063] focus:bg-white transition-colors h-24 resize-none" />
+                        className="w-full text-sm font-bold p-4 bg-zinc-50 border-2 border-zinc-200 rounded-[0.625rem] outline-none focus:border-[#6a12b8] focus:bg-white transition-colors h-24 resize-none" />
                     </div>
                   </div>
                 )}
@@ -1143,16 +1201,16 @@ export const ConfirmOrderModal = ({
                             <div className="space-y-2">
                               {seniorIds.map((id, index) => (
                                 <div key={index} className="flex gap-2">
-                                  <input 
-                                    type="text" 
-                                    value={id} 
+                                  <input
+                                    type="text"
+                                    value={id}
                                     onChange={e => {
                                       const newIds = [...seniorIds];
                                       newIds[index] = e.target.value;
                                       onSeniorIdsChange(newIds);
-                                    }} 
+                                    }}
                                     placeholder={`SC ID ${index + 1}`}
-                                    className="flex-1 px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-blue-500 focus:outline-none transition-colors" 
+                                    className="flex-1 px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-blue-500 focus:outline-none transition-colors"
                                   />
                                   {seniorIds.length > 1 && (
                                     <button
@@ -1176,7 +1234,7 @@ export const ConfirmOrderModal = ({
                             </div>
                           </div>
                         )}
-                        
+
                         {totalPwdUnits > 0 && (
                           <div>
                             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">
@@ -1185,16 +1243,16 @@ export const ConfirmOrderModal = ({
                             <div className="space-y-2">
                               {pwdIds.map((id, index) => (
                                 <div key={index} className="flex gap-2">
-                                  <input 
-                                    type="text" 
-                                    value={id} 
+                                  <input
+                                    type="text"
+                                    value={id}
                                     onChange={e => {
                                       const newIds = [...pwdIds];
                                       newIds[index] = e.target.value;
                                       onPwdIdsChange(newIds);
-                                    }} 
+                                    }}
                                     placeholder={`PWD ID ${index + 1}`}
-                                    className="flex-1 px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-purple-500 focus:outline-none transition-colors" 
+                                    className="flex-1 px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-purple-500 focus:outline-none transition-colors"
                                   />
                                   {pwdIds.length > 1 && (
                                     <button
@@ -1231,7 +1289,7 @@ export const ConfirmOrderModal = ({
                     {/* Per-item per-unit dropdowns */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Assign Discount Per Item</h3>
+                        <h3 className="font-black text-sm text-[#6a12b8] uppercase tracking-wider">Assign Discount Per Item</h3>
                         {hasAnyAssignment && (
                           <button onClick={clearAllAssignments}
                             className="text-[10px] font-black uppercase text-red-500 hover:text-red-700 transition-colors border border-red-200 px-2 py-1 rounded-lg hover:bg-red-50">
@@ -1246,10 +1304,10 @@ export const ConfirmOrderModal = ({
 
                         return (
                           <div key={cartIndex}
-                            className={`border-2 rounded-xl overflow-hidden transition-colors ${itemHasDiscount ? 'border-[#3b2063]/40 bg-[#f5f0ff]/50' : 'border-zinc-200 bg-white'}`}>
+                            className={`border-2 rounded-xl overflow-hidden transition-colors ${itemHasDiscount ? 'border-[#6a12b8]/40 bg-[#f5f0ff]/50' : 'border-zinc-200 bg-white'}`}>
 
                             {/* Item header */}
-                            <div className={`px-4 py-2.5 flex items-center justify-between ${itemHasDiscount ? 'bg-[#3b2063]/10' : 'bg-zinc-50'}`}>
+                            <div className={`px-4 py-2.5 flex items-center justify-between ${itemHasDiscount ? 'bg-[#6a12b8]/10' : 'bg-zinc-50'}`}>
                               <div className="flex items-center gap-2">
                                 <span className="font-black text-xs text-black uppercase">
                                   {item.name}{item.cupSizeLabel ? ` (${item.cupSizeLabel})` : ''}
@@ -1257,7 +1315,7 @@ export const ConfirmOrderModal = ({
                                 <span className="text-[10px] text-zinc-400 font-bold">₱{Number(item.price).toFixed(2)}/unit</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                {assignments.map((a, _) => a !== 'none' ? typeBadge(a) : null)}
+                                {assignments.map((a, ai) => a !== 'none' ? <React.Fragment key={`${cartIndex}-${ai}`}>{typeBadge(a)}</React.Fragment> : null)}
                               </div>
                             </div>
 
@@ -1267,13 +1325,13 @@ export const ConfirmOrderModal = ({
                                 const assignment = assignments[unitIndex] ?? 'none';
                                 const unitVatExcl = Number(item.price) / 1.12;
                                 const discountAmt = unitVatExcl * 0.20;
-                                const netPrice    = unitVatExcl - discountAmt;
+                                const netPrice = unitVatExcl - discountAmt;
 
                                 return (
                                   <div key={unitIndex} className="px-4 py-2.5 flex items-center justify-between gap-3">
                                     {/* Unit label */}
                                     <div className="flex items-center gap-2 min-w-0">
-                                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${assignment !== 'none' ? 'bg-[#3b2063] text-white' : 'bg-zinc-100 text-zinc-500'}`}>
+                                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${assignment !== 'none' ? 'bg-[#6a12b8] text-white' : 'bg-zinc-100 text-zinc-500'}`}>
                                         {unitIndex + 1}
                                       </span>
                                       <span className="text-xs font-bold text-zinc-600 truncate">
@@ -1294,13 +1352,13 @@ export const ConfirmOrderModal = ({
                                               ? opt === 'none'
                                                 ? 'bg-zinc-500 text-white border-zinc-500'
                                                 : opt === 'sc'
-                                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                                : 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                                  : 'bg-purple-600 text-white border-purple-600 shadow-sm'
                                               : opt === 'none'
-                                              ? 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-400'
-                                              : opt === 'sc'
-                                              ? 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-400'
-                                              : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50 hover:border-purple-400'
+                                                ? 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-400'
+                                                : opt === 'sc'
+                                                  ? 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-400'
+                                                  : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50 hover:border-purple-400'
                                             }`}>
                                           {opt === 'none' ? '—' : opt.toUpperCase()}
                                         </button>
@@ -1335,7 +1393,7 @@ export const ConfirmOrderModal = ({
                     (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
                     (['gcash', 'paymaya', 'credit', 'debit'].includes(paymentMethod) && referenceNumber.length < 13)
                   }
-                  className="w-full bg-[#3b2063] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
+                  className="w-full bg-[#6a12b8] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
                   {submitting ? 'Processing...' : 'Complete Transaction'}
                 </button>
               </div>
@@ -1356,12 +1414,13 @@ interface CustomerNameModalProps {
   onChange: (v: string) => void;
   onSkip: () => void;
   onConfirm: () => void;
+  submitting?: boolean;
 }
 
-export const CustomerNameModal = ({ customerName, onChange, onConfirm }: CustomerNameModalProps) => (
+export const CustomerNameModal = ({ customerName, onChange, onConfirm, submitting }: CustomerNameModalProps) => (
   <div className="fixed inset-0 z-140 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
     <div className="bg-white w-full max-w-sm rounded-[0.625rem] shadow-2xl overflow-hidden">
-      <div className="bg-[#3b2063] px-6 pt-6 pb-5 text-white text-center">
+      <div className="bg-[#6a12b8] px-6 pt-6 pb-5 text-white text-center">
         <div className="w-12 h-12 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center mx-auto mb-3">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
         </div>
@@ -1371,13 +1430,16 @@ export const CustomerNameModal = ({ customerName, onChange, onConfirm }: Custome
       </div>
       <div className="p-6 bg-white space-y-4">
         <input type="text" value={customerName} onChange={e => onChange(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') onConfirm(); }}
-          placeholder="e.g. Juan" autoFocus
-          className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#3b2063] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#3b2063]/30" />
-        <button onClick={onConfirm} disabled={customerName.trim() === ''}
-          className={`w-full py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md ${customerName.trim() !== '' ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}>
-          Confirm
-        </button>
+          onKeyDown={e => { if (e.key === 'Enter' && !submitting && customerName.trim() !== '') onConfirm(); }}
+          placeholder="e.g. Juan" autoFocus disabled={submitting}
+          className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#6a12b8] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#6a12b8]/30 disabled:opacity-50" />
+
+        <div className="flex gap-3">
+          <button onClick={onConfirm} disabled={customerName.trim() === '' || submitting}
+            className={`flex-2 py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md ${customerName.trim() !== '' && !submitting ? 'bg-[#6a12b8] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}>
+            {submitting ? 'Processing...' : 'Confirm'}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1397,6 +1459,7 @@ interface SuccessModalProps {
   onPrintKitchen: () => void;
   onPrintStickers: () => void;
   onNewOrder: () => void;
+  allowSkipPrint?: boolean;
 }
 
 export const SuccessModal = ({
@@ -1408,50 +1471,60 @@ export const SuccessModal = ({
     { label: 'Order Ticket', done: printedKitchen, onPrint: onPrintKitchen, icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg> },
     ...(hasStickers ? [{ label: 'Stickers', done: printedStickers, onPrint: onPrintStickers, icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg> }] : []),
   ];
-  const pending    = printItems.filter(p => !p.done);
-  const allPrinted = true;
+  const pending = printItems.filter(p => !p.done);
+  // Requirement: User must print at least Receipt and Kitchen once before "New Order" unlocks
+  // Allow skip print is now default behavior so we omit allRequiredPrinted check entirely.
 
   return (
     <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
-        <div className="bg-[#3b2063] px-9 pt-10 pb-9 text-white relative overflow-hidden">
+        <div className="bg-[#6a12b8] px-9 pt-10 pb-9 text-white relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-28 h-28 border-2 border-white/10 rounded-[0.625rem] rotate-12" />
           <div className="absolute -bottom-4 -left-4 w-16 h-16 border border-white/10 rounded-[0.625rem] -rotate-6" />
           <div className="relative flex items-center gap-5">
-            <div className="w-14 h-14 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center shrink-0">
+            <div className="w-14 h-14 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/50 leading-none mb-1.5">Transaction Complete</p>
               <h2 className="text-2xl font-black uppercase tracking-widest leading-none">Order Saved</h2>
-              <p className="text-white/60 text-xs font-bold mt-2 font-mono">{orNumber}</p>
+              <p className="text-white/60 text-xs font-bold mt-2 font-mono tracking-tighter">{orNumber}</p>
             </div>
           </div>
         </div>
         <div className="px-8 pt-6 pb-4 space-y-3 bg-white">
-          <p className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4">Required Prints</p>
+          <div className="flex justify-between items-center mb-1">
+            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-400">Print Control</p>
+            <p className="text-[8px] font-bold uppercase text-zinc-300">Click to (re)print</p>
+          </div>
           {printItems.map(({ label, done, onPrint, icon }) => (
             <button key={label} onClick={onPrint}
-              className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem] ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-[#e9d5ff] text-black hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'}`}>
-              <div className="flex items-center gap-3">{icon}<span>{label}</span></div>
-              {done ? <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Printed ✓</span> : <ChevronRight />}
+              className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem] active:scale-[0.98] ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm' : 'bg-white border-[#e9d5ff] text-black hover:border-[#6a12b8] hover:text-[#6a12b8] hover:bg-[#f5f0ff]'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`${done ? 'text-emerald-500' : 'text-[#6a12b8]'}`}>{icon}</div>
+                <span>{label}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {done && <span className="text-[9px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded shadow-sm">Printed ✓</span>}
+                <ChevronRight size={14} className={done ? 'text-emerald-300' : 'text-zinc-300'} />
+              </div>
             </button>
           ))}
         </div>
         <div className="px-8 pb-8 bg-white">
-          <div className="mt-1 mb-4">
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{pending.length === 0 ? 'All done' : `${printItems.length - pending.length} / ${printItems.length} printed`}</span>
-              {pending.length > 0 && <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pending: {pending.map(p => p.label).join(', ')}</span>}
+          <div className="mt-1 mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{pending.length === 0 ? 'All prints done' : `${printItems.length - pending.length} / ${printItems.length} printed`}</span>
+              {pending.length > 0 && <span className="text-[9px] font-bold text-[#6a12b8] uppercase tracking-widest">Unprinted: {pending.map(p => p.label).join(', ')}</span>}
             </div>
-            <div className="w-full h-1 bg-zinc-100 rounded-full overflow-hidden">
-              <div className={`h-full transition-all duration-500 rounded-full ${pending.length === 0 ? 'bg-emerald-400' : 'bg-[#3b2063]'}`}
+            <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div className={`h-full transition-all duration-700 rounded-full ${pending.length === 0 ? 'bg-emerald-400' : 'bg-[#6a12b8]'}`}
                 style={{ width: `${((printItems.length - pending.length) / printItems.length) * 100}%` }} />
             </div>
           </div>
-          <button onClick={onNewOrder} disabled={!allPrinted}
-            className={`w-full h-14 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-2 ${allPrinted ? 'bg-[#3b2063] hover:bg-[#6a12b8] text-white cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>
-            {allPrinted ? <><span>New Order</span><ArrowRightIcon /></> : `Print ${pending.length} remaining to continue`}
+          <button onClick={onNewOrder}
+            className={`w-full h-16 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] bg-[#6a12b8] hover:bg-[#2d184d] text-white cursor-pointer`}>
+            <span>Start New Order</span><ArrowRightIcon size={20} />
           </button>
         </div>
       </div>
@@ -1465,13 +1538,72 @@ export const SuccessModal = ({
 
 export const AddOnTriggerButton = ({ count, onClick }: { count: number; onClick: () => void }) => (
   <button onClick={onClick}
-    className="w-full py-4 rounded-[0.625rem] border-2 border-dashed border-[#3b2063]/40 bg-[#f5f0ff] hover:bg-[#e4dbff] text-black font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group">
+    className="w-full py-4 rounded-[0.625rem] border-2 border-dashed border-[#6a12b8]/40 bg-[#f5f0ff] hover:bg-[#e4dbff] text-black font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group">
     <span className="mr-2">{count > 0 ? `${count} Add-on(s) Selected` : 'Select Add-ons'}</span>
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
     </svg>
   </button>
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PaymentSelectModal
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PaymentSelectModalProps {
+  onSelect: (method: string) => void;
+  onClose: () => void;
+  orderCharge: 'grab' | 'panda' | null;
+}
+
+export const PaymentSelectModal = ({ onSelect, onClose, orderCharge }: PaymentSelectModalProps) => {
+  const methods = PAYMENT_METHODS.filter(m => {
+    if (orderCharge === 'grab') return m.id === 'grab';
+    if (orderCharge === 'panda') return m.id === 'food_panda';
+    return m.id !== 'grab' && m.id !== 'food_panda';
+  });
+
+  return (
+    <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-sm rounded-[1.25rem] shadow-2xl overflow-hidden border border-zinc-200">
+        <div className="px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff] flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#6a12b8] rounded-lg flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Select Payment</p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Choose how to pay</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#6a12b8]/10 flex items-center justify-center transition-colors">
+            <CloseIcon size={4} />
+          </button>
+        </div>
+        <div className="p-5 grid grid-cols-2 gap-3">
+          {methods.map(method => (
+            <button
+              key={method.id}
+              onClick={() => onSelect(method.id)}
+              className="group flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#6a12b8] hover:border-[#6a12b8] transition-all duration-200 active:scale-95"
+            >
+              <div className="text-[#6a12b8] group-hover:text-white mb-3 transition-colors">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {method.id === 'cash' ? <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /> : <path d="M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM12 12h.01" />}
+                </svg>
+              </div>
+              <span className="text-xs font-black uppercase tracking-widest text-[#1a0f2e] group-hover:text-white transition-colors">
+                {method.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OrderTypeModal
@@ -1487,9 +1619,9 @@ export const OrderTypeModal = ({ onSelect, onClose }: OrderTypeModalProps) => (
     <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl overflow-hidden">
       <div className="relative px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#3b2063] rounded-lg flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 bg-[#6a12b8] rounded-lg flex items-center justify-center shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/>
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="2" /><path d="M9 12h6M9 16h4" />
             </svg>
           </div>
           <div>
@@ -1498,25 +1630,25 @@ export const OrderTypeModal = ({ onSelect, onClose }: OrderTypeModalProps) => (
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#3b2063]/20 transition-colors text-[#1a0f2e] hover:text-[#3b2063]">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#6a12b8]/20 transition-colors text-[#1a0f2e] hover:text-[#6a12b8]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         )}
       </div>
       <div className="p-5 flex flex-col gap-3">
         {[
-          { type: 'dine-in' as const, label: 'Dine In', sub: 'Customer eats here', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b2063" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><circle cx="12" cy="12" r="9"/><path d="M8 7v4a2 2 0 0 0 4 0V7"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="16" y1="7" x2="16" y2="17"/></svg> },
-          { type: 'take-out' as const, label: 'Take Out', sub: 'Order to go', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b2063" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> },
+          { type: 'dine-in' as const, label: 'Dine In', sub: 'Customer eats here', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6a12b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><circle cx="12" cy="12" r="9" /><path d="M8 7v4a2 2 0 0 0 4 0V7" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="16" y1="7" x2="16" y2="17" /></svg> },
+          { type: 'take-out' as const, label: 'Take Out', sub: 'Order to go', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6a12b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-all"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg> },
         ].map(({ type, label, sub, icon }) => (
           <button key={type} onClick={() => onSelect(type)}
-            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#3b2063] hover:border-[#3b2063] transition-all duration-200 active:scale-[0.98]">
+            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#6a12b8] hover:border-[#6a12b8] transition-all duration-200 active:scale-[0.98]">
             <div className="w-12 h-12 rounded-xl bg-white border border-[#e9d5ff] group-hover:bg-white/20 group-hover:border-white/30 flex items-center justify-center shrink-0 transition-all">{icon}</div>
             <div className="text-left">
               <p className="text-sm font-black uppercase tracking-widest text-[#1a0f2e] group-hover:text-white transition-colors">{label}</p>
               <p className="text-[10px] font-semibold text-zinc-400 group-hover:text-white/70 transition-colors mt-0.5">{sub}</p>
             </div>
             <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
             </div>
           </button>
         ))}

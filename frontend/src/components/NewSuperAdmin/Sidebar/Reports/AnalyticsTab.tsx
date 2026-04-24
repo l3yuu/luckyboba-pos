@@ -1,7 +1,7 @@
 // components/NewSuperAdmin/Tabs/Reports/AnalyticsTab.tsx
 import { useState, useEffect, useCallback } from "react";
 import {
-  RefreshCw, AlertCircle, TrendingUp, ShoppingBag,
+  AlertCircle, TrendingUp, ShoppingBag,
   Clock, Store, ChevronDown, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 import {
@@ -10,28 +10,28 @@ import {
   Legend, Cell,
 } from "recharts";
 
-type ColorKey   = "violet" | "emerald" | "red" | "amber";
+type ColorKey = "violet" | "emerald" | "red" | "amber";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 // ── API ───────────────────────────────────────────────────────────────────────
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = () => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface RevenuePoint  { date: string; revenue: number; orders: number; }
-interface TopProduct    { product_name: string; total_quantity: number; total_revenue: number; }
-interface PeakHour      { hour: number; label: string; total: number; count: number; }
-interface BranchMetric  {
+interface RevenuePoint { date: string; revenue: number; orders: number; }
+interface TopProduct { product_name: string; total_quantity: number; total_revenue: number; }
+interface PeakHour { hour: number; label: string; total: number; count: number; }
+interface BranchMetric {
   branch_id: number; branch_name: string;
   total_revenue: number; total_orders: number; avg_order_value: number;
 }
-interface BranchOption  { id: number; name: string; }
+interface BranchOption { id: number; name: string; }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 interface StatCardProps {
@@ -45,10 +45,10 @@ interface BtnProps {
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
-    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+    red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
   };
   const c = colors[color];
   return (
@@ -77,12 +77,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
   onClick, className = "", disabled = false,
 }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button onClick={onClick} disabled={disabled}
@@ -96,35 +96,49 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
   <div className={`w-full ${h} bg-zinc-100 rounded animate-pulse`} />
 );
 
-const BRANCH_COLORS = ["#3b2063", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
-const HOUR_COLORS   = (hour: number) => {
-  if (hour >= 11 && hour <= 14) return "#3b2063"; // lunch peak
+const BRANCH_COLORS = ["#6a12b8", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
+const HOUR_COLORS = (hour: number) => {
+  if (hour >= 11 && hour <= 14) return "#6a12b8"; // lunch peak
   if (hour >= 17 && hour <= 20) return "#6d3fa8"; // dinner peak
   return "#ede8ff";
 };
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const AnalyticsTab: React.FC = () => {
-  const [period,      setPeriod]      = useState<"daily" | "weekly" | "monthly">("weekly");
-  const [branchId,    setBranchId]    = useState<string>("");
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState("");
-  const [branches,    setBranches]    = useState<BranchOption[]>([]);
-  const [revenue,     setRevenue]     = useState<RevenuePoint[]>([]);
+  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
+  const [branchId, setBranchId] = useState<string>(localStorage.getItem('superadmin_selected_branch') || '');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [revenue, setRevenue] = useState<RevenuePoint[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
-  const [peakHours,   setPeakHours]   = useState<PeakHour[]>([]);
-  const [branchPerf,  setBranchPerf]  = useState<BranchMetric[]>([]);
+  const [peakHours, setPeakHours] = useState<PeakHour[]>([]);
+  const [branchPerf, setBranchPerf] = useState<BranchMetric[]>([]);
 
-  const fmt  = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const fmtK = (v: number) => `₱${((v ?? 0) / 1000).toFixed(0)}k`;
+
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
 
   // Fetch branches once
   useEffect(() => {
     fetch("/api/branches", { headers: authHeaders() })
       .then(r => r.json())
-      .then(d => { if (d.success) setBranches(d.data); })
-      .catch(() => {});
-  }, []);
+      .then(d => { 
+        if (d.success && d.data.length > 0) {
+          setBranches(d.data);
+          if (!branchId) {
+            const defaultId = String(d.data[0].id);
+            setBranchId(defaultId);
+            localStorage.setItem('superadmin_selected_branch', defaultId);
+          }
+        }
+      })
+      .catch(() => { });
+  }, [branchId]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -136,7 +150,7 @@ const AnalyticsTab: React.FC = () => {
       // Use existing endpoints — analytics endpoints fall back to admin-sales-summary
       const [summaryRes, compRes] = await Promise.all([
         fetch(`/api/reports/admin-sales-summary?${params}`, { headers: authHeaders() }),
-        fetch(`/api/reports/branch-comparison?${params}`,   { headers: authHeaders() }),
+        fetch(`/api/reports/branch-comparison?${params}`, { headers: authHeaders() }),
       ]);
 
       const [summary, comp] = await Promise.all([summaryRes.json(), compRes.json()]);
@@ -161,7 +175,7 @@ const AnalyticsTab: React.FC = () => {
       const branchTarget = branchId || (comp.comparison?.[0]?.branch_id);
       if (branchTarget) {
         try {
-          const hrRes  = await fetch(`/api/branches/${branchTarget}/analytics`, { headers: authHeaders() });
+          const hrRes = await fetch(`/api/branches/${branchTarget}/analytics`, { headers: authHeaders() });
           const hrData = await hrRes.json();
           if (hrData.success && hrData.data?.today_hourly) {
             setPeakHours(hrData.data.today_hourly as PeakHour[]);
@@ -179,22 +193,12 @@ const AnalyticsTab: React.FC = () => {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const totalRevenue = revenue.reduce((s, r) => s + r.revenue, 0);
-  const totalOrders  = revenue.reduce((s, r) => s + r.orders, 0);
-  const peakHour     = peakHours.reduce((max, h) => h.total > (max?.total ?? 0) ? h : max, peakHours[0]);
+  const totalOrders = revenue.reduce((s, r) => s + r.orders, 0);
+  const peakHour = peakHours.reduce((max, h) => h.total > (max?.total ?? 0) ? h : max, peakHours[0]);
 
   return (
     <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Analytics & Sales</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Visual revenue trends, top products, peak hours & branch comparison</p>
-        </div>
-        <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
-        </Btn>
-      </div>
 
       {/* ── Filters ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
@@ -203,7 +207,7 @@ const AnalyticsTab: React.FC = () => {
           <div className="flex rounded-lg overflow-hidden border border-zinc-200">
             {(["daily", "weekly", "monthly"] as const).map(p => (
               <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#6a12b8] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
                 {p}
               </button>
             ))}
@@ -212,7 +216,7 @@ const AnalyticsTab: React.FC = () => {
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
           <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
               <option value="">All Branches</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
@@ -270,8 +274,8 @@ const AnalyticsTab: React.FC = () => {
                   : [v, name] as [number, string]}
                 contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
-              <Line yAxisId="rev" type="monotone" dataKey="revenue" name="Revenue" stroke="#3b2063" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-              <Line yAxisId="ord" type="monotone" dataKey="orders"  name="Orders"  stroke="#c4a8e8" strokeWidth={2}   dot={false} activeDot={{ r: 4 }} strokeDasharray="4 4" />
+              <Line yAxisId="rev" type="monotone" dataKey="revenue" name="Revenue" stroke="#6a12b8" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+              <Line yAxisId="ord" type="monotone" dataKey="orders" name="Orders" stroke="#c4a8e8" strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="4 4" />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -303,9 +307,9 @@ const AnalyticsTab: React.FC = () => {
                   : [v, name] as [number, string]}
                   contentStyle={{ borderRadius: 10, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
-                <Bar dataKey="total_quantity" name="Qty Sold" fill="#3b2063" radius={[0, 4, 4, 0]}>
+                <Bar dataKey="total_quantity" name="Qty Sold" fill="#6a12b8" radius={[0, 4, 4, 0]}>
                   {topProducts.map((_, i) => (
-                    <Cell key={i} fill={i === 0 ? "#3b2063" : i === 1 ? "#6d3fa8" : i === 2 ? "#9b6bd4" : "#ede8ff"} />
+                    <Cell key={i} fill={i === 0 ? "#6a12b8" : i === 1 ? "#6d3fa8" : i === 2 ? "#9b6bd4" : "#ede8ff"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -345,7 +349,7 @@ const AnalyticsTab: React.FC = () => {
           {/* Legend */}
           <div className="flex items-center gap-4 mt-3">
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm bg-[#3b2063]" />
+              <div className="w-2.5 h-2.5 rounded-sm bg-[#6a12b8]" />
               <span className="text-[10px] font-medium text-zinc-500">Lunch peak</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -375,9 +379,9 @@ const AnalyticsTab: React.FC = () => {
           <>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={branchPerf.map(b => ({
-                name:    b.branch_name.replace("Lucky Boba – ", "").replace("Lucky Boba - ", ""),
+                name: b.branch_name.replace("Lucky Boba – ", "").replace("Lucky Boba - ", ""),
                 revenue: Number(b.total_revenue),
-                orders:  Number(b.total_orders),
+                orders: Number(b.total_orders),
               }))} barSize={24}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
@@ -399,22 +403,21 @@ const AnalyticsTab: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
               {branchPerf.map((b, i) => {
                 const totalRev = branchPerf.reduce((s, x) => s + Number(x.total_revenue), 0);
-                const share    = totalRev > 0 ? Math.round((Number(b.total_revenue) / totalRev) * 100) : 0;
+                const share = totalRev > 0 ? Math.round((Number(b.total_revenue) / totalRev) * 100) : 0;
                 const shortName = b.branch_name.replace("Lucky Boba – ", "").replace("Lucky Boba - ", "");
-                const isTop    = i === 0;
-                const isLow    = i === branchPerf.length - 1 && branchPerf.length > 1;
+                const isTop = i === 0;
+                const isLow = i === branchPerf.length - 1 && branchPerf.length > 1;
                 return (
-                  <div key={b.branch_id} className={`rounded-[0.625rem] border px-4 py-3.5 ${
-                    isTop ? "bg-emerald-50 border-emerald-200" :
+                  <div key={b.branch_id} className={`rounded-[0.625rem] border px-4 py-3.5 ${isTop ? "bg-emerald-50 border-emerald-200" :
                     isLow ? "bg-amber-50 border-amber-200" :
-                    "bg-zinc-50 border-zinc-200"
-                  }`}>
+                      "bg-zinc-50 border-zinc-200"
+                    }`}>
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs font-bold text-[#1a0f2e] truncate">{shortName}</p>
                       {isTop && <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">Top</span>}
                       {isLow && <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">Low</span>}
                     </div>
-                    <p className="text-base font-black text-[#3b2063] tabular-nums">{fmt(Number(b.total_revenue))}</p>
+                    <p className="text-base font-black text-[#6a12b8] tabular-nums">{fmt(Number(b.total_revenue))}</p>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-[10px] text-zinc-400">{Number(b.total_orders).toLocaleString()} orders</span>
                       <span className="text-[10px] font-bold text-zinc-500">{share}%</span>

@@ -107,7 +107,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -125,7 +125,7 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
 );
 
 const PAYMENT_COLORS: Record<string, string> = {
-  cash:   "#3b2063",
+  cash:   "#6a12b8",
   gcash:  "#0ea5e9",
   card:   "#10b981",
   maya:   "#f59e0b",
@@ -143,7 +143,7 @@ const SalesReportTab: React.FC = () => {
   const [period,     setPeriod]     = useState<"daily" | "weekly" | "monthly">("monthly");
   const [dateFrom,   setDateFrom]   = useState(firstOfMonth);
   const [dateTo,     setDateTo]     = useState(today);
-  const [branchId,   setBranchId]   = useState<string>("");
+  const [branchId,   setBranchId]   = useState<string>(localStorage.getItem('superadmin_selected_branch') || '');
   const [search,     setSearch]     = useState("");
 
   // Data
@@ -160,13 +160,27 @@ const SalesReportTab: React.FC = () => {
   const fmt  = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const fmtK = (v: number) => `₱${((v ?? 0) / 1000).toFixed(0)}k`;
 
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
+
   // Fetch branches once
   useEffect(() => {
     fetch("/api/branches", { headers: authHeaders() })
       .then(r => r.json())
-      .then(d => { if (d.success) setBranches(d.data); })
+      .then(d => { 
+        if (d.success && d.data.length > 0) {
+          setBranches(d.data);
+          if (!branchId) {
+            const defaultId = String(d.data[0].id);
+            setBranchId(defaultId);
+            localStorage.setItem('superadmin_selected_branch', defaultId);
+          }
+        }
+      })
       .catch(() => {});
-  }, []);
+  }, [branchId]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -278,21 +292,7 @@ const SalesReportTab: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Sales Report</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Detailed sales breakdown across all branches</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-          </Btn>
-          <Btn variant="secondary" onClick={handleExport} disabled={loading}>
-            <Download size={13} /> Export CSV
-          </Btn>
-        </div>
-      </div>
+
 
       {/* ── Filters ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
@@ -302,7 +302,7 @@ const SalesReportTab: React.FC = () => {
           <div className="flex rounded-lg overflow-hidden border border-zinc-200">
             {(["period", "range"] as const).map(m => (
               <button key={m} onClick={() => setMode(m)}
-                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === m ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === m ? "bg-[#6a12b8] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
                 {m === "period" ? "Period" : "Date Range"}
               </button>
             ))}
@@ -316,7 +316,7 @@ const SalesReportTab: React.FC = () => {
             <div className="flex rounded-lg overflow-hidden border border-zinc-200">
               {(["daily", "weekly", "monthly"] as const).map(p => (
                 <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-                  className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                  className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#6a12b8] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
                   {p}
                 </button>
               ))}
@@ -344,7 +344,7 @@ const SalesReportTab: React.FC = () => {
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
           <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
               <option value="">All Branches</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
@@ -353,10 +353,14 @@ const SalesReportTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Apply */}
-        <Btn onClick={fetchAll} disabled={loading}>
-          {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
-        </Btn>
+        <div className="flex gap-2">
+          <Btn onClick={fetchAll} disabled={loading}>
+            {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
+          </Btn>
+          <Btn variant="secondary" onClick={handleExport} disabled={loading}>
+            <Download size={13} /> Export CSV
+          </Btn>
+        </div>
 
         {/* Clear */}
         {(branchId || mode === "range") && (
@@ -399,7 +403,7 @@ const SalesReportTab: React.FC = () => {
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors -mb-px ${
               activeTab === tab.id
-                ? "border-[#3b2063] text-[#3b2063]"
+                ? "border-[#6a12b8] text-[#6a12b8]"
                 : "border-transparent text-zinc-400 hover:text-zinc-600"
             }`}>
             {tab.label}
@@ -428,8 +432,8 @@ const SalesReportTab: React.FC = () => {
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#3b2063" stopOpacity={0.18} />
-                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0}    />
+                      <stop offset="5%"  stopColor="#6a12b8" stopOpacity={0.18} />
+                      <stop offset="95%" stopColor="#6a12b8" stopOpacity={0}    />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" />
@@ -437,7 +441,7 @@ const SalesReportTab: React.FC = () => {
                   <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
                   <Tooltip formatter={(v) => [`₱${Number(v ?? 0).toLocaleString()}`, "Revenue"] as [string, string]}
                     contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
-                  <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={2.5} fill="url(#revGrad)" name="Revenue" />
+                  <Area type="monotone" dataKey="revenue" stroke="#6a12b8" strokeWidth={2.5} fill="url(#revGrad)" name="Revenue" />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -492,7 +496,7 @@ const SalesReportTab: React.FC = () => {
                     <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                       <td className="px-5 py-3.5 font-medium text-zinc-700">{row.date}</td>
                       <td className="px-5 py-3.5 text-zinc-600">{Number(row.orders).toLocaleString()}</td>
-                      <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(Number(row.revenue))}</td>
+                      <td className="px-5 py-3.5 font-bold text-[#6a12b8]">{fmt(Number(row.revenue))}</td>
                       <td className="px-5 py-3.5 text-zinc-600">
                         {row.orders > 0 ? fmt(Number(row.revenue) / Number(row.orders)) : "—"}
                       </td>
@@ -502,7 +506,7 @@ const SalesReportTab: React.FC = () => {
                     <tr className="bg-zinc-50 border-t border-zinc-200">
                       <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest">Total</td>
                       <td className="px-5 py-3.5 font-black text-[#1a0f2e]">{totalOrders.toLocaleString()}</td>
-                      <td className="px-5 py-3.5 font-black text-[#3b2063]">{fmt(grandTotal)}</td>
+                      <td className="px-5 py-3.5 font-black text-[#6a12b8]">{fmt(grandTotal)}</td>
                       <td className="px-5 py-3.5 font-bold text-zinc-600">{fmt(avgOrderValue)}</td>
                     </tr>
                   )}
@@ -557,12 +561,12 @@ const SalesReportTab: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5 font-semibold text-[#1a0f2e]">{shortName}</td>
                       <td className="px-5 py-3.5 text-zinc-600">{Number(b.total_orders).toLocaleString()}</td>
-                      <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(Number(b.total_revenue))}</td>
+                      <td className="px-5 py-3.5 font-bold text-[#6a12b8]">{fmt(Number(b.total_revenue))}</td>
                       <td className="px-5 py-3.5 text-zinc-600">{fmt(Number(b.avg_order_value))}</td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-1.5 bg-zinc-100 rounded-full overflow-hidden max-w-20">
-                            <div className="h-full rounded-full bg-[#3b2063]" style={{ width: `${share}%` }} />
+                            <div className="h-full rounded-full bg-[#6a12b8]" style={{ width: `${share}%` }} />
                           </div>
                           <span className="text-xs font-bold text-zinc-600 w-8">{share}%</span>
                         </div>
@@ -577,7 +581,7 @@ const SalesReportTab: React.FC = () => {
                     <td className="px-5 py-3.5 font-black text-[#1a0f2e]">
                       {branchPerf.reduce((s, b) => s + Number(b.total_orders), 0).toLocaleString()}
                     </td>
-                    <td className="px-5 py-3.5 font-black text-[#3b2063]">{fmt(totalRevenue)}</td>
+                    <td className="px-5 py-3.5 font-black text-[#6a12b8]">{fmt(totalRevenue)}</td>
                     <td className="px-5 py-3.5" />
                     <td className="px-5 py-3.5 font-black text-zinc-600">100%</td>
                   </tr>
@@ -641,7 +645,7 @@ const SalesReportTab: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           <div className="w-16 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-[#3b2063]" style={{ width: `${pct}%` }} />
+                            <div className="h-full rounded-full bg-[#6a12b8]" style={{ width: `${pct}%` }} />
                           </div>
                           <span className="text-zinc-600 font-medium">{p.total_quantity.toLocaleString()}x</span>
                         </div>
@@ -715,7 +719,7 @@ const SalesReportTab: React.FC = () => {
             {!loading && paymentChartData.length > 0 && (
               <div className="bg-zinc-50 border border-zinc-200 rounded-[0.625rem] px-4 py-3.5 flex items-center justify-between">
                 <p className="text-xs font-black text-[#1a0f2e] uppercase tracking-widest">Total</p>
-                <p className="text-sm font-black text-[#3b2063]">
+                <p className="text-sm font-black text-[#6a12b8]">
                   {fmt(paymentChartData.reduce((s, x) => s + x.revenue, 0))}
                 </p>
               </div>

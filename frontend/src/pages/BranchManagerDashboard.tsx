@@ -10,6 +10,8 @@ import BM_DeviceManagement from '../components/BranchManager/Home/BM_DeviceManag
 import api from '../services/api';
 import { LogOut } from 'lucide-react';
 import BranchManagerTopNav from '../components/BranchManager/BranchManagerTopNav'; 
+import BM_PulseTab from '../components/BranchManager/Home/BM_PulseTab';
+import BM_StaffPerformanceTab from '../components/BranchManager/Home/BM_StaffPerformanceTab';
 
 import SalesDashboard        from '../components/BranchManager/SalesReport/BM_SalesDashboard';
 import ItemsReport           from '../components/BranchManager/SalesReport/BM_ItemsReport';
@@ -21,14 +23,12 @@ import BM_Categories         from '../components/BranchManager/MenuItems/BM_Cate
 import BM_SubCategories      from '../components/BranchManager/MenuItems/BM_Sub-Categories';
 
 import BM_InventoryDashboard     from '../components/BranchManager/Inventory/BM_InventoryDashboard';
-import BM_InventoryCategories    from '../components/BranchManager/Inventory/BM_InventoryCategories';
 import BM_InventoryList          from '../components/BranchManager/Inventory/BM_InventoryList';
 import BM_InventoryReports       from '../components/BranchManager/Inventory/BM_InventoryReports';
-import BM_InventoryItemChecker   from '../components/BranchManager/Inventory/BM_InventoryItemChecker';
-import BM_InventoryItemSerials   from '../components/BranchManager/Inventory/BM_InventoryItemSerials';
+import BM_InventoryAlertCenter   from '../components/BranchManager/Inventory/BM_InventoryAlertCenter';
+import BM_InventoryRecipes       from '../components/BranchManager/Inventory/BM_InventoryRecipes';
 import BM_InventoryPurchaseOrder from '../components/BranchManager/Inventory/BM_InventoryPurchaseOrder';
 import BM_InventoryStockTransfer from '../components/BranchManager/Inventory/BM_InventoryStockTransfer';
-import BM_InventorySuppliers     from '../components/BranchManager/Inventory/BM_InventorySuppliers';
 
 import BranchManagerAuditLogsTab from '../components/BranchManager/BranchManagerAuditLogsTab';
 import BM_AppOrders      from '../components/BranchManager/SalesReport/BM_AppOrders';
@@ -36,6 +36,8 @@ import BM_MenuManagement from '../components/BranchManager/SalesReport/BM_MenuMa
 
 import BMVoidLogsPanel from '../components/BranchManager/FloorOps/BMVoidLogs';
 import BM_PromosDiscounts from '../components/BranchManager/Settings/BM_PromosDiscounts';
+import BM_ExpensesTab from '../components/BranchManager/Expenses/BM_ExpensesTab';
+import BM_OnlineOrders from '../components/BranchManager/FloorOps/BM_OnlineOrders';
 
 import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
 import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
@@ -72,7 +74,7 @@ const STYLES = `
   .bm-tab { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 13px; border-radius: 0.4rem; border: none; cursor: pointer; transition: background 0.12s, color 0.12s; }
   .bm-tab-on  { background: #1a0f2e; color: #fff; }
   .bm-tab-off { background: transparent; color: #a1a1aa; }
-  .bm-tab-off:hover { background: #ede8ff; color: #3b2063; }
+  .bm-tab-off:hover { background: #ede8ff; color: #6a12b8; }
   .bm-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
   .card { transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease; }
   .card:hover { box-shadow: 0 8px 32px rgba(59,32,99,0.12); transform: translateY(-1px); border-color: #ddd6f7; }
@@ -86,6 +88,8 @@ const GlobalStyles = () => <style>{STYLES}</style>;
 // ─── Page title map ───────────────────────────────────────────────────────────
 const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   dashboard:            { label: 'Dashboard',            desc: 'Real-time summary for your branch' },
+  'live-pulse':         { label: 'Live Pulse',           desc: 'Real-time sales ticker and staff heartbeat' },
+  'staff-performance':  { label: 'Staff Performance',    desc: 'Local team leaderboards & efficiency metrics' },
   users:                { label: 'User Management',      desc: 'Staff accounts, roles & permissions' },
   'device-management':  { label: 'Device Management',    desc: 'POS terminals & connected devices' },
   'sales-dashboard':    { label: 'Sales Dashboard',      desc: 'Daily & periodic sales breakdown' },
@@ -95,18 +99,18 @@ const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   'menu-list':          { label: 'Menu List',            desc: 'All products & pricing' },
   'category-list':      { label: 'Categories',           desc: 'Top-level menu groupings' },
   'sub-category-list':  { label: 'Sub-Categories',       desc: 'Nested category structure' },
-  'inventory-dashboard':{ label: 'Inventory Dashboard',  desc: 'Stock summary for your branch' },
-  'inventory-list':     { label: 'Inventory List',       desc: 'Current stock levels' },
-  'inventory-category': { label: 'Inventory Categories', desc: 'Inventory groupings' },
-  supplier:             { label: 'Suppliers',            desc: 'Vendor records & contacts' },
-  'item-checker':       { label: 'Item Checker',         desc: 'Verify item availability & details' },
-  'item-serials':       { label: 'Item Serials',         desc: 'Serialized item tracking' },
+  'online-orders':      { label: 'Online Orders',        desc: 'Live tracking of digital and kiosk orders' },
+  'inventory-dashboard':{ label: 'Overview',             desc: 'Stock summary for your branch' },
+  'inventory-alert-center': { label: 'Alert Center',     desc: 'Low stock alerts and restock actions' },
+  'inventory-list':     { label: 'Raw Materials',        desc: 'Current stock levels (view and adjust)' },
+  'inventory-recipes':  { label: 'Recipes',              desc: 'Recipe composition (view only)' },
   'purchase-order':     { label: 'Purchase Order',       desc: 'Incoming stock orders' },
   'stock-transfer':     { label: 'Stock Transfer',       desc: 'Move stock between branches' },
-  'inventory-report':   { label: 'Inventory Report',     desc: 'Stock movement & usage data' },
+  'inventory-report':   { label: 'Usage Report',         desc: 'Stock movement and usage data' },
   'audit-logs':         { label: 'Audit Logs',           desc: 'Complete system activity trail' },
   'void-logs':          { label: 'Void Logs',            desc: 'Voided transaction history' },
   'promos-discounts':   { label: 'Promos & Discounts',   desc: 'View and toggle branch discounts' },
+  expenses:             { label: 'Expenses',             desc: 'Track local branch expenditure and receipts' },
   settings:             { label: 'Settings',             desc: 'Branch configuration & preferences' },
   'add-customers':      { label: 'Add Customers',        desc: 'Customer management' },
   'add-vouchers':       { label: 'Add Vouchers',         desc: 'Voucher management' },
@@ -152,7 +156,16 @@ const BranchManagerDashboard = () => {
       .catch(err => console.error('Failed to load user', err));
   }, []);
 
-  const branchLabel = authUser?.name ?? null;
+  useEffect(() => {
+    const handleInventoryNav = (event: Event) => {
+      const custom = event as CustomEvent<string>;
+      if (custom.detail) setActiveTab(custom.detail);
+    };
+    window.addEventListener('bm-inventory-navigate', handleInventoryNav);
+    return () => window.removeEventListener('bm-inventory-navigate', handleInventoryNav);
+  }, []);
+
+  const branchLabel = authUser?.branch?.name ?? 'Branch Manager';
 
   // ── Derive page meta from the map ─────────────────────────────────────────
   const page = PAGE_TITLES[activeTab] ?? {
@@ -174,12 +187,15 @@ const BranchManagerDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':          return <BM_Dashboard branchId={authUser?.branch_id ?? null} />;
+      case 'live-pulse':         return <BM_PulseTab branchId={authUser?.branch_id ?? null} />;
+      case 'staff-performance':  return <BM_StaffPerformanceTab branchId={authUser?.branch_id ?? null} />;
       case 'users':              return <UserManagement />;
       case 'device-management':  return <BM_DeviceManagement branchId={authUser?.branch_id ?? null} />;
       case 'sales-dashboard':    return <SalesDashboard />;
       case 'items-report':       return <ItemsReport />;
       case 'x-reading':          return <XReading />;
       case 'z-reading':          return <ZReading />;
+      case 'expenses':           return <BM_ExpensesTab branchId={authUser?.branch_id ?? null} />;
 
       // ── Mobile App ──
       case 'app-orders':         return <BM_AppOrders />;
@@ -188,15 +204,14 @@ const BranchManagerDashboard = () => {
       case 'category-list':      return <BM_Categories />;
       case 'sub-category-list':  return <BM_SubCategories />;
       case 'inventory-dashboard':return <BM_InventoryDashboard />;
+      case 'inventory-alert-center': return <BM_InventoryAlertCenter />;
       case 'inventory-list':     return <BM_InventoryList />;
-      case 'inventory-category': return <BM_InventoryCategories />;
-      case 'supplier':           return <BM_InventorySuppliers />;
-      case 'item-checker':       return <BM_InventoryItemChecker />;
-      case 'item-serials':       return <BM_InventoryItemSerials />;
+      case 'inventory-recipes':  return <BM_InventoryRecipes />;
       case 'purchase-order':     return <BM_InventoryPurchaseOrder />;
-      case 'stock-transfer':     return <BM_InventoryStockTransfer />;
+      case 'stock-transfer':     return <BM_InventoryStockTransfer branchId={authUser?.branch_id ?? null} />;
       case 'inventory-report':   return <BM_InventoryReports />;
       case 'audit-logs':         return <BranchManagerAuditLogsTab />;
+      case 'online-orders':      return <BM_OnlineOrders />;
       case 'void-logs':          return <BMVoidLogsPanel branchId={authUser?.branch_id ?? null} />;
       case 'promos-discounts':   return <BM_PromosDiscounts />;
       case 'settings':           return <BM_Settings />;

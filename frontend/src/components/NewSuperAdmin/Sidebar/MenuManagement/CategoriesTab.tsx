@@ -1,84 +1,87 @@
 // components/NewSuperAdmin/Tabs/MenuManagement/CategoriesTab.tsx
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Plus, Edit2, Trash2, RefreshCw, AlertCircle,
+  Plus, Edit2, Trash2, AlertCircle,
   X, Tag, ToggleLeft, ToggleRight, Check, ChevronDown,
   Coffee, Search, Sparkles,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useToast } from "../../../../hooks/useToast";
+import { triggerSync } from "../../../../utils/sync";
+
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = (): Record<string, string> => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 type CategoryType = "food" | "drink" | "promo";
 
 const BASE_TYPE_OPTIONS: { value: CategoryType; label: string; desc: string }[] = [
-  { value: "food",  label: "Food",  desc: "Meals, snacks, waffles, wings, combos" },
+  { value: "food", label: "Food", desc: "Meals, snacks, waffles, wings, combos" },
   { value: "drink", label: "Drink", desc: "Beverages with size selection" },
   { value: "promo", label: "Promo", desc: "Promos, freebies, loyalty cards" },
 ];
 
 const POS_BEHAVIOR_BY_TYPE: Record<CategoryType, { value: string; label: string; desc: string }[]> = {
   food: [
-    { value: "food",          label: "Food",          desc: "Standard food — straight to cart, no size" },
-    { value: "wings",         label: "Wings",         desc: "Chicken wings — cashier picks piece count (3pc, 4pc, etc.)" },
-    { value: "waffle",        label: "Waffle",        desc: "Waffle items — shows waffle-specific add-ons" },
-    { value: "combo",         label: "Combo",         desc: "Food + drink — cashier picks food, then customizes the included drink" },
-    { value: "mix_and_match", label: "Mix & Match",   desc: "Food + drink — cashier selects food, customer picks from a fixed drink pool" },
+    { value: "food", label: "Food", desc: "Standard food — straight to cart, no size" },
+    { value: "wings", label: "Wings", desc: "Chicken wings — cashier picks piece count (3pc, 4pc, etc.)" },
+    { value: "waffle", label: "Waffle", desc: "Waffle items — shows waffle-specific add-ons" },
+    { value: "combo", label: "Combo", desc: "Food + drink — cashier picks food, then customizes the included drink" },
+    { value: "mix_and_match", label: "Mix & Match", desc: "Food + drink — cashier selects food, customer picks from a fixed drink pool" },
   ],
   drink: [
-    { value: "drink",  label: "Drink",  desc: "Regular drink — cashier picks size (SM/SL, UM/UL, etc.)" },
+    { value: "drink", label: "Drink", desc: "Regular drink — cashier picks size (SM/SL, UM/UL, etc.)" },
     { value: "bundle", label: "Bundle", desc: "Drinks-only bundle — cashier customizes each drink step by step" },
   ],
   promo: [
-    { value: "promo",  label: "Promo",  desc: "Promos, freebies, loyalty cards — no size or sugar" },
+    { value: "promo", label: "Promo", desc: "Promos, freebies, loyalty cards — no size or sugar" },
   ],
 };
 
 const TYPE_BADGE: Record<string, string> = {
-  food:          "bg-amber-50 text-amber-700 border border-amber-200",
-  drink:         "bg-blue-50 text-blue-700 border border-blue-200",
-  promo:         "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  wings:         "bg-orange-50 text-orange-700 border border-orange-200",
-  waffle:        "bg-yellow-50 text-yellow-700 border border-yellow-200",
-  combo:         "bg-purple-50 text-purple-700 border border-purple-200",
-  bundle:        "bg-indigo-50 text-indigo-700 border border-indigo-200",
+  food: "bg-amber-50 text-amber-700 border border-amber-200",
+  drink: "bg-blue-50 text-blue-700 border border-blue-200",
+  promo: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  wings: "bg-orange-50 text-orange-700 border border-orange-200",
+  waffle: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+  combo: "bg-purple-50 text-purple-700 border border-purple-200",
+  bundle: "bg-indigo-50 text-indigo-700 border border-indigo-200",
   mix_and_match: "bg-rose-50 text-rose-700 border border-rose-200",
 };
 
 interface Category {
-  id:               number;
-  name:             string;
-  type:             CategoryType;
-  category_type:    string;
-  is_active:        boolean;
+  id: number;
+  name: string;
+  type: CategoryType;
+  category_type: string;
+  is_active: boolean;
   menu_items_count: number;
 }
 
 interface MenuItem {
-  id:            number;
-  name:          string;
+  id: number;
+  name: string;
   category_type: string;
-  category:      string;
-  price:         number;
-  size:          string | null;
+  category: string;
+  price: number;
+  size: string | null;
 }
 
 interface CategoryDrink {
-  id:           number;
-  category_id:  number;
+  id: number;
+  category_id: number;
   menu_item_id: number;
-  name:         string;
-  size:         string;
-  price:        number;
+  name: string;
+  size: string;
+  price: number;
 }
 
 // ── Shared UI ────────────────────────────────────────────────────────────────
@@ -88,12 +91,12 @@ interface BtnProps {
   onClick?: () => void; className?: string; disabled?: boolean; type?: "button" | "submit" | "reset";
 }
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -114,19 +117,19 @@ const inputCls = (err?: string) =>
 // First-time setup experience for a freshly created mix_and_match category.
 
 interface DrinkPoolSetupModalProps {
-  category:  Category;
-  onClose:   () => void;
-  onSkip:    () => void;
+  category: Category;
+  onClose: () => void;
+  onSkip: () => void;
 }
 
 const DrinkPoolSetupModal: React.FC<DrinkPoolSetupModalProps> = ({ category, onClose, onSkip }) => {
-  const [allDrinks,   setAllDrinks]   = useState<(MenuItem & { _sizeLabel: string })[]>([]);
+  const [allDrinks, setAllDrinks] = useState<(MenuItem & { _sizeLabel: string })[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [search,      setSearch]      = useState("");
-  const [loading,     setLoading]     = useState(true);
-  const [saving,      setSaving]      = useState(false);
-  const [saved,       setSaved]       = useState(false);
-  const [error,       setError]       = useState("");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   // Fetch all drink-type menu items
   useEffect(() => {
@@ -190,7 +193,7 @@ const DrinkPoolSetupModal: React.FC<DrinkPoolSetupModalProps> = ({ category, onC
     setSaving(true); setError("");
     try {
       const res = await fetch("/api/category-drinks", {
-        method:  "POST",
+        method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
           category_id: category.id,
@@ -323,19 +326,17 @@ const DrinkPoolSetupModal: React.FC<DrinkPoolSetupModalProps> = ({ category, onC
                           key={d.id}
                           type="button"
                           onClick={() => toggle(d.id)}
-                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${
-                            isSelected
-                              ? "bg-rose-50 border-rose-400 text-rose-800 shadow-sm"
-                              : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300 hover:bg-rose-50/50"
-                          }`}
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${isSelected
+                            ? "bg-rose-50 border-rose-400 text-rose-800 shadow-sm"
+                            : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300 hover:bg-rose-50/50"
+                            }`}
                         >
                           {/* Checkbox */}
-                          <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                            isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
-                          }`}>
+                          <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
+                            }`}>
                             {isSelected && (
                               <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                                <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
                             )}
                           </div>
@@ -345,9 +346,8 @@ const DrinkPoolSetupModal: React.FC<DrinkPoolSetupModalProps> = ({ category, onC
                             <span className="text-[11px] font-semibold truncate leading-tight">{d.name}</span>
                             <div className="flex items-center gap-1 mt-0.5">
                               {d._sizeLabel && (
-                                <span className={`text-[9px] font-bold uppercase px-1.5 py-px rounded-full ${
-                                  isSelected ? "bg-rose-200 text-rose-700" : "bg-zinc-100 text-zinc-400"
-                                }`}>
+                                <span className={`text-[9px] font-bold uppercase px-1.5 py-px rounded-full ${isSelected ? "bg-rose-200 text-rose-700" : "bg-zinc-100 text-zinc-400"
+                                  }`}>
                                   {d._sizeLabel}
                                 </span>
                               )}
@@ -403,22 +403,26 @@ const CategoryModal: React.FC<{
   onClose: () => void;
   onSaved: (c: Category) => void;
 }> = ({ category, onClose, onSaved }) => {
+  const { showToast } = useToast();
   const isEdit = !!category;
 
-  const [name,        setName]        = useState(category?.name ?? "");
-  const [baseType,    setBaseType]    = useState<CategoryType>(category?.type ?? "food");
+  const [name, setName] = useState(category?.name ?? "");
+  const [baseType, setBaseType] = useState<CategoryType>((category?.type && POS_BEHAVIOR_BY_TYPE[category.type as CategoryType]) ? (category.type as CategoryType) : "food");
   const [posBehavior, setPosBehavior] = useState<string>(category?.category_type ?? "food");
-  const [isActive,    setIsActive]    = useState(category?.is_active ?? true);
-  const [errors,      setErrors]      = useState<Record<string, string>>({});
-  const [loading,     setLoading]     = useState(false);
-  const [apiError,    setApiError]    = useState("");
+  const [isActive, setIsActive] = useState(category?.is_active ?? true);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   const handleBaseTypeChange = (t: CategoryType) => {
     setBaseType(t);
-    setPosBehavior(POS_BEHAVIOR_BY_TYPE[t][0].value);
+    const options = POS_BEHAVIOR_BY_TYPE[t];
+    if (options && options.length > 0) {
+      setPosBehavior(options[0].value);
+    }
   };
 
-  const behaviorOptions  = POS_BEHAVIOR_BY_TYPE[baseType];
+  const behaviorOptions = POS_BEHAVIOR_BY_TYPE[baseType] || [];
   const selectedBehavior = behaviorOptions.find(o => o.value === posBehavior);
 
   const handleSubmit = async () => {
@@ -429,16 +433,20 @@ const CategoryModal: React.FC<{
     try {
       const payload = {
         name,
-        type:          baseType,
+        type: baseType,
         category_type: posBehavior,
-        is_active:     isActive,
+        is_active: isActive,
       };
-      const url    = isEdit ? `/api/categories/${category!.id}` : "/api/categories";
+      const url = isEdit ? `/api/categories/${category!.id}` : "/api/categories";
       const method = isEdit ? "PUT" : "POST";
-      const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
-      const data   = await res.json();
+      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      const data = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Something went wrong."); return; }
       onSaved(data.data ?? data);
+      try {
+        triggerSync();
+        showToast(isEdit ? "Category updated successfully" : "Category added successfully", "success");
+      } catch (e) { console.error("Broadcast failed:", e); }
       onClose();
     } catch { setApiError("Network error."); }
     finally { setLoading(false); }
@@ -517,13 +525,12 @@ const CategoryModal: React.FC<{
           </div>
 
           {(posBehavior === "bundle" || posBehavior === "combo" || posBehavior === "mix_and_match") && (
-            <div className={`p-3 rounded-lg border text-xs font-medium ${
-              posBehavior === "bundle"
-                ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                : posBehavior === "combo"
+            <div className={`p-3 rounded-lg border text-xs font-medium ${posBehavior === "bundle"
+              ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+              : posBehavior === "combo"
                 ? "bg-purple-50 border-purple-200 text-purple-700"
                 : "bg-rose-50 border-rose-200 text-rose-700"
-            }`}>
+              }`}>
               {posBehavior === "bundle" ? (
                 <>
                   <p className="font-bold mb-1">Bundle — Drinks Only</p>
@@ -549,7 +556,7 @@ const CategoryModal: React.FC<{
               <p className="text-[10px] text-zinc-400">Toggle off to hide category from cashiers</p>
             </div>
             <button type="button" onClick={() => setIsActive(v => !v)}>
-              {isActive ? <ToggleRight size={28} className="text-[#3b2063]" /> : <ToggleLeft size={28} className="text-zinc-300" />}
+              {isActive ? <ToggleRight size={28} className="text-[#6a12b8]" /> : <ToggleLeft size={28} className="text-zinc-300" />}
             </button>
           </div>
         </div>
@@ -576,21 +583,21 @@ const CategoryModal: React.FC<{
 // ── CategoryDrinksManager (inline edit from table) ────────────────────────────
 
 const CategoryDrinksManager: React.FC<{
-  category:  Category;
-  onClose:   () => void;
+  category: Category;
+  onClose: () => void;
 }> = ({ category, onClose }) => {
-  const [allDrinks,   setAllDrinks]   = useState<(MenuItem & { _sizeLabel: string })[]>([]);
+  const [allDrinks, setAllDrinks] = useState<(MenuItem & { _sizeLabel: string })[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [search,      setSearch]      = useState("");
-  const [loading,     setLoading]     = useState(true);
-  const [saving,      setSaving]      = useState(false);
-  const [saved,       setSaved]       = useState(false);
-  const [error,       setError]       = useState("");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch("/api/menu-items",    { headers: authHeaders() }).then(r => r.json()),
+      fetch("/api/menu-items", { headers: authHeaders() }).then(r => r.json()),
       fetch(`/api/category-drinks?category_id=${category.id}`, { headers: authHeaders() }).then(r => r.json()),
     ]).then(([itemsData, drinksData]) => {
       const items: MenuItem[] = (Array.isArray(itemsData) ? itemsData : (itemsData.data ?? []));
@@ -614,8 +621,8 @@ const CategoryDrinksManager: React.FC<{
       const existing: CategoryDrink[] = drinksData.data ?? [];
       setSelectedIds(new Set(existing.map(d => d.menu_item_id)));
     })
-    .catch(() => setError("Failed to load data."))
-    .finally(() => setLoading(false));
+      .catch(() => setError("Failed to load data."))
+      .finally(() => setLoading(false));
   }, [category.id]);
 
   const filtered = useMemo(() =>
@@ -699,17 +706,15 @@ const CategoryDrinksManager: React.FC<{
                 const isSelected = selectedIds.has(d.id);
                 return (
                   <button key={d.id} type="button" onClick={() => toggle(d.id)}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${
-                      isSelected
-                        ? "bg-rose-50 border-rose-400 text-rose-800"
-                        : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300"
-                    }`}>
-                    <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                      isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
-                    }`}>
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${isSelected
+                      ? "bg-rose-50 border-rose-400 text-rose-800"
+                      : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300"
+                      }`}>
+                    <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
+                      }`}>
                       {isSelected && (
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                          <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
                     </div>
@@ -746,25 +751,29 @@ const CategoryDrinksManager: React.FC<{
 // ── Main Component ────────────────────────────────────────────────────────────
 
 const CategoriesTab: React.FC = () => {
-  const [categories,       setCategories]       = useState<Category[]>([]);
-  const [loading,          setLoading]          = useState(true);
-  const [error,            setError]            = useState("");
-  const [addOpen,          setAddOpen]          = useState(false);
-  const [editTarget,       setEditTarget]       = useState<Category | null>(null);
-  const [delTarget,        setDelTarget]        = useState<Category | null>(null);
-  const [delLoading,       setDelLoading]       = useState(false);
-  const [inlineEdit,       setInlineEdit]       = useState<number | null>(null);
-  const [inlineVal,        setInlineVal]        = useState("");
+  const { showToast } = useToast();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Category | null>(null);
+  const [delTarget, setDelTarget] = useState<Category | null>(null);
+  const [delLoading, setDelLoading] = useState(false);
+  const [inlineEdit, setInlineEdit] = useState<number | null>(null);
+  const [inlineVal, setInlineVal] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [search, setSearch] = useState("");
   // ── New: post-create drink pool setup
   const [drinkSetupTarget, setDrinkSetupTarget] = useState<Category | null>(null);
-  const [drinkPoolTarget,  setDrinkPoolTarget]  = useState<Category | null>(null);
+  const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const res  = await fetch("/api/categories", { headers: authHeaders() });
+      const res = await fetch("/api/categories", { headers: authHeaders() });
       const data = await res.json();
-      const raw  = Array.isArray(data) ? data : (data.data ?? []);
+      const raw = Array.isArray(data) ? data : (data.data ?? []);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setCategories(raw.map((c: any) => ({ ...c, is_active: c.is_active === 1 || c.is_active === true || c.is_active === "1" || (c.is_active === undefined ? true : false) })));
     } catch { setError("Failed to load categories."); }
@@ -775,13 +784,16 @@ const CategoriesTab: React.FC = () => {
 
   const toggleActive = async (cat: Category) => {
     try {
-      const res  = await fetch(`/api/categories/${cat.id}`, {
+      const res = await fetch(`/api/categories/${cat.id}`, {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ is_active: !cat.is_active }),
       });
       if (res.ok) {
         setCategories(p => p.map(c => c.id === cat.id ? { ...c, is_active: !c.is_active } : c));
-        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch { /* ignore */ }
+        try {
+          triggerSync();
+          showToast(`Category ${!cat.is_active ? 'enabled' : 'disabled'} successfully`, "success");
+        } catch { /* ignore */ }
       }
     } catch { /* silent */ }
   };
@@ -789,9 +801,15 @@ const CategoriesTab: React.FC = () => {
   const handleDelete = async (cat: Category) => {
     setDelLoading(true);
     try {
-      const res  = await fetch(`/api/categories/${cat.id}`, { method: "DELETE", headers: authHeaders() });
+      const res = await fetch(`/api/categories/${cat.id}`, { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
-      if (res.ok) { setCategories(p => p.filter(c => c.id !== cat.id)); setDelTarget(null); }
+      if (res.ok) {
+        setCategories(p => p.filter(c => c.id !== cat.id)); setDelTarget(null);
+        try {
+          triggerSync();
+          showToast("Category deleted successfully", "success");
+        } catch { /* ignore */ }
+      }
       else setError(data.message ?? "Failed to delete.");
     } catch { setError("Network error."); }
     finally { setDelLoading(false); }
@@ -804,7 +822,13 @@ const CategoriesTab: React.FC = () => {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ name: inlineVal }),
       });
-      if (res.ok) setCategories(p => p.map(c => c.id === cat.id ? { ...c, name: inlineVal } : c));
+      if (res.ok) {
+        setCategories(p => p.map(c => c.id === cat.id ? { ...c, name: inlineVal } : c));
+        try {
+          triggerSync();
+          showToast("Category updated successfully", "success");
+        } catch { /* ignore */ }
+      }
     } catch { /* silent */ }
     finally { setInlineEdit(null); }
   };
@@ -820,26 +844,33 @@ const CategoriesTab: React.FC = () => {
       setCategories(p => p.map(c => c.id === cat.id ? cat : c));
     }
   };
-
   const totalItems = categories.reduce((sum, c) => sum + (c.menu_items_count ?? 0), 0);
+
+  const filtered = useMemo(() => {
+    return categories.filter(c => {
+      const matchType = filterType === "all" || c.type === filterType;
+      const matchStatus = filterStatus === "all" ||
+        (filterStatus === "active" ? c.is_active : !c.is_active);
+      const matchSearch = search === "" || c.name.toLowerCase().includes(search.toLowerCase());
+      return matchType && matchStatus && matchSearch;
+    });
+  }, [categories, filterType, filterStatus, search]);
 
   return (
     <div className="p-6 md:p-8 fade-in">
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Categories</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? "Loading..." : `${categories.length} categories · ${categories.filter(c => c.is_active).length} active · ${totalItems} total items`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
-          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
-            <Plus size={13} /> Add Category
-          </Btn>
-        </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {[
+          { label: "Total Categories", value: categories.length, color: "bg-violet-50 border-violet-200 text-violet-600" },
+          { label: "Active", value: categories.filter(c => c.is_active).length, color: "bg-emerald-50 border-emerald-200 text-emerald-600" },
+          { label: "Inactive", value: categories.filter(c => !c.is_active).length, color: "bg-red-50 border-red-200 text-red-500" },
+          { label: "Linked Items", value: totalItems, color: "bg-amber-50 border-amber-200 text-amber-600" },
+        ].map((s, i) => (
+          <div key={i} className={`border rounded-[0.625rem] px-4 py-3 ${s.color.split(" ").slice(0, 2).join(" ")}`}>
+            <p className={`text-xl font-black tabular-nums ${s.color.split(" ")[2]}`}>{loading ? "—" : s.value}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-0.5">{s.label}</p>
+          </div>
+        ))}
       </div>
 
       {error && (
@@ -851,6 +882,61 @@ const CategoriesTab: React.FC = () => {
       )}
 
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+        {/* Actions Bar */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
+          {/* Left: Search */}
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Search categories..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+            />
+          </div>
+
+          {/* Right: Filters & Actions */}
+          <div className="flex items-center gap-2 ml-auto shrink-0 flex-wrap">
+            <div className="relative">
+              <select value={filterType} onChange={e => setFilterType(e.target.value)}
+                className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+                <option value="all">All Types</option>
+                <option value="food">Food</option>
+                <option value="drink">Drink</option>
+                <option value="promo">Promo</option>
+              </select>
+              <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
+
+            <div className="relative">
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+                className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
+
+            {(filterType !== "all" || filterStatus !== "all" || search !== "") && (
+              <button onClick={() => { setFilterType("all"); setFilterStatus("all"); setSearch(""); }}
+                className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors pl-1">
+                <X size={11} /> Clear
+              </button>
+            )}
+
+            <div className="w-px h-6 bg-zinc-200 mx-1 hidden sm:block"></div>
+
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hidden lg:inline-block mr-1">
+              {filtered.length} categories
+            </span>
+            <Btn onClick={() => setAddOpen(true)} disabled={loading}>
+              <Plus size={13} /> Add Category
+            </Btn>
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -868,10 +954,10 @@ const CategoriesTab: React.FC = () => {
                   ))}
                 </tr>
               ))}
-              {!loading && categories.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <tr><td colSpan={7} className="px-5 py-12 text-center text-zinc-400 text-xs">No categories found.</td></tr>
               )}
-              {!loading && categories.map(cat => (
+              {!loading && filtered.map(cat => (
                 <tr key={cat.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                   <td className="px-5 py-3.5">
                     {inlineEdit === cat.id ? (
@@ -915,7 +1001,7 @@ const CategoriesTab: React.FC = () => {
                   </td>
                   <td className="px-5 py-3.5">
                     <button onClick={() => toggleActive(cat)} className="transition-colors">
-                      {cat.is_active ? <ToggleRight size={22} className="text-[#3b2063]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
+                      {cat.is_active ? <ToggleRight size={22} className="text-[#6a12b8]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
                     </button>
                   </td>
                   <td className="px-5 py-3.5">
@@ -970,7 +1056,7 @@ const CategoriesTab: React.FC = () => {
             </div>
             <div className="flex gap-2 px-6 pb-6">
               <Btn variant="secondary" className="flex-1 justify-center" onClick={() => setDelTarget(null)} disabled={delLoading}>Cancel</Btn>
-              <Btn variant="danger"    className="flex-1 justify-center" onClick={() => handleDelete(delTarget)} disabled={delLoading}>
+              <Btn variant="danger" className="flex-1 justify-center" onClick={() => handleDelete(delTarget)} disabled={delLoading}>
                 {delLoading
                   ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
                   : <><Trash2 size={13} /> Delete</>}

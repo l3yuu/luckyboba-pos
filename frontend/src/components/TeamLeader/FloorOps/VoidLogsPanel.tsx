@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
+import { SkeletonBar, SkeletonBox } from '../SharedSkeletons';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -195,9 +196,15 @@ const VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
 
       {/* ── Stats Bar ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-        <StatBox label="Gross Sales"  value={stats.gross} />
-        <StatBox label="Voided Sales" value={stats.voided} isDanger />
-        <StatBox label="Net Sales"    value={stats.net} />
+        {loading ? (
+          [...Array(3)].map((_, i) => <SkeletonBox key={i} className="h-20 bg-white/50 border" />)
+        ) : (
+          <>
+            <StatBox label="Gross Sales"  value={stats.gross} />
+            <StatBox label="Voided Sales" value={stats.voided} isDanger />
+            <StatBox label="Net Sales"    value={stats.net} />
+          </>
+        )}
       </div>
 
       {/* ── Table ── */}
@@ -231,11 +238,15 @@ const VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-16 text-center text-xs text-zinc-300 font-bold uppercase tracking-widest">
-                    Loading...
-                  </td>
-                </tr>
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="border-b border-zinc-50">
+                    {[...Array(6)].map((_, j) => (
+                      <td key={j} className="px-5 py-4">
+                        <SkeletonBar h="h-3" w={j === 5 ? "w-8" : "w-full"} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-16 text-center">

@@ -3,16 +3,11 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   CreditCard, CheckCircle, XCircle, Clock, RefreshCw,
-  AlertCircle, AlertTriangle, User, Mail, Hash,
-  Smartphone, Calendar,
+  AlertCircle, AlertTriangle, Smartphone, Calendar,
 } from "lucide-react";
 import api from "../../../../services/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-type ColorKey   = "violet" | "emerald" | "red" | "amber";
-type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
-
 interface PendingRequest {
   id:               number;
   user_name:        string;
@@ -23,56 +18,70 @@ interface PendingRequest {
   created_at:       string;
 }
 
-// ── Shared UI ──────────────────────────────────────────────────────────────────
+// ── Shared UI Components ──────────────────────────────────────────────────────
+const StatCard: React.FC<{
+  icon: React.ReactNode; label: string; value: string | number;
+  sub?: string; color?: "violet" | "emerald" | "amber" | "blue";
+}> = ({ icon, label, value, sub, color = "violet" }) => {
+  const colors = {
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
+    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
+    blue: { bg: "bg-blue-50", border: "border-blue-200", icon: "text-blue-600" },
+  };
+  const c = colors[color];
+  return (
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-4 shadow-sm">
+      <div className={`w-11 h-11 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.5rem] shrink-0`}>
+        <span className={c.icon}>{icon}</span>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">{label}</p>
+        <p className="text-xl font-bold text-[#1a0f2e] tabular-nums truncate">{value}</p>
+        {sub && <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  );
+};
+
 const Btn: React.FC<{
-  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
-  onClick?: () => void; className?: string; disabled?: boolean;
-  type?: "button" | "submit" | "reset";
-}> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
-  const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+  children: React.ReactNode; variant?: "primary" | "secondary" | "danger" | "ghost";
+  size?: "sm" | "md"; onClick?: () => void; className?: string; disabled?: boolean;
+}> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false }) => {
+  const sizes = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
+  const variants = {
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-50 text-red-600 border border-red-100 hover:bg-red-500 hover:text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
-    <button type={type} onClick={onClick} disabled={disabled}
+    <button onClick={onClick} disabled={disabled}
       className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
       {children}
     </button>
   );
 };
 
-const StatCard: React.FC<{
-  icon: React.ReactNode; label: string; value: string | number; color?: ColorKey;
-}> = ({ icon, label, value, color = "violet" }) => {
-  const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
-    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
-    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
-  };
-  const c = colors[color];
-  return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-      <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
-        <span className={c.icon}>{icon}</span>
+const ModalShell: React.FC<{
+  onClose: () => void; icon: React.ReactNode; title: string; sub: string;
+  children: React.ReactNode; footer: React.ReactNode;
+}> = ({ onClose, icon, title, sub, children, footer }) =>
+  createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-sm">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl overflow-hidden">
+        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
+          <div className="w-14 h-14 bg-violet-50 border border-violet-200 rounded-full flex items-center justify-center mb-4">{icon}</div>
+          <p className="text-base font-bold text-[#1a0f2e]">{title}</p>
+          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">{sub}</p>
+        </div>
+        <div className="px-6 pb-2">{children}</div>
+        <div className="flex items-center gap-2 px-6 pb-6 mt-4">{footer}</div>
       </div>
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-        <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{value}</p>
-      </div>
-    </div>
+    </div>,
+    document.body
   );
-};
-
-// ── Shared portal backdrop ─────────────────────────────────────────────────────
-const BACKDROP_STYLE: React.CSSProperties = {
-  backdropFilter:       "blur(6px)",
-  WebkitBackdropFilter: "blur(6px)",
-  backgroundColor:      "rgba(0,0,0,0.45)",
-};
 
 // ── Confirm Modal (shared for approve & reject) ────────────────────────────────
 const ConfirmModal: React.FC<{
@@ -83,63 +92,35 @@ const ConfirmModal: React.FC<{
   onCancel:  () => void;
 }> = ({ request, mode, busy, onConfirm, onCancel }) => {
   const isApprove = mode === "approve";
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6" style={BACKDROP_STYLE}>
-      <div className="absolute inset-0" onClick={onCancel} />
-      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
-
-        {/* Icon + copy */}
-        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
-          <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 border ${
-            isApprove ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"
-          }`}>
-            {isApprove
-              ? <CheckCircle size={26} className="text-emerald-500" />
-              : <AlertTriangle size={26} className="text-red-500" />
-            }
-          </div>
-          <p className="text-base font-bold text-[#1a0f2e]">
-            {isApprove ? "Approve Card Registration?" : "Reject Card Registration?"}
-          </p>
-          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
-            {isApprove
-              ? "This will activate the card for 30 days and notify the customer."
-              : "The customer will need to re-submit their payment to try again."
-            }
-          </p>
-        </div>
-
-        {/* Request info pill */}
-        <div className="mx-6 mb-5 p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-center space-y-1">
-          <p className="text-sm font-bold text-[#1a0f2e]">{request.user_name}</p>
-          <p className="text-[10px] text-zinc-400">{request.user_email}</p>
-          <span className="inline-block text-[10px] font-bold bg-violet-50 text-violet-600 px-2.5 py-0.5 rounded-full border border-violet-200 tracking-widest mt-1">
-            {request.card_title}
-          </span>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex items-center gap-2 px-6 pb-6">
-          <Btn variant="secondary" className="flex-1 justify-center" onClick={onCancel} disabled={busy}>
-            Cancel
+  return (
+    <ModalShell
+      onClose={onCancel}
+      icon={isApprove ? <CheckCircle size={26} className="text-emerald-500" /> : <AlertTriangle size={26} className="text-red-500" />}
+      title={isApprove ? "Approve Card Registration?" : "Reject Card Registration?"}
+      sub={isApprove ? "This will activate the card for 30 days and notify the customer." : "The customer will need to re-submit their payment to try again."}
+      footer={
+        <>
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onCancel} disabled={busy}>Cancel</Btn>
+          <Btn variant={isApprove ? "primary" : "danger"} className="flex-1 justify-center" onClick={onConfirm} disabled={busy}>
+            {busy ? (
+              <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> Processing...</>
+            ) : isApprove ? (
+              <><CheckCircle size={13} /> Approve</>
+            ) : (
+              <><XCircle size={13} /> Reject</>
+            )}
           </Btn>
-          <Btn
-            variant={isApprove ? "primary" : "danger"}
-            className="flex-1 justify-center"
-            onClick={onConfirm}
-            disabled={busy}
-          >
-            {busy
-              ? <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> Processing…</>
-              : isApprove
-                ? <><CheckCircle size={13} /> Approve</>
-                : <><XCircle     size={13} /> Reject</>
-            }
-          </Btn>
-        </div>
+        </>
+      }
+    >
+      <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-xl text-center space-y-1">
+        <p className="text-sm font-bold text-[#1a0f2e]">{request.user_name}</p>
+        <p className="text-[10px] text-zinc-400">{request.user_email}</p>
+        <span className="inline-block text-[10px] font-extrabold bg-violet-50 text-violet-600 px-3 py-1 rounded-full border border-violet-100 tracking-widest mt-2 uppercase">
+          {request.card_title}
+        </span>
       </div>
-    </div>,
-    document.body
+    </ModalShell>
   );
 };
 
@@ -207,7 +188,7 @@ const CardApprovalsTab: React.FC = () => {
   const mayaCount  = requests.filter(r => r.payment_method.toLowerCase() === "maya").length;
 
   return (
-    <div className="p-6 md:p-8 fade-in">
+    <div className="p-6 md:p-10 max-w-7xl mx-auto flex flex-col h-full fade-in">
 
       {/* Confirm Modal */}
       {confirmData && (
@@ -220,179 +201,123 @@ const CardApprovalsTab: React.FC = () => {
         />
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Card Registrations</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Review and approve pending loyalty card payments</p>
-        </div>
-        <Btn variant="secondary" onClick={fetchPending} disabled={loading}>
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-        </Btn>
-      </div>
-
       {/* Error banner */}
       {error && (
-        <div className="flex items-center gap-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle size={14} className="text-red-500 shrink-0" />
-          <p className="text-xs text-red-600 font-medium">{error}</p>
+        <div className="flex items-center gap-2 mb-6 p-3.5 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+          <AlertCircle size={15} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-600 font-bold">{error}</p>
           <Btn variant="secondary" size="sm" onClick={fetchPending} className="ml-auto">Retry</Btn>
         </div>
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<Clock        size={16} />} label="Pending"   value={loading ? "—" : requests.length} color="amber"   />
-        <StatCard icon={<CreditCard   size={16} />} label="GCash"     value={loading ? "—" : gcashCount}      color="violet"  />
-        <StatCard icon={<Smartphone   size={16} />} label="Maya"      value={loading ? "—" : mayaCount}       color="emerald" />
-        <StatCard icon={<CheckCircle  size={16} />} label="Processed" value="—"                               color="red"     />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard icon={<Clock size={20} />} label="Pending" value={loading ? "—" : requests.length} color="amber" sub="Awaiting review" />
+        <StatCard icon={<CreditCard size={20} />} label="GCash" value={loading ? "—" : gcashCount} color="blue" sub="Mobile wallet" />
+        <StatCard icon={<Smartphone size={20} />} label="Maya" value={loading ? "—" : mayaCount} color="emerald" sub="Digital bank" />
+        <StatCard icon={<CheckCircle size={20} />} label="Today" value="—" color="violet" sub="Processed today" />
       </div>
 
-      {/* Table card */}
-      <div className="bg-white border border-zinc-200 shadow-sm rounded-[0.625rem] overflow-hidden">
-
-        {/* Table header bar */}
-        <div className="px-7 py-5 border-b border-zinc-100 flex items-center justify-between bg-white">
+      {/* Table Container */}
+      <div className="bg-white border border-zinc-200 rounded-2xl shadow-sm overflow-hidden flex flex-col flex-1">
+        
+        {/* Table Header Row */}
+        <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between gap-4 bg-zinc-50/20">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center rounded-sm">
-              <CreditCard size={18} className="text-white" />
+            <div className="w-10 h-10 bg-[#6a12b8] border border-violet-900/10 flex items-center justify-center rounded-xl shrink-0 shadow-sm">
+              <RefreshCw size={16} className={`text-white ${loading ? "animate-spin" : ""}`} onClick={fetchPending} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">
-                Pending Card Approvals
-              </h3>
-              <p className="text-[11px] font-medium text-zinc-400 mt-0.5">
-                Review and activate customer GCash / Maya payments
-              </p>
+              <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wider">Card Approvals</h3>
+              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Payment Verification Queue</p>
             </div>
           </div>
-          <div className="bg-orange-50 border border-orange-200 px-4 py-2 flex items-center gap-2 rounded-sm">
-            <Clock size={14} className="text-orange-500" />
-            <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest">
-              {loading ? "…" : requests.length} Pending
-            </span>
-          </div>
+          {requests.length > 0 && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">{requests.length} Requests</span>
+            </div>
+          )}
         </div>
 
-        {/* Table body */}
-        <div className="overflow-auto">
-          {/* Empty state */}
-          {!loading && requests.length === 0 && !error && (
-            <div className="p-16 text-center">
-              <div className="w-14 h-14 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                <CheckCircle size={26} className="text-emerald-500" />
-              </div>
-              <p className="text-[11px] text-zinc-400 uppercase font-black tracking-[0.2em]">
-                All caught up! No pending requests.
-              </p>
-            </div>
-          )}
-
-          {/* Table */}
-          {(loading || requests.length > 0) && (
-            <table className="w-full text-left">
-              <thead className="sticky top-0 bg-white z-10 border-b border-[#e9d5ff]">
+        {/* Table View */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-zinc-100 bg-zinc-50/30">
+                <th className="px-7 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Customer</th>
+                <th className="px-7 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Requested Card</th>
+                <th className="px-7 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Payment Info</th>
+                <th className="px-7 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Date</th>
+                <th className="px-7 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-400">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-50">
+              {loading ? (
+                [...Array(4)].map((_, i) => <SkeletonRow key={i} />)
+              ) : requests.length === 0 ? (
                 <tr>
-                  {[
-                    { icon: <User    size={9} />, label: "Customer"       },
-                    { icon: <CreditCard size={9}/>, label: "Requested Card"},
-                    { icon: <Hash    size={9} />, label: "Payment Info"   },
-                    { icon: <Calendar size={9}/>, label: "Date"           },
-                    { icon: null,                 label: "Actions", right: true },
-                  ].map(({ icon, label, right }) => (
-                    <th key={label}
-                      className={`px-7 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] ${right ? "text-right" : ""}`}>
-                      <span className="inline-flex items-center gap-1">
-                        {icon}{label}
-                      </span>
-                    </th>
-                  ))}
+                  <td colSpan={5} className="py-24 text-center">
+                    <div className="w-16 h-16 bg-emerald-50 border border-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle size={28} className="text-emerald-500" />
+                    </div>
+                    <p className="text-sm font-black text-[#1a0f2e] uppercase tracking-widest italic">All caught up!</p>
+                    <p className="text-xs text-zinc-400 mt-1">No pending card registrations at the moment.</p>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {loading
-                  ? [...Array(4)].map((_, i) => <SkeletonRow key={i} />)
-                  : requests.map(req => (
-                    <tr key={req.id} className="hover:bg-[#f5f0ff] transition-colors">
-
-                      {/* Customer */}
-                      <td className="px-7 py-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-violet-100 border border-violet-200 flex items-center justify-center shrink-0">
-                            <User size={12} className="text-violet-600" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-[#1a0f2e]">{req.user_name}</div>
-                            <div className="flex items-center gap-1 text-[10px] text-zinc-400">
-                              <Mail size={9} />{req.user_email}
-                            </div>
-                          </div>
+              ) : (
+                requests.map(req => (
+                  <tr key={req.id} className="hover:bg-violet-50/30 transition-colors group">
+                    <td className="px-7 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-violet-100 border border-violet-200 flex items-center justify-center font-bold text-violet-700 text-xs">
+                          {req.user_name.charAt(0)}
                         </div>
-                      </td>
-
-                      {/* Card title */}
-                      <td className="px-7 py-4">
-                        <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[#3b2063]">
-                          <CreditCard size={13} />{req.card_title}
+                        <div>
+                          <div className="text-sm font-black text-[#1a0f2e]">{req.user_name}</div>
+                          <div className="text-[10px] text-zinc-400 font-medium">{req.user_email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-7 py-5">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-50 border border-zinc-100 rounded-lg">
+                        <CreditCard size={13} className="text-violet-600" />
+                        <span className="text-xs font-bold text-[#6a12b8]">{req.card_title}</span>
+                      </div>
+                    </td>
+                    <td className="px-7 py-5">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`px-2 py-0.5 text-[9px] font-black rounded uppercase tracking-wider ${
+                          req.payment_method.toLowerCase() === "gcash" ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                        }`}>
+                          {req.payment_method}
                         </span>
-                      </td>
-
-                      {/* Payment info */}
-                      <td className="px-7 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 text-[10px] font-black rounded-sm uppercase tracking-wider ${
-                            req.payment_method.toLowerCase() === "gcash"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-emerald-100 text-emerald-700"
-                          }`}>
-                            {req.payment_method}
-                          </span>
-                          <span className="flex items-center gap-1 text-sm font-mono font-semibold text-zinc-700">
-                            <Hash size={10} className="text-zinc-400" />
-                            {req.reference_number}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Date */}
-                      <td className="px-7 py-4">
-                        <span className="flex items-center gap-1 text-xs font-semibold text-zinc-500">
-                          <Calendar size={10} />
-                          {new Date(req.created_at).toLocaleDateString("en-PH", {
-                            month: "short", day: "numeric", year: "numeric",
-                          })}
+                        <span className="text-xs font-mono font-bold text-zinc-600 tracking-tighter">
+                          {req.reference_number}
                         </span>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-7 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => setConfirmData({ request: req, mode: "approve" })}
-                            disabled={busyId === req.id}
-                            className="flex items-center gap-1.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
-                          >
-                            {busyId === req.id
-                              ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
-                              : <CheckCircle size={14} />
-                            }
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => setConfirmData({ request: req, mode: "reject" })}
-                            disabled={busyId === req.id}
-                            className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
-                          >
-                            <XCircle size={14} /> Reject
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                }
-              </tbody>
-            </table>
-          )}
+                      </div>
+                    </td>
+                    <td className="px-7 py-5">
+                      <div className="text-xs font-bold text-zinc-500 flex items-center gap-1.5">
+                        <Calendar size={12} className="text-zinc-400" />
+                        {new Date(req.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                      </div>
+                    </td>
+                    <td className="px-7 py-5 text-right">
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Btn onClick={() => setConfirmData({ request: req, mode: "approve" })} disabled={busyId === req.id} size="sm">
+                          <CheckCircle size={14} /> Approve
+                        </Btn>
+                        <Btn variant="danger" onClick={() => setConfirmData({ request: req, mode: "reject" })} disabled={busyId === req.id} size="sm">
+                          <XCircle size={14} /> Reject
+                        </Btn>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

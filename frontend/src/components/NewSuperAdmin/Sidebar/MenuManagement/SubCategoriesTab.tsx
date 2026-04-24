@@ -1,33 +1,36 @@
 // components/NewSuperAdmin/Tabs/MenuManagement/SubCategoriesTab.tsx
 import { useState, useEffect, useCallback } from "react";
 import {
-  Plus, Edit2, Trash2, RefreshCw, AlertCircle,
+  Plus, Edit2, Trash2, AlertCircle,
   X, Layers, ToggleLeft, ToggleRight, Check,
   ChevronDown,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useToast } from "../../../../hooks/useToast";
+import { triggerSync } from "../../../../utils/sync";
+
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = (): Record<string, string> => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 interface SubCategory {
-  id:          number;
-  name:        string;
+  id: number;
+  name: string;
   category_id: number;
-  category:    string;
-  item_count:  number;
-  is_active:   boolean;
+  category: string;
+  item_count: number;
+  is_active: boolean;
 }
 interface Category { id: number; name: string; color?: string; }
-interface Cup      { id: number; name: string; size_m: string | null; size_l: string | null; code: string; }
+interface Cup { id: number; name: string; size_m: string | null; size_l: string | null; code: string; }
 
 // Derive sub-category name options from a cup
 const cupToSizes = (cup: Cup): string[] => cup.code.split("/").map(s => s.trim()).filter(Boolean);
@@ -37,12 +40,12 @@ interface BtnProps {
   onClick?: () => void; className?: string; disabled?: boolean; type?: "button" | "submit" | "reset";
 }
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -67,14 +70,15 @@ const SubCategoryModal: React.FC<{
   onClose: () => void;
   onSaved: (s: SubCategory) => void;
 }> = ({ sub, categories, cups, onClose, onSaved }) => {
+  const { showToast } = useToast();
   const isEdit = !!sub;
-  const [name,       setName]       = useState(sub?.name        ?? "");
+  const [name, setName] = useState(sub?.name ?? "");
   const [categoryId, setCategoryId] = useState(sub?.category_id ? String(sub.category_id) : "");
-  const [isActive,   setIsActive]   = useState(sub?.is_active   ?? true);
+  const [isActive, setIsActive] = useState(sub?.is_active ?? true);
   const [selectedCup, setSelectedCup] = useState<Cup | null>(null);
-  const [errors,     setErrors]     = useState<Record<string, string>>({});
-  const [loading,    setLoading]    = useState(false);
-  const [apiError,   setApiError]   = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   // When a cup is selected, auto-fill the name from the first size option
   const handleCupChange = (cupId: string) => {
@@ -93,20 +97,24 @@ const SubCategoryModal: React.FC<{
 
   const handleSubmit = async () => {
     const e: Record<string, string> = {};
-    if (!name.trim())   e.name        = "Sub-category name is required.";
-    if (!categoryId)    e.category_id = "Parent category is required.";
+    if (!name.trim()) e.name = "Sub-category name is required.";
+    if (!categoryId) e.category_id = "Parent category is required.";
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true); setApiError("");
     try {
       const payload = { name, category_id: Number(categoryId), is_active: isActive };
-      const url     = isEdit ? `/api/sub-categories/${sub!.id}` : "/api/sub-categories";
-      const method  = isEdit ? "PUT" : "POST";
-      const res     = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
-      const data    = await res.json();
+      const url = isEdit ? `/api/sub-categories/${sub!.id}` : "/api/sub-categories";
+      const method = isEdit ? "PUT" : "POST";
+      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      const data = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Something went wrong."); return; }
-      const raw        = data.data ?? data;
+      const raw = data.data ?? data;
       const parentName = categories.find(c => c.id === Number(categoryId))?.name ?? "—";
       onSaved({ ...raw, category: parentName, item_count: raw.itemCount ?? sub?.item_count ?? 0 });
+      try {
+        triggerSync();
+        showToast(isEdit ? "Sub-category updated successfully" : "Sub-category added successfully", "success");
+      } catch (e) { console.error("Broadcast failed:", e); }
       onClose();
     } catch { setApiError("Network error."); }
     finally { setLoading(false); }
@@ -180,11 +188,10 @@ const SubCategoryModal: React.FC<{
                   <span className="text-[10px] text-zinc-400 font-medium">Pick size:</span>
                   {sizeOptions.map(sz => (
                     <button key={sz} type="button" onClick={() => setName(sz)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
-                        name === sz
-                          ? "bg-[#3b2063] text-white border-[#3b2063]"
-                          : "bg-white text-zinc-600 border-zinc-200 hover:border-violet-300 hover:text-violet-600"
-                      }`}>
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${name === sz
+                        ? "bg-[#6a12b8] text-white border-[#6a12b8]"
+                        : "bg-white text-zinc-600 border-zinc-200 hover:border-violet-300 hover:text-violet-600"
+                        }`}>
                       {sz}
                     </button>
                   ))}
@@ -212,8 +219,8 @@ const SubCategoryModal: React.FC<{
             </div>
             <button type="button" onClick={() => setIsActive(v => !v)}>
               {isActive
-                ? <ToggleRight size={28} className="text-[#3b2063]" />
-                : <ToggleLeft  size={28} className="text-zinc-300"  />}
+                ? <ToggleRight size={28} className="text-[#6a12b8]" />
+                : <ToggleLeft size={28} className="text-zinc-300" />}
             </button>
           </div>
         </div>
@@ -233,26 +240,27 @@ const SubCategoryModal: React.FC<{
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const SubCategoriesTab: React.FC = () => {
-  const [subs,       setSubs]       = useState<SubCategory[]>([]);
+  const { showToast } = useToast();
+  const [subs, setSubs] = useState<SubCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [cups,       setCups]       = useState<Cup[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState("");
-  const [filterCat,  setFilterCat]  = useState("");
-  const [addOpen,    setAddOpen]    = useState(false);
+  const [cups, setCups] = useState<Cup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [filterCat, setFilterCat] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<SubCategory | null>(null);
-  const [delTarget,  setDelTarget]  = useState<SubCategory | null>(null);
+  const [delTarget, setDelTarget] = useState<SubCategory | null>(null);
   const [delLoading, setDelLoading] = useState(false);
   const [inlineEdit, setInlineEdit] = useState<number | null>(null);
-  const [inlineVal,  setInlineVal]  = useState("");
+  const [inlineVal, setInlineVal] = useState("");
 
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
       const [subsRes, catsRes, cupsRes] = await Promise.all([
         fetch("/api/sub-categories", { headers: authHeaders() }),
-        fetch("/api/categories",     { headers: authHeaders() }),
-        fetch("/api/cups",           { headers: authHeaders() }),
+        fetch("/api/categories", { headers: authHeaders() }),
+        fetch("/api/cups", { headers: authHeaders() }),
       ]);
       const [subsData, catsData, cupsData] = await Promise.all([
         subsRes.json(), catsRes.json(), cupsRes.json(),
@@ -265,12 +273,12 @@ const SubCategoriesTab: React.FC = () => {
       const rawSubs = Array.isArray(subsData) ? subsData : (subsData.data ?? []);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setSubs(rawSubs.map((s: any) => ({
-        id:          s.id,
-        name:        s.name,
+        id: s.id,
+        name: s.name,
         category_id: s.category_id,
-        category:    s.mainCategory ?? s.category?.name ?? rawCats.find((c: Category) => c.id === s.category_id)?.name ?? "—",
-        item_count:  Number(s.itemCount ?? s.item_count ?? 0),
-        is_active:   s.is_active === 1 || s.is_active === true || s.is_active === "1" || (s.is_active === undefined ? true : false),
+        category: s.mainCategory ?? s.category?.name ?? rawCats.find((c: Category) => c.id === s.category_id)?.name ?? "—",
+        item_count: Number(s.itemCount ?? s.item_count ?? 0),
+        is_active: s.is_active === 1 || s.is_active === true || s.is_active === "1" || (s.is_active === undefined ? true : false),
       })));
     } catch { setError("Failed to load sub-categories."); }
     finally { setLoading(false); }
@@ -286,7 +294,10 @@ const SubCategoriesTab: React.FC = () => {
       });
       if (res.ok) {
         setSubs(p => p.map(s => s.id === sub.id ? { ...s, is_active: !s.is_active } : s));
-        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch { /* ignore */ }
+        try {
+          triggerSync();
+          showToast(`Sub-category ${!sub.is_active ? 'enabled' : 'disabled'} successfully`, "success");
+        } catch { /* ignore */ }
       }
     } catch { /* silent */ }
   };
@@ -294,9 +305,15 @@ const SubCategoriesTab: React.FC = () => {
   const handleDelete = async (sub: SubCategory) => {
     setDelLoading(true);
     try {
-      const res  = await fetch(`/api/sub-categories/${sub.id}`, { method: "DELETE", headers: authHeaders() });
+      const res = await fetch(`/api/sub-categories/${sub.id}`, { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
-      if (res.ok) { setSubs(p => p.filter(s => s.id !== sub.id)); setDelTarget(null); }
+      if (res.ok) {
+        setSubs(p => p.filter(s => s.id !== sub.id)); setDelTarget(null);
+        try {
+          triggerSync();
+          showToast("Sub-category deleted successfully", "success");
+        } catch { /* ignore */ }
+      }
       else setError(data.message ?? "Failed to delete.");
     } catch { setError("Network error."); }
     finally { setDelLoading(false); }
@@ -309,13 +326,19 @@ const SubCategoriesTab: React.FC = () => {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ name: inlineVal, category_id: sub.category_id }),
       });
-      if (res.ok) setSubs(p => p.map(s => s.id === sub.id ? { ...s, name: inlineVal } : s));
+      if (res.ok) {
+        setSubs(p => p.map(s => s.id === sub.id ? { ...s, name: inlineVal } : s));
+        try {
+          triggerSync();
+          showToast("Sub-category updated successfully", "success");
+        } catch { /* ignore */ }
+      }
     } catch { /* silent */ }
     finally { setInlineEdit(null); }
   };
 
-  const filtered  = subs.filter(s => !filterCat || String(s.category_id) === filterCat);
-  const grouped   = categories.reduce((acc, cat) => {
+  const filtered = subs.filter(s => !filterCat || String(s.category_id) === filterCat);
+  const grouped = categories.reduce((acc, cat) => {
     const children = filtered.filter(s => s.category_id === cat.id);
     if (children.length > 0) acc[cat.id] = { cat, children };
     return acc;
@@ -324,24 +347,23 @@ const SubCategoriesTab: React.FC = () => {
 
   const tableHeaders = ["Name", "Parent Category", "Items", "Active", "Actions"];
 
+  const totalItems = subs.reduce((sum, s) => sum + (s.item_count ?? 0), 0);
+
   return (
     <div className="p-6 md:p-8 fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Sub-Categories</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? "Loading..." : `${subs.length} sub-categories across ${categories.length} categories`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
-          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
-            <Plus size={13} /> Add Sub-Category
-          </Btn>
-        </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {[
+          { label: "Total Sub-Cats", value: subs.length, color: "bg-violet-50 border-violet-200 text-violet-600" },
+          { label: "Active", value: subs.filter(s => s.is_active).length, color: "bg-emerald-50 border-emerald-200 text-emerald-600" },
+          { label: "Inactive", value: subs.filter(s => !s.is_active).length, color: "bg-red-50 border-red-200 text-red-500" },
+          { label: "Linked Items", value: totalItems, color: "bg-amber-50 border-amber-200 text-amber-600" },
+        ].map((s, i) => (
+          <div key={i} className={`border rounded-[0.625rem] px-4 py-3 ${s.color.split(" ").slice(0, 2).join(" ")}`}>
+            <p className={`text-xl font-black tabular-nums ${s.color.split(" ")[2]}`}>{loading ? "—" : s.value}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-0.5">{s.label}</p>
+          </div>
+        ))}
       </div>
 
       {/* Category filter */}
@@ -356,13 +378,18 @@ const SubCategoriesTab: React.FC = () => {
         </div>
         {filterCat && (
           <button onClick={() => setFilterCat("")}
-            className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+            className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors pl-1">
             <X size={11} /> Clear
           </button>
         )}
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 ml-auto">
-          {filtered.length} sub-categories
-        </span>
+        <div className="flex items-center gap-3 ml-auto shrink-0 flex-wrap">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hidden sm:inline-block">
+            {filtered.length} sub-categories
+          </span>
+          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
+            <Plus size={13} /> Add Sub-Category
+          </Btn>
+        </div>
       </div>
 
       {error && (
@@ -395,7 +422,7 @@ const SubCategoriesTab: React.FC = () => {
           {Object.values(grouped).map(({ cat, children }) => (
             <div key={cat.id} className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
               <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-100 bg-zinc-50/50">
-                <div className="w-2 h-6 rounded-full bg-[#3b2063] shrink-0" />
+                <div className="w-2 h-6 rounded-full bg-[#6a12b8] shrink-0" />
                 <p className="text-xs font-black text-[#1a0f2e] uppercase tracking-widest">{cat.name}</p>
                 <span className="text-[10px] font-bold text-zinc-400 ml-auto">{children.length} sub-categories</span>
               </div>
@@ -446,7 +473,7 @@ const SubCategoriesTab: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5">
                         <button onClick={() => toggleActive(sub)} className="transition-colors">
-                          {sub.is_active ? <ToggleRight size={22} className="text-[#3b2063]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
+                          {sub.is_active ? <ToggleRight size={22} className="text-[#6a12b8]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
                         </button>
                       </td>
                       <td className="px-5 py-3.5">
@@ -488,7 +515,7 @@ const SubCategoriesTab: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5">
                         <button onClick={() => toggleActive(sub)}>
-                          {sub.is_active ? <ToggleRight size={22} className="text-[#3b2063]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
+                          {sub.is_active ? <ToggleRight size={22} className="text-[#6a12b8]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
                         </button>
                       </td>
                       <td className="px-5 py-3.5">
@@ -529,7 +556,7 @@ const SubCategoriesTab: React.FC = () => {
             </div>
             <div className="flex gap-2 px-6 pb-6">
               <Btn variant="secondary" className="flex-1 justify-center" onClick={() => setDelTarget(null)} disabled={delLoading}>Cancel</Btn>
-              <Btn variant="danger"    className="flex-1 justify-center" onClick={() => handleDelete(delTarget)} disabled={delLoading}>
+              <Btn variant="danger" className="flex-1 justify-center" onClick={() => handleDelete(delTarget)} disabled={delLoading}>
                 {delLoading ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
                   : <><Trash2 size={13} /> Delete</>}
               </Btn>
@@ -540,7 +567,7 @@ const SubCategoriesTab: React.FC = () => {
       )}
 
       {/* Add / Edit Modal */}
-      {addOpen    && <SubCategoryModal categories={categories} cups={cups} onClose={() => setAddOpen(false)}
+      {addOpen && <SubCategoryModal categories={categories} cups={cups} onClose={() => setAddOpen(false)}
         onSaved={s => { setSubs(p => [s, ...p]); setAddOpen(false); }} />}
       {editTarget && <SubCategoryModal sub={editTarget} categories={categories} cups={cups} onClose={() => setEditTarget(null)}
         onSaved={s => { setSubs(p => p.map(x => x.id === s.id ? s : x)); setEditTarget(null); }} />}

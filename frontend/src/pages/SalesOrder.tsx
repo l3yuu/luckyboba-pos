@@ -1,18 +1,19 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOfflineQueue } from '../hooks/useOfflineQueue'
 import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner'
 
 import {
   type MenuItem, type Category, type CartItem,
-  type Bundle, type BundleComponentCustomization,
+  type Bundle, type BundleComponent, type BundleComponentCustomization,
+  SUGAR_LEVELS
 } from '../types/index';
-import { useToast }  from '../hooks/useToast';
-import { useAuth }   from '../hooks/useAuth';
-import api           from '../services/api';
+import { useToast } from '../hooks/useToast';
+import { useAuth } from '../hooks/useAuth';
+import api from '../services/api';
 import { ChevronRight } from 'lucide-react';
 
 import {
@@ -35,12 +36,13 @@ import {
   SuccessModal,
   AddOnModalShell,
   MixAndMatchDrinkModal,
+  PaymentSelectModal,
   type ItemPaxAssignments,
 } from '../components/Cashier/SalesOrderComponents/modals'
 
 import { ReceiptPrint, KitchenPrint, StickerPrint } from '../components/Cashier/SalesOrderComponents/print'
-
 import OrderTypeModal from '../components/Cashier/OrderTypeModal'
+import SyncOverlay from '../components/SyncOverlay'
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 const round = (n: number, d = 2) => Math.round(n * 10 ** d) / 10 ** d
@@ -54,12 +56,13 @@ interface Discount {
   status: 'ON' | 'OFF'
 }
 
+
 // ── Component ─────────────────────────────────────────────────────────────────
 const SalesOrder = () => {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { user } = useAuth()
-  const { enqueue, queueCount, isSyncing, queue, syncNow, remove } = useOfflineQueue()
+  const { enqueue, queueCount, isSyncing, queue, syncNow, remove, resetAttempts } = useOfflineQueue()
   const [isOnline, setIsOnline] = useState(navigator.onLine)
 
   useEffect(() => {
@@ -74,7 +77,9 @@ const SalesOrder = () => {
   }, [])
 
   const branchId = user?.branch_id ?? null
-  const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
+  const [branchName, setBranchName] = useState(() =>
+    user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
+  )
   const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
     () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
   )
@@ -92,10 +97,10 @@ const SalesOrder = () => {
 
 
   const [branchDetails, setBranchDetails] = useState<{
-  brand?: string; companyName?: string; storeAddress?: string;
-  vatRegTin?: string; minNumber?: string; serialNumber?: string;
-  owner_name?: string;
-}>({});
+    brand?: string; companyName?: string; storeAddress?: string;
+    vatRegTin?: string; minNumber?: string; serialNumber?: string;
+    owner_name?: string;
+  }>({});
   const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | 'delivery' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
@@ -104,6 +109,14 @@ const SalesOrder = () => {
 
   //Receipt Footer
   const [posFooter, setPosFooter] = useState<Record<string, string>>({});
+
+  // General Settings
+  const [generalSettings, setGeneralSettings] = useState<{
+    business_name?: string;
+    contact_email?: string;
+    contact_phone?: string;
+    address?: string;
+  }>({});
   // Cart
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -117,6 +130,7 @@ const SalesOrder = () => {
   // Cash-in gate
   const [menuAvailable, setMenuAvailable] = useState(false)
   const [checkingCashIn, setCheckingCashIn] = useState(true)
+  const [syncRequired, setSyncRequired] = useState(false)
 
   // Menu / category
   const [categories, setCategories] = useState<Category[]>(() => {
@@ -125,7 +139,7 @@ const SalesOrder = () => {
   })
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [categorySize, setCategorySize] = useState<string | null>(null)
-  const [isMenuLoading, setIsMenuLoading] = useState(false)
+  const [loading, setLoading] = useState(!localStorage.getItem('pos_menu_cache'))
   const [searchQuery, setSearchQuery] = useState('')
 
   // Item selection modal
@@ -134,12 +148,12 @@ const SalesOrder = () => {
   const [remarks, setRemarks] = useState('')
   const [sugarLevel, setSugarLevel] = useState('')
   const [sugarLevels, setSugarLevels] = useState<{ id: number; label: string; value: string }[]>(() => {
-    try {
-      const c = localStorage.getItem('pos_sugar_levels_cache')
-      return c ? JSON.parse(c) : []
-    } catch {
-      return []
-    }
+    // REVERT to standard 0, 25, 50, 75, 100 as per user request
+    return SUGAR_LEVELS.map((label, i) => ({
+      id: i + 1,
+      label,
+      value: label
+    }));
   })
   const [size, setSize] = useState<'M' | 'L' | 'none'>('M')
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
@@ -151,9 +165,8 @@ const SalesOrder = () => {
 
   // FIX #1 — use branchId in the key so it's always defined at the time
   // syncNextSequence reads it (avoids stale closure on branchId).
-  const seqKey    = `last_or_sequence_${branchId ?? 'default'}`
-  const queueKey  = `last_queue_sequence_${branchId ?? 'default'}`
-  const queueDate = `last_queue_date_${branchId ?? 'default'}`
+  const seqKey = `last_or_sequence_${branchId ?? 'default'}`
+  const queueKey = `last_queue_sequence_${branchId ?? 'default'}`
 
   // Add-ons data
   const [addOnsData, setAddOnsData] = useState<
@@ -185,11 +198,10 @@ const SalesOrder = () => {
   })
   const [isBundleModalOpen, setIsBundleModalOpen] = useState(false)
   const [activeBundleItem, setActiveBundleItem] = useState<Bundle | null>(null)
+  const [flattenedBundleItems, setFlattenedBundleItems] = useState<(BundleComponent & { menuItem?: MenuItem })[]>([])
+  const [bundleComponentSelections, setBundleComponentSelections] = useState<BundleComponentCustomization[]>([])
   const [bundleComponentIndex, setBundleComponentIndex] = useState(0)
-  const [bundleComponentCustomizations, setBundleComponentCustomizations] = useState<BundleComponentCustomization[]>([])
-  const [bundleComponentSugar, setBundleComponentSugar] = useState('')
-  const [bundleComponentOptions, setBundleComponentOptions] = useState<string[]>([])
-  const [bundleComponentAddOns, setBundleComponentAddOns] = useState<string[]>([])
+  const [activeBundleComponentIndex, setActiveBundleComponentIndex] = useState<number | null>(null)
   const [bundleComponentAddOnModalOpen, setBundleComponentAddOnModalOpen] = useState(false)
 
   // Cart item editing
@@ -219,6 +231,7 @@ const SalesOrder = () => {
 
   // Confirm / payment
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+  const [isPaymentSelectModalOpen, setIsPaymentSelectModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState<'payment' | 'discount' | 'pax'>('payment')
   const [cashTendered, setCashTendered] = useState<number | ''>('')
@@ -255,8 +268,16 @@ const SalesOrder = () => {
   const [selectedDiscounts, setSelectedDiscounts] = useState<Discount[]>([])
 
   // OR / Queue
-  const [orNumber, setOrNumber] = useState(generateORNumber(1))
+  const [orNumber, setOrNumber] = useState(() => {
+    const last = localStorage.getItem(seqKey)
+    return generateORNumber(last ? parseInt(last, 10) : 1)
+  })
   const [queueNumber, setQueueNumber] = useState(generateQueueNumber(1))
+
+  useEffect(() => {
+    const last = localStorage.getItem(seqKey)
+    if (last) setOrNumber(generateORNumber(parseInt(last, 10)))
+  }, [seqKey])
 
   // Success / print
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
@@ -267,25 +288,19 @@ const SalesOrder = () => {
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
-  const activeModalCategory = selectedItem 
-    ? categories.find(cat => cat.menu_items.some(mi => mi.id === selectedItem.id)) 
-    : selectedCategory;
-  
-  const targetCategory = activeModalCategory ?? selectedCategory;
+  const isDrink = selectedCategory?.type === 'drink' || selectedCategory?.category_type === 'bundle'
+  const isWings = selectedCategory?.category_type === 'wings'
+  const isOz = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE'
+  const isCombo = selectedCategory?.category_type === 'combo'
+  const isWaffleCategory = selectedCategory?.category_type === 'waffle'
+  const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1
 
-  const isDrink = targetCategory?.type === 'drink' || targetCategory?.category_type === 'bundle'
-  const isWings = targetCategory?.category_type === 'wings'
-  const isOz = targetCategory?.name === 'HOT DRINKS' || targetCategory?.name === 'HOT COFFEE'
-  const isCombo = targetCategory?.category_type === 'combo'
-  const isWaffleCategory = targetCategory?.category_type === 'waffle'
-  const categoryHasOnlyOneSize = (targetCategory?.sub_categories?.length ?? 0) <= 1
-
-  const isFoodCategory = targetCategory?.category_type === 'food' ||
-    targetCategory?.category_type === 'wings';
+  const isFoodCategory = selectedCategory?.category_type === 'food' ||
+    selectedCategory?.category_type === 'wings';
 
   const filteredAddOns = addOnsData.filter(a => {
     if (isWaffleCategory) return a.category === 'waffle';
-    if (isFoodCategory)   return a.category === 'food';
+    if (isFoodCategory) return a.category === 'food';
     return a.category !== 'waffle' && a.category !== 'food';
   });
 
@@ -366,7 +381,8 @@ const SalesOrder = () => {
     ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
     : 0
   const vatableSales = isVat ? round(vatableBase / 1.12) : 0
-  const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
+  const vatAmount = isVat ? round(vatableBase - vatableSales) : 0
+  const lessVat = isVat && hasPaxDiscount ? round(totalVatExemptSales * 0.12) : 0
 
   const amtDue = isVat
     ? Math.max(0, round(vatableBase + vatExemptSales))
@@ -383,6 +399,14 @@ const SalesOrder = () => {
     if (paxPwd > 0 && pwdDiscount) applied.push(pwdDiscount)
     setSelectedDiscounts(applied)
   }, [paxSenior, paxPwd, scDiscount, pwdDiscount])
+
+  // ── Auto-clear delivery charges if order type is changed to Take Out/Dine In ──
+  useEffect(() => {
+    if (orderType !== 'delivery' && orderCharge !== null) {
+      setOrderCharge(null)
+      setCart(prev => prev.map(item => ({ ...item, charges: { grab: false, panda: false } })))
+    }
+  }, [orderType, orderCharge])
 
   // ── Sticker logic ─────────────────────────────────────────────────────────
   const hasStickers = cart.some(
@@ -412,94 +436,232 @@ const SalesOrder = () => {
         module: 'sales_order',
         details: `Cashier: ${currentCashierName} | Branch: ${branchName} | ${new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour12: true })}`,
       })
-      .catch(() => {})
+      .catch(() => { })
   }
 
   // ── FIX #1 — Define syncNextSequence BEFORE the boot useEffect so it is
   // not in the temporal dead zone when the effect runs on mount. ─────────────
-  const syncNextSequence = async () => {
-    try {
-      const { data } = await api.get('/receipts/next-sequence')
-      const serverSeq   = parseInt(data.next_sequence, 10)
-      const serverQueue = parseInt(data.next_queue, 10) || 1
+  const syncNextSequence = useCallback(async () => {
+    if (!branchId) return;
 
+    try {
+      const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=pos&t=${Date.now()}`)
+      const serverSeq = parseInt(data.next_sequence, 10)
       if (!isNaN(serverSeq)) {
         localStorage.setItem(seqKey, String(serverSeq))
         setOrNumber(generateORNumber(serverSeq))
 
-        // ✅ SYNC QUEUE FROM SERVER
-        localStorage.setItem(queueKey,  String(serverQueue))
-        localStorage.setItem(queueDate, new Date().toDateString())
-        setQueueNumber(generateQueueNumber(serverQueue))
+        // ── Queue number logic — use server's next_queue ───────────────────────
+        const serverQueue = parseInt(data.next_queue, 10)
+        if (!isNaN(serverQueue)) {
+          localStorage.setItem(queueKey, String(serverQueue))
+          setQueueNumber(generateQueueNumber(serverQueue))
+        }
       }
-    } catch {
+    } catch (err) {
+      console.error('[Sequence Sync] Failed:', err);
       // ── Offline fallback ───────────────────────────────────────────────────
-      const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1
-      localStorage.setItem(seqKey, String(lastSeq))
+      const lastSeqStr = localStorage.getItem(seqKey);
+      const lastSeq = lastSeqStr ? parseInt(lastSeqStr, 10) : 1;
       setOrNumber(generateORNumber(lastSeq))
 
-      const today     = new Date().toDateString()
-      const savedDate = localStorage.getItem(queueDate)
-      const isNewDay  = savedDate !== today
-
-      if (isNewDay) {
-        localStorage.setItem(queueKey,  '1')
-        localStorage.setItem(queueDate, today)
-        setQueueNumber(generateQueueNumber(1))
-      } else {
-        const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
-        setQueueNumber(generateQueueNumber(lastQueue))
-      }
+      const lastQueueStr = localStorage.getItem(queueKey);
+      const lastQueue = lastQueueStr ? parseInt(lastQueueStr, 10) : 1;
+      setQueueNumber(generateQueueNumber(lastQueue))
     }
-  }
+  }, [branchId, seqKey, queueKey]);
 
-  const fetchMenu = async () => {
-    setIsMenuLoading(true)
+  // ── Sync Logic ─────────────────────────────────────────────────────────────
+
+  const refreshPOSData = useCallback(async (isSilent = false) => {
+    if (!isSilent) showToast("Updating menu data...", "info");
+    const t = Date.now(); // Cache busting timestamp
+
     try {
-      const { data } = await api.get('/menu')
-      if (Array.isArray(data)) {
-        setCategories(data)
-        localStorage.setItem('pos_menu_cache', JSON.stringify(data))
-      }
-    } catch {
-      showToast('Failed to sync menu structure', 'error')
-    } finally {
-      setIsMenuLoading(false)
-    }
-  }
+      const [menuRes, addonsRes, bundlesRes, discountsRes, branchRes, paymentRes] = await Promise.allSettled([
+        api.get(`/menu?t=${t}`),
+        api.get(`/add-ons?t=${t}`),
+        api.get(`/bundles?t=${t}`),
+        api.get(`/discounts?t=${t}`),
+        branchId ? api.get(`/branches/${branchId}?t=${t}`) : Promise.reject('no_branch'),
+        api.get(`/payment-settings?t=${t}`)
+      ]);
 
-  // ── Effects ─────────────────────────────────────────────────────────────────
+      // 1. Menu & Categories
+      if (menuRes.status === 'fulfilled') {
+        const data = menuRes.value.data;
+        if (Array.isArray(data)) {
+          localStorage.setItem('pos_menu_cache', JSON.stringify(data));
+          setCategories(data);
+
+          // CRITICAL: Re-sync selectedCategory reference to avoid stale objects
+          setSelectedCategory(prev => {
+            if (!prev) return null;
+            return data.find((c: Category) => c.id === prev.id) || null;
+          });
+
+          // Re-sync selectedItem if it exists
+          setSelectedItem(prev => {
+            if (!prev) return null;
+            // Find item in any category
+            for (const cat of data) {
+              const item = cat.menu_items?.find((i: MenuItem) => i.id === prev.id);
+              if (item) return item;
+            }
+            return null;
+          });
+        }
+      }
+
+      // 2. Add-ons
+      if (addonsRes.status === 'fulfilled') {
+        const data = addonsRes.value.data;
+        localStorage.setItem('pos_addons_cache', JSON.stringify(data));
+        setAddOnsData(data);
+      }
+
+      // 3. Sugar Levels (Maintain standard levels even after sync)
+      // We ignore server sugar levels to stick to standard 0-100% per user request
+      setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })));
+
+      // 4. Bundles
+      if (bundlesRes.status === 'fulfilled') {
+        const data = bundlesRes.value.data;
+        localStorage.setItem('pos_bundles_cache', JSON.stringify(data));
+        setBundlesData(data);
+      }
+
+      // 5. Discounts
+      if (discountsRes.status === 'fulfilled') {
+        const data = discountsRes.value.data;
+        localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
+        const seen = new Set<string>();
+        const unique = data
+          .filter((d: Discount) => d.status === 'ON')
+          .filter((d: Discount) => {
+            const key = `${d.name}-${d.amount}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        setDiscounts(unique);
+      }
+
+      // 6. Branch Details
+      if (branchRes.status === 'fulfilled') {
+        const respBody = branchRes.value.data;
+        const b = respBody.data ?? respBody; // Handle wrapper
+        const newName = b.name ?? b.branch_name ?? '';
+        const newVat = b.vat_type ?? 'vat';
+
+        setBranchName(newName);
+        setVatType(newVat as 'vat' | 'non_vat');
+        setBranchDetails({
+          brand: b.brand,
+          companyName: b.company_name,
+          storeAddress: b.store_address,
+          vatRegTin: b.vat_reg_tin,
+          minNumber: b.min_number,
+          serialNumber: b.serial_number,
+          owner_name: b.owner_name,
+        });
+
+        localStorage.setItem('lucky_boba_user_branch', newName);
+        localStorage.setItem('lucky_boba_user_branch_vat', newVat);
+      }
+
+      // 7. Payment Settings
+      if (paymentRes.status === 'fulfilled') {
+        const data = paymentRes.value.data;
+        setPosFooter(prev => ({ ...prev, ...data }));
+        setGeneralSettings({
+          business_name: data.business_name ?? '',
+          contact_email: data.contact_email ?? '',
+          contact_phone: data.contact_phone ?? '',
+          address: data.address ?? '',
+        });
+      }
+
+      if (!isSilent) showToast("Menu updated successfully", "success");
+    } catch (error) {
+      console.error("Failed to refresh POS data:", error);
+      if (!isSilent) showToast("Failed to update menu", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast, branchId]);
 
   useEffect(() => {
-    // 1. Local Broadcast polling for same-browser windows
-    const channel = new BroadcastChannel('pos-updates');
-    channel.onmessage = (e) => {
-      if (e.data === 'menu-updated') fetchMenu();
+    const SYNC_CHANNEL_NAME = 'lucky_boba_pos_sync_v1';
+    const SYNC_STORAGE_KEY = 'lb-pos-sync-trigger-v1';
+    const origin = window.location.origin;
+
+    const channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
+
+    // Migration: clear stale ms-based values from previous code (PHP uses seconds)
+    const raw = localStorage.getItem('lb-pos-menu-version') || '0';
+    if (parseInt(raw, 10) > 10_000_000_000) {
+      localStorage.removeItem('lb-pos-menu-version');
+    }
+    // Track the last known backend version (in SECONDS, same unit as PHP time())
+    let localMenuVersion = parseInt(localStorage.getItem('lb-pos-menu-version') || '0', 10);
+
+    const handleSync = () => {
+      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering UI overlay.`);
+      setSyncRequired(true);
     };
 
-    // 2. Remote polling interval for cross-device syncing
-    let lastVersion = 0;
-    const pollVersion = async () => {
-      try {
-        const res = await api.get('/menu/version');
-        const currentVersion = res.data?.version;
-        if (currentVersion) {
-          if (lastVersion === 0) {
-            lastVersion = currentVersion;
-          } else if (currentVersion > lastVersion) {
-            lastVersion = currentVersion;
-            fetchMenu();
-          }
-        }
-      } catch { /* silent */ }
+    // 1. BroadcastChannel (Same Browser)
+    channel.onmessage = (event) => {
+      const data = event.data;
+      const msg = typeof data === 'string' ? data : data?.type;
+      console.log(`[Sync] Broadcast message received at ${origin}:`, data);
+      if (msg === 'menu-updated') handleSync();
     };
-    const interval = setInterval(pollVersion, 10000); // Check every 10 seconds
+
+    // 2. LocalStorage (Same Browser, different tab fallback)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === SYNC_STORAGE_KEY) {
+        console.log(`[Sync] Storage event received at ${origin}:`, e.newValue);
+        handleSync();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 3. API Polling (Cross-Browser / Cross-Device)
+    const checkVersion = async () => {
+      try {
+        const { data } = await api.get('/menu/version');
+        const remoteVersion = parseInt(data.version || '0', 10);
+
+        if (remoteVersion > 0 && localMenuVersion > 0 && remoteVersion > localMenuVersion) {
+          console.info(`[Sync] 🔄 Remote version (${remoteVersion}) > Local (${localMenuVersion}).`);
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+          handleSync();
+        } else if (localMenuVersion === 0 && remoteVersion > 0) {
+          // Initialize local version on first poll without triggering a sync
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+        }
+      } catch {
+        // Silent catch for polling
+      }
+    };
+
+    // Check every 10 seconds for faster cross-browser detection
+    const intervalId = setInterval(checkVersion, 10000);
+    // Initial check
+    checkVersion();
 
     return () => {
       channel.close();
-      clearInterval(interval);
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(intervalId);
     };
-  }, []);
+  }, [refreshPOSData, showToast]);
+
+  // ── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const boot = async () => {
@@ -514,7 +676,6 @@ const SalesOrder = () => {
     }
     boot()
     syncNextSequence()
-    fetchMenu()
 
     if (branchId) {
       api.get(`/branches/${branchId}`).then(({ data }) => {
@@ -527,55 +688,31 @@ const SalesOrder = () => {
           setVatType(b.vat_type as 'vat' | 'non_vat');
           localStorage.setItem('lucky_boba_user_branch_vat', b.vat_type);
         }
-      }).catch(() => {});
+      }).catch(() => { });
+    }
+
+    // Initial sync of non-mount-critical data if cache is missing or for updates
+    if (!localStorage.getItem('pos_menu_cache')) {
+      refreshPOSData(true);
     }
 
     api
       .get('/payment-settings')
-      .then(({ data }) => setPosFooter(data))
-      .catch(() => {});
-
-    api
-      .get('/discounts')
       .then(({ data }) => {
-        localStorage.setItem('pos_discounts_cache', JSON.stringify(data))
-        const seen = new Set<string>()
-        const unique = data
-          .filter((d: Discount) => d.status === 'ON')
-          .filter((d: Discount) => {
-            const key = `${d.name}-${d.amount}`
-            if (seen.has(key)) return false
-            seen.add(key)
-            return true
-          })
-        setDiscounts(unique)
+        // /payment-settings returns ALL settings (including contact_email, contact_phone)
+        setPosFooter(prev => ({
+          ...prev,
+          ...data,
+        }));
+        // Also populate generalSettings for receipt header/footer
+        setGeneralSettings({
+          business_name: data.business_name ?? '',
+          contact_email: data.contact_email ?? '',
+          contact_phone: data.contact_phone ?? '',
+          address: data.address ?? '',
+        });
       })
-      .catch(() => {})
-
-    api
-      .get('/add-ons')
-      .then(({ data }) => {
-        localStorage.setItem('pos_addons_cache', JSON.stringify(data))
-        setAddOnsData(data)
-      })
-      .catch(() => {})
-
-    api
-      .get('/sugar-levels')
-      .then(({ data }) => {
-        const levels = data.data ?? data
-        localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(levels))
-        setSugarLevels(levels)
-      })
-      .catch(() => {})
-
-    api
-      .get('/bundles')
-      .then(({ data }) => {
-        localStorage.setItem('pos_bundles_cache', JSON.stringify(data))
-        setBundlesData(data)
-      })
-      .catch(() => {})
+      .catch(() => { })
 
     const onCashIn = () => {
       setMenuAvailable(true)
@@ -612,7 +749,7 @@ const SalesOrder = () => {
       cart.forEach((item, i) => {
         const key = String(i)
         const existing = prev[key] ?? []
-        const arr = Array(item.qty).fill('none').map((_, ui) => existing[ui] ?? 'none') as ('none'|'sc'|'pwd')[];
+        const arr = Array(item.qty).fill('none').map((_, ui) => existing[ui] ?? 'none') as ('none' | 'sc' | 'pwd')[];
         updated[key] = arr;
       });
       return updated;
@@ -629,10 +766,10 @@ const SalesOrder = () => {
     setSelectedCategory(cat);
     setCategorySize(null);
     setActiveCategoryGroup(null);
-    const catType    = cat.category_type ?? cat.type;
+    const catType = cat.category_type ?? cat.type;
     const isDrinkCat = catType === 'drink' || catType === 'bundle';
     const isWingsCat = catType === 'wings';
-    const subCats    = cat.sub_categories ?? [];
+    const subCats = cat.sub_categories ?? [];
     if (!isDrinkCat && !isWingsCat) { setCategorySize('all'); return; }
     if (isWingsCat) return;
     if (subCats.length === 1) { setCategorySize(subCats[0].name); return; }
@@ -682,11 +819,8 @@ const SalesOrder = () => {
   }
 
   const handleItemClick = async (item: MenuItem) => {
-    const actualCategory = categories.find(cat => cat.menu_items.some(mi => mi.id === item.id)) ?? selectedCategory
-
-    if (!searchQuery.trim()) {
-      setSelectedCategory(actualCategory)
-    }
+    const actualCategory = categories.find(cat => cat.menu_items.some(mi => mi.id === item.id)) || selectedCategory
+    setSelectedCategory(actualCategory)
 
     const catType = actualCategory?.category_type
 
@@ -711,13 +845,13 @@ const SalesOrder = () => {
             return found
               ? { ...found, size: validSize(d.size || found.size || 'none') }
               : ({
-                  id: d.menu_item_id,
-                  name: d.name,
-                  price: d.price,
-                  size: validSize(d.size),
-                  barcode: '',
-                  category_id: categoryId,
-                } as unknown as MenuItem)
+                id: d.menu_item_id,
+                name: d.name,
+                price: d.price,
+                size: validSize(d.size),
+                barcode: '',
+                category_id: categoryId,
+              } as unknown as MenuItem)
           })
         } catch {
           allDrinks = []
@@ -744,12 +878,29 @@ const SalesOrder = () => {
     if (catType === 'bundle') {
       const bundle = bundlesData.find(b => b.barcode === item.barcode)
       if (bundle) {
+        // Flatten items: if quantity is 2, create 2 separate slots for customization
+        const allMenuItems = categories.flatMap(c => c.menu_items)
+        const flattened = (bundle.items || []).flatMap(bi => {
+          // Robust lookup: handle string/number IDs and optional id field
+          const itemDetail = allMenuItems.find(m => String(m.id) === String(bi.menu_item_id))
+          return Array.from({ length: bi.quantity || 1 }, () => ({
+            ...bi,
+            quantity: 1,
+            // Attach actual menu item details for options/sugar lookup
+            menuItem: itemDetail
+          }))
+        })
+
         setActiveBundleItem(bundle)
+        setFlattenedBundleItems(flattened)
+        setBundleComponentSelections(flattened.map(item => ({
+          name: item.display_name ?? item.menuItem?.name ?? item.custom_name ?? '',
+          quantity: 1,
+          sugarLevel: '',
+          options: [],
+          addOns: []
+        })))
         setBundleComponentIndex(0)
-        setBundleComponentCustomizations([])
-        setBundleComponentSugar('')
-        setBundleComponentOptions([])
-        setBundleComponentAddOns([])
         setOrderCharge(null)
         setIsBundleModalOpen(true)
         return
@@ -773,15 +924,9 @@ const SalesOrder = () => {
 
     const isDrinkItem = catType === 'drink' || catType === 'combo'
     if (isDrinkItem) {
-      try {
-        const { data } = await api.get(`/sugar-levels/by-item/${item.id}`)
-        const levels = data.data ?? []
-        setSugarLevels(levels)
-        setSugarLevel('')
-      } catch {
-        setSugarLevels([])
-        setSugarLevel('')
-      }
+      // REVERT: Use standard sugar levels instead of fetching per-item
+      setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })))
+      setSugarLevel('')
     } else {
       setSugarLevels([])
       setSugarLevel('')
@@ -856,9 +1001,8 @@ const SalesOrder = () => {
   // ── Add to order ───────────────────────────────────────────────────────────
 
   const addToOrder = () => {
-    const activeCat = categories.find(cat => cat.menu_items.some(mi => mi.id === selectedItem?.id)) ?? selectedCategory;
-    if (!selectedItem || !activeCat) return;
-    const isWaffle = activeCat?.name?.toLowerCase().includes('waffle');
+    if (!selectedItem || !selectedCategory) return;
+    const isWaffle = selectedCategory?.name?.toLowerCase().includes('waffle');
     let extraCost = 0;
     if (isDrink || isWaffle || isFoodCategory) {
       selectedAddOns.forEach(name => {
@@ -875,7 +1019,13 @@ const SalesOrder = () => {
     }
     const cartSize: 'M' | 'L' | 'none' = isDrink ? size : 'none'
     const cupSizeLabel = (isDrink || isOz) && categorySize ? categorySize : undefined
-    const unitPrice = Number(selectedItem.price) + extraCost
+    
+    // Select base price based on platform
+    let basePrice = Number(selectedItem.price)
+    if (orderCharge === 'grab' && Number(selectedItem.grab_price ?? 0) > 0) basePrice = Number(selectedItem.grab_price)
+    else if (orderCharge === 'panda' && Number(selectedItem.panda_price ?? 0) > 0) basePrice = Number(selectedItem.panda_price)
+
+    const unitPrice = basePrice + extraCost
     const newCartItem: CartItem = {
       ...selectedItem,
       name: isWings ? `${selectedItem.name} (${categorySize})` : selectedItem.name,
@@ -883,9 +1033,9 @@ const SalesOrder = () => {
       remarks,
       charges: { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
       sugarLevel: isDrink ? sugarLevel : undefined,
-      size:       cartSize, cupSizeLabel,
-      options:    isDrink ? selectedOptions : undefined,
-      addOns:     (isDrink || isWaffle || isFoodCategory) ? selectedAddOns : undefined,
+      size: cartSize, cupSizeLabel,
+      options: isDrink ? selectedOptions : undefined,
+      addOns: (isDrink || isWaffle || isFoodCategory) ? selectedAddOns : undefined,
       finalPrice: unitPrice * qty,
     }
     if (isCombo) {
@@ -908,41 +1058,72 @@ const SalesOrder = () => {
 
   // ── Bundle component confirm ───────────────────────────────────────────────
 
-  const confirmBundleComponent = () => {
+  const updateBundleSelection = (index: number, updates: Partial<BundleComponentCustomization>) => {
+    setBundleComponentSelections(prev => prev.map((s, i) => i === index ? { ...s, ...updates } : s))
+  }
+
+  const toggleBundleComponentOption = (index: number, opt: string) => {
+    setBundleComponentSelections(prev => prev.map((s, i) => {
+      if (i !== index) return s
+      const iceOpts = ['NO ICE', '-ICE', '+ICE', 'WARM']
+      const pearlOpts = ['NO PRL', 'W/ PRL']
+      let nextOptions = [...s.options]
+      if (iceOpts.includes(opt)) {
+        nextOptions = nextOptions.filter(o => !iceOpts.includes(o))
+      } else if (pearlOpts.includes(opt)) {
+        nextOptions = nextOptions.filter(o => !pearlOpts.includes(o))
+      }
+      if (s.options.includes(opt)) {
+        nextOptions = nextOptions.filter(o => o !== opt)
+      } else {
+        nextOptions.push(opt)
+      }
+      return { ...s, options: nextOptions }
+    }))
+  }
+
+  const confirmBundleSelection = () => {
     if (!activeBundleItem) return
-    const component = activeBundleItem.items[bundleComponentIndex]
-    const displayName = component.display_name ?? component.custom_name ?? ''
-    const isMilkTea = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea')
+
+    // Validation for current step
+    const item = flattenedBundleItems[bundleComponentIndex] as BundleComponent & { menuItem?: MenuItem }
+    const sel = bundleComponentSelections[bundleComponentIndex]
+    const itemName = (sel.name || '').toLowerCase()
+    const hasSugarLevels = (item.menuItem?.sugar_levels?.length ?? 0) > 0 || 
+                           item.menuItem?.category_id != null ||
+                           itemName.includes('tea') || itemName.includes('drink') || 
+                           itemName.includes('coffee') || itemName.includes('boba') ||
+                           itemName.includes('milk') || itemName.includes('latte')
+    
+    if (hasSugarLevels && sel.sugarLevel === '') {
+        showToast(`Please select sugar level for ${sel.name}`, 'warning')
+        return
+    }
+
+    const isMilkTea = sel.name.toLowerCase().includes('milk tea') || sel.name.toLowerCase().includes('m.tea')
     const pearlOpts = ['NO PRL', 'W/ PRL']
-    if (isMilkTea && !bundleComponentOptions.some(o => pearlOpts.includes(o))) {
-      showToast('Please select NO PRL or W/ PRL', 'warning')
-      return
+    if (isMilkTea && !sel.options.some(o => pearlOpts.includes(o))) {
+        showToast(`Please select NO PRL or W/ PRL for ${sel.name}`, 'warning')
+        return
     }
-    const customization: BundleComponentCustomization = {
-      name: displayName,
-      quantity: component.quantity,
-      sugarLevel: bundleComponentSugar,
-      options: bundleComponentOptions,
-      addOns: bundleComponentAddOns,
+
+    // Advance or Finalize
+    if (bundleComponentIndex < flattenedBundleItems.length - 1) {
+        setBundleComponentIndex(prev => prev + 1)
+        return
     }
-    const newCustomizations = [...bundleComponentCustomizations, customization]
-    if (bundleComponentIndex < activeBundleItem.items.length - 1) {
-      setBundleComponentCustomizations(newCustomizations)
-      setBundleComponentIndex(i => i + 1)
-      setBundleComponentSugar('')
-      setBundleComponentOptions([])
-      setBundleComponentAddOns([])
-      return
-    }
-    const remarksLines = newCustomizations
+
+    // Finalize
+    const remarksLines = bundleComponentSelections
       .map(
         (c, i) =>
-          `[${i + 1}] ${c.quantity > 1 ? `${c.quantity}x ` : ''}${c.name}: Sugar ${c.sugarLevel}` +
+          `[${i + 1}] ${c.name}: Sugar ${c.sugarLevel}` +
           `${c.options.length ? ' | ' + c.options.join(', ') : ''}` +
           `${c.addOns.length ? ' | +' + c.addOns.join(', ') : ''}`
       )
       .join(' || ')
-    const bundleAddOnCost = newCustomizations.reduce((total, c) => {
+
+    const bundleAddOnCost = bundleComponentSelections.reduce((total, c) => {
       return (
         total +
         c.addOns.reduce((sum, addonName) => {
@@ -954,24 +1135,33 @@ const SalesOrder = () => {
         }, 0)
       )
     }, 0)
+
     const matchingMenuItem = categories.flatMap(c => c.menu_items).find(m => m.barcode === activeBundleItem.barcode)
+    const grabPriceVal = Number(activeBundleItem.grab_price || matchingMenuItem?.grab_price || 0)
+    const pandaPriceVal = Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0)
+    
+    let basePrice = Number(activeBundleItem.price)
+    if (orderCharge === 'grab' && grabPriceVal > 0) basePrice = grabPriceVal
+    else if (orderCharge === 'panda' && pandaPriceVal > 0) basePrice = pandaPriceVal
+
     const cartItem: CartItem = {
       id: activeBundleItem.id,
       category_id: 0,
       name: activeBundleItem.display_name ?? activeBundleItem.name,
-      grab_price: Number(activeBundleItem.grab_price || matchingMenuItem?.grab_price || 0),
-      panda_price: Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0),
+      grab_price: grabPriceVal,
+      panda_price: pandaPriceVal,
       price: Number(activeBundleItem.price),
       barcode: activeBundleItem.barcode,
       qty: 1,
       size: 'L',
       remarks: remarksLines,
       charges: { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
-      finalPrice: Number(activeBundleItem.price) + bundleAddOnCost,
+      finalPrice: basePrice + bundleAddOnCost,
       isBundle: true,
       bundleId: activeBundleItem.id,
-      bundleComponents: newCustomizations,
+      bundleComponents: bundleComponentSelections,
     }
+
     mergeIntoCart(cartItem)
     logCartAction(cartItem.name, 1, cashierName)
     setIsBundleModalOpen(false)
@@ -1173,6 +1363,36 @@ const SalesOrder = () => {
   const handleSubmitOrder = async (nameOverride?: string) => {
     setSubmitting(true)
 
+    let finalOrNumber = orNumber;
+    let finalQueueNumber = queueNumber;
+
+    if (navigator.onLine && branchId) {
+      try {
+        // Fast-fail sequence fetch (5 seconds)
+        const { data } = await api.get(`/receipts/next-sequence?branch_id=${branchId}&source=pos&t=${Date.now()}`, { timeout: 5000 });
+        const serverSeq = parseInt(data.next_sequence, 10);
+        if (!isNaN(serverSeq)) finalOrNumber = generateORNumber(serverSeq);
+        const serverQueue = parseInt(data.next_queue, 10);
+        if (!isNaN(serverQueue)) finalQueueNumber = generateQueueNumber(serverQueue);
+        
+        setOrNumber(finalOrNumber);
+        setQueueNumber(finalQueueNumber);
+      } catch (err) {
+        console.error('[Sequence Fetch] Failed:', err);
+        // Fallback to local increment
+        const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1;
+        finalOrNumber = generateORNumber(lastSeq);
+        const lastQueue = parseInt(localStorage.getItem(queueKey) || '0', 10) + 1;
+        finalQueueNumber = generateQueueNumber(lastQueue);
+      }
+    } else {
+      // Offline fallback
+      const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1;
+      finalOrNumber = generateORNumber(lastSeq);
+      const lastQueue = parseInt(localStorage.getItem(queueKey) || '0', 10) + 1;
+      finalQueueNumber = generateQueueNumber(lastQueue);
+    }
+
     let scDiscountAmount = 0
     let pwdDiscountAmount = 0
     const diplomatDiscountAmount = 0
@@ -1197,9 +1417,9 @@ const SalesOrder = () => {
       : 0
 
     const orderData = {
-      si_number: orNumber,
+      si_number: finalOrNumber,
       branch_id: branchId,
-      order_type: orderType ?? 'take-out',
+      order_type: (paymentMethod === 'grab' || paymentMethod === 'food_panda') ? 'delivery' : (orderType ?? 'take-out'),
       items: cart.map(item => ({
         menu_item_id: item.isBundle ? null : item.id,
         bundle_id: item.isBundle ? Number(item.bundleId) : null,
@@ -1243,21 +1463,28 @@ const SalesOrder = () => {
       // FIX #3 — join the arrays to strings to match the backend's expected scalar fields
       senior_id: seniorIds.length > 0 ? seniorIds.join(',') : null,
       pwd_id: pwdIds.length > 0 ? pwdIds.join(',') : null,
+      source: (paymentMethod === 'grab' || paymentMethod === 'food_panda') 
+                ? (paymentMethod === 'food_panda' ? 'panda' : 'grab') 
+                : (orderCharge || 'pos'),
     }
 
     if (navigator.onLine) {
       try {
-        await api.post('/sales', orderData);
+        // Fast-fail order submission (5 seconds)
+        const res = await api.post('/sales', orderData, { timeout: 5000 });
+        if (res.data?.si_number) {
+          finalOrNumber = res.data.si_number;
+          setOrNumber(finalOrNumber);
+        }
         localStorage.removeItem('pos_cart_cache');
-        const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10)
+        const currentSeq = parseInt(finalOrNumber.split('-').pop() ?? '0', 10)
         if (!isNaN(currentSeq)) {
           localStorage.setItem(seqKey, String(currentSeq))
         }
 
-        const currentQueue = parseInt(queueNumber, 10)
+        const currentQueue = parseInt(finalQueueNumber, 10)
         if (!isNaN(currentQueue)) {
           localStorage.setItem(queueKey, String(currentQueue + 1))
-          localStorage.setItem(queueDate, new Date().toDateString())
         }
         localStorage.setItem('dashboard_stats_timestamp', '0');
         const today = new Date().toISOString().split('T')[0];
@@ -1274,6 +1501,9 @@ const SalesOrder = () => {
             sessionStorage.setItem('lucky_boba_receipt_cache_date', today)
           }),
         ]).catch(e => console.error('Failed to fetch fresh data', e))
+        const salesTick = String(Date.now())
+        localStorage.setItem('lucky_boba_live_sales_tick', salesTick)
+        window.dispatchEvent(new CustomEvent('luckyboba:sale-recorded', { detail: { at: salesTick } }))
         setPrintedReceipt(false)
         setPrintedKitchen(false)
         setPrintedStickers(false)
@@ -1292,14 +1522,13 @@ const SalesOrder = () => {
       }
     } else {
       enqueue(orderData)
-      const currentSeq = parseInt(orNumber.replace('SI-', ''), 10)
+      const currentSeq = parseInt(finalOrNumber.replace('SI-', ''), 10)
       if (!isNaN(currentSeq)) {
         localStorage.setItem(seqKey, String(currentSeq))
       }
-      const currentQueue = parseInt(queueNumber, 10)
+      const currentQueue = parseInt(finalQueueNumber, 10)
       if (!isNaN(currentQueue)) {
         localStorage.setItem(queueKey, String(currentQueue + 1))
-        localStorage.setItem(queueDate, new Date().toDateString())
       }
       setPrintedReceipt(false); setPrintedKitchen(false); setPrintedStickers(false)
       setIsSuccessModalOpen(true)
@@ -1307,25 +1536,44 @@ const SalesOrder = () => {
     }
 
     setSubmitting(false)
+    setIsCustomerNameModalOpen(false)
   }
 
   // ── Print handlers ─────────────────────────────────────────────────────────
 
   const handlePrintReceipt = () => {
-    setPrintTarget('receipt')
-    setPrintedReceipt(true)
-    setTimeout(() => window.print(), 100)
+    setPrintTarget(null);
+    setTimeout(() => {
+      setPrintTarget('receipt');
+      setPrintedReceipt(true);
+    }, 50);
   }
   const handlePrintKitchen = () => {
-    setPrintTarget('kitchen')
-    setPrintedKitchen(true)
-    setTimeout(() => window.print(), 100)
+    setPrintTarget(null);
+    setTimeout(() => {
+      setPrintTarget('kitchen');
+      setPrintedKitchen(true);
+    }, 50);
   }
   const handlePrintStickers = () => {
-    setPrintTarget('stickers')
-    setPrintedStickers(true)
-    setTimeout(() => window.print(), 100)
+    setPrintTarget(null);
+    setTimeout(() => {
+      setPrintTarget('stickers');
+      setPrintedStickers(true);
+    }, 50);
   }
+
+  // Handle Systemic Printing Trigger
+  useEffect(() => {
+    if (printTarget) {
+      const timer = setTimeout(() => {
+        window.print();
+        // Delay slightly before potentially clearing if needed, 
+        // though POS usually keeps target for reprint.
+      }, 1000); 
+      return () => clearTimeout(timer);
+    }
+  }, [printTarget, orNumber]); 
 
   // ── New order ──────────────────────────────────────────────────────────────
 
@@ -1363,11 +1611,11 @@ const SalesOrder = () => {
   // ── Filtered categories ────────────────────────────────────────────────────
 
   const GROUP_TYPES: Record<string, string[]> = {
-    drinks:        ['drink'],
-    bundles:       ['bundle'],
-    food:          ['food', 'combo', 'waffle', 'wings'],
+    drinks: ['drink'],
+    bundles: ['bundle'],
+    food: ['food', 'combo', 'waffle', 'wings'],
     mix_and_match: ['mix_and_match'],
-    others:        ['promo', 'other'],
+    others: ['promo', 'other'],
   };
 
   const filteredCategories = categories
@@ -1377,12 +1625,12 @@ const SalesOrder = () => {
       )
       const enrichedItems = searchQuery
         ? matchedItems.map(item => {
-            if (!item.size || item.size === 'none') return item
-            const cupM = cat.cup?.size_m ?? 'M'
-            const cupL = cat.cup?.size_l ?? 'L'
-            const sizeLabel = item.size === 'L' ? cupL : cupM
-            return { ...item, name: `${item.name} (${sizeLabel})` }
-          })
+          if (!item.size || item.size === 'none') return item
+          const cupM = cat.cup?.size_m ?? 'M'
+          const cupL = cat.cup?.size_l ?? 'L'
+          const sizeLabel = item.size === 'L' ? cupL : cupM
+          return { ...item, name: `${item.name} (${sizeLabel})` }
+        })
         : matchedItems
       return { ...cat, menu_items: enrichedItems }
     })
@@ -1395,11 +1643,11 @@ const SalesOrder = () => {
 
   // ── Loading screen ─────────────────────────────────────────────────────────
 
-  if (checkingCashIn || isMenuLoading)
+  if (checkingCashIn || loading)
     return (
-      <div className="h-screen flex items-center justify-center font-black text-[#3b2063] bg-[#f4f2fb]">
+      <div className="h-screen flex items-center justify-center font-black text-[#6a12b8] bg-[#f4f2fb]">
         <div className="text-center">
-          <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#3b2063]/30 animate-pulse" />
+          <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#6a12b8]/30 animate-pulse" />
           <div className="text-sm tracking-widest uppercase opacity-50">Loading...</div>
         </div>
       </div>
@@ -1438,26 +1686,6 @@ const SalesOrder = () => {
 
   return (
     <>
-      <style>{`
-        @media print {
-          @page { ${printTarget === 'stickers' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'} margin: 0 !important; }
-          html, body { margin: 0 !important; padding: 0 !important; }
-          body * { visibility: hidden; }
-          nav, header, aside, button, .print\\:hidden { display: none !important; }
-          img { display: block !important; }
-          .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
-          .printable-receipt-container {
-            position: static !important;
-            width: 100% !important;
-            max-width: ${printTarget === 'stickers' ? '38.5mm' : '76mm'} !important;
-            margin: 0 !important; padding: 0 !important;
-            height: auto !important;
-          }
-          .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
-          .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
-          .queue-stub { page-break-before: always !important; break-before: page !important; }
-        }
-      `}</style>
 
       <div className="flex flex-col h-screen w-screen bg-[#f4f2fb] relative overflow-hidden font-sans print:hidden">
         {editingCartItem && editingCartIndex !== null && (
@@ -1489,6 +1717,7 @@ const SalesOrder = () => {
             isFoodCategory={isFoodCategory}
             filteredAddOns={filteredAddOns}
             onOpenAddOns={() => setIsAddOnModalOpen(true)} onAddToOrder={addToOrder}
+            orderType={orderType ?? 'take-out'}
             onClose={() => {
               setSelectedItem(null)
               setIsAddOnModalOpen(false)
@@ -1521,23 +1750,29 @@ const SalesOrder = () => {
             return (
               <BundleModal
                 activeBundleItem={activeBundleItem}
-                bundleComponentIndex={bundleComponentIndex}
-                bundleComponentSugar={bundleComponentSugar}
-                bundleComponentOptions={bundleComponentOptions}
-                bundleComponentAddOns={bundleComponentAddOns}
+                flattenedBundleItems={flattenedBundleItems as (BundleComponent & { menuItem?: MenuItem })[]}
+                bundleSelections={bundleComponentSelections}
                 sugarLevels={sugarLevels}
                 filteredAddOns={filteredAddOns}
-                bundleComponentAddOnModalOpen={bundleComponentAddOnModalOpen}
-                onSugarChange={setBundleComponentSugar}
-                onToggleOption={makeToggleOption(setBundleComponentOptions)}
-                onOpenAddOns={() => setBundleComponentAddOnModalOpen(true)}
+                bundleComponentIndex={bundleComponentIndex}
+                addonModalOpen={bundleComponentAddOnModalOpen}
+                activeAddOnIndex={activeBundleComponentIndex}
+                onSugarChange={(s) => updateBundleSelection(bundleComponentIndex, { sugarLevel: s })}
+                onToggleOption={opt => toggleBundleComponentOption(bundleComponentIndex, opt)}
+                onOpenAddOns={() => {
+                  setActiveBundleComponentIndex(bundleComponentIndex)
+                  setBundleComponentAddOnModalOpen(true)
+                }}
                 onCloseAddOns={() => setBundleComponentAddOnModalOpen(false)}
-                onToggleAddOn={name =>
-                  setBundleComponentAddOns(prev =>
-                    prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
-                  )
-                }
-                onConfirm={confirmBundleComponent}
+                onToggleAddOn={name => {
+                  if (activeBundleComponentIndex === null) return
+                  const currentAddOns = bundleComponentSelections[activeBundleComponentIndex].addOns
+                  const nextAddOns = currentAddOns.includes(name) 
+                    ? currentAddOns.filter(a => a !== name) 
+                    : [...currentAddOns, name]
+                  updateBundleSelection(activeBundleComponentIndex, { addOns: nextAddOns })
+                }}
+                onConfirm={confirmBundleSelection}
                 onClose={() => {
                   setIsBundleModalOpen(false)
                   setActiveBundleItem(null)
@@ -1545,6 +1780,7 @@ const SalesOrder = () => {
                 }}
                 orderCharge={orderCharge}
                 onToggleOrderCharge={toggleBundleOrderCharge}
+                orderType={orderType ?? 'take-out'}
                 bundleGrabPrice={bundleGrabPrice}
                 bundlePandaPrice={bundlePandaPrice}
               />
@@ -1602,12 +1838,25 @@ const SalesOrder = () => {
               setMixMatchDrinkAddOns(prev => (prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]))
             }
             onToggleOrderCharge={toggleOrderCharge}
+            orderType={orderType ?? 'take-out'}
             onConfirm={confirmMixAndMatch}
             onClose={() => {
               setIsMixMatchModalOpen(false)
               setPendingMixMatchCart(null)
               if (searchQuery.trim()) setSelectedCategory(null)
             }}
+          />
+        )}
+
+        {isPaymentSelectModalOpen && (
+          <PaymentSelectModal 
+            orderCharge={orderCharge}
+            onSelect={(method) => {
+              setPaymentMethod(method);
+              setIsPaymentSelectModalOpen(false);
+              setIsConfirmModalOpen(true);
+            }}
+            onClose={() => setIsPaymentSelectModalOpen(false)}
           />
         )}
 
@@ -1622,6 +1871,7 @@ const SalesOrder = () => {
             vatableSales={vatableSales}
             vatAmount={vatAmount}
             vatExemptSales={vatExemptSales}
+            lessVat={lessVat}
             change={change}
             totalDiscountDisplay={totalDiscountDisplay}
             orderCharge={orderCharge}
@@ -1637,6 +1887,7 @@ const SalesOrder = () => {
             discounts={discounts}
             activeTab={activeTab as 'payment' | 'discount' | 'pax'}
             submitting={submitting}
+            orderType={orderType}
             onTabChange={t => setActiveTab(t as 'payment' | 'discount' | 'pax')}
             onPaymentMethodChange={setPaymentMethod}
             onCashTenderedChange={setCashTendered}
@@ -1657,14 +1908,9 @@ const SalesOrder = () => {
           <CustomerNameModal
             customerName={customerName}
             onChange={setCustomerName}
-            onSkip={() => {
-              setIsCustomerNameModalOpen(false)
-              handleSubmitOrder('')
-            }}
-            onConfirm={() => {
-              setIsCustomerNameModalOpen(false)
-              handleSubmitOrder(customerName)
-            }}
+            submitting={submitting}
+            onSkip={() => handleSubmitOrder('')}
+            onConfirm={() => handleSubmitOrder(customerName)}
           />
         )}
 
@@ -1690,8 +1936,6 @@ const SalesOrder = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onHomeClick={() => handleNavClick('Home')}
-          onRefresh={fetchMenu}
-          isRefreshing={isMenuLoading}
         />
 
         <OfflineQueueBanner
@@ -1701,6 +1945,7 @@ const SalesOrder = () => {
           isSyncing={isSyncing}
           syncNow={syncNow}
           remove={remove}
+          resetAttempts={resetAttempts}
         />
 
         {/* ── Category nav bar ───────────────────────────────────────────── */}
@@ -1708,11 +1953,10 @@ const SalesOrder = () => {
           <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto scrollbar-none">
 
             <span
-              className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${
-                !selectedCategory
-                  ? 'text-[#7c14d4] bg-[#7c14d4]/10'
-                  : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100'
-              }`}
+              className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${!selectedCategory
+                  ? 'text-[#6a12b8] bg-[#6a12b8]/10'
+                  : 'text-zinc-400 hover:text-[#6a12b8] hover:bg-zinc-100'
+                }`}
               onClick={() => { setSelectedCategory(null); setCategorySize(null); setActiveCategoryGroup(null); }}
             >
               All
@@ -1722,11 +1966,10 @@ const SalesOrder = () => {
               <>
                 <ChevronRight size={11} className="text-zinc-300 shrink-0" />
                 <span
-                  className={`text-xs font-semibold shrink-0 px-2 py-1.5 rounded-lg transition-colors ${
-                    !categorySize
-                      ? 'text-[#3b2063] bg-[#3b2063]/10'
-                      : 'text-zinc-400 hover:text-[#3b2063] hover:bg-zinc-100 cursor-pointer'
-                  }`}
+                  className={`text-xs font-semibold shrink-0 px-2 py-1.5 rounded-lg transition-colors ${!categorySize
+                      ? 'text-[#6a12b8] bg-[#6a12b8]/10'
+                      : 'text-zinc-400 hover:text-[#6a12b8] hover:bg-zinc-100 cursor-pointer'
+                    }`}
                   onClick={() => { if (categorySize && !categoryHasOnlyOneSize) setCategorySize(null); }}
                 >
                   {selectedCategory.name}
@@ -1737,7 +1980,7 @@ const SalesOrder = () => {
             {selectedCategory && categorySize && !categoryHasOnlyOneSize && (
               <>
                 <ChevronRight size={11} className="text-zinc-300 shrink-0" />
-                <span className="text-xs font-bold text-[#3b2063] bg-[#3b2063]/10 px-2 py-1.5 rounded-lg shrink-0">
+                <span className="text-xs font-bold text-[#6a12b8] bg-[#6a12b8]/10 px-2 py-1.5 rounded-lg shrink-0">
                   {categorySize}
                 </span>
               </>
@@ -1748,11 +1991,11 @@ const SalesOrder = () => {
             )}
 
             {!selectedCategory && [
-              { key: 'drinks',        label: 'Drinks' },
-              { key: 'bundles',       label: 'Bundles' },
-              { key: 'food',          label: 'Food' },
+              { key: 'drinks', label: 'Drinks' },
+              { key: 'bundles', label: 'Bundles' },
+              { key: 'food', label: 'Food' },
               { key: 'mix_and_match', label: 'Mix & Match' },
-              { key: 'others',        label: 'Others' },
+              { key: 'others', label: 'Others' },
             ].map(group => {
               const isActive = activeCategoryGroup === group.key;
               const count = filteredCategories.filter(c =>
@@ -1763,16 +2006,14 @@ const SalesOrder = () => {
                 <button
                   key={group.key}
                   onClick={() => setActiveCategoryGroup(isActive ? null : group.key)}
-                  className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all border ${
-                    isActive
-                      ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-sm'
-                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#3b2063]/40 hover:text-[#3b2063] hover:bg-violet-50'
-                  }`}
+                  className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all border ${isActive
+                      ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-sm'
+                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#6a12b8]/40 hover:text-[#6a12b8] hover:bg-violet-50'
+                    }`}
                 >
                   <span>{group.label}</span>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                    isActive ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-500'
-                  }`}>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-500'
+                    }`}>
                     {count}
                   </span>
                 </button>
@@ -1806,9 +2047,6 @@ const SalesOrder = () => {
             subtotal={subtotal}
             onEditItem={openCartItemEdit}
             onConfirmOrder={() => {
-              if (orderCharge === 'grab') setPaymentMethod('grab')
-              else if (orderCharge === 'panda') setPaymentMethod('food_panda')
-              else setPaymentMethod('cash')
               setIsConfirmModalOpen(true)
             }}
           />
@@ -1819,6 +2057,10 @@ const SalesOrder = () => {
         <ReceiptPrint
           {...printProps}
           {...branchDetails}
+          businessName={generalSettings.business_name}
+          contactEmail={generalSettings.contact_email}
+          contactPhone={generalSettings.contact_phone}
+          generalAddress={generalSettings.address}
           ownerName={branchDetails.owner_name}
           vatType={vatType}
           addOnsData={addOnsData}
@@ -1840,15 +2082,26 @@ const SalesOrder = () => {
           promoDiscount={promoDiscount}
           itemPaxAssignments={itemPaxAssignments}
           posFooter={posFooter}
-          receiptFooter={posFooter.receipt_footer}
-          businessName={posFooter.business_name}
-          businessEmail={posFooter.contact_email}
-          businessPhone={posFooter.contact_phone}
-          businessAddress={posFooter.address}
         />
       )}
-      {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
+      {printTarget === 'kitchen' && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
+
+      {/* Mandatory Sync Modal Overlay — NON-DISMISSIBLE until sync completes */}
+      {syncRequired && (
+        <SyncOverlay
+          onSync={async () => {
+            await refreshPOSData(true);
+            // Store the server's version (seconds) — NOT Date.now() (milliseconds)
+            try {
+              const { data } = await api.get('/menu/version');
+              const v = parseInt(data.version || '0', 10);
+              if (v > 0) localStorage.setItem('lb-pos-menu-version', v.toString());
+            } catch { /* version will be picked up on next poll */ }
+            setSyncRequired(false);
+          }}
+        />
+      )}
     </>
   )
 }

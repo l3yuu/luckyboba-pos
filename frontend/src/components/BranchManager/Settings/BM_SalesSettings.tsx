@@ -139,11 +139,11 @@ const BM_SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
   if (!isOpen) return null;
 
   const btnPrimary = {
-    base: 'flex-1 h-10 bg-[#3b2063] hover:bg-[#2a1647] text-white rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
+    base: 'flex-1 h-10 bg-[#6a12b8] hover:bg-[#2a1647] text-white rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
     style: { fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' } as React.CSSProperties,
   };
   const btnSecondary = {
-    base: 'flex-1 h-10 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#3b2063] rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]',
+    base: 'flex-1 h-10 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#6a12b8] rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]',
     style: { fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' } as React.CSSProperties,
   };
 
@@ -166,16 +166,15 @@ const BM_SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto pr-1 space-y-4">
-                  {/* BCODE */}
-                  <div className="space-y-1.5">
-                    <p className="bm-label" style={{ color: '#a1a1aa' }}>BCODE</p>
-                    <input type="text" value={formData.bcode}
-                      onChange={e => setFormData({ ...formData, bcode: e.target.value })}
-                      className={inputCls} style={inputStyle} />
+                  {/* BCODE — read only for BM */}
+                  <div className="space-y-1.5 opacity-70">
+                    <p className="bm-label" style={{ color: '#a1a1aa' }}>BCODE (Read-Only)</p>
+                    <input type="text" value={formData.bcode} disabled
+                      className={disabledInputCls} style={inputStyle} />
                   </div>
 
                   {/* POS Type — disabled */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 opacity-70">
                     <p className="bm-label" style={{ color: '#a1a1aa' }}>POS Type</p>
                     <input type="text" value="RESTO" disabled
                       className={disabledInputCls}
@@ -221,17 +220,14 @@ const BM_SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                   {/* Toggles */}
                   <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
                     {([
-                      { key: 'transDateDay',   label: 'Trans. by Date/Day (24H Cutoff)' },
-                      { key: 'transPerLine',   label: 'Transaction Per Line' },
-                      { key: 'vatable',        label: 'Vatable (Non-VAT Reg)' },
-                      { key: 'onlineCustomer', label: 'Online Customer' },
+                      { key: 'onlineCustomer', label: 'Online Customer Acceptance' },
                       { key: 'tableLayout',    label: 'Table & Room Layout' },
                     ] as const).map(({ key, label }) => (
                       <label key={key} className="flex items-center gap-3 cursor-pointer group">
                         <div
                           onClick={() => setFormData({ ...formData, [key]: !formData[key] })}
                           className={`w-8 h-4 rounded-full transition-all cursor-pointer flex items-center px-0.5 ${
-                            formData[key] ? 'bg-[#3b2063]' : 'bg-gray-200'
+                            formData[key] ? 'bg-[#6a12b8]' : 'bg-gray-200'
                           }`}
                         >
                           <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-all duration-200 ${
@@ -243,6 +239,18 @@ const BM_SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                         </span>
                       </label>
                     ))}
+                    {/* Read-only policies */}
+                    <div className="pt-2 border-t border-gray-50 mt-2 space-y-2 opacity-50">
+                       <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Fixed System Policies</p>
+                       <div className="flex items-center gap-2">
+                          <Check size={10} className="text-[#6a12b8]" />
+                          <span className="text-[11px] font-bold text-[#1a0f2e]">Trans. by Date/Day</span>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <Check size={10} className="text-[#6a12b8]" />
+                          <span className="text-[11px] font-bold text-[#1a0f2e]">Vatable (Non-VAT Reg)</span>
+                       </div>
+                    </div>
                   </div>
                 </div>
 
@@ -348,8 +356,8 @@ const BM_SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                 <div className="w-full border-t border-dashed border-gray-200 pt-4 space-y-1 text-center">
                   <p className="bm-label" style={{ color: '#a1a1aa' }}>For Franchise</p>
                   <p className="bm-label" style={{ color: '#a1a1aa' }}>Email or contact us on</p>
-                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#3b2063' }}>luckyboba.franchise@gmail.com</p>
-                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#3b2063' }}>09171699894</p>
+                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#6a12b8' }}>luckyboba.franchise@gmail.com</p>
+                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#6a12b8' }}>09171699894</p>
                 </div>
               </div>
             </div>

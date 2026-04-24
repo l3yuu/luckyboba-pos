@@ -1,7 +1,7 @@
 // components/NewSuperAdmin/Tabs/DeviceManagementTab.tsx
 import { useState, useEffect } from "react";
 import {
-  Monitor, Plus, Trash2, AlertCircle, RefreshCw,
+  Monitor, Plus, Trash2, AlertCircle,
   X, CheckCircle, ToggleLeft, ToggleRight,
   MonitorCheck, MonitorOff, Search, Laptop,
   Link,
@@ -10,25 +10,25 @@ import { createPortal } from "react-dom";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Branch {
-  id:   number;
+  id: number;
   name: string;
 }
 
 interface PosDevice {
-  id:              number;
-  device_name:     string;
-  pos_number:      string;
-  branch_id:       number;
-  status:          "ACTIVE" | "INACTIVE";
-  last_seen?:      string | null;
-  user_id:         number | null;
-  user?:           { id: number; name: string } | null;
+  id: number;
+  device_name: string;
+  pos_number: string;
+  branch_id: number;
+  status: "ACTIVE" | "INACTIVE";
+  last_seen?: string | null;
+  user_id: number | null;
+  user?: { id: number; name: string } | null;
   assigned_users?: { id: number; name: string }[];  // ← ADD
-  branch?:         { id: number; name: string } | null;
+  branch?: { id: number; name: string } | null;
 }
 
 interface Cashier {
-  id:   number;
+  id: number;
   name: string;
   email: string;
 }
@@ -38,7 +38,7 @@ const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = (): Record<string, string> => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
@@ -70,10 +70,10 @@ const Btn: React.FC<{
   className?: string;
 }> = ({ children, variant = "primary", size = "sm", onClick, disabled, className = "" }) => {
   const v = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   }[variant];
   const s = size === "sm" ? "px-3 py-2 text-xs" : "px-4 py-2.5 text-sm";
   return (
@@ -88,27 +88,27 @@ const ModalShell: React.FC<{
   onClose: () => void; icon: React.ReactNode; title: string; sub: string;
   children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
 }> = ({ onClose, icon, title, sub, children, footer, maxWidth = "max-w-md" }) =>
-  createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
-            <div>
-              <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
-              <p className="text-[10px] text-zinc-400">{sub}</p>
+    createPortal(
+      <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+        style={{ backdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
+        <div className="absolute inset-0" onClick={onClose} />
+        <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
+          <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
+              <div>
+                <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
+                <p className="text-[10px] text-zinc-400">{sub}</p>
+              </div>
             </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400 hover:text-zinc-600"><X size={16} /></button>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400 hover:text-zinc-600"><X size={16} /></button>
+          <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
+          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
         </div>
-        <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
-      </div>
-    </div>,
-    document.body
-  );
+      </div>,
+      document.body
+    );
 
 const Field: React.FC<{ label: string; required?: boolean; error?: string; hint?: string; children: React.ReactNode }> = ({ label, required, error, hint, children }) => (
   <div>
@@ -139,8 +139,8 @@ const RegisterDeviceModal: React.FC<{
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.device_name.trim()) e.device_name = "Device ID is required.";
-    if (!form.pos_number.trim())  e.pos_number  = "POS number is required.";
-    if (!form.branch_id)          e.branch_id   = "Branch is required.";
+    if (!form.pos_number.trim()) e.pos_number = "POS number is required.";
+    if (!form.branch_id) e.branch_id = "Branch is required.";
     return e;
   };
 
@@ -149,7 +149,7 @@ const RegisterDeviceModal: React.FC<{
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true); setApiError("");
     try {
-      const res  = await fetch("/api/pos-devices", {
+      const res = await fetch("/api/pos-devices", {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({ device_name: form.device_name.trim(), pos_number: form.pos_number.trim(), branch_id: Number(form.branch_id) }),
       });
@@ -246,44 +246,44 @@ const AssignCashierModal: React.FC<{
   onAssigned: (deviceId: number, userId: number | null, user: { id: number; name: string } | null) => void;
   device: PosDevice;
 }> = ({ onClose, onAssigned, device }) => {
-  const [cashiers,    setCashiers]    = useState<Cashier[]>([]);
-  const [selectedId,  setSelectedId]  = useState<string>("");
-  const [assigned,    setAssigned]    = useState<Cashier[]>([]);  // multiple assigned cashiers
-  const [loading,     setLoading]     = useState(true);
-  const [saving,      setSaving]      = useState(false);
-  const [apiError,    setApiError]    = useState("");
-  const [success,     setSuccess]     = useState(false);
+  const [cashiers, setCashiers] = useState<Cashier[]>([]);
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [assigned, setAssigned] = useState<Cashier[]>([]);  // multiple assigned cashiers
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [success, setSuccess] = useState(false);
 
 
 
-useEffect(() => {
-  (async () => {
-    try {
-      const res  = await fetch(
-        `/api/users?role=cashier&branch_id=${device.branch_id}&status=ACTIVE`,
-        { headers: authHeaders() }
-      );
-      const data = await res.json();
-      const list = (data.data ?? data.users ?? data ?? []) as {
-        id: number; name: string; email: string;
-        status: string; role: string; branch_id: number | null;
-      }[];
-      const filtered = list.filter(u =>
-        u.status    === "ACTIVE" &&
-        u.role      === "cashier" &&
-        u.branch_id === device.branch_id
-      );
-      setCashiers(filtered);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/users?role=cashier&branch_id=${device.branch_id}&status=ACTIVE`,
+          { headers: authHeaders() }
+        );
+        const data = await res.json();
+        const list = (data.data ?? data.users ?? data ?? []) as {
+          id: number; name: string; email: string;
+          status: string; role: string; branch_id: number | null;
+        }[];
+        const filtered = list.filter(u =>
+          u.status === "ACTIVE" &&
+          u.role === "cashier" &&
+          u.branch_id === device.branch_id
+        );
+        setCashiers(filtered);
 
-      // Use assigned_users from the device object directly (populated by backend)
-      const alreadyAssigned = (device.assigned_users ?? (device.user ? [device.user] : []))
-        .map(u => filtered.find(c => c.id === u.id))
-        .filter(Boolean) as Cashier[];
-      setAssigned(alreadyAssigned);
-    } catch { setApiError("Failed to load cashiers."); }
-    finally { setLoading(false); }
-  })();
-}, [device.assigned_users, device.branch_id, device.id, device.user]);
+        // Use assigned_users from the device object directly (populated by backend)
+        const alreadyAssigned = (device.assigned_users ?? (device.user ? [device.user] : []))
+          .map(u => filtered.find(c => c.id === u.id))
+          .filter(Boolean) as Cashier[];
+        setAssigned(alreadyAssigned);
+      } catch { setApiError("Failed to load cashiers."); }
+      finally { setLoading(false); }
+    })();
+  }, [device.assigned_users, device.branch_id, device.id, device.user]);
 
   const isAlreadyAssigned = (id: number) => assigned.some(a => a.id === id);
 
@@ -291,7 +291,7 @@ useEffect(() => {
     if (!selectedId) return;
     setSaving(true); setApiError("");
     try {
-      const res  = await fetch(`/api/pos-devices/${device.id}/assign`, {
+      const res = await fetch(`/api/pos-devices/${device.id}/assign`, {
         method: "PATCH", headers: authHeaders(),
         body: JSON.stringify({ user_id: Number(selectedId) }),
       });
@@ -306,20 +306,20 @@ useEffect(() => {
     finally { setSaving(false); }
   };
 
-const handleUnassign = async (cashierId: number) => {
-  setSaving(true); setApiError("");
-  try {
-    const res  = await fetch(`/api/pos-devices/${device.id}/unassign`, {
-      method: "DELETE", headers: authHeaders(),
-      body: JSON.stringify({ user_id: cashierId }),
-    });
-    const data = await res.json();
-    if (!res.ok) { setApiError(data.message ?? "Failed to unassign."); return; }
-    setAssigned(p => p.filter(a => a.id !== cashierId));
-    onAssigned(device.id, null, { id: cashierId, name: "" }); // ← pass id so parent can filter
-  } catch { setApiError("Network error."); }
-  finally { setSaving(false); }
-};
+  const handleUnassign = async (cashierId: number) => {
+    setSaving(true); setApiError("");
+    try {
+      const res = await fetch(`/api/pos-devices/${device.id}/unassign`, {
+        method: "DELETE", headers: authHeaders(),
+        body: JSON.stringify({ user_id: cashierId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setApiError(data.message ?? "Failed to unassign."); return; }
+      setAssigned(p => p.filter(a => a.id !== cashierId));
+      onAssigned(device.id, null, { id: cashierId, name: "" }); // ← pass id so parent can filter
+    } catch { setApiError("Network error."); }
+    finally { setSaving(false); }
+  };
   return (
     <ModalShell onClose={onClose} icon={<Link size={15} className="text-violet-600" />}
       title="Assign Cashiers" sub={`Manage cashiers for ${device.pos_number}`}
@@ -423,7 +423,7 @@ const DeleteDeviceModal: React.FC<{
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`/api/pos-devices/${device.id}`, { method: "DELETE", headers: authHeaders() });
+      const res = await fetch(`/api/pos-devices/${device.id}`, { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Failed to delete."); return; }
       onDeleted(device.id);
@@ -466,17 +466,18 @@ const DeleteDeviceModal: React.FC<{
 
 // ── Main Tab ──────────────────────────────────────────────────────────────────
 const DeviceManagementTab: React.FC = () => {
-  const [devices,     setDevices]     = useState<PosDevice[]>([]);
-  const [branches,    setBranches]    = useState<Branch[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [fetchError,  setFetchError]  = useState("");
-  const [search,      setSearch]      = useState("");
+  const [devices, setDevices] = useState<PosDevice[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
 
-  const [registerOpen,  setRegisterOpen]  = useState(false);
-  const [assignTarget,  setAssignTarget]  = useState<PosDevice | null>(null);
-  const [deleteTarget,  setDeleteTarget]  = useState<PosDevice | null>(null);
-  const [togglingId,    setTogglingId]    = useState<number | null>(null);
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const [assignTarget, setAssignTarget] = useState<PosDevice | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PosDevice | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const showToast = (message: string, type: ToastType = "success") => setToast({ message, type });
@@ -486,10 +487,10 @@ const DeviceManagementTab: React.FC = () => {
     try {
       const [devRes, brRes] = await Promise.all([
         fetch("/api/pos-devices", { headers: authHeaders() }),
-        fetch("/api/branches",    { headers: authHeaders() }),
+        fetch("/api/branches", { headers: authHeaders() }),
       ]);
       const devData = await devRes.json();
-      const brData  = await brRes.json();
+      const brData = await brRes.json();
       setDevices(devData.data ?? devData.devices ?? devData ?? []);
       if (brData.success) setBranches(brData.data ?? []);
     } catch { setFetchError("Network error. Could not reach the server."); }
@@ -514,39 +515,24 @@ const DeviceManagementTab: React.FC = () => {
     const q = search.toLowerCase();
     const matchSearch = d.pos_number.toLowerCase().includes(q) || d.device_name.toLowerCase().includes(q) || (d.branch?.name ?? "").toLowerCase().includes(q) || (d.user?.name ?? "").toLowerCase().includes(q);
     const matchStatus = statusFilter ? d.status === statusFilter : true;
-    return matchSearch && matchStatus;
+    const matchBranch = branchFilter ? String(d.branch_id) === branchFilter : true;
+    return matchSearch && matchStatus && matchBranch;
   });
 
-  const total    = devices.length;
-  const active   = devices.filter(d => d.status === "ACTIVE").length;
+  const total = devices.length;
+  const active = devices.filter(d => d.status === "ACTIVE").length;
   const assigned = devices.filter(d => (d.assigned_users?.length ?? (d.user_id ? 1 : 0)) > 0).length;
 
   return (
     <div className="p-6 md:p-8 fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Device Management</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? "Loading..." : `${total} devices · ${active} active · ${assigned} assigned`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchData} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
-          <Btn onClick={() => setRegisterOpen(true)}>
-            <Plus size={13} /> Register Device
-          </Btn>
-        </div>
-      </div>
+
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
-          { label: "Total Devices", value: loading ? "—" : total,    icon: <Monitor size={16} />,     bg: "bg-violet-50",  border: "border-violet-200",  text: "text-violet-600"  },
-          { label: "Active",        value: loading ? "—" : active,   icon: <MonitorCheck size={16} />, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-600" },
-          { label: "Assigned",      value: loading ? "—" : assigned, icon: <Link size={16} />,         bg: "bg-amber-50",   border: "border-amber-200",   text: "text-amber-600"   },
+          { label: "Total Devices", value: loading ? "—" : total, icon: <Monitor size={16} />, bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-600" },
+          { label: "Active", value: loading ? "—" : active, icon: <MonitorCheck size={16} />, bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-600" },
+          { label: "Assigned", value: loading ? "—" : assigned, icon: <Link size={16} />, bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-600" },
         ].map(c => (
           <div key={c.label} className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
             <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem]`}>
@@ -576,6 +562,16 @@ const DeviceManagementTab: React.FC = () => {
             <option value="ACTIVE">Active</option>
             <option value="INACTIVE">Inactive</option>
           </select>
+          <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none">
+            <option value="">All Branches</option>
+            {branches.map(b => (
+              <option key={b.id} value={String(b.id)}>{b.name}</option>
+            ))}
+          </select>
+          <Btn onClick={() => setRegisterOpen(true)}>
+            <Plus size={13} /> Register Device
+          </Btn>
         </div>
 
         <div className="overflow-x-auto">
@@ -611,7 +607,7 @@ const DeviceManagementTab: React.FC = () => {
               {!loading && !fetchError && filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
-                    {search || statusFilter ? "No devices match your filters." : "No devices registered yet."}
+                    {search || statusFilter || branchFilter ? "No devices match your filters." : "No devices registered yet."}
                   </td>
                 </tr>
               )}
@@ -634,22 +630,22 @@ const DeviceManagementTab: React.FC = () => {
                   </td>
                   {/* Branch */}
                   <td className="px-5 py-3.5 text-zinc-600 text-xs font-medium">{d.branch?.name ?? "—"}</td>
-{/* Cashier */}
-<td className="px-5 py-3.5">
-  {(d.assigned_users ?? (d.user ? [d.user] : [])).length > 0 ? (
-    <div className="flex flex-wrap gap-1">
-      {(d.assigned_users ?? (d.user ? [d.user] : [])).map(u => (
-        <span key={u.id} className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-          <MonitorCheck size={10} />{u.name}
-        </span>
-      ))}
-    </div>
-  ) : (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full">
-      <MonitorOff size={10} />Unassigned
-    </span>
-  )}
-</td>
+                  {/* Cashier */}
+                  <td className="px-5 py-3.5">
+                    {(d.assigned_users ?? (d.user ? [d.user] : [])).length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {(d.assigned_users ?? (d.user ? [d.user] : [])).map(u => (
+                          <span key={u.id} className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            <MonitorCheck size={10} />{u.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full">
+                        <MonitorOff size={10} />Unassigned
+                      </span>
+                    )}
+                  </td>
                   {/* Last Seen */}
                   <td className="px-5 py-3.5 text-zinc-400 text-xs">{d.last_seen ? new Date(d.last_seen).toLocaleString() : "—"}</td>
                   {/* Status */}
@@ -698,28 +694,28 @@ const DeviceManagementTab: React.FC = () => {
           branches={branches}
         />
       )}
-    {assignTarget && (
-    <AssignCashierModal
-        onClose={() => setAssignTarget(null)}
-        onAssigned={(deviceId, userId, user) => {
-        setDevices(p => p.map(d => {
-            if (d.id !== deviceId) return d;
-            const currentAssigned = d.assigned_users ?? (d.user ? [d.user] : []);
-            const newAssigned = userId && user
-            ? [...currentAssigned.filter(u => u.id !== userId), user]
-            : currentAssigned.filter(u => u.id !== (user?.id ?? -1));
-            return {
-            ...d,
-            assigned_users: newAssigned,
-            user_id: newAssigned[0]?.id ?? null,
-            user:    newAssigned[0] ?? null,
-            };
-        }));
-        // Don't close modal — let user keep assigning multiple
-        }}
-        device={assignTarget}
-    />
-    )}
+      {assignTarget && (
+        <AssignCashierModal
+          onClose={() => setAssignTarget(null)}
+          onAssigned={(deviceId, userId, user) => {
+            setDevices(p => p.map(d => {
+              if (d.id !== deviceId) return d;
+              const currentAssigned = d.assigned_users ?? (d.user ? [d.user] : []);
+              const newAssigned = userId && user
+                ? [...currentAssigned.filter(u => u.id !== userId), user]
+                : currentAssigned.filter(u => u.id !== (user?.id ?? -1));
+              return {
+                ...d,
+                assigned_users: newAssigned,
+                user_id: newAssigned[0]?.id ?? null,
+                user: newAssigned[0] ?? null,
+              };
+            }));
+            // Don't close modal — let user keep assigning multiple
+          }}
+          device={assignTarget}
+        />
+      )}
       {deleteTarget && (
         <DeleteDeviceModal
           onClose={() => setDeleteTarget(null)}

@@ -11,6 +11,7 @@ import UsersTab from "../components/NewSuperAdmin/Sidebar/Navigation/UsersTab";
 import DeviceManagementTab from "../components/NewSuperAdmin/Sidebar/Navigation/DeviceManagementTab";
 import AuditLogsTab from "../components/NewSuperAdmin/Sidebar/System/AuditLogsTab";
 import PromotionsTab from "../components/NewSuperAdmin/Sidebar/System/PromotionsTab";
+import VouchersTab from "../components/NewSuperAdmin/Sidebar/System/VouchersTab";
 import SettingsTab from "../components/NewSuperAdmin/Sidebar/SettingsTab";
 
 import SalesReportTab from "../components/NewSuperAdmin/Sidebar/Reports/SalesReportTab";
@@ -19,6 +20,7 @@ import AnalyticsTab from "../components/NewSuperAdmin/Sidebar/Reports/AnalyticsT
 import ItemsReportTab from "../components/NewSuperAdmin/Sidebar/Reports/ItemsReportTab";
 import XReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/XReadingTab";
 import ZReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/ZReadingTab";
+import BranchReceiptsTab from "../components/NewSuperAdmin/Sidebar/Reports/BranchReceiptsTab";
 import StaffPerformanceTab from "../components/NewSuperAdmin/Sidebar/Navigation/StaffPerformanceTab";
 
 import MenuItemsTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab";
@@ -30,8 +32,6 @@ import RawMaterialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/RawMa
 import UsageReportTab from "../components/NewSuperAdmin/Sidebar/Inventory/UsageReportTab";
 import RecipesTab from "../components/NewSuperAdmin/Sidebar/Inventory/RecipesTab";
 import SupplierTab from "../components/NewSuperAdmin/Sidebar/Inventory/SupplierTab";
-import ItemCheckerTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemCheckerTab";
-import ItemSerialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemSerialsTab";
 import PurchaseOrderTab from "../components/NewSuperAdmin/Sidebar/Inventory/PurchaseOrderTab";
 import StockTransferTab from "../components/NewSuperAdmin/Sidebar/Inventory/StockTransferTab";
 import InventoryAlertsTab from "../components/NewSuperAdmin/Sidebar/Inventory/InventoryAlertsTab";
@@ -40,6 +40,12 @@ import ExpensesTab from "../components/NewSuperAdmin/Sidebar/Expenses/ExpensesTa
 import CardUsersTab from "../components/NewSuperAdmin/Sidebar/System/CardUsersTab";
 import CardApprovalTab from "../components/NewSuperAdmin/Sidebar/System/CardApprovalTab";
 import CardManagementTab from "../components/NewSuperAdmin/Sidebar/System/CardManagementTab";
+import LoyaltyManagementTab from "../components/NewSuperAdmin/Sidebar/LoyaltyManagementTab";
+import FeaturedDrinksTab from "../components/NewSuperAdmin/Sidebar/System/FeaturedDrinksTab";
+import CustomerManagementTab from "../components/NewSuperAdmin/Sidebar/System/CustomerManagementTab";
+import OnlineOrdersTab from "../components/NewSuperAdmin/Sidebar/Navigation/OnlineOrdersTab";
+import BranchPaymentSettingsTab from "../components/NewSuperAdmin/Sidebar/System/BranchPaymentSettingsTab";
+import AppBranchesTab from "../components/NewSuperAdmin/Sidebar/System/AppBranchesTab";
 
 
 const GlobalStyles = () => (
@@ -55,11 +61,11 @@ const GlobalStyles = () => (
     .card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
     .card:hover { box-shadow: 0 4px 24px rgba(59,32,99,0.08); }
     .sa-tab { transition: background 0.12s, color 0.12s; border-radius: 0.4rem; }
-    .sa-tab:hover  { background: #f5f3ff; color: #3b2063; }
-    .sa-tab.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
+    .sa-tab:hover  { background: #f5f3ff; color: #6a12b8; }
+    .sa-tab.active { background: #ede8ff; color: #6a12b8; font-weight: 600; }
     .sa-tab.active::before {
       content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-      width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
+      width: 2.5px; background: #6a12b8; border-radius: 0 2px 2px 0;
     }
     @keyframes sa-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
     .pulse   { animation: sa-pulse 2s ease-in-out infinite; }
@@ -69,7 +75,7 @@ const GlobalStyles = () => (
     .badge-inactive { background:#f3f4f6; color:#6b7280; }
     .badge-pending  { background:#fef3c7; color:#92400e; }
     .badge-danger   { background:#fee2e2; color:#991b1b; }
-    .toggle-on  { background:#3b2063; }
+    .toggle-on  { background:#6a12b8; }
     .toggle-off { background:#d1d5db; }
   `}</style>
 );
@@ -86,6 +92,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "branches": return <BranchesTab />;
       case "users": return <UsersTab />;
       case "devices": return <DeviceManagementTab />;
+      case "online_orders": return <OnlineOrdersTab />;
 
       // ── Reports ───────────────────────────────────────────────────────────
       case "sales_report": return <SalesReportTab />;
@@ -95,6 +102,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "cross_branch_reports": return <CrossBranchTab />;
       case "x_reading": return <XReadingTab />;
       case "z_reading": return <ZReadingTab />;
+      case "branch_receipts": return <BranchReceiptsTab />;
 
       // ── Menu Management ───────────────────────────────────────────────────
       case "menu_items": return <MenuItemsTab />;
@@ -107,24 +115,28 @@ const SuperAdminDashboard: React.FC = () => {
       case "usage_report": return <UsageReportTab />;
       case "recipes": return <RecipesTab />;
       case "supplier": return <SupplierTab />;
-      case "item_checker": return <ItemCheckerTab />;
-      case "item_serials": return <ItemSerialsTab />;
       case "purchase_order": return <PurchaseOrderTab />;
       case "stock_transfer": return <StockTransferTab />;
-      case "inventory_alerts": return <InventoryAlertsTab />;
+      case "inventory_alerts": return <InventoryAlertsTab onNavigate={setActive} />;
 
       // ── Expenses ──────────────────────────────────────────────────────────
       case "expenses": return <ExpensesTab />;
 
       // ── System ────────────────────────────────────────────────────────────
       case "promotions": return <PromotionsTab />;
+      case "vouchers": return <VouchersTab />;
       case "audit": return <AuditLogsTab />;
       case "settings": return <SettingsTab />;
+      case "featured_drinks": return <FeaturedDrinksTab />;
 
       // ── App ───────────────────────────────────────────────────────────────────
+      case "app_branches": return <AppBranchesTab />;
       case "card_management": return <CardManagementTab />;
       case "card_approvals": return <CardApprovalTab />;
       case "card_members": return <CardUsersTab />;
+      case "loyalty": return <LoyaltyManagementTab />;
+      case "customers": return <CustomerManagementTab />;
+      case "payment_settings": return <BranchPaymentSettingsTab />;
     }
   };
 

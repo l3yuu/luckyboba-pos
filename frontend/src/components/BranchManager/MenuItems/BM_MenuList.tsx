@@ -1,11 +1,15 @@
 // components/BranchManager/MenuItems/BM_MenuList.tsx
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Search, RefreshCw,
+  Search, Edit2, Plus,
   AlertCircle, X, Package, ChevronDown,
   ToggleLeft, ToggleRight, Coffee,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import type {
+  MenuItem, Category, CategoryDrink, SugarLevel, ItemOptions, SubCategory, AddOnItem
+} from '../../NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab';
+import { MenuItemForm } from '../../NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab';
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
@@ -17,54 +21,6 @@ const authHeaders = (): Record<string, string> => ({
   "Accept":       "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
-
-
-
-interface ItemOptions {
-  pearl: boolean;
-  ice:   boolean;
-}
-
-interface MenuItem {
-  id:             number;
-  name:           string;
-  category_id:    number | null;
-  category:       string;
-  category_type:  string;
-  subcategory_id: number | null;
-  subcategory:    string;
-  price:          number;
-  grab_price:     number;
-  panda_price:    number;
-  barcode:        string | null;
-  size:           string | null;
-  image_path:     string | null;
-  is_available:   boolean;
-}
-interface Category {
-  id:            number;
-  name:          string;
-  category_type: string; // ✅ added
-}
-
-
-interface CategoryDrink {
-  id:           number;
-  category_id:  number;
-  menu_item_id: number;
-  name:         string;
-  size:         string;
-  price:        number;
-}
-
-interface SugarLevel {
-  id:         number;
-  label:      string;
-  value:      string;
-  sort_order: number;
-  is_active:  boolean;
-}
-
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 
 interface BtnProps {
@@ -74,7 +30,7 @@ interface BtnProps {
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -150,10 +106,11 @@ interface CategoryDrinksManagerProps {
   categoryName: string;
   allItems:     MenuItem[];
   onClose:      () => void;
+  readOnly?:    boolean;
 }
 
 const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
-  categoryId, categoryName, allItems, onClose,
+  categoryId, categoryName, allItems, onClose, readOnly = false,
 }) => {
   const drinkPool = useMemo(() =>
     allItems
@@ -179,6 +136,12 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
   }, [drinkPool]);
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const selectedDrinks = useMemo(
+    () => allDrinks.filter(d => selectedIds.has(d.id)),
+    [allDrinks, selectedIds]
+  );
+
   const [loading,     setLoading]     = useState(true);
   const [saving,      setSaving]      = useState(false);
   const [saved,       setSaved]       = useState(false);
@@ -197,6 +160,7 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
   }, [categoryId]);
 
   const toggle = (id: number) => {
+    if (readOnly) return;
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) { next.delete(id); } else { next.add(id); }
@@ -206,6 +170,7 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
   };
 
   const handleSave = async () => {
+    if (readOnly) return;
     setSaving(true); setError("");
     try {
       const res = await fetch("/api/category-drinks", {
@@ -229,17 +194,19 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
     <ModalShell
       onClose={onClose}
       icon={<Coffee size={15} className="text-rose-600" />}
-      title="Manage Drink Pool"
-      sub={`Shared drinks for "${categoryName}"`}
+      title={readOnly ? "Drink Pool" : "Manage Drink Pool"}
+      sub={readOnly ? `View only — drinks used by "${categoryName}"` : `Shared drinks for "${categoryName}"`}
       footer={
         <>
           <Btn variant="secondary" onClick={onClose} disabled={saving}>Close</Btn>
-          <Btn onClick={handleSave} disabled={saving || loading}>
-            {saving
-              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
-              : saved ? "✓ Saved!" : "Save Drink Pool"
-            }
-          </Btn>
+          {!readOnly && (
+            <Btn onClick={handleSave} disabled={saving || loading}>
+              {saving
+                ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+                : saved ? "✓ Saved!" : "Save Drink Pool"
+              }
+            </Btn>
+          )}
         </>
       }
     >
@@ -253,13 +220,23 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
       <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg">
         <p className="text-xs font-bold text-rose-700 mb-0.5">Shared Drink Pool</p>
         <p className="text-[10px] text-rose-600 leading-relaxed">
-          All Mix & Match items in <span className="font-bold">{categoryName}</span> will offer these drinks. Changes apply to every item in this category automatically.
+          {readOnly ? (
+            <>
+              Mix & Match items in <span className="font-bold">{categoryName}</span> offer these drinks.
+            </>
+          ) : (
+            <>
+              All Mix & Match items in <span className="font-bold">{categoryName}</span> will offer these drinks. Changes apply to every item in this category automatically.
+            </>
+          )}
         </p>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Available Drinks</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+            {readOnly ? "Drinks used" : "Available Drinks"}
+          </label>
           <span className="text-[9px] font-bold text-rose-500 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
             {selectedIds.size} selected
           </span>
@@ -271,6 +248,35 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
               <div key={i} className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
             ))}
           </div>
+        ) : readOnly ? (
+          selectedDrinks.length === 0 ? (
+            <div className="py-10 text-center text-xs text-zinc-400 font-medium">
+              No drinks set for this category yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-1.5 max-h-72 overflow-y-auto pr-1">
+              {selectedDrinks.map(d => (
+                <div
+                  key={d.id}
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-left bg-rose-100 border-rose-400 text-rose-800"
+                >
+                  <div className="w-3 h-3 rounded border-2 flex items-center justify-center shrink-0 bg-rose-500 border-rose-500">
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                      <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-semibold truncate">{d.name}</span>
+                    {d._sizeLabel && (
+                      <span className="text-[9px] font-bold uppercase text-rose-500">
+                        {d._sizeLabel}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
           <div className="grid grid-cols-2 gap-1.5 max-h-72 overflow-y-auto pr-1">
             {allDrinks.map(d => {
@@ -280,11 +286,12 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
                   key={d.id}
                   type="button"
                   onClick={() => toggle(d.id)}
+                  disabled={readOnly}
                   className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-left transition-all ${
                     isSelected
                       ? 'bg-rose-100 border-rose-400 text-rose-800'
                       : 'bg-white border-zinc-200 text-zinc-500 hover:border-rose-300'
-                  }`}
+                  } ${readOnly ? 'cursor-default opacity-90' : ''}`}
                 >
                   <div className={`w-3 h-3 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
                     isSelected ? 'bg-rose-500 border-rose-500' : 'border-zinc-300'
@@ -329,11 +336,20 @@ const BM_MenuList: React.FC = () => {
   const [error,           setError]           = useState("");
   const [search,          setSearch]          = useState("");
   const [filterCat,       setFilterCat]       = useState("");
-  const [filterAvail,     setFilterAvail]     = useState("");
+  const [filterAvail]     = useState("");
   const [filterType,      setFilterType]      = useState("");
   const [itemOptions,     setItemOptions]     = useState<Record<number, ItemOptions>>({});
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
   const [sugarLevels,     setSugarLevels]     = useState<SugarLevel[]>([]);
+  const [subcategories,   setSubcategories]   = useState<SubCategory[]>([]);
+  const [allAddOns,       setAllAddOns]       = useState<AddOnItem[]>([]);
+  const [isFormOpen,      setIsFormOpen]      = useState(false);
+  const [editingItem,     setEditingItem]     = useState<MenuItem | null>(null);
+
+  const [addOns,         setAddOns]         = useState<AddOnItem[]>([]);
+  const [addOnModalOpen, setAddOnModalOpen] = useState(false);
+  const [addOnLoading,   setAddOnLoading]   = useState(false);
+  const [addOnError,     setAddOnError]     = useState("");
 
   // Fetch all item options in bulk when items load
   const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
@@ -362,13 +378,15 @@ const BM_MenuList: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [itemsRes, catsRes, sugarRes] = await Promise.all([
+      const [itemsRes, catsRes, sugarRes, subCatsRes, addOnsRes] = await Promise.all([
         fetch("/api/menu-items",   { headers: authHeaders() }),
         fetch("/api/categories",   { headers: authHeaders() }),
         fetch("/api/sugar-levels", { headers: authHeaders() }),
+        fetch("/api/subcategories", { headers: authHeaders() }),
+        fetch("/api/addons", { headers: authHeaders() }),
       ]);
-      const [itemsData, catsData, sugarData] = await Promise.all([
-        itemsRes.json(), catsRes.json(), sugarRes.json(),
+      const [itemsData, catsData, sugarData, subCatsData, addOnsData] = await Promise.all([
+        itemsRes.json(), catsRes.json(), sugarRes.json(), subCatsRes.json(), addOnsRes.json(),
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -406,12 +424,33 @@ const BM_MenuList: React.FC = () => {
         (Array.isArray(sugarData) ? sugarData : (sugarData.data ?? []))
           .filter((s: SugarLevel) => s.is_active)
       );
+      setSubcategories(Array.isArray(subCatsData) ? subCatsData : (subCatsData.data ?? []));
+      setAllAddOns(Array.isArray(addOnsData) ? addOnsData : (addOnsData.data ?? []));
 
     } catch { setError("Failed to load menu items."); }
     finally { setLoading(false); }
   }, [fetchAllOptions]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const fetchAddOns = useCallback(async () => {
+    setAddOnLoading(true);
+    setAddOnError("");
+    try {
+      const res  = await fetch("/api/add-ons?all=1", { headers: authHeaders() });
+      const data = await res.json();
+      setAddOns(Array.isArray(data) ? data : (data.data ?? []));
+    } catch {
+      setAddOnError("Failed to load add-ons.");
+    } finally {
+      setAddOnLoading(false);
+    }
+  }, []);
+
+  const openAddOnModal = useCallback(async () => {
+    setAddOnModalOpen(true);
+    await fetchAddOns();
+  }, [fetchAddOns]);
 
   useEffect(() => {
   const handler = (e: Event) => {
@@ -464,16 +503,50 @@ const BM_MenuList: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Menu List</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? "Loading..." : `${items.length} items · ${items.filter(i => i.is_available).length} available`}
-          </p>
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex items-center gap-3">
+          <div className="relative group flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
+            <input
+              type="text"
+              placeholder="Search items or barcode..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
+            />
+          </div>
+          <div className="relative shrink-0">
+            <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] cursor-pointer shadow-sm transition-all hover:bg-zinc-50">
+              <option value="">All Categories</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+          <div className="relative shrink-0">
+            <select value={filterType} onChange={e => setFilterType(e.target.value)}
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-xl pl-4 pr-10 py-3 outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] cursor-pointer shadow-sm transition-all hover:bg-zinc-50">
+              <option value="">All Types</option>
+              <option value="food">Food</option>
+              <option value="drink">Drink</option>
+              <option value="wings">Wings</option>
+              <option value="waffle">Waffle</option>
+              <option value="combo">Combo</option>
+              <option value="bundle">Bundle</option>
+              <option value="mix_and_match">Mix & Match</option>
+              <option value="promo">Promo</option>
+            </select>
+            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+          <Btn onClick={() => { setEditingItem(null); setIsFormOpen(true); }} className="shrink-0 gap-2">
+            <Plus size={14} /> Add Item
+          </Btn>
         </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+
+        <div className="flex items-center gap-2 md:justify-end">
+          <Btn variant="secondary" size="md" onClick={openAddOnModal} className="whitespace-nowrap">
+            <Plus size={14} />
+            Add-Ons
           </Btn>
         </div>
       </div>
@@ -504,53 +577,7 @@ const BM_MenuList: React.FC = () => {
       {/* Table */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
         {/* Filters */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
-          <div className="flex-1 min-w-48 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-            <Search size={13} className="text-zinc-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search items or barcode..." />
-            {search && <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500"><X size={12} /></button>}
-          </div>
-          <div className="relative">
-            <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-              <option value="">All Categories</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          </div>
-          <div className="relative">
-          <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-            <option value="">All Types</option>
-            <option value="food">Food</option>
-            <option value="drink">Drink</option>
-            <option value="wings">Wings</option>
-            <option value="waffle">Waffle</option>
-            <option value="combo">Combo</option>
-            <option value="bundle">Bundle</option>
-            <option value="mix_and_match">Mix & Match</option>
-            <option value="promo">Promo</option>
-          </select>
-          <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-        </div>
-          <div className="relative">
-            <select value={filterAvail} onChange={e => setFilterAvail(e.target.value)}
-              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-              <option value="">All Status</option>
-              <option value="true">Available</option>
-              <option value="false">Unavailable</option>
-            </select>
-            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          </div>
-          {(filterCat || filterAvail || filterType) && (   // ✅ add filterType
-            <button onClick={() => { setFilterCat(""); setFilterAvail(""); setFilterType(""); }}
-              className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
-              <X size={11} /> Clear
-            </button>
-          )}
-        </div>
+
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -602,7 +629,7 @@ const BM_MenuList: React.FC = () => {
                       </span>
                     ) : <span className="text-zinc-300 text-xs">—</span>}
                   </td>
-                    <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.price)}</td>
+                    <td className="px-5 py-3.5 font-bold text-[#6a12b8] text-xs">{fmt(item.price)}</td>
                     <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{item.barcode ?? "—"}</td>
 
                     {/* ✅ Options column */}
@@ -641,12 +668,17 @@ const BM_MenuList: React.FC = () => {
                     </td>
 
                     <td className="px-5 py-3.5">
-                      <button onClick={() => toggleAvailable(item)} className="transition-colors"
-                      title={item.is_available ? "Click to hide" : "Click to show"}>
-                      {item.is_available
-                        ? <ToggleRight size={22} className="text-[#3b2063]" />
-                        : <ToggleLeft  size={22} className="text-zinc-300"  />}
-                    </button>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => { setEditingItem(item); setIsFormOpen(true); }} className="text-zinc-400 hover:text-violet-600 transition-colors" title="Edit Item">
+                          <Edit2 size={16} />
+                        </button>
+                        <button onClick={() => toggleAvailable(item)} className="transition-colors"
+                        title={item.is_available ? "Click to hide" : "Click to show"}>
+                        {item.is_available
+                          ? <ToggleRight size={22} className="text-[#6a12b8]" />
+                          : <ToggleLeft  size={22} className="text-zinc-300"  />}
+                        </button>
+                      </div>
                   </td>
 
                 </tr>
@@ -668,6 +700,77 @@ const BM_MenuList: React.FC = () => {
           categoryName={drinkPoolTarget.name}
           allItems={items}
           onClose={() => setDrinkPoolTarget(null)}
+          readOnly
+        />
+      )}
+
+      {addOnModalOpen && (
+        <ModalShell
+          onClose={() => setAddOnModalOpen(false)}
+          icon={<Plus size={15} className="text-violet-600" />}
+          title="Add-Ons"
+          sub="View mode only"
+          maxWidth="max-w-2xl"
+          footer={
+            <Btn variant="secondary" onClick={() => setAddOnModalOpen(false)}>
+              Done
+            </Btn>
+          }
+        >
+          {addOnLoading ? (
+            <p className="text-xs text-zinc-400 italic py-6 text-center">Loading add-ons...</p>
+          ) : addOnError ? (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <p className="text-xs text-red-600 font-medium">{addOnError}</p>
+              <Btn variant="secondary" onClick={fetchAddOns}>Retry</Btn>
+            </div>
+          ) : addOns.length === 0 ? (
+            <p className="text-xs text-zinc-400 italic py-6 text-center">No add-ons found.</p>
+          ) : (
+            <div className="space-y-2">
+              {addOns.map((addon) => (
+                <div key={addon.id} className="border border-zinc-200 rounded-xl px-3 py-2.5 bg-zinc-50/40">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-bold text-zinc-700">{addon.name}</p>
+                    <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                      addon.is_available
+                        ? "text-emerald-600 bg-emerald-50 border-emerald-200"
+                        : "text-zinc-500 bg-zinc-100 border-zinc-200"
+                    }`}>
+                      {addon.is_available ? "Available" : "Unavailable"}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] font-semibold text-zinc-500">
+                    <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 uppercase">{addon.category}</span>
+                    <span>Base: ₱{Number(addon.price).toFixed(2)}</span>
+                    <span>Grab: ₱{Number(addon.grab_price).toFixed(2)}</span>
+                    <span>Panda: ₱{Number(addon.panda_price).toFixed(2)}</span>
+                    {addon.barcode && <span>Barcode: {addon.barcode}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ModalShell>
+      )}
+
+      {isFormOpen && (
+        <MenuItemForm
+          item={editingItem ?? undefined}
+          allItems={items}
+          categories={categories}
+          subcategories={subcategories}
+          sugarLevels={sugarLevels}
+          allAddOns={allAddOns}
+          onClose={() => setIsFormOpen(false)}
+          onSaved={(savedItem: MenuItem) => {
+            setItems(prev => {
+              const idx = prev.findIndex(i => i.id === savedItem.id);
+              if (idx >= 0) { const next = [...prev]; next[idx] = savedItem; return next; }
+              return [...prev, savedItem];
+            });
+            setIsFormOpen(false);
+          }}
         />
       )}
     </div>

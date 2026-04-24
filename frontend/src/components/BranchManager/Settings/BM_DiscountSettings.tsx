@@ -171,7 +171,7 @@ const BM_DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
             <div className="flex-1 overflow-auto">
               {isLoading ? (
                 <div className="p-10 text-center">
-                  <div className="w-7 h-7 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full mx-auto mb-3" />
+                  <div className="w-7 h-7 border-2 border-[#6a12b8] border-t-transparent animate-spin rounded-full mx-auto mb-3" />
                   <p className="bm-label" style={{ color: '#d4d4d8' }}>Loading discounts…</p>
                 </div>
               ) : (
@@ -191,7 +191,7 @@ const BM_DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                         <td className="px-6 py-3.5">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-lg bg-[#ede9fe] flex items-center justify-center">
-                              <Tag size={10} strokeWidth={2.5} className="text-[#3b2063]" />
+                              <Tag size={10} strokeWidth={2.5} className="text-[#6a12b8]" />
                             </div>
                             <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1a0f2e' }}>{discount.name}</span>
                           </div>
@@ -229,7 +229,7 @@ const BM_DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                         <td className="px-6 py-3.5 text-center">
                           <span className="inline-block px-2.5 py-1 rounded-full"
                             style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                              background: '#ede9fe', color: '#3b2063' }}>
+                              background: '#ede9fe', color: '#6a12b8' }}>
                             {discount.type}
                           </span>
                         </td>
@@ -269,14 +269,14 @@ const BM_DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="flex items-center gap-2 h-9 px-4 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98] shadow-sm"
+                  className="flex items-center gap-2 h-9 px-4 bg-[#6a12b8] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98] shadow-sm"
                   style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
                 >
                   <Plus size={13} strokeWidth={2.5} /> Add Discount
                 </button>
                 <button
                   onClick={onBack}
-                  className="flex items-center gap-2 h-9 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#3b2063] transition-all rounded-xl active:scale-[0.98]"
+                  className="flex items-center gap-2 h-9 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#6a12b8] transition-all rounded-xl active:scale-[0.98]"
                   style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
                 >
                   <ArrowLeft size={13} strokeWidth={2.5} /> Back
@@ -328,7 +328,7 @@ const BM_DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
 
               <div className="flex gap-3 px-7 py-5 border-t border-gray-50">
                 <button onClick={handleSave} disabled={isSubmitting}
-                  className="flex-1 h-10 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-xl active:scale-[0.98]"
+                  className="flex-1 h-10 bg-[#6a12b8] hover:bg-[#2a1647] text-white transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-xl active:scale-[0.98]"
                   style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                   {isSubmitting
                     ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving…</>
@@ -365,7 +365,7 @@ const BM_DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                 </div>
                 <div>
                   <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1a0f2e' }}>
-                    Delete <span style={{ color: '#3b2063' }}>"{discountToDelete.name}"</span>?
+                    Delete <span style={{ color: '#6a12b8' }}>"{discountToDelete.name}"</span>?
                   </p>
                   <p style={{ fontSize: '0.78rem', fontWeight: 500, color: '#a1a1aa', marginTop: 4 }}>
                     This action cannot be undone.
@@ -375,7 +375,7 @@ const BM_DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
 
               <div className="flex gap-3 px-7 py-5 border-t border-gray-50">
                 <button onClick={cancelDelete}
-                  className="flex-1 h-10 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#3b2063] transition-all rounded-xl active:scale-[0.98]"
+                  className="flex-1 h-10 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#6a12b8] transition-all rounded-xl active:scale-[0.98]"
                   style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                   Cancel
                 </button>

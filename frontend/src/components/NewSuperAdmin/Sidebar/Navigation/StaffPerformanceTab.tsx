@@ -41,7 +41,7 @@ const StatCardSkeleton = () => (
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: "violet" | "emerald" | "red" | "amber" }> = ({ icon, label, value, sub, color = "violet" }) => {
   const colors = {
-    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#3b2063]" },
+    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#6a12b8]" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
     red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
     amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
@@ -87,7 +87,7 @@ const StaffPerformanceTab = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/staff-performance?period=${period}`, { headers: authHeaders() });
+      const res = await fetch(`/api/reports/staff-performance?period=${period}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setData(data.data);
@@ -125,16 +125,10 @@ const StaffPerformanceTab = () => {
 
   if (loading && data.length === 0) return (
     <div className="p-6 md:p-8 space-y-6 fade-in">
-      <div className="flex justify-between items-center">
-        <div className="flex gap-4">
-          <Skeleton className="w-12 h-12 rounded-2xl" />
-          <div className="space-y-2"><Skeleton className="w-48 h-6" /><Skeleton className="w-64 h-3" /></div>
-        </div>
-        <div className="flex gap-2">
-          <Skeleton className="w-24 h-9 rounded-lg" />
-          <Skeleton className="w-24 h-9 rounded-lg" />
-          <Skeleton className="w-24 h-9 rounded-lg" />
-        </div>
+      <div className="flex justify-end items-center gap-2">
+        <Skeleton className="w-24 h-9 rounded-lg" />
+        <Skeleton className="w-24 h-9 rounded-lg" />
+        <Skeleton className="w-24 h-9 rounded-lg" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {[...Array(5)].map((_, i) => <StatCardSkeleton key={i} />)}
@@ -150,38 +144,24 @@ const StaffPerformanceTab = () => {
   return (
     <div className="p-6 md:p-8 space-y-6 fade-in">
       {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#3b2063] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-200">
-              <Award size={24} />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-[#1a0f2e] tracking-tight -mb-1">Staff Performance</h2>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[0.7rem] text-zinc-400 font-bold uppercase tracking-widest">Efficiency & Integrity Metrics</p>
-              </div>
-            </div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8] transition-colors" size={14} />
+            <input
+              type="text"
+              placeholder="Search staff..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-[0.7rem] font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all w-full max-w-sm shadow-sm"
+            />
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-right">
-          <div className="mr-4 hidden lg:block">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
-              <input
-                type="text"
-                placeholder="Search staff..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-full text-[0.7rem] font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all w-48 xl:w-64 shadow-sm"
-              />
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
           {(["daily", "weekly", "monthly"] as const).map(p => (
             <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#6a12b8] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
               {p}
             </button>
           ))}
@@ -238,7 +218,7 @@ const StaffPerformanceTab = () => {
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
         <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/30">
           <div className="flex items-center gap-2">
-            <TrendingUp size={14} className="text-[#3b2063]" />
+            <TrendingUp size={14} className="text-[#6a12b8]" />
             <h3 className="text-[10px] font-black text-[#1a0f2e] uppercase tracking-widest">Performance Leaderboard</h3>
           </div>
           <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest bg-white border border-zinc-100 px-2 py-1 rounded">
@@ -269,7 +249,7 @@ const StaffPerformanceTab = () => {
                         #{idx + 1}
                       </div>
                       <div>
-                        <p className="text-[0.75rem] font-black text-[#1a0f2e] group-hover:text-[#3b2063] transition-colors">{s.name}</p>
+                        <p className="text-[0.75rem] font-black text-[#1a0f2e] group-hover:text-[#6a12b8] transition-colors">{s.name}</p>
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">{s.branch_name || s.branch} • {s.role}</p>
                       </div>
                     </div>
@@ -299,7 +279,7 @@ const StaffPerformanceTab = () => {
                   <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => setSelectedStaff(s)}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-[0.7rem] font-black text-[#3b2063] bg-white border border-zinc-200 hover:bg-[#3b2063] hover:text-white rounded-xl transition-all active:scale-95 shadow-sm"
+                      className="inline-flex items-center gap-2 px-4 py-2 text-[0.7rem] font-black text-[#6a12b8] bg-white border border-zinc-200 hover:bg-[#6a12b8] hover:text-white rounded-xl transition-all active:scale-95 shadow-sm"
                     >
                       VIEW SCORECARD
                       <ChevronRight size={14} strokeWidth={3} />
@@ -320,7 +300,7 @@ const StaffPerformanceTab = () => {
             {/* Modal Header */}
             <div className="p-6 border-b border-zinc-100 flex items-start justify-between bg-zinc-50/50">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[#3b2063] shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[#6a12b8] shadow-sm">
                   <Users size={20} />
                 </div>
                 <div>
@@ -343,7 +323,7 @@ const StaffPerformanceTab = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-4 bg-zinc-50/50 border border-zinc-100 rounded-xl">
                   <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                    <DollarSign size={12} className="text-[#3b2063] shrink-0" /> <span className="truncate">Revenue</span>
+                    <DollarSign size={12} className="text-[#6a12b8] shrink-0" /> <span className="truncate">Revenue</span>
                   </p>
                   <p className="text-xl font-black text-[#1a0f2e] truncate">{fmt(selectedStaff.revenue)}</p>
                 </div>
@@ -372,11 +352,11 @@ const StaffPerformanceTab = () => {
               {/* Enhanced Integrity Meter */}
               <div className={`p-5 rounded-xl border ${selectedStaff.void_rate > 5
                   ? 'bg-rose-50 border-rose-100 text-rose-700'
-                  : 'bg-[#f5f0ff]/50 border-[#ede8ff] text-[#3b2063]'
+                  : 'bg-[#f5f0ff]/50 border-[#ede8ff] text-[#6a12b8]'
                 }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-md flex items-center justify-center ${selectedStaff.void_rate > 5 ? 'bg-rose-200 text-rose-700' : 'bg-white text-[#3b2063] shadow-sm'}`}>
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center ${selectedStaff.void_rate > 5 ? 'bg-rose-200 text-rose-700' : 'bg-white text-[#6a12b8] shadow-sm'}`}>
                       {selectedStaff.void_rate > 5 ? <ShieldAlert size={12} /> : <Award size={12} />}
                     </div>
                     <div>
@@ -389,7 +369,7 @@ const StaffPerformanceTab = () => {
                 {/* Progress Bar */}
                 <div className="h-1.5 w-full bg-zinc-200/50 rounded-full overflow-hidden mb-3">
                   <div
-                    className={`h-full rounded-full transition-all duration-1000 ${selectedStaff.void_rate > 5 ? 'bg-rose-500' : 'bg-[#3b2063]'}`}
+                    className={`h-full rounded-full transition-all duration-1000 ${selectedStaff.void_rate > 5 ? 'bg-rose-500' : 'bg-[#6a12b8]'}`}
                     style={{ width: `${100 - (selectedStaff.void_rate / 15) * 100}%` }}
                   />
                 </div>

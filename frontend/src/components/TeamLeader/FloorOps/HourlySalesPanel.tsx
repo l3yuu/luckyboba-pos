@@ -8,6 +8,7 @@ import {
   TrendingUp, Zap, BarChart2, Calendar,
 } from 'lucide-react';
 import api from '../../../services/api';
+import { SkeletonBar, SkeletonBox } from '../SharedSkeletons';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ const Btn: React.FC<{
   onClick?: () => void; className?: string; disabled?: boolean;
 }> = ({ children, variant = 'primary', onClick, className = '', disabled = false }) => {
   const variants: Record<VariantKey, string> = {
-    primary:   'bg-[#3b2063] hover:bg-[#2a1647] text-white',
+    primary:   'bg-[#6a12b8] hover:bg-[#2a1647] text-white',
     secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
   };
   return (
@@ -123,48 +124,35 @@ const HourlySalesPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-violet-50 border border-violet-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
-            <ShoppingCart size={15} className="text-violet-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Orders</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : totalOrders}</p>
-          </div>
-        </div>
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-50 border border-emerald-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
-            <TrendingUp size={15} className="text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Sales</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">
-              {loading ? '—' : `₱${totalSales.toFixed(2)}`}
-            </p>
-          </div>
-        </div>
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-50 border border-blue-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
-            <BarChart2 size={15} className="text-blue-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Avg Order</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">
-              {loading ? '—' : `₱${avgOrder.toFixed(2)}`}
-            </p>
-          </div>
-        </div>
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-50 border border-amber-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
-            <Zap size={15} className="text-amber-500" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Peak Hour</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">
-              {loading ? '—' : (peakHour?.hour ?? '—')}
-            </p>
-          </div>
-        </div>
+        {loading ? (
+          [...Array(4)].map((_, i) => <SkeletonBox key={i} className="h-[76px] bg-white/50" />)
+        ) : (
+          [
+            { label: "Total Orders", value: totalOrders, icon: ShoppingCart, color: "violet" },
+            { label: "Total Sales", value: `₱${totalSales.toFixed(2)}`, icon: TrendingUp, color: "emerald" },
+            { label: "Avg Order", value: `₱${avgOrder.toFixed(2)}`, icon: BarChart2, color: "blue" },
+            { label: "Peak Hour", value: peakHour?.hour ?? '—', icon: Zap, color: "amber" },
+          ].map((s, i) => {
+            const colors: Record<string, string> = {
+              violet: "bg-violet-50 border-violet-200 text-violet-600",
+              emerald: "bg-emerald-50 border-emerald-200 text-emerald-600",
+              blue: "bg-blue-50 border-blue-200 text-blue-600",
+              amber: "bg-amber-50 border-amber-200 text-amber-500",
+            };
+            const Icon = s.icon;
+            return (
+              <div key={i} className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
+                <div className={`w-10 h-10 border flex items-center justify-center rounded-[0.4rem] shrink-0 ${colors[s.color]}`}>
+                  <Icon size={15} className="currentColor" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{s.label}</p>
+                  <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{s.value}</p>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* ── Charts ── */}
@@ -177,16 +165,16 @@ const HourlySalesPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
               <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ordersGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#3b2063" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="#6a12b8" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#6a12b8" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
                 <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#a1a1aa' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: '#a1a1aa' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="orders" stroke="#3b2063" strokeWidth={2}
-                  fill="url(#ordersGrad)" dot={false} activeDot={{ r: 4, fill: '#3b2063' }} />
+                <Area type="monotone" dataKey="orders" stroke="#6a12b8" strokeWidth={2}
+                  fill="url(#ordersGrad)" dot={false} activeDot={{ r: 4, fill: '#6a12b8' }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -235,7 +223,7 @@ const HourlySalesPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
                 <tr key={i} className="border-b border-zinc-50">
                   {[...Array(5)].map((_, j) => (
                     <td key={j} className="px-5 py-4">
-                      <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${55 + (j * 9) % 40}%` }} />
+                      <SkeletonBar h="h-3" style={{ width: `${55 + (j * 9) % 40}%` }} />
                     </td>
                   ))}
                 </tr>
@@ -286,7 +274,7 @@ const HourlySalesPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
                       <div className="flex items-center gap-2">
                         <div className="w-24 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-[#3b2063] transition-all duration-500"
+                            className="h-full rounded-full bg-[#6a12b8] transition-all duration-500"
                             style={{ width: `${pct}%` }}
                           />
                         </div>

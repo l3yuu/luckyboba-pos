@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
+import { SkeletonBar, SkeletonBox } from '../../TeamLeader/SharedSkeletons';
 
 // ────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -70,7 +71,7 @@ const StatusBadge: React.FC<{ status: VoidStatus }> = ({ status }) => {
   const map: Record<string, string> = {
     pending:   'bg-amber-50 text-amber-700 border border-amber-200',
     approved:  'bg-emerald-50 text-emerald-700 border border-emerald-200',
-    completed: 'bg-[#3b206308] text-[#3b2063] border border-[#3b206320]',
+    completed: 'bg-[#6a12b808] text-[#6a12b8] border border-[#6a12b820]',
     cancelled: 'bg-red-50 text-red-600 border border-red-200',
   };
   return (
@@ -83,7 +84,7 @@ const StatusBadge: React.FC<{ status: VoidStatus }> = ({ status }) => {
 const StatBox: React.FC<{ label: string; value: number; isDanger?: boolean }> = ({ label, value, isDanger }) => (
   <div className={`bg-white border rounded-lg p-4 text-center shadow-sm ${isDanger ? 'border-red-200' : 'border-zinc-200'}`}>
     <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isDanger ? 'text-red-400' : 'text-zinc-400'}`}>{label}</div>
-    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#3b2063]'}`}>
+    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#6a12b8]'}`}>
       ₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
     </div>
   </div>
@@ -180,34 +181,27 @@ const SV_VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-base font-bold text-[#3b2063]">Receipt Management</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Search and void transactions</p>
-        </div>
-        <div className="flex gap-2">
-          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-            className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-bold outline-none" />
-          <button 
-            onClick={fetchLogs} 
-            disabled={loading}
-            style={{ backgroundColor: '#3b2063' }}
-            className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-4 py-2 text-xs text-white hover:opacity-90 shadow-xl shadow-[#3b2063]/20 disabled:opacity-50"
-          >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Sync Records
-          </button>
+
         </div>
       </div>
 
       {/* ── Stats Bar ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-        <StatBox label="Gross Sales"  value={stats.gross} />
-        <StatBox label="Voided Sales" value={stats.voided} isDanger />
-        <StatBox label="Net Sales"    value={stats.net} />
+        {loading ? (
+          [...Array(3)].map((_, i) => <SkeletonBox key={i} className="h-20 bg-white/50 border" />)
+        ) : (
+          <>
+            <StatBox label="Gross Sales"  value={stats.gross} />
+            <StatBox label="Voided Sales" value={stats.voided} isDanger />
+            <StatBox label="Net Sales"    value={stats.net} />
+          </>
+        )}
       </div>
 
       {/* ── Table ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
         <div className="px-5 py-4 border-b border-zinc-100">
-          <div className="flex items-center gap-2 bg-[#3b2063]/5 border border-[#3b2063]/10 rounded-lg px-3 py-2 focus-within:ring-4 focus-within:ring-[#3b2063]/5 transition-all">
+          <div className="flex items-center gap-3 bg-[#6a12b8]/5 border border-[#6a12b8]/10 rounded-lg px-3 py-2 focus-within:ring-4 focus-within:ring-[#6a12b8]/5 transition-all">
             <Search size={13} className="text-zinc-400" />
             <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               className="flex-1 bg-transparent text-sm outline-none"
@@ -217,6 +211,18 @@ const SV_VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
                 <X size={13} />
               </button>
             )}
+            <div className="border-l border-[#6a12b8]/20 pl-3 flex gap-2 ml-auto">
+              <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+                className="bg-white border border-zinc-200 rounded-lg px-3 py-1 text-xs font-bold outline-none" />
+              <button 
+                onClick={fetchLogs} 
+                disabled={loading}
+                style={{ backgroundColor: '#6a12b8' }}
+                className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-4 py-1.5 text-xs text-white hover:opacity-90 shadow-xl shadow-[#6a12b8]/20 disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Sync Records
+              </button>
+            </div>
           </div>
         </div>
 
@@ -235,11 +241,15 @@ const SV_VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-16 text-center text-xs text-zinc-300 font-bold uppercase tracking-widest">
-                    Loading...
-                  </td>
-                </tr>
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="border-b border-zinc-50">
+                    {[...Array(6)].map((_, j) => (
+                      <td key={j} className="px-5 py-4">
+                        <SkeletonBar h="h-3" w={j === 5 ? "w-8" : "w-full"} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-16 text-center">

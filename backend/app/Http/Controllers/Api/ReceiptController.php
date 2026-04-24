@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\SaleItemResource;
 use App\Models\Receipt;
 use App\Models\Sale;
+use App\Models\ZReading;
 use App\Models\VoidRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -17,35 +19,76 @@ class ReceiptController extends Controller
     // ─────────────────────────────────────────────────────────────
     public function getNextSequence(Request $request)
     {
-        $branchId = $request->user()?->branch_id;
+        $branchId = $request->user()?->branch_id ?? $request->query('branch_id');
+
+        $source = $request->query('source', 'pos'); // 'kiosk' or 'pos'
 
         if (!$branchId) {
             return response()->json([
                 'next_sequence' => 1,
-                'next_queue'    => 1
-            ]);
+                'next_queue'    => $source === 'kiosk' ? 100 : 1
+            ], 200)->header('Cache-Control', 'no-cache, no-store, must-revalidate');
         }
 
-        // SI sequence logic
-        $latest = Sale::where('invoice_number', 'LIKE', 'SI-%')
+        // SI sequence logic - check both sales and receipts to prevent duplicates
+        $latestSale = Sale::where('invoice_number', 'LIKE', 'SI-%')
             ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
             ->where('branch_id', $branchId)
             ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
             ->first();
 
-        $nextSeq = $latest
-            ? ((int) substr($latest->invoice_number, 3)) + 1
-            : 1;
+        $latestReceipt = \DB::table('receipts')
+            ->where('si_number', 'LIKE', 'SI-%')
+            ->whereRaw("si_number REGEXP '^SI-[0-9]+$'")
+            ->where('branch_id', $branchId)
+            ->orderByRaw('CAST(SUBSTRING(si_number, 4) AS UNSIGNED) DESC')
+            ->first();
 
-        // Daily Queue logic
-        $todayCount = Sale::where('branch_id', $branchId)
-            ->whereDate('created_at', now()->toDateString())
-            ->count();
+        $saleSeq = $latestSale ? (int) substr($latestSale->invoice_number, 3) : 0;
+        $receiptSeq = $latestReceipt ? (int) substr($latestReceipt->si_number, 3) : 0;
+
+        $nextSeq = max($saleSeq, $receiptSeq) + 1;
+
+        // Daily Queue logic — count sales since last closed Z-Reading
+        $lastZReading = ZReading::where('branch_id', $branchId)
+            ->where('is_closed', true)
+            ->latest('closed_at')
+            ->first();
+
+        $queueQuery = Sale::where('branch_id', $branchId);
+        
+        // Filter by source to maintain separate queue sequences
+        if ($source === 'kiosk') {
+            $queueQuery->where('source', 'kiosk');
+        } else {
+            $queueQuery->where(function($q) {
+                $q->where('source', 'pos')->orWhereNull('source')->orWhere('source', '!=', 'kiosk');
+            });
+        }
+        
+        if ($lastZReading && $lastZReading->closed_at) {
+            $queueQuery->where('created_at', '>', $lastZReading->closed_at);
+        } else {
+            // Fallback: If no Z-Reading exists for this session, count all for today
+            $queueQuery->whereDate('created_at', now()->toDateString());
+        }
+
+        $count = $queueQuery->count();
+        $nextQueue = $source === 'kiosk' ? $count + 100 : $count + 1;
+
+        // Diagnostic Logging for Production Troubleshooting
+        \Log::info("Queue Investigation [Branch: {$branchId}]:", [
+            'last_z_reading_id' => $lastZReading?->id,
+            'last_z_closed_at'  => $lastZReading?->closed_at,
+            'sales_since_z'     => $count,
+            'calculated_next'   => $nextQueue,
+            'server_time'       => now()->toDateTimeString(),
+        ]);
 
         return response()->json([
             'next_sequence' => $nextSeq,
-            'next_queue'    => $todayCount + 1
-        ]);
+            'next_queue'    => $nextQueue
+        ])->header('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -56,6 +99,7 @@ class ReceiptController extends Controller
     $user  = $request->user();
     $query = strtolower($request->input('query', ''));
     $date  = $request->input('date');
+    $branchId = $request->input('branch_id');
 
     $dbQuery = Sale::query()
         ->leftJoin('receipts', 'sales.id', '=', 'receipts.sale_id')
@@ -75,6 +119,7 @@ class ReceiptController extends Controller
             'receipts.terminal',
             'receipts.items_count',
 
+            'branches.name as branch_name',
             'branches.brand',
             'branches.company_name',
             'branches.store_address',
@@ -94,13 +139,24 @@ class ReceiptController extends Controller
             ) as has_stickers
         ")
         ->selectRaw("
-            (
-                SELECT COUNT(*)
-                FROM sales s2
-                WHERE s2.branch_id  = sales.branch_id
-                AND DATE(s2.created_at) = DATE(sales.created_at)
-                AND s2.id <= sales.id
-            ) as daily_order_number
+            CASE 
+                WHEN sales.source = 'kiosk' THEN (
+                    SELECT COUNT(*) + 100
+                    FROM sales s2
+                    WHERE s2.branch_id = sales.branch_id
+                    AND DATE(s2.created_at) = DATE(sales.created_at)
+                    AND s2.source = 'kiosk'
+                    AND s2.id < sales.id
+                )
+                ELSE (
+                    SELECT COUNT(*) + 1
+                    FROM sales s2
+                    WHERE s2.branch_id = sales.branch_id
+                    AND DATE(s2.created_at) = DATE(sales.created_at)
+                    AND (s2.source != 'kiosk' OR s2.source IS NULL)
+                    AND s2.id < sales.id
+                )
+            END as daily_order_number
         ");
 
     // Branch restriction — include APP- orders for all branches
@@ -109,6 +165,10 @@ class ReceiptController extends Controller
             $q->where('sales.branch_id', $user->branch_id)
               ->orWhere('sales.invoice_number', 'like', 'APP-%');
         });
+    }
+
+    if ($branchId) {
+        $dbQuery->where('sales.branch_id', $branchId);
     }
 
     // Date filter
@@ -153,7 +213,7 @@ class ReceiptController extends Controller
 public function voidRequest(Request $request, $id)
 {
     try {
-        $sale = \App\Models\Sale::findOrFail($id);
+        $sale = Sale::findOrFail($id);
 
         if (in_array($sale->status, ['cancelled', 'voided'])) {
             return response()->json(['message' => 'Sale is already voided.'], 422);
@@ -242,16 +302,23 @@ public function voidRequest(Request $request, $id)
 
         $saleArray = $sale->toArray();
 
-        // Normalize items → sale_items
-        if (!isset($saleArray['sale_items']) && isset($saleArray['items'])) {
-            $saleArray['sale_items'] = $saleArray['items'];
-        }
+        // Normalize items → sale_items using Resource for consistent formatting
+        $saleArray['sale_items'] = SaleItemResource::collection($sale->items)->resolve();
 
-        // Queue number (from SI)
-        $saleArray['queue_number'] = ltrim(
-            str_replace('SI-', '', $sale->invoice_number),
-            '0'
-        ) ?: '0';
+        // Queue number (re-calculate based on same-day count for that source)
+        $saleDayCount = Sale::where('branch_id', $sale->branch_id)
+            ->whereDate('created_at', $sale->created_at->toDateString())
+            ->where('id', '<', $sale->id)
+            ->where(function($q) use ($sale) {
+                if ($sale->source === 'kiosk') {
+                    $q->where('source', 'kiosk');
+                } else {
+                    $q->where('source', '!=', 'kiosk')->orWhereNull('source');
+                }
+            })
+            ->count();
+            
+        $saleArray['queue_number'] = $sale->source === 'kiosk' ? ($saleDayCount + 100) : ($saleDayCount + 1);
 
         // ✅ BIR fields from the related branch
         $branch = $sale->branch;

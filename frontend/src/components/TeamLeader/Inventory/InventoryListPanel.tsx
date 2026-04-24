@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SkeletonBox } from '../SharedSkeletons';
 
 interface InventoryItem {
   id: number;
@@ -42,8 +43,15 @@ const InventoryListPanel = ({ branchId }: { branchId: number | null }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3b2063]"></div>
+      <div className="p-6 space-y-6">
+        <SkeletonBox h="h-14" w="w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <SkeletonBox h="h-24" />
+          <SkeletonBox h="h-24" />
+          <SkeletonBox h="h-24" />
+          <SkeletonBox h="h-24" />
+        </div>
+        <SkeletonBox h="h-96" />
       </div>
     );
   }
@@ -140,7 +148,7 @@ const InventoryListPanel = ({ branchId }: { branchId: number | null }) => {
             placeholder="Search items..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b2063]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6a12b8]"
           />
         </div>
         <div className="flex space-x-2">
@@ -150,7 +158,7 @@ const InventoryListPanel = ({ branchId }: { branchId: number | null }) => {
               onClick={() => setFilter(status)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === status
-                  ? 'bg-[#3b2063] text-white'
+                  ? 'bg-[#6a12b8] text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
               }`}
             >

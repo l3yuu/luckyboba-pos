@@ -2,15 +2,20 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  ShoppingBag, RefreshCw, ChevronDown, ChevronUp,
+  ShoppingBag, ChevronDown, ChevronUp,
   Clock, Package, Receipt, Search,
-  Activity,
+  Activity, RefreshCw,
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000/api';
 const getToken = () =>
   localStorage.getItem('auth_token') ||
   localStorage.getItem('lucky_boba_token') || '';
+
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {}),
+});
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
 const GlobalStyles = () => (
@@ -62,7 +67,7 @@ const timeStr = (iso: string) =>
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; border: string }> = {
   pending: { label: 'Pending', bg: '#fef9c3', color: '#92400e', border: '#fde68a' },
-  preparing: { label: 'Preparing', bg: '#ede9fe', color: '#3b2063', border: '#ddd6f7' },
+  preparing: { label: 'Preparing', bg: '#ede9fe', color: '#6a12b8', border: '#ddd6f7' },
   completed: { label: 'Completed', bg: '#dcfce7', color: '#166534', border: '#bbf7d0' },
   cancelled: { label: 'Cancelled', bg: '#fee2e2', color: '#991b1b', border: '#fecaca' },
 };
@@ -116,7 +121,7 @@ interface BtnProps {
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
   };
   return (
@@ -146,13 +151,9 @@ const OrderRow = ({ order, onStatusChange }: {
     if (!next) return;
     setUpdating(true);
     try {
-      const res = await fetch(`${API_BASE}/branch/app-orders/${order.id}/status`, {
+      const res = await fetch(`/api/branch/app-orders/${order.id}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${getToken()}`,
-        },
+        headers: authHeaders(),
         body: JSON.stringify({ status: next }),
       });
       if (res.ok) onStatusChange(order.id, next);
@@ -198,7 +199,7 @@ const OrderRow = ({ order, onStatusChange }: {
 
         {/* Total */}
         <div className="text-right shrink-0 px-4">
-          <p className="text-base font-bold text-[#3b2063] tracking-tight">
+          <p className="text-base font-bold text-[#6a12b8] tracking-tight">
             {fmt(order.total_amount)}
           </p>
         </div>
@@ -235,7 +236,7 @@ const OrderRow = ({ order, onStatusChange }: {
             {order.items.map(item => (
               <div key={item.id} className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#3b2063] mt-2 shrink-0" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#6a12b8] mt-2 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-[#1a0f2e]">
                       {item.qty}× {item.name}
@@ -260,7 +261,7 @@ const OrderRow = ({ order, onStatusChange }: {
           {/* Receipt footer */}
           <div className="mt-4 pt-4 border-t border-zinc-200 flex justify-between items-center">
             <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Total</span>
-            <span className="text-base font-bold text-[#3b2063]">
+            <span className="text-base font-bold text-[#6a12b8]">
               {fmt(order.total_amount)}
             </span>
           </div>
@@ -284,11 +285,8 @@ const BM_AppOrders = () => {
     else setRefreshing(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/branch/app-orders`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${getToken()}`,
-        },
+      const res = await fetch(`/api/branch/app-orders`, {
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -344,23 +342,39 @@ const BM_AppOrders = () => {
       <GlobalStyles />
       <div className="p-6 md:p-8 flex flex-col gap-6 fade-in">
 
-        {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-base font-bold text-[#1a0f2e]">App Orders</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">Today's mobile orders for your branch</p>
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          <div className="relative group flex-1 w-full md:w-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
+            <input
+              type="text"
+              placeholder="Search orders or items..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusFilter)}
+            className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
+            {STATUS_TABS.map(tab => (
+              <option key={tab.key} value={tab.key}>
+                {tab.label} ({tab.key === "all" ? orders.length : orders.filter(o => o.status.toLowerCase() === tab.key).length})
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
+            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
               <div className="ao-live-dot" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Live</span>
             </div>
-            <Btn variant="secondary" onClick={() => fetchOrders(true)} disabled={refreshing}>
-              <RefreshCw size={12} className={refreshing ? 'ao-spin' : ''} />
-              <span className="hidden sm:inline">Refresh</span>
+            <Btn variant="secondary" onClick={() => fetchOrders(true)} disabled={refreshing} className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
+              <RefreshCw size={14} className={refreshing ? "ao-spin" : ""} /> Refresh
             </Btn>
           </div>
         </div>
+      </div>
 
         {/* ── Stat Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -390,35 +404,7 @@ const BM_AppOrders = () => {
           />
         </div>
 
-        {/* ── Filters + Search ── */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            {STATUS_TABS.map(({ key, label }) => {
-              const active = statusFilter === key;
-              const count = key === 'all' ? orders.length : orders.filter(o => o.status.toLowerCase() === key).length;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setStatusFilter(key)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${active ? 'bg-[#3b2063] text-white' : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}
-                >
-                  {label} {count > 0 && `(${count})`}
-                </button>
-              );
-            })}
-          </div>
 
-          <div className="relative w-full md:w-auto shrink-0">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search orders or items…"
-              className="w-full md:w-64 pl-9 pr-3 py-2 bg-white border border-zinc-200 rounded-lg text-sm text-[#1a0f2e] placeholder-zinc-400 focus:outline-none focus:border-[#3b2063] focus:ring-1 focus:ring-[#3b2063] transition-all"
-            />
-          </div>
-        </div>
 
         {/* ── Orders List ── */}
         {loading ? (

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Package, AlertTriangle, XCircle, Truck, Clock,
-  RefreshCw, TrendingDown,
+  TrendingDown,
 } from 'lucide-react';
 import api from '../../../services/api';
 
@@ -97,7 +97,7 @@ const Badge: React.FC<{ cls: string; children: React.ReactNode }> = ({ cls, chil
     'badge-danger':  { background: '#fef2f2', color: '#dc2626', borderColor: '#fecaca' },
     'badge-warning': { background: '#fffbeb', color: '#d97706', borderColor: '#fde68a' },
     'badge-success': { background: '#f0fdf4', color: '#16a34a', borderColor: '#bbf7d0' },
-    'badge-violet':  { background: '#f5f0ff', color: '#3b2063', borderColor: '#e9d5ff' },
+    'badge-violet':  { background: '#f5f0ff', color: '#6a12b8', borderColor: '#e9d5ff' },
   };
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border"
@@ -116,22 +116,24 @@ const ProgressBar: React.FC<{ pct: number; color: string; width?: number }> = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const BM_InventoryDashboard: React.FC = () => {
+  const [branchId,  setBranchId]  = useState<number | null>(null);
   const [stats,     setStats]     = useState<OverviewStats>({ total_items: 0, low_stock: 0, out_of_stock: 0, pending_pos: 0 });
   const [alerts,    setAlerts]    = useState<StockAlert[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [branches,  setBranches]  = useState<BranchSummary[]>([]);
   const [loading,   setLoading]   = useState(true);
-  const [branch,    setBranch]    = useState('');
-  const [allBranches, setAllBranches] = useState<{ id: number; name: string }[]>([]);
 
   const fetchAll = useCallback(async () => {
+    if (branchId == null) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const [overviewRes, alertsRes, movementsRes, branchListRes] = await Promise.allSettled([
-        api.get('/inventory/overview', { params: branch ? { branch_id: branch } : {} }),
-        api.get('/inventory/alerts',   { params: branch ? { branch_id: branch } : {} }),
-        api.get('/raw-materials/movements', { params: { limit: 20, branch_id: branch || undefined } }),
-        api.get('/branches'),
+      const [overviewRes, alertsRes, movementsRes] = await Promise.allSettled([
+        api.get('/inventory/overview', { params: { branch_id: branchId } }),
+        api.get('/inventory/alerts',   { params: { branch_id: branchId } }),
+        api.get('/raw-materials/movements', { params: { limit: 20, branch_id: branchId } }),
       ]);
 
       if (overviewRes.status === 'fulfilled') {
@@ -167,23 +169,25 @@ if (movementsRes.status === 'fulfilled') {
     performed_by: str(m.performed_by),
   })));
 }
-      if (branchListRes.status === 'fulfilled') {
-        const bl = branchListRes.value.data;
-        setAllBranches(Array.isArray(bl) ? bl : bl?.data ?? []);
-      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [branch]);
+  }, [branchId]);
+
+  useEffect(() => {
+    api.get('/user')
+      .then(res => setBranchId(res.data?.branch_id ?? null))
+      .catch(() => setBranchId(null));
+  }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const moveDotColor = (type: string) => {
     if (type === 'add')      return '#16a34a';
     if (type === 'subtract') return '#dc2626';
-    return '#3b2063';
+    return '#6a12b8';
   };
 
 const resolveUnit = (unit: unknown): string => {
@@ -210,33 +214,15 @@ const resolveUnit = (unit: unknown): string => {
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Inventory Overview</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {loading ? 'Loading...' : 'All branches · Live stock health'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={branch}
-            onChange={e => setBranch(e.target.value)}
-            className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none">
-            <option value="">All Branches</option>
-            {allBranches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
-          </select>
-          <button onClick={fetchAll} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto" />
         </div>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
-        <StatCard label="Total Items"  value={stats.total_items}  sub="Across all branches"    icon={<Package   size={16} color="#3b2063" />} bg="#f5f0ff" border="#e9d5ff" />
+        <StatCard label="Total Items"  value={stats.total_items}  sub="Across all branches"    icon={<Package   size={16} color="#6a12b8" />} bg="#f5f0ff" border="#e9d5ff" />
         <StatCard label="Low Stock"    value={stats.low_stock}    sub="Below reorder level"    icon={<TrendingDown size={16} color="#dc2626" />} bg="#fef2f2" border="#fecaca" valueColor="#dc2626" subColor="#fca5a5" />
         <StatCard label="Out of Stock" value={stats.out_of_stock} sub="Needs restock now"      icon={<XCircle   size={16} color="#d97706" />} bg="#fffbeb" border="#fde68a" valueColor="#d97706" subColor="#fbbf24" />
         <StatCard label="Pending POs"  value={stats.pending_pos}  sub="Awaiting delivery"      icon={<Truck     size={16} color="#16a34a" />} bg="#f0fdf4" border="#bbf7d0" valueColor="#16a34a" subColor="#86efac" />
@@ -249,7 +235,7 @@ const resolveUnit = (unit: unknown): string => {
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-[#3b2063] p-2 rounded text-white"><AlertTriangle size={13} /></div>
+              <div className="bg-[#6a12b8] p-2 rounded text-white"><AlertTriangle size={13} /></div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wide text-[#1a0f2e]">Low Stock Alerts</p>
                 <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Items below reorder level</p>
@@ -285,7 +271,7 @@ const resolveUnit = (unit: unknown): string => {
                           </p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f5f0ff] text-[#3b2063] border border-[#e9d5ff]">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f5f0ff] text-[#6a12b8] border border-[#e9d5ff]">
                             {item.branch_name}
                           </span>
                         </td>
@@ -308,7 +294,7 @@ const resolveUnit = (unit: unknown): string => {
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-[#3b2063] p-2 rounded text-white"><Clock size={13} /></div>
+              <div className="bg-[#6a12b8] p-2 rounded text-white"><Clock size={13} /></div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wide text-[#1a0f2e]">Recent Movements</p>
                 <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Last 20 stock events</p>
@@ -339,7 +325,7 @@ const resolveUnit = (unit: unknown): string => {
       {/* Branch Summary Table */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
         <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center gap-3">
-          <div className="bg-[#3b2063] p-2 rounded text-white">
+          <div className="bg-[#6a12b8] p-2 rounded text-white">
             <Package size={13} />
           </div>
           <div>

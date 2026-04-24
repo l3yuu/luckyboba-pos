@@ -1,74 +1,98 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, Eye, Edit2, Trash2, Lock, UserCheck, XCircle,
-  Users, X, AlertCircle, RefreshCw, Mail, MapPin, ShieldCheck,
+  Users, X, AlertCircle, Mail, MapPin, ShieldCheck,
   Trash, CheckCircle, Laptop, MonitorCheck, MonitorOff, Plus,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
+import { SkeletonBar, SkeletonBox } from '../SharedSkeletons';
+
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
+  
+  .tl-staff-hub { font-family: 'DM Sans', sans-serif; background: #f8fafc; min-height: 100vh; color: #1e293b; }
+  
+  .tl-tile { 
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; 
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .tl-tile:hover { 
+    border-color: #cbd5e1; 
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);
+    transform: translateY(-2px);
+  }
+
+  .tl-label { font-size: 0.62rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.12em; }
+  .tl-value { font-size: 1.65rem; font-weight: 800; color: #0f172a; letter-spacing: -0.04em; line-height: 1.2; }
+
+  
+  @keyframes tl-spin { to { transform: rotate(360deg); } }
+  .tl-spin { animation: tl-spin 1s linear infinite; }
+`;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type VariantKey = 'primary' | 'secondary' | 'danger' | 'ghost';
-type SizeKey    = 'sm' | 'md' | 'lg';
+type SizeKey = 'sm' | 'md' | 'lg';
 
 interface Staff {
-  id:            number;
-  name:          string;
-  email:         string;
-  role:          string;
-  branch:        string;
-  branch_id:     number | null;
-  status:        string;
-  lastLogin?:    string;
-  login_count:   number;
-  created_at:    string;
-  has_pin:       boolean;
-  device_id?:    number | null;
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  branch: string;
+  branch_id: number | null;
+  status: string;
+  lastLogin?: string;
+  login_count: number;
+  created_at: string;
+  has_pin: boolean;
+  device_id?: number | null;
   device_number?: string | null;
 }
 
 interface FormState {
-  name:            string;
-  email:           string;
-  password:        string;
+  name: string;
+  email: string;
+  password: string;
   passwordConfirm: string;
-  status:          string;
-  role:            string;
+  status: string;
+  role: string;
 }
 
 interface PosDevice {
-  id:          number;
+  id: number;
   device_name: string;
-  pos_number:  string;
-  branch_id:   number;
-  status:      string;
-  user_id:     number | null;
-  user?:       { id: number; name: string } | null;
-  branch?:     { id: number; name: string } | null;
+  pos_number: string;
+  branch_id: number;
+  status: string;
+  user_id: number | null;
+  user?: { id: number; name: string } | null;
+  branch?: { id: number; name: string } | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapStaff = (u: any): Staff => ({
-  id:            u.id,
-  name:          u.name,
-  email:         u.email,
-  role:          u.role,
-  branch:        u.branch ?? u.branch_name ?? '—',
-  branch_id:     u.branch_id ?? null,
-  status:        u.status,
-  lastLogin:     u.last_login_at
+  id: u.id,
+  name: u.name,
+  email: u.email,
+  role: u.role,
+  branch: u.branch ?? u.branch_name ?? '—',
+  branch_id: u.branch_id ?? null,
+  status: u.status,
+  lastLogin: u.last_login_at
     ? new Date(u.last_login_at).toLocaleString('en-PH', {
-        month: 'short', day: 'numeric', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      })
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
     : undefined,
-  login_count:   u.login_count ?? 0,
-  created_at:    u.created_at,
-  has_pin:       u.has_pin ?? false,
-  device_id:     u.device_id ?? null,
+  login_count: u.login_count ?? 0,
+  created_at: u.created_at,
+  has_pin: u.has_pin ?? false,
+  device_id: u.device_id ?? null,
   device_number: u.device_number ?? u.pos_number ?? null,
 });
 
@@ -79,7 +103,7 @@ const blankForm = (): FormState => ({
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
 const Avatar: React.FC<{ name: string; size?: string }> = ({ name, size = 'w-7 h-7 text-[10px]' }) => (
-  <div className={`${size} rounded-full bg-[#ede8ff] flex items-center justify-center font-bold text-[#3b2063] shrink-0`}>
+  <div className={`${size} rounded-full bg-[#ede8ff] flex items-center justify-center font-bold text-[#6a12b8] shrink-0`}>
     {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
   </div>
 );
@@ -89,8 +113,8 @@ const Badge: React.FC<{ status: string }> = ({ status }) => {
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
       ${isActive
-        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-        : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
+        ? 'bg-[#10b981]10 text-[#059669] border border-[#10b981]20'
+        : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
       {status}
     </span>
   );
@@ -98,11 +122,11 @@ const Badge: React.FC<{ status: string }> = ({ status }) => {
 
 const DevicePill: React.FC<{ deviceNumber?: string | null }> = ({ deviceNumber }) =>
   deviceNumber ? (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#6a12b8]08 text-[#6a12b8] border border-[#6a12b8]20 px-2 py-0.5 rounded-full">
       <MonitorCheck size={9} />{deviceNumber}
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded-full">
       <MonitorOff size={9} />None
     </span>
   );
@@ -117,12 +141,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = 'primary', size = 'sm',
   onClick, className = '', disabled = false, type = 'button',
 }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: 'px-3 py-2 text-xs', md: 'px-4 py-2.5 text-sm', lg: 'px-6 py-3 text-sm' };
+  const sizes: Record<SizeKey, string> = { sm: 'px-3 py-2 text-xs', md: 'px-4 py-2.5 text-sm', lg: 'px-6 py-3 text-sm' };
   const variants: Record<VariantKey, string> = {
-    primary:   'bg-[#3b2063] hover:bg-[#2a1647] text-white',
-    secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
-    danger:    'bg-red-600 hover:bg-red-700 text-white',
-    ghost:     'bg-transparent text-zinc-500 hover:bg-zinc-100',
+    primary: 'bg-[#6a12b8] hover:bg-[#2a1647] text-white',
+    secondary: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50',
+    danger: 'bg-rose-500 hover:bg-rose-600 text-white',
+    ghost: 'bg-transparent text-slate-500 hover:bg-slate-100',
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -132,63 +156,77 @@ const Btn: React.FC<BtnProps> = ({
   );
 };
 
+const StatTile: React.FC<{ label: string; value: string | number; icon: React.ElementType; color: string }> = ({ label, value, icon: Icon, color }) => (
+  <div className="tl-tile p-6 flex flex-col justify-between min-h-[140px]">
+    <div className="flex items-start justify-between">
+      <div className="p-2.5 rounded-lg" style={{ background: `${color}08`, color }}>
+        <Icon size={20} strokeWidth={2.5} />
+      </div>
+    </div>
+    <div className="mt-4">
+      <p className="tl-label mb-1">{label}</p>
+      <p className="tl-value">{value}</p>
+    </div>
+  </div>
+);
+
 // ─── Modal Shell ──────────────────────────────────────────────────────────────
 
 const ModalShell: React.FC<{
   onClose: () => void; icon: React.ReactNode; title: string; sub: string;
   children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
 }> = ({ onClose, icon, title, sub, children, footer, maxWidth = 'max-w-md' }) =>
-  createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
-            <div>
-              <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
-              <p className="text-[10px] text-zinc-400">{sub}</p>
+    createPortal(
+      <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+        style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', backgroundColor: 'rgba(15, 23, 42, 0.45)' }}>
+        <div className="absolute inset-0" onClick={onClose} />
+        <div className={`relative bg-white w-full ${maxWidth} border border-slate-200 rounded-[1.25rem] shadow-2xl overflow-hidden`}>
+          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/30">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-[#6a12b8]08 border border-[#6a12b8]15 rounded-xl flex items-center justify-center text-[#6a12b8]">{icon}</div>
+              <div>
+                <p className="text-sm font-bold text-slate-900">{title}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{sub}</p>
+              </div>
             </div>
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-slate-600">
+              <X size={18} />
+            </button>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
-            <X size={16} />
-          </button>
+          <div className="px-6 py-6 flex flex-col gap-5 max-h-[65vh] overflow-y-auto">{children}</div>
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/30">{footer}</div>
         </div>
-        <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
-      </div>
-    </div>,
-    document.body
-  );
+      </div>,
+      document.body
+    );
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
 
 const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
-  <div>
-    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-      {label} {required && <span className="text-red-400">*</span>}
+  <div className="space-y-1.5">
+    <label className="tl-label block ml-1 text-slate-500">
+      {label} {required && <span className="text-rose-500">*</span>}
     </label>
     {children}
-    {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
+    {error && <p className="text-[10px] font-bold text-rose-500 ml-1">{error}</p>}
   </div>
 );
 
 const inputCls = (err?: string) =>
-  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
+  `w-full text-sm font-bold text-slate-700 bg-slate-50 border rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#6a12b8]/10 focus:border-[#6a12b8] focus:bg-white transition-all ${err ? 'border-rose-300 bg-rose-50' : 'border-slate-200'}`;
 
 // ─── View Modal ───────────────────────────────────────────────────────────────
 
 const ViewStaffModal: React.FC<{ onClose: () => void; user: Staff }> = ({ onClose, user }) => {
   const rows: [string, React.ReactNode][] = [
-    ['Staff ID',   `#${user.id}`],
-    ['Name',       <div className="flex items-center gap-2"><Avatar name={user.name} />{user.name}</div>],
-    ['Email',      <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>],
-    ['Branch',     <span className="flex items-center gap-1"><MapPin size={11} />{user.branch}</span>],
-    ['Role',       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">{user.role === 'team_leader' ? 'Team Leader' : 'Cashier'}</span>],
-    ['Status',     <Badge status={user.status} />],
+    ['Staff ID', `#${user.id}`],
+    ['Name', <div className="flex items-center gap-2"><Avatar name={user.name} />{user.name}</div>],
+    ['Email', <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>],
+    ['Branch', <span className="flex items-center gap-1"><MapPin size={11} />{user.branch}</span>],
+    ['Role', <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">{user.role === 'team_leader' ? 'Team Leader' : 'Cashier'}</span>],
+    ['Status', <Badge status={user.status} />],
     ['Last Login', user.lastLogin ?? '—'],
-    ['Device',     user.device_number
+    ['Device', user.device_number
       ? <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1"><MonitorCheck size={9} />{user.device_number}</span>
       : <span className="text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full flex items-center gap-1"><MonitorOff size={9} />No device</span>],
   ];
@@ -211,23 +249,23 @@ const ViewStaffModal: React.FC<{ onClose: () => void; user: Staff }> = ({ onClos
 // ─── Staff Form Modal (Add / Edit) ────────────────────────────────────────────
 
 const StaffFormModal: React.FC<{
-  onClose:      () => void;
-  onSaved:      (u: Staff) => void;
+  onClose: () => void;
+  onSaved: (u: Staff) => void;
   editingUser?: Staff | null;
-  branchId:     number | null;
+  branchId: number | null;
 }> = ({ onClose, onSaved, editingUser, branchId }) => {
   const [form, setForm] = useState<FormState>(
     editingUser
       ? { name: editingUser.name, email: editingUser.email, password: '', passwordConfirm: '', status: editingUser.status, role: editingUser.role }
       : blankForm()
   );
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [saving,   setSaving]   = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())  e.name  = 'Name is required.';
+    if (!form.name.trim()) e.name = 'Name is required.';
     if (!form.email.trim()) e.email = 'Email is required.';
     if (!editingUser && !form.password) e.password = 'Password is required.';
     if (form.password && form.password.length < 6) e.password = 'Password must be at least 6 characters.';
@@ -247,7 +285,7 @@ const StaffFormModal: React.FC<{
           status: form.status, branch_id: branchId,
         };
         if (form.password) {
-          payload.password              = form.password;
+          payload.password = form.password;
           payload.password_confirmation = form.passwordConfirm;
         }
         const res = await api.put(`/users/${editingUser.id}`, payload);
@@ -341,11 +379,11 @@ const StaffFormModal: React.FC<{
 // ─── Toggle Status Modal ──────────────────────────────────────────────────────
 
 const ToggleStatusModal: React.FC<{
-  onClose:   () => void;
+  onClose: () => void;
   onToggled: (u: Staff) => void;
-  user:      Staff;
+  user: Staff;
 }> = ({ onClose, onToggled, user }) => {
-  const [saving,   setSaving]   = useState(false);
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
   const isActive = user.status === 'ACTIVE';
 
@@ -413,11 +451,11 @@ const ToggleStatusModal: React.FC<{
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 
 const DeleteStaffModal: React.FC<{
-  onClose:   () => void;
+  onClose: () => void;
   onDeleted: (id: number) => void;
-  user:      Staff;
+  user: Staff;
 }> = ({ onClose, onDeleted, user }) => {
-  const [saving,   setSaving]   = useState(false);
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
 
   const handleDelete = async () => {
@@ -479,16 +517,16 @@ const DeleteStaffModal: React.FC<{
 // ─── Assign Device Modal ──────────────────────────────────────────────────────
 
 const AssignDeviceModal: React.FC<{
-  onClose:     () => void;
+  onClose: () => void;
   onAssigned?: (userId: number, deviceId: number | null, deviceNumber: string | null) => void;
-  user:        Staff;
+  user: Staff;
 }> = ({ onClose, onAssigned, user }) => {
-  const [devices,    setDevices]    = useState<PosDevice[]>([]);
+  const [devices, setDevices] = useState<PosDevice[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
-  const [loading,    setLoading]    = useState(true);
-  const [saving,     setSaving]     = useState(false);
-  const [apiError,   setApiError]   = useState('');
-  const [success,    setSuccess]    = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const currentDevice = devices.find(d => d.user_id === user.id);
 
@@ -496,7 +534,7 @@ const AssignDeviceModal: React.FC<{
     (async () => {
       setLoading(true);
       try {
-        const res  = await api.get('/pos-devices');
+        const res = await api.get('/pos-devices');
         const list: PosDevice[] = res.data?.data ?? res.data?.devices ?? [];
         setDevices(list.filter(d => d.status === 'ACTIVE'));
         const assigned = list.find(d => d.user_id === user.id);
@@ -578,11 +616,11 @@ const AssignDeviceModal: React.FC<{
             </div>
             {currentDevice
               ? <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <MonitorCheck size={9} />{currentDevice.pos_number}
-                </span>
+                <MonitorCheck size={9} />{currentDevice.pos_number}
+              </span>
               : <span className="text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <MonitorOff size={9} />No device
-                </span>}
+                <MonitorOff size={9} />No device
+              </span>}
           </div>
           {currentDevice ? (
             <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg">
@@ -633,16 +671,16 @@ const AssignDeviceModal: React.FC<{
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
-  const [staff,      setStaff]      = useState<Staff[]>([]);
-  const [loading,    setLoading]    = useState(true);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
-  const [search,     setSearch]     = useState('');
+  const [search, setSearch] = useState('');
 
-  const [addOpen,      setAddOpen]      = useState(false);
-  const [viewTarget,   setViewTarget]   = useState<Staff | null>(null);
-  const [editTarget,   setEditTarget]   = useState<Staff | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewTarget, setViewTarget] = useState<Staff | null>(null);
+  const [editTarget, setEditTarget] = useState<Staff | null>(null);
   const [toggleTarget, setToggleTarget] = useState<Staff | null>(null);
-  const [delTarget,    setDelTarget]    = useState<Staff | null>(null);
+  const [delTarget, setDelTarget] = useState<Staff | null>(null);
   const [deviceTarget, setDeviceTarget] = useState<Staff | null>(null);
 
   const fetchStaff = useCallback(async () => {
@@ -680,91 +718,74 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
     u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const activeCount   = staff.filter(u => u.status === 'ACTIVE').length;
+  const activeCount = staff.filter(u => u.status === 'ACTIVE').length;
   const inactiveCount = staff.filter(u => u.status !== 'ACTIVE').length;
 
   return (
-    <div className="p-6 md:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Staff Overview</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? 'Loading...' : `${staff.length} staff · ${activeCount} active`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchStaff} disabled={loading}>
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </Btn>
-          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
-            <Plus size={13} /> Add Staff
-          </Btn>
-        </div>
-      </div>
+    <div className="tl-staff-hub p-8 md:p-12">
+      <style>{STYLES}</style>
 
       {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-violet-50 border border-violet-200 flex items-center justify-center rounded-[0.4rem]">
-            <Users size={16} className="text-violet-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Staff</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : staff.length}</p>
-          </div>
-        </div>
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-50 border border-emerald-200 flex items-center justify-center rounded-[0.4rem]">
-            <UserCheck size={16} className="text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Active</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : activeCount}</p>
-          </div>
-        </div>
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-50 border border-red-200 flex items-center justify-center rounded-[0.4rem]">
-            <XCircle size={16} className="text-red-500" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Inactive</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : inactiveCount}</p>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+        {loading ? (
+          [...Array(3)].map((_, i) => <SkeletonBox key={i} className="min-h-[140px]" />)
+        ) : (
+          <>
+            <StatTile
+              icon={Users}
+              label="Total Staff"
+              value={staff.length}
+              color="#6a12b8"
+            />
+            <StatTile
+              icon={UserCheck}
+              label="Active"
+              value={activeCount}
+              color="#10b981"
+            />
+            <StatTile
+              icon={XCircle}
+              label="Inactive"
+              value={inactiveCount}
+              color="#f43f5e"
+            />
+          </>
+        )}
       </div>
 
-      {/* ── Table ── */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-            <Search size={13} className="text-zinc-400" />
+      {/* ── Table Container ── */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex-1 flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2.5 shadow-sm transition-all focus-within:border-[#6a12b8] focus-within:ring-1 focus-within:ring-[#6a12b8]/10">
+            <Search size={14} className="text-slate-400" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+              className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 font-medium"
               placeholder="Search staff..."
             />
           </div>
+          <Btn onClick={() => setAddOpen(true)} disabled={loading} className="shrink-0 h-[42px]">
+            <Plus size={14} /> Add Staff
+          </Btn>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-100">
+              <tr className="border-b border-slate-100">
                 {['Name', 'Email', 'Role', 'Device', 'Last Login', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                  <th key={h} className="px-6 py-4 text-left tl-label">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {/* Skeleton rows */}
               {loading && [...Array(4)].map((_, i) => (
-                <tr key={i} className="border-b border-zinc-50">
+                <tr key={i} className="border-b border-slate-50">
                   {[...Array(7)].map((_, j) => (
-                    <td key={j} className="px-5 py-4">
-                      <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${60 + (j * 7) % 40}%` }} />
+                    <td key={j} className="px-6 py-5">
+                      <SkeletonBar h="h-4" style={{ width: `${60 + (j * 7) % 40}%` }} />
                     </td>
                   ))}
                 </tr>
@@ -794,56 +815,54 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
 
               {/* Data rows */}
               {!loading && !fetchError && filtered.map(u => (
-                <tr key={u.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2.5">
+                <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
                       <Avatar name={u.name} />
-                      <span className="font-semibold text-[#1a0f2e]">{u.name}</span>
+                      <span className="font-bold text-slate-800 tracking-tight">{u.name}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-zinc-500">{u.email}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      u.role === 'team_leader'
-                        ? 'bg-violet-50 text-violet-700 border border-violet-200'
-                        : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
-                    }`}>
+                  <td className="px-6 py-4 text-slate-500 font-medium">{u.email}</td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${u.role === 'team_leader'
+                      ? 'bg-[#6a12b8]08 text-[#6a12b8] border border-[#6a12b8]20'
+                      : 'bg-slate-100 text-slate-500 border border-slate-200'
+                      }`}>
                       {u.role === 'team_leader' ? 'Team Leader' : 'Cashier'}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-6 py-4">
                     <DevicePill deviceNumber={u.device_number} />
                   </td>
-                  <td className="px-5 py-3.5 text-zinc-400 text-xs">{u.lastLogin ?? '—'}</td>
-                  <td className="px-5 py-3.5"><Badge status={u.status} /></td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-1">
+                  <td className="px-6 py-4 text-slate-400 text-xs font-bold tabular-nums">{u.lastLogin ?? '—'}</td>
+                  <td className="px-6 py-4 text-center"><Badge status={u.status} /></td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
                       <button onClick={() => setViewTarget(u)}
-                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="View">
-                        <Eye size={13} />
+                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-[#6a12b8] transition-colors" title="View">
+                        <Eye size={14} />
                       </button>
                       <button onClick={() => setEditTarget(u)}
-                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
-                        <Edit2 size={13} />
+                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-[#6a12b8] transition-colors" title="Edit">
+                        <Edit2 size={14} />
                       </button>
                       <button onClick={() => setToggleTarget(u)}
-                        className={`p-1.5 rounded-[0.4rem] transition-colors ${u.status === 'ACTIVE' ? 'hover:bg-amber-50 text-zinc-400 hover:text-amber-500' : 'hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600'}`}
+                        className={`p-1.5 rounded-lg transition-colors ${u.status === 'ACTIVE' ? 'hover:bg-amber-50 text-slate-400 hover:text-amber-500' : 'hover:bg-emerald-50 text-slate-400 hover:text-emerald-600'}`}
                         title={u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
-                        {u.status === 'ACTIVE' ? <Lock size={13} /> : <UserCheck size={13} />}
+                        {u.status === 'ACTIVE' ? <Lock size={14} /> : <UserCheck size={14} />}
                       </button>
                       <button onClick={() => setDelTarget(u)}
-                        className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
-                        <Trash2 size={13} />
+                        className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 transition-colors" title="Delete">
+                        <Trash2 size={14} />
                       </button>
                       <button
                         onClick={() => setDeviceTarget(u)}
-                        className={`p-1.5 rounded-[0.4rem] transition-colors ${
-                          u.device_number
-                            ? 'hover:bg-violet-50 text-violet-500 hover:text-violet-700'
-                            : 'hover:bg-amber-50 text-amber-400 hover:text-amber-600'
-                        }`}
+                        className={`p-1.5 rounded-lg transition-colors ${u.device_number
+                          ? 'hover:bg-slate-100 text-[#6a12b8] hover:text-[#2a1647]'
+                          : 'hover:bg-amber-50 text-amber-500 hover:text-amber-700'
+                          }`}
                         title={u.device_number ? `Device: ${u.device_number} — click to change` : 'No device — click to assign'}>
-                        <Laptop size={13} />
+                        <Laptop size={14} />
                       </button>
                     </div>
                   </td>

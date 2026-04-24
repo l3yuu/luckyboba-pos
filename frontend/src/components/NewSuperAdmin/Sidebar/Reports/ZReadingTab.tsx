@@ -26,6 +26,8 @@ interface ZReading {
   gross_sales:    number;
   discount:       number;
   net_sales:      number;
+  net_total?:     number;
+  rounding_adjustment?: number;
   cash:           number;
   gcash:          number;
   card:           number;
@@ -56,6 +58,7 @@ interface CashierRow {
 interface BranchOption { id: number; name: string; }
 
 interface XReadingReport {
+  rounding_adjustment?: number;
   date?: string;
   other_discount?: number;
   gross_sales?: number;
@@ -63,6 +66,7 @@ interface XReadingReport {
   transaction_count?: number;
   cash_total?: number;
   non_cash_total?: number;
+  total_payments?: number;
   report_type?: string;
   logs?: { id: string; reason: string; amount: number; time: string }[];
   items?: { product_name: string; total_qty: number; total_sales?: number }[];
@@ -124,6 +128,7 @@ interface XReadingReport {
   over_short?: number;
   net_total?: number;
   expected_amount?: number;
+  less_vat?: number;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -138,7 +143,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -211,7 +216,7 @@ const CloseShiftModal: React.FC<{
 const ZReadingTab: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
-  const [branchId,     setBranchId]     = useState("");
+  const [branchId,     setBranchId]     = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [dateFrom,     setDateFrom]     = useState(today);
   const [dateTo,       setDateTo]       = useState(today);
   const [loading,      setLoading]      = useState(false);
@@ -230,8 +235,17 @@ const ZReadingTab: React.FC = () => {
   const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
+  const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
+
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
+  const [zStatus, setZStatus] = useState<{ exists: boolean; is_closed: boolean; has_sales: boolean } | null>(null);
+  const [gaps, setGaps] = useState<string[]>([]);
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
@@ -239,6 +253,39 @@ const ZReadingTab: React.FC = () => {
     setToast(msg);
     setTimeout(() => setToast(""), 3500);
   };
+
+  const fetchStatus = useCallback(async () => {
+    if (!branchId) return;
+    setCheckingStatus(true);
+    try {
+      const res = await fetch(`/api/reports/z-reading/status?date=${dateFrom}&branch_id=${branchId}`, { headers: authHeaders() });
+      const json = await res.json();
+      if (json.success) setZStatus(json.data);
+    } catch (err) {
+      console.error("Status check failed", err);
+    } finally {
+      setCheckingStatus(false);
+    }
+  }, [branchId, dateFrom]);
+
+  const fetchGaps = useCallback(async () => {
+    if (!branchId) return;
+    try {
+      const res = await fetch(`/api/reports/z-reading/gaps?branch_id=${branchId}`, { headers: authHeaders() });
+      const json = await res.json();
+      if (json.success) setGaps(json.data);
+    } catch (err) {
+      console.error("Gap check failed", err);
+    }
+  }, [branchId]);
+
+  useEffect(() => {
+    fetchGaps();
+  }, [fetchGaps, branchId]);
+
+  useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus, branchId, dateFrom]);
 
 
 
@@ -374,11 +421,15 @@ const ZReadingTab: React.FC = () => {
         const list = d.success ? d.data : (Array.isArray(d) ? d : []);
         if (list.length > 0) {
           setBranches(list);
-          setBranchId(String(list[0].id));
+          if (!branchId) {
+            const defaultId = String(list[0].id);
+            setBranchId(defaultId);
+            localStorage.setItem('superadmin_selected_branch', defaultId);
+          }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [branchId]);
 
   // ── Full Z-Reading = merge z-reading + cash-counts + item-quantities + void-logs ──
   const fetchFullZReading = useCallback(async () => {
@@ -423,10 +474,13 @@ const ZReadingTab: React.FC = () => {
       const merged = {
         ...zData,
         gross_sales:        computedGross,
+        net_total:          Number(zData.net_total ?? 0),
+        rounding_adjustment: Number(zData.rounding_adjustment ?? 0),
         cash_denominations: cashDenominations,
         total_cash_count:   totalCashCount,
         expected_amount:    expectedAmount,
-        over_short:         totalCashCount - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+        less_vat:           Number(zData.less_vat ?? 0),
+        over_short:         totalCashCount - expectedAmount,
         categories:         (qtyRes as Record<string, unknown>).categories ?? [],
         all_addons_summary: (qtyRes as Record<string, unknown>).all_addons_summary ?? [],
         logs:               (voidRes as Record<string, unknown>).logs ?? (Array.isArray(voidRes) ? voidRes : []),
@@ -515,10 +569,10 @@ const handlePrint = () => window.print();
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
   // ── Receipt helpers ────────────────────────────────────────────────────────
-  const ReceiptRow = ({ label, value }: { label: string; value: string | number }) => (
+  const ReceiptRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="flex justify-between text-[11px] leading-snug">
       <span className="uppercase w-[60%] leading-tight">{label}</span>
-      <span className="text-right w-[40%]">{value}</span>
+      <span className="text-right w-[40%] whitespace-pre-line">{value}</span>
     </div>
   );
   const ReceiptDivider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
@@ -635,6 +689,75 @@ const handlePrint = () => window.print();
             ))}
           </div>
         )}
+        {(() => {
+          const cupGroups = [
+            { name: 'Standard Cup', sizes: ['SM', 'SL'] },
+            { name: 'Junior Cup', sizes: ['JR'] },
+            { name: 'Upturn Cup', sizes: ['UM', 'UL'] },
+            { name: 'Plastic Cup', sizes: ['PCM', 'PCL'] },
+          ];
+          
+          const groupData = cupGroups.map(group => {
+            const sizeMap = new Map<string, number>();
+            group.sizes.forEach(s => sizeMap.set(s, 0));
+            return { ...group, sizeMap, total: 0 };
+          });
+
+          let hasAnyCups = false;
+          let grandTotalCups = 0;
+
+          reportData.categories.forEach(cat => {
+            cat.products.forEach(product => {
+              if (product.size) {
+                 const group = groupData.find(g => g.sizes.includes(product.size!));
+                 if (group) {
+                   group.sizeMap.set(product.size, (group.sizeMap.get(product.size) ?? 0) + product.total_qty);
+                   group.total += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
+                 }
+              }
+            });
+          });
+
+          if (!hasAnyCups) return null;
+
+          return (
+            <div className="mt-1">
+              <ReceiptDivider />
+              {groupData.map(group => {
+                if (group.total === 0) return null;
+                return (
+                  <div key={group.name} className="mb-1.5">
+                    <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                      <span className="w-[75%] uppercase">{group.name}</span>
+                      <span className="w-[25%] text-right uppercase">Qty</span>
+                    </div>
+                    {group.sizes.map(size => {
+                       const qty = group.sizeMap.get(size) ?? 0;
+                       if (qty === 0) return null;
+                       return (
+                         <div key={size} className="flex text-[11px] leading-snug">
+                           <span className="w-[75%] uppercase pl-2">{size}</span>
+                           <span className="w-[25%] text-right">{qty}</span>
+                         </div>
+                       );
+                    })}
+                    <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                       <span className="uppercase">TOTAL ({group.name})</span>
+                       <span>{group.total}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              <ReceiptDivider />
+              <div className="flex justify-between text-[11px] font-bold mt-0.5 pt-0.5">
+                <span className="uppercase">TOTAL CUPS</span>
+                <span>Qty: {grandTotalCups}</span>
+              </div>
+            </div>
+          );
+        })()}
         <ReceiptDivider />
         <div className="flex justify-between text-[11px]">
           <span className="uppercase">All Day Total</span>
@@ -866,19 +989,19 @@ const handlePrint = () => window.print();
 
   const renderXReading = () => {
     const gross        = reportData?.gross_sales       || 0;
-    const netSales     = reportData?.net_sales         || 0;
-    const cashTotal    = reportData?.cash_total        || 0;
-    const nonCash      = reportData?.non_cash_total    || 0;
     const txCount      = reportData?.transaction_count || 0;
     const scDiscount   = reportData?.sc_discount       || 0;
     const pwdDiscount  = reportData?.pwd_discount      || 0;
     const diplomat     = reportData?.diplomat_discount || 0;
     const otherDisc    = reportData?.other_discount    || 0;
-    const totalDisc    = scDiscount + pwdDiscount + diplomat + otherDisc;
+    const totalDisc    = roundTo2(scDiscount + pwdDiscount + diplomat + otherDisc);
     const reportIsVat  = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
     const vatableSales = reportData?.vatable_sales    || 0;
     const vatAmount    = reportData?.vat_amount       || 0;
     const vatExempt    = reportData?.vat_exempt_sales || 0;
+    const netSales     = roundTo2(reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc));
+    const cashTotal    = reportData?.cash_total        || 0;
+    const nonCash      = reportData?.non_cash_total    || 0;
     const voids        = reportData?.total_void_amount || 0;
     const PAYMENT_METHODS = ["food panda","grab","gcash","visa","mastercard","cash"];
     const METHOD_ALIASES: Record<string, string> = { panda: "food panda", foodpanda: "food panda", food_panda: "food panda", grabfood: "grab", "grab food": "grab", "master card": "mastercard", master: "mastercard", "visa card": "visa", "e-wallet": "gcash" };
@@ -905,7 +1028,10 @@ const handlePrint = () => window.print();
         <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(vatExempt)} />
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
-        <ReceiptRow label="Net Sales"       value={phCurrency.format(netSales)} />
+        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+          <span></span>
+        </div>
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="Gross Amount"    value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -928,7 +1054,10 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="Total Cash"      value={phCurrency.format(cashTotal)} />
         <ReceiptRow label="Total Non-Cash"  value={phCurrency.format(nonCash)} />
-        <ReceiptRow label="Total Payments"  value={phCurrency.format(gross)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <ReceiptRow label="Total Payments"  value={phCurrency.format(roundTo2(netSales + (reportData?.rounding_adjustment || 0)))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Transaction Summary</p>
         <ReceiptRow label="Cash In"          value={phCurrency.format(reportData?.cash_in || 0)} />
@@ -947,22 +1076,23 @@ const handlePrint = () => window.print();
     const pwdDiscount    = reportData?.pwd_discount || 0;
     const diplomat       = reportData?.diplomat_discount || 0;
     const otherDiscount  = reportData?.other_discount || 0;
-    const totalDisc      = reportData?.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
-    const netSales       = reportData?.net_sales ?? (gross - totalDisc);
-    const netTotal       = reportData?.net_sales ?? reportData?.net_total ?? (gross - totalDisc);
+    const lessVat        = reportData?.less_vat || 0;
+    const totalDisc      = roundTo2(reportData?.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount));
     const txCount        = reportData?.transaction_count || 0;
     const vatableSales   = reportData?.vatable_sales || 0;
     const vatAmount      = reportData?.vat_amount || 0;
+    const vatExemptSales = reportData?.vat_exempt_sales || 0;
     const voids          = reportData?.total_void_amount || 0;
     const qtyTotal       = reportData?.total_qty_sold || 0;
     const cashDrop       = reportData?.cash_drop || 0;
     const cashIn         = reportData?.cash_in || 0;
     const resetCounter   = reportData?.reset_counter ?? 0;
     const zCounter       = reportData?.z_counter ?? 1;
-    const presentAccumulated  = reportData?.present_accumulated ?? gross;
-    const previousAccumulated = reportData?.previous_accumulated ?? 0;
-    const salesForDay    = reportData?.sales_for_the_day ?? gross;
     const reportIsVat    = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+    const netSales       = roundTo2(reportIsVat ? (vatableSales + vatAmount + vatExemptSales) : (gross - totalDisc));
+    const salesForDay    = netSales;
+    const previousAccumulated = reportData?.previous_accumulated ?? 0;
+    const presentAccumulated  = previousAccumulated + salesForDay;
 
     const PAYMENT_METHODS = ["food panda","grab","gcash","visa","mastercard","cash"];
     const METHOD_ALIASES: Record<string, string> = {
@@ -982,12 +1112,13 @@ const handlePrint = () => window.print();
     const totalDebit  = 0;
     const totalCard   = totalCredit + totalDebit;
     const actualCash    = paymentMap.get("cash") || 0;
-    const actualNonCash = gross - actualCash;
+    const totalPaymentsReceived = roundTo2(reportData?.total_payments ?? Array.from(paymentMap.values()).reduce((a, b) => a + b, 0));
+    const actualNonCash = roundTo2(reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash));
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
     const apiExpected = reportData?.expected_amount ?? 0;
-    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
-    const overShort   = reportData?.over_short ?? (totalCashCount - expectedEOD);
+    const expectedEOD = roundTo2(apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop));
+    const overShort   = roundTo2(reportData?.over_short ?? (totalCashCount - expectedEOD));
     const now = new Date();
     const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
@@ -996,8 +1127,8 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="REPORT DATE" value={now.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} />
         <ReceiptRow label="REPORT TIME" value={timeStr} />
-        <ReceiptRow label="START DATE & TIME" value={`${dateFrom} ${timeStr}`} />
-        <ReceiptRow label="END DATE & TIME" value={`${dateTo} ${timeStr}`} />
+        <ReceiptRow label="START DATE & TIME" value={`${dateFrom}\n${timeStr}`} />
+        <ReceiptRow label="END DATE & TIME" value={`${dateTo}\n${timeStr}`} />
         <ReceiptRow label="TERMINAL #" value="ALL" />
         <ReceiptRow label="BRANCH" value={selectedBranchName} />
         <ReceiptRow label="CASHIER" value={reportData?.prepared_by || "ADMIN USER"} />
@@ -1018,6 +1149,7 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
         <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="SC/PWD VAT" value={phCurrency.format(lessVat)} />
         <ReceiptRow label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -1043,7 +1175,10 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="TOTAL CASH" value={phCurrency.format(actualCash)} />
         <ReceiptRow label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(roundTo2(netSales + (reportData?.rounding_adjustment || 0)))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <ReceiptRow label="TRANSACTION COUNT" value={txCount} />
@@ -1109,7 +1244,7 @@ const handlePrint = () => window.print();
             </div>
             <div className="flex text-[11px] font-bold justify-between">
               <span className="uppercase">NET TOTAL</span>
-              <span>{phCurrency.format(netTotal)}</span>
+              <span>{phCurrency.format(reportData?.net_total || 0)}</span>
             </div>
           </>
         )}
@@ -1155,18 +1290,41 @@ const handlePrint = () => window.print();
         />
       )}
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3 print:hidden">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Z Reading</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">End-of-day closing report — finalizes and locks shift totals</p>
+      {/* ── GAP WARNING BANNER ── */}
+      {gaps.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 p-4 flex items-center justify-between shadow-sm rounded-[1.25rem] print:hidden">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-100 p-2 rounded-full text-amber-600">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <h4 className="text-amber-900 font-bold text-sm uppercase tracking-tight">Missing Z-Readings detected</h4>
+              <p className="text-amber-700 text-[10px] font-bold leading-tight mt-0.5 uppercase tracking-wide">There are {gaps.length} days with sales that haven't been finalized for this branch.</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+             {gaps.slice(0, 3).map(gapDate => (
+               <button 
+                key={gapDate} 
+                onClick={() => { setDateFrom(gapDate); setDateTo(gapDate); }}
+                className="bg-white border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-amber-100 transition-colors"
+               >
+                 {gapDate}
+               </button>
+             ))}
+             {gaps.length > 3 && <span className="text-amber-500 font-bold self-center text-xs">+{gaps.length - 3} more</span>}
+          </div>
         </div>
+      )}
+
+      {/* ── Header ── */}
+      <div className="flex flex-wrap items-center justify-start gap-3 mb-1 print:hidden">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${
-                isMenuOpen ? "bg-[#3b2063] text-white border-[#3b2063]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                isMenuOpen ? "bg-[#6a12b8] text-white border-[#6a12b8]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
               }`}
             >
               <Menu size={13} /> Menu
@@ -1175,14 +1333,14 @@ const handlePrint = () => window.print();
               <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-violet-100 shadow-2xl p-4 z-50 rounded-[0.625rem]">
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#7c14d4]"   },
+                    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#6a12b8]"   },
                     { label: "OVERVIEW",    title: "SALES SUMMARY",  type: "summary",      color: "border-amber-400"   },
-                    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#7c14d4]"   },
-                    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#7c14d4]"   },
-                    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#7c14d4]"   },
-                    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#7c14d4]"   },
+                    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#6a12b8]"   },
+                    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#6a12b8]"   },
+                    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#6a12b8]"   },
+                    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#6a12b8]"   },
                     { label: "Z-READING",   title: "Z READING", type: "z_reading", color: "border-red-500" },
-                    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#7c14d4]"   },
+                    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#6a12b8]"   },
                   ].map(card => (
                     <button
                       key={card.type}
@@ -1231,7 +1389,7 @@ const handlePrint = () => window.print();
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch <span className="text-red-400">*</span></p>
           <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-48">
               <option value="">Select Branch</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
@@ -1241,8 +1399,27 @@ const handlePrint = () => window.print();
         </div>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date From</p>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+          <div className="relative flex items-center">
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+            <div className="ml-2">
+              {checkingStatus ? (
+                <div className="w-4 h-4 border-2 border-[#6a12b8] border-t-transparent rounded-full animate-spin" />
+              ) : zStatus?.is_closed ? (
+                <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border border-emerald-200">
+                  <CheckCircle size={10} /> Closed
+                </span>
+              ) : zStatus?.has_sales ? (
+                <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border border-amber-200">
+                  Pending
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 bg-zinc-100 text-zinc-400 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border border-zinc-200">
+                  Empty
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
@@ -1281,7 +1458,7 @@ const handlePrint = () => window.print();
           <button key={tab.id} onClick={() => setActiveView(tab.id)}
             className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors -mb-px ${
               activeView === tab.id
-                ? "border-[#3b2063] text-[#3b2063]"
+                ? "border-[#6a12b8] text-[#6a12b8]"
                 : "border-transparent text-zinc-400 hover:text-zinc-600"
             }`}>
             {tab.icon}{tab.label}
@@ -1296,64 +1473,70 @@ const handlePrint = () => window.print();
             .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
             .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }
             @media print {
-             * { opacity: 1 !important; color: #000 !important; }
-              .opacity-50 { opacity: 1 !important; }
-              .line-through { text-decoration: line-through !important; color: #000 !important; }
-              @page { 
-                size: 80mm 2000mm;
-                margin: 3mm 2mm !important; 
-              }
-              body * { visibility: hidden; }
-              nav, header, aside, button, .print\\\\:hidden, .TopNavbar, .TopNavbar * { display: none !important; }
-              html, body { 
-                width: 80mm !important; 
-                margin: 0 !important; 
-                padding: 0 !important; 
-                background: white !important; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important; 
-              }
-              .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
-              .printable-receipt-container { 
-                position: absolute !important; 
-                left: 0 !important; 
-                top: 0 !important; 
-                width: 80mm !important; 
-                display: block !important; 
-                margin: 0 !important; 
-                padding: 0 !important; 
-              }
-              .receipt-area { 
-                color: #000 !important;
-                width: 76mm !important; 
-                max-width: 76mm !important; 
-                margin: 0 auto !important; 
-                padding: 2mm !important; 
-                box-sizing: border-box !important; 
-                background: white !important; 
-                color: #000 !important; 
-                font-family: Arial, Helvetica, sans-serif !important; 
-                font-size: 12px !important; 
-                font-weight: 500 !important;
-                line-height: 1.5 !important; 
-                box-shadow: none !important; 
-                border: none !important; 
-                border-radius: 0 !important; 
-                overflow: visible !important;
-                -webkit-font-smoothing: none !important;
-              }
-              .receipt-area * {
-                overflow: visible !important;
-                -webkit-font-smoothing: none !important;
-              }
-              .receipt-area > div > div {
-                break-inside: avoid !important;
-              }
-              .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
-              table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
-              th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-              td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 500 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-            }
+              * { opacity: 1 !important; color: #000 !important; }
+               .opacity-50 { opacity: 1 !important; }
+               .line-through { text-decoration: line-through !important; color: #000 !important; }
+               @page { 
+                 size: 80mm auto;
+                 margin: 0 !important; 
+               }
+               html, body { 
+                 margin: 0 !important; 
+                 padding: 0 !important; 
+                 width: 80mm !important; 
+                 height: auto !important;
+                 overflow: visible !important;
+                 background: white !important; 
+                 -webkit-print-color-adjust: exact !important; 
+                 print-color-adjust: exact !important; 
+               }
+               body * { visibility: hidden !important; }
+               nav, header, aside, button, .print\\\\:hidden, .TopNavbar, .TopNavbar * { display: none !important; }
+               .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
+               .printable-receipt-container { 
+                 position: absolute !important; 
+                 left: 0 !important; 
+                 top: 0 !important; 
+                 display: block !important; 
+                 width: 100% !important;
+                 max-width: 76mm !important;
+                 margin: 0 !important; 
+                 padding: 0 !important; 
+                 height: auto !important;
+                 overflow: visible !important;
+               }
+               .receipt-area { 
+                 position: relative !important;
+                 color: #000 !important;
+                 width: 66mm !important; 
+                 max-width: 66mm !important; 
+                 margin: 0 auto !important; 
+                 padding: 2mm !important; 
+                 box-sizing: border-box !important; 
+                 background: white !important; 
+                 color: #000 !important; 
+                 font-family: Arial, Helvetica, sans-serif !important; 
+                 font-size: 12px !important; 
+                 font-weight: 500 !important;
+                 line-height: 1.5 !important; 
+                 box-shadow: none !important; 
+                 border: none !important; 
+                 border-radius: 0 !important; 
+                 overflow: visible !important;
+                 -webkit-font-smoothing: none !important;
+               }
+               .receipt-area * {
+                 overflow: visible !important;
+                 -webkit-font-smoothing: none !important;
+               }
+               .receipt-area > div > div {
+                 break-inside: avoid !important;
+               }
+               .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
+               table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
+               th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+               td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 500 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+             }
           `}</style>
 
           {loading && (
@@ -1449,7 +1632,7 @@ const handlePrint = () => window.print();
                     <td className="px-5 py-3.5 font-medium text-zinc-700 text-xs">{h.date}</td>
                     <td className="px-5 py-3.5 text-zinc-600 text-xs">{h.branch_name}</td>
                     <td className="px-5 py-3.5 text-zinc-600 text-xs">{Number(h.total_orders).toLocaleString()}</td>
-                    <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(Number(h.gross))}</td>
+                    <td className="px-5 py-3.5 font-bold text-[#6a12b8] text-xs">{fmt(Number(h.gross))}</td>
                     <td className="px-5 py-3.5 font-bold text-emerald-600 text-xs">{fmt(Number(h.net))}</td>
                     <td className="px-5 py-3.5 text-zinc-400 text-xs">
                       {h.closed_at ? new Date(h.closed_at).toLocaleString("en-PH", {

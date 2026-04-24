@@ -3,17 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sale;
+use App\Models\ZReading;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
+use App\Traits\LoyaltyCheck;
+
 class OnlineOrderController extends Controller
 {
+    use LoyaltyCheck;
+
     public function index(Request $request): JsonResponse
     {
         $user  = $request->user();
         $query = Sale::with(['items', 'user', 'branch'])
-            ->where('invoice_number', 'like', 'APP-%')
-            ->whereNotIn('status', ['cancelled']);
+            ->where(function ($q) {
+                $q->where('invoice_number', 'like', 'APP-%')
+                  ->orWhere('invoice_number', 'like', 'KSK-%')
+                  ->orWhere('source', 'kiosk');
+            })
+            ->whereNotIn('status', ['cancelled'])
+            ->whereDate('created_at', now()->toDateString());
 
         if (!empty($user->branch_id)) {
             $query->where('branch_id', $user->branch_id);
@@ -34,13 +44,36 @@ class OnlineOrderController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'status'      => ['required', 'in:pending,preparing,completed'],
-            'branch_name' => 'required|string|exists:branches,name',
+            'status'              => ['required', 'in:pending,preparing,completed'],
+            'branch_name'         => 'required|string|exists:branches,name',
+            'invoice_number'      => 'nullable|string',
+            'payment_method'      => 'nullable|string',
+            'cash_tendered'       => 'nullable|numeric',
+            'reference_number'    => 'nullable|string|max:255',
+            // Discount
+            'discount_id'         => 'nullable|integer|exists:discounts,id',
+            'discount_amount'     => 'nullable|numeric|min:0',
+            'sc_discount_amount'  => 'nullable|numeric|min:0',
+            'pwd_discount_amount' => 'nullable|numeric|min:0',
+            'discount_remarks'    => 'nullable|string|max:500',
+            'senior_id'           => 'nullable|string|max:255',
+            'pwd_id'              => 'nullable|string|max:255',
+            'pax_senior'          => 'nullable|integer|min:0',
+            'pax_pwd'             => 'nullable|integer|min:0',
+            // VAT
+            'vatable_sales'       => 'nullable|numeric|min:0',
+            'vat_amount'          => 'nullable|numeric|min:0',
+            'vat_exempt_sales'    => 'nullable|numeric|min:0',
+            'total_amount'        => 'nullable|numeric|min:0',
         ]);
 
         $user  = $request->user();
         $query = Sale::where('id', $id)
-            ->where('invoice_number', 'like', 'APP-%');
+            ->where(function ($q) {
+                $q->where('invoice_number', 'like', 'APP-%')
+                  ->orWhere('invoice_number', 'like', 'KSK-%')
+                  ->orWhere('source', 'kiosk');
+            });
 
         if (!empty($user->branch_id)) {
             $query->where('branch_id', $user->branch_id);
@@ -57,6 +90,29 @@ class OnlineOrderController extends Controller
 
         $sale         = $query->firstOrFail();
         $sale->status = $request->status;
+
+        if ($request->filled('invoice_number'))      $sale->invoice_number   = $request->input('invoice_number');
+        if ($request->filled('payment_method'))      $sale->payment_method   = $request->input('payment_method');
+        if ($request->filled('cash_tendered'))       $sale->cash_tendered    = $request->input('cash_tendered');
+        if ($request->filled('reference_number'))    $sale->reference_number = $request->input('reference_number');
+
+        // Discount fields
+        if ($request->filled('discount_id'))         $sale->discount_id          = $request->input('discount_id');
+        if ($request->filled('discount_amount'))     $sale->discount_amount      = $request->input('discount_amount');
+        if ($request->filled('sc_discount_amount'))  $sale->sc_discount_amount   = $request->input('sc_discount_amount');
+        if ($request->filled('pwd_discount_amount')) $sale->pwd_discount_amount  = $request->input('pwd_discount_amount');
+        if ($request->filled('discount_remarks'))    $sale->discount_remarks     = $request->input('discount_remarks');
+        if ($request->filled('senior_id'))           $sale->senior_id            = $request->input('senior_id');
+        if ($request->filled('pwd_id'))              $sale->pwd_id               = $request->input('pwd_id');
+        if ($request->filled('pax_senior'))          $sale->pax_senior           = $request->input('pax_senior');
+        if ($request->filled('pax_pwd'))             $sale->pax_pwd              = $request->input('pax_pwd');
+
+        // VAT / tax fields
+        if ($request->has('vatable_sales'))          $sale->vatable_sales        = $request->input('vatable_sales');
+        if ($request->has('vat_amount'))             $sale->vat_amount           = $request->input('vat_amount');
+        if ($request->has('vat_exempt_sales'))       $sale->vat_exempt_sales     = $request->input('vat_exempt_sales');
+        if ($request->has('total_amount'))           $sale->total_amount         = $request->input('total_amount');
+
         $sale->save();
 
         return response()->json($this->formatOrder($sale->load(['items', 'user'])));
@@ -72,6 +128,38 @@ class OnlineOrderController extends Controller
             ->map(fn($sale) => $this->formatOrder($sale));
 
         return response()->json($orders);
+    }
+
+    public function reorder(Request $request, int $id): JsonResponse
+    {
+        if (!$this->hasActiveCard($request)) {
+            return $this->loyaltyRequiredResponse();
+        }
+
+        $sale = Sale::with('items')
+            ->where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $items = $sale->items->map(function ($item) {
+            // Check if MenuItem still exists and is active
+            $menuItem = \App\Models\MenuItem::find($item->menu_item_id);
+            
+            return [
+                'menu_item_id' => $item->menu_item_id,
+                'name'         => $item->product_name,
+                'quantity'     => $item->quantity,
+                'unit_price'   => $menuItem ? $menuItem->price : $item->unit_price,
+                'cup_size'     => $item->size,
+                'add_ons'      => $item->add_ons,
+                'is_available' => $menuItem && $menuItem->status === 'active',
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'items'   => $items,
+        ]);
     }
 
     public function store(Request $request): JsonResponse
@@ -144,6 +232,10 @@ class OnlineOrderController extends Controller
                 ]);
             }
 
+            if ($request->filled('voucher_id')) {
+                \App\Models\Voucher::where('id', $request->voucher_id)->increment('times_used');
+            }
+
             $branch = \App\Models\Branch::whereRaw(
                 'LOWER(name) = ?', [strtolower($request->input('branch_name'))]
             )->first();
@@ -180,14 +272,20 @@ class OnlineOrderController extends Controller
                     'menu_item_id' => $item['menu_item_id'] ?? null,
                     'size'         => $item['cup_size'] ?? null,
                     'add_ons'      => $item['add_ons'] ?? null,
+                    'bundle_id'    => $item['bundle_id'] ?? null,
+                    'bundle_components' => $item['bundle_components'] ?? null,
                 ]);
             }
 
             $sale->load(['items', 'user', 'branch']);
 
-            $pointsEarned = (int) floor($request->total);
+            // ── Calculate Earned Points (Dynamic) ──────────────────────────────────
+            $pointsRatio = (float) (\App\Models\Setting::where('key', 'points_per_currency')->value('value') ?? 1.0);
+            $cardMult   = (float) (\App\Models\Setting::where('key', 'card_point_multiplier')->value('value') ?? 2.0);
+
+            $pointsEarned = (int) floor($request->total * $pointsRatio);
             if ($request->input('card_id')) {
-                $pointsEarned *= 2;
+                $pointsEarned = (int) ($pointsEarned * $cardMult);
             }
 
             \DB::table('user_points')->updateOrInsert(
@@ -229,22 +327,125 @@ class OnlineOrderController extends Controller
         }
     }
 
-    
-
-    private function formatOrder(Sale $sale): array
+    /**
+     * GET /api/online-orders/stats
+     * Summary statistics for the online order queue.
+     */
+    public function stats(Request $request): JsonResponse
     {
-        $code = str_replace('APP-', '', $sale->invoice_number);
+        try {
+            $user  = $request->user();
+            $query = Sale::where(function ($q) {
+                $q->where('invoice_number', 'like', 'APP-%')
+                  ->orWhere('invoice_number', 'like', 'KSK-%')
+                  ->orWhere('source', 'kiosk');
+            });
+
+            // Branch scoping
+            if (!empty($user->branch_id)) {
+                $query->where('branch_id', $user->branch_id);
+            } elseif (!empty($user->branch_name)) {
+                $branch = \App\Models\Branch::where('name', $user->branch_name)->first();
+                if ($branch) $query->where('branch_id', $branch->id);
+            }
+
+            $pending   = (clone $query)->where('status', 'pending')->count();
+            $preparing = (clone $query)->where('status', 'preparing')->count();
+
+            $completedToday = (clone $query)
+                ->where('status', 'completed')
+                ->whereDate('updated_at', now()->toDateString())
+                ->count();
+
+            $totalToday = (clone $query)
+                ->whereDate('created_at', now()->toDateString())
+                ->sum('total_amount');
+
+            // Average wait time (minutes) for orders completed today
+            $avgWait = (clone $query)
+                ->where('status', 'completed')
+                ->whereDate('updated_at', now()->toDateString())
+                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_wait')
+                ->value('avg_wait');
+
+            return response()->json([
+                'success' => true,
+                'data'    => [
+                    'pending'         => $pending,
+                    'preparing'       => $preparing,
+                    'completed_today' => $completedToday,
+                    'total_today'     => round((float) ($totalToday ?? 0), 2),
+                    'avg_wait_min'    => round((float) ($avgWait ?? 0), 1),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve order stats',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function formatOrder($sale): array
+    {
+        // Calculate daily queue number (synchronized with Cashier logic)
+        $lastZReading = ZReading::where('branch_id', $sale->branch_id)
+            ->where('is_closed', true)
+            ->where('closed_at', '<', $sale->created_at)
+            ->latest('closed_at')
+            ->first();
+
+        $queueQuery = Sale::where('branch_id', $sale->branch_id)
+            ->where('id', '<=', $sale->id);
+
+        // Partition by source so kiosk and POS have independent queues
+        if ($sale->source === 'kiosk') {
+            $queueQuery->where('source', 'kiosk');
+        } else {
+            $queueQuery->where(function ($q) {
+                $q->where('source', '!=', 'kiosk')->orWhereNull('source');
+            });
+        }
+
+        if ($lastZReading) {
+            $queueQuery->where('created_at', '>', $lastZReading->closed_at);
+        } else {
+            $queueQuery->whereDate('created_at', $sale->created_at->toDateString());
+        }
+
+        $dailyNo = $queueQuery->count();
+        if ($sale->source === 'kiosk') {
+            $dailyNo += 99; // 1 becomes 100, 2 becomes 101, etc.
+        }
+        $code = str_pad($dailyNo, 3, '0', STR_PAD_LEFT);
 
         return [
             'id'             => $sale->id,
             'invoice_number' => $sale->invoice_number,
-            'customer_name'  => $sale->user ? $sale->user->name : 'App Customer',
+            'customer_name'  => $sale->user ? $sale->user->name : ($sale->customer_name ?: 'System Order'),
             'customer_code'  => $code,
             'qr_code'        => $code,
             'branch_name'    => $sale->branch?->name ?? null,
+            'subtotal'       => (float) $sale->subtotal,
             'total_amount'   => (float) $sale->total_amount,
+            'vatable_sales'  => (float) $sale->vatable_sales,
+            'vat_amount'     => (float) $sale->vat_amount,
+            'vat_exempt_sales' => (float) $sale->vat_exempt_sales,
+            'discount_amount' => (float) $sale->discount_amount,
+            'sc_discount_amount' => (float) $sale->sc_discount_amount,
+            'pwd_discount_amount' => (float) $sale->pwd_discount_amount,
+            'senior_id'      => $sale->senior_id,
+            'pwd_id'         => $sale->pwd_id,
+            'pax_senior'     => (int) $sale->pax_senior,
+            'pax_pwd'        => (int) $sale->pax_pwd,
+            'payment_method' => $sale->payment_method ?? 'online',
+            'cash_tendered'  => (float) $sale->cash_tendered,
+            'reference_number' => $sale->reference_number,
+            'order_type'     => $sale->order_type,
             'status'         => $sale->status ?? 'pending',
             'created_at'     => $sale->created_at,
+            'source'         => $sale->source ?? 'app',
             'items'          => $sale->items->map(function ($item) {
                 $rawAddons = $item->add_ons;
                 if (is_string($rawAddons)) {
@@ -254,12 +455,20 @@ class OnlineOrderController extends Controller
                 $finalAddons = is_array($rawAddons) ? $rawAddons : [];
 
                 return [
-                    'id'       => $item->id,
-                    'name'     => $item->product_name,
-                    'qty'      => (int) $item->quantity,
-                    'price'    => (float) $item->final_price,
-                    'cup_size' => $item->size ?? null,
-                    'add_ons'  => $finalAddons,
+                    'id'               => $item->id,
+                    'name'             => $item->product_name ?? $item->name,
+                    'qty'              => (int) $item->quantity,
+                    'unit_price'       => (float) $item->unit_price,
+                    'price'            => (float) $item->final_price,
+                    'cup_size'         => $item->size ?? null,
+                    'cup_size_label'   => $item->cup_size_label ?? (isset($item->size) ? strtoupper($item->size) : null),
+                    'sugar_level'      => $item->sugar_level ?? null,
+                    'options'          => $item->options ?? [],
+                    'add_ons'          => $finalAddons,
+                    'remarks'          => $item->remarks ?? null,
+                    'bundle_id'         => $item->bundle_id,
+                    'bundle_components' => $item->bundle_components,
+                    'discount_amount'   => (float) $item->discount_amount,
                 ];
             })->values()->toArray(),
         ];

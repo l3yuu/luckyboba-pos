@@ -52,7 +52,7 @@ const BM_AddCustomers = ({ onBack }: AddCustomersProps) => {
                 className="h-8 px-5 rounded-lg transition-all active:scale-[0.98]"
                 style={{
                   fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
-                  background: !isReport ? '#3b2063' : 'transparent',
+                  background: !isReport ? '#6a12b8' : 'transparent',
                   color: !isReport ? '#fff' : '#a1a1aa',
                 }}
               >
@@ -103,13 +103,13 @@ const BM_AddCustomers = ({ onBack }: AddCustomersProps) => {
               </div>
               <div className="flex gap-2">
                 <button
-                  className="flex items-center gap-2 h-9 px-4 bg-[#ede9fe] hover:bg-[#3b2063] text-[#3b2063] hover:text-white transition-all rounded-xl active:scale-[0.98]"
+                  className="flex items-center gap-2 h-9 px-4 bg-[#ede9fe] hover:bg-[#6a12b8] text-[#6a12b8] hover:text-white transition-all rounded-xl active:scale-[0.98]"
                   style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
                 >
                   <Search size={13} strokeWidth={2.5} /> Search
                 </button>
                 <button
-                  className="flex items-center gap-2 h-9 px-4 bg-[#ede9fe] hover:bg-[#3b2063] text-[#3b2063] hover:text-white transition-all rounded-xl active:scale-[0.98]"
+                  className="flex items-center gap-2 h-9 px-4 bg-[#ede9fe] hover:bg-[#6a12b8] text-[#6a12b8] hover:text-white transition-all rounded-xl active:scale-[0.98]"
                   style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
                 >
                   <Printer size={13} strokeWidth={2.5} /> Print
@@ -153,14 +153,14 @@ const BM_AddCustomers = ({ onBack }: AddCustomersProps) => {
               <div className="flex gap-2">
                 <button
                   onClick={onBack}
-                  className="flex items-center gap-2 h-9 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#3b2063] transition-all rounded-xl active:scale-[0.98]"
+                  className="flex items-center gap-2 h-9 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#6a12b8] transition-all rounded-xl active:scale-[0.98]"
                   style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
                 >
                   <ArrowLeft size={13} strokeWidth={2.5} /> Back
                 </button>
                 <button
                   onClick={() => setIsAddCustomerModalOpen(true)}
-                  className="flex items-center gap-2 h-9 px-4 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98] shadow-sm"
+                  className="flex items-center gap-2 h-9 px-4 bg-[#6a12b8] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98] shadow-sm"
                   style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
                 >
                   <Plus size={13} strokeWidth={2.5} /> Add New Customer
@@ -213,7 +213,7 @@ const BM_AddCustomers = ({ onBack }: AddCustomersProps) => {
                   Cancel
                 </button>
                 <button
-                  className="flex-1 h-10 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98]"
+                  className="flex-1 h-10 bg-[#6a12b8] hover:bg-[#2a1647] text-white transition-all rounded-xl active:scale-[0.98]"
                   style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
                 >
                   Add Customer

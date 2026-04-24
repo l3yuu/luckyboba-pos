@@ -2,12 +2,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search, Download, Clock, XCircle, Users, Activity,
-  RefreshCw, ChevronLeft, ChevronRight, AlertCircle,
+  ChevronLeft, ChevronRight, AlertCircle, Eye,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 
-type ColorKey   = "violet" | "emerald" | "red" | "amber";
+type ColorKey = "violet" | "emerald" | "red" | "amber";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
@@ -21,10 +22,10 @@ interface BtnProps {
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
-    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+    red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
   };
   const c = colors[color];
   return (
@@ -44,12 +45,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
   onClick, className = "", disabled = false, type = "button",
 }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -61,27 +62,27 @@ const Btn: React.FC<BtnProps> = ({
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AuditLog {
-  id:         number;
-  user_id:    number;
-  action:     string;
-  module:     string;
-  details:    string | null;
+  id: number;
+  user_id: number;
+  action: string;
+  module: string;
+  details: string | null;
   ip_address: string | null;
   created_at: string;
-  user?:      { id: number; name: string };
+  user?: { id: number; name: string };
 }
 interface Stats {
   total_events: number;
-  today_count:  number;
-  voids_today:  number;
+  today_count: number;
+  voids_today: number;
   unique_users: number;
-  modules:      string[];
+  modules: string[];
 }
 interface Meta {
   current_page: number;
-  last_page:    number;
-  per_page:     number;
-  total:        number;
+  last_page: number;
+  per_page: number;
+  total: number;
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────
@@ -89,24 +90,24 @@ const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = () => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 // Module → badge style
 const MODULE_STYLE: Record<string, string> = {
-  void:     "text-red-500 bg-red-50 border-red-200",
-  create:   "text-emerald-600 bg-emerald-50 border-emerald-200",
-  edit:     "text-amber-600 bg-amber-50 border-amber-200",
-  delete:   "text-red-500 bg-red-50 border-red-200",
-  cash:     "text-violet-600 bg-violet-50 border-violet-200",
+  void: "text-red-500 bg-red-50 border-red-200",
+  create: "text-emerald-600 bg-emerald-50 border-emerald-200",
+  edit: "text-amber-600 bg-amber-50 border-amber-200",
+  delete: "text-red-500 bg-red-50 border-red-200",
+  cash: "text-violet-600 bg-violet-50 border-violet-200",
   discount: "text-blue-600 bg-blue-50 border-blue-200",
-  promo:    "text-pink-600 bg-pink-50 border-pink-200",
-  report:   "text-zinc-600 bg-zinc-50 border-zinc-200",
-  branch:   "text-emerald-600 bg-emerald-50 border-emerald-200",
-  user:     "text-violet-600 bg-violet-50 border-violet-200",
-  menu:     "text-amber-600 bg-amber-50 border-amber-200",
-  sale:     "text-blue-600 bg-blue-50 border-blue-200",
+  promo: "text-pink-600 bg-pink-50 border-pink-200",
+  report: "text-zinc-600 bg-zinc-50 border-zinc-200",
+  branch: "text-emerald-600 bg-emerald-50 border-emerald-200",
+  user: "text-violet-600 bg-violet-50 border-violet-200",
+  menu: "text-amber-600 bg-amber-50 border-amber-200",
+  sale: "text-blue-600 bg-blue-50 border-blue-200",
 };
 const moduleStyle = (m: string) =>
   MODULE_STYLE[m?.toLowerCase()] ?? "text-zinc-600 bg-zinc-50 border-zinc-200";
@@ -115,8 +116,8 @@ const initials = (name?: string) =>
   (name ?? "?").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
 const formatDate = (iso: string) => {
-  const d    = new Date(iso);
-  const now  = new Date();
+  const d = new Date(iso);
+  const now = new Date();
   const diff = now.getTime() - d.getTime();
   if (diff < 86400000 && d.getDate() === now.getDate()) return "Today";
   if (diff < 172800000) return "Yesterday";
@@ -125,18 +126,137 @@ const formatDate = (iso: string) => {
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
 
+// ── Log Detail Modal ──────────────────────────────────────────────────────────
+const LogDetailModal: React.FC<{ log: AuditLog; onClose: () => void }> = ({ log, onClose }) => {
+  const isJSON = (str: string | null) => {
+    if (!str) return false;
+    try {
+      const p = JSON.parse(str);
+      return typeof p === 'object' && p !== null;
+    } catch { return false; }
+  };
+
+  const getDetails = (str: string | null) => {
+    if (!str) return (
+      <div className="p-8 border border-dashed border-zinc-100 rounded-lg flex flex-col items-center gap-2">
+        <Activity size={24} className="text-zinc-100" />
+        <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">No extra payload</p>
+      </div>
+    );
+    if (isJSON(str)) {
+      return (
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+          <pre className="relative p-5 bg-[#fafaff] border border-violet-100/50 rounded-xl text-[11px] font-mono text-violet-600/70 overflow-x-auto leading-relaxed">
+            {JSON.stringify(JSON.parse(str), null, 2)}
+          </pre>
+        </div>
+      );
+    }
+    return (
+      <div className="p-5 bg-zinc-50 border border-zinc-100 rounded-xl">
+        <p className="text-xs text-zinc-600 leading-relaxed font-medium">{str}</p>
+      </div>
+    );
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6 transition-all duration-300">
+      <div className="absolute inset-0 bg-zinc-950/20 backdrop-blur-md" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-lg rounded-xl shadow-[0_32px_64px_-16px_rgba(59,32,99,0.12)] flex flex-col max-h-[85vh] overflow-hidden border border-white/20 ring-1 ring-zinc-200/50">
+        
+        {/* Professional Header */}
+        <div className="flex items-center justify-between px-8 pt-8 pb-4 shrink-0">
+          <div>
+            <h3 className="text-base font-black text-[#1a0f2e] tracking-tight">Activity Detail</h3>
+            <p className="text-[10px] font-mono text-zinc-400 mt-0.5 uppercase tracking-tighter font-bold">Ref: #{String(log.id).padStart(5, "0")}</p>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center hover:bg-zinc-50 rounded-full text-zinc-400 transition-all active:scale-90">
+            <XCircle size={22} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-8 pb-8 space-y-8 custom-scrollbar">
+          
+          {/* Action Focus */}
+          <div className="relative overflow-hidden group">
+            <div className="absolute inset-0 bg-[#6a12b8] opacity-[0.03]"></div>
+            <div className="relative p-6 rounded-2xl border border-[#6a12b8]/10">
+              <p className="text-sm font-black text-[#6a12b8] leading-snug tracking-tight">{log.action}</p>
+              <div className="flex items-center gap-2 mt-3">
+                <span className={`inline-flex px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${moduleStyle(log.module)}`}>
+                  {log.module}
+                </span>
+                <div className="h-1 w-1 rounded-full bg-zinc-200"></div>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">System Audit</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Technical Specs Vertical List */}
+          <div className="space-y-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Origin User</p>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center text-[10px] font-black text-violet-600 shadow-inner">
+                    {initials(log.user?.name)}
+                  </div>
+                  <p className="text-xs font-black text-[#1a0f2e]">{log.user?.name ?? "Internal System"}</p>
+                </div>
+              </div>
+              <div className="space-y-1 text-right">
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Source IP</p>
+                <p className="text-xs font-mono font-bold text-zinc-600 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-100">{log.ip_address ?? "Local"}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start justify-between border-t border-zinc-50 pt-6">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Date Logged</p>
+                <p className="text-xs font-black text-zinc-700">{formatDate(log.created_at)}</p>
+              </div>
+              <div className="space-y-1 text-right">
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Time (PHT)</p>
+                <p className="text-xs font-mono font-bold text-zinc-700">{formatTime(log.created_at)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Data Payload Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">System Payload</p>
+              <div className="h-[1px] flex-1 bg-zinc-50 mx-4"></div>
+              {isJSON(log.details) && <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded uppercase tracking-tighter">Secure JSON</span>}
+            </div>
+            {getDetails(log.details)}
+          </div>
+        </div>
+
+        {/* Minimalist Tip */}
+        <div className="px-8 py-4 bg-zinc-50/50 border-t border-zinc-100 flex items-center justify-center gap-2 shrink-0">
+           <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-[0.2em]">End of Technical Record</p>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 const AuditLogsTab: React.FC = () => {
-  const [logs,    setLogs]    = useState<AuditLog[]>([]);
-  const [stats,   setStats]   = useState<Stats | null>(null);
-  const [meta,    setMeta]    = useState<Meta | null>(null);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [meta, setMeta] = useState<Meta | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState("");
-  const [search,  setSearch]  = useState("");
-  const [module,  setModule]  = useState("all");
-  const [page,    setPage]    = useState(1);
-  const [branches,     setBranches]     = useState<{ id: number; name: string }[]>([]);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [module, setModule] = useState("all");
+  const [page, setPage] = useState(1);
+  const [branches, setBranches] = useState<{ id: number; name: string }[]>([]);
   const [branchFilter, setBranchFilter] = useState("all");
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -146,11 +266,11 @@ const AuditLogsTab: React.FC = () => {
     setError("");
     try {
       const params = new URLSearchParams({ per_page: "20", page: String(p) });
-      if (s)           params.set("search",    s);
-      if (m !== "all") params.set("module",    m);
+      if (s) params.set("search", s);
+      if (m !== "all") params.set("module", m);
       if (b !== "all") params.set("branch_id", b);
 
-      const res  = await fetch(`/api/audit-logs?${params}`, { headers: authHeaders() });
+      const res = await fetch(`/api/audit-logs?${params}`, { headers: authHeaders() });
       const data = await res.json();
       if (!data.success) throw new Error("Failed");
       setLogs(data.data);
@@ -165,39 +285,50 @@ const AuditLogsTab: React.FC = () => {
 
   // ✅ fetchLogs is now a stable reference, so this effect only runs once on mount.
   useEffect(() => {
-  fetchLogs(1);
-  // fetch branches for filter
-  fetch("/api/branches", { headers: authHeaders() })
-    .then(r => r.json())
-    .then(d => { if (d.success) setBranches(d.data); })
-    .catch(() => {});
-}, [fetchLogs]);
+    fetchLogs(1);
+    // fetch branches for filter
+    fetch("/api/branches", { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => { if (d.success) setBranches(d.data); })
+      .catch(() => { });
+  }, [fetchLogs]);
 
-const handleBranch = (val: string) => {
-  setBranchFilter(val);
-  setPage(1);
-  fetchLogs(1, search, module, val);
-};
+  // ✅ Auto-refresh polling (every 10 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only auto-update if on first page and no active filters/modals
+      if (page === 1 && !search && module === "all" && branchFilter === "all" && !selectedLog && !loading) {
+        fetchLogs(1, "", "all", "all");
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [page, search, module, branchFilter, selectedLog, loading, fetchLogs]);
 
-const handleSearch = (val: string) => {
-  setSearch(val);
-  if (searchTimer.current) clearTimeout(searchTimer.current);
-  searchTimer.current = setTimeout(() => {
+  const handleBranch = (val: string) => {
+    setBranchFilter(val);
     setPage(1);
-    fetchLogs(1, val, module, branchFilter);
-  }, 400);
-};
+    fetchLogs(1, search, module, val);
+  };
 
-const handleModule = (val: string) => {
-  setModule(val);
-  setPage(1);
-  fetchLogs(1, search, val, branchFilter);
-};
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setPage(1);
+      fetchLogs(1, val, module, branchFilter);
+    }, 400);
+  };
 
-const handlePage = (p: number) => {
-  setPage(p);
-  fetchLogs(p, search, module, branchFilter);
-};
+  const handleModule = (val: string) => {
+    setModule(val);
+    setPage(1);
+    fetchLogs(1, search, val, branchFilter);
+  };
+
+  const handlePage = (p: number) => {
+    setPage(p);
+    fetchLogs(p, search, module, branchFilter);
+  };
 
   // Derived modules list from stats
   const moduleOptions = stats?.modules ?? [];
@@ -209,11 +340,11 @@ const handlePage = (p: number) => {
     setExporting(true);
     try {
       const params = new URLSearchParams();
-      if (search)              params.set("search",    search);
-      if (module !== "all")    params.set("module",    module);
+      if (search) params.set("search", search);
+      if (module !== "all") params.set("module", module);
       if (branchFilter !== "all") params.set("branch_id", branchFilter);
 
-      const res  = await fetch(`/api/audit-logs/export?${params}`, { headers: authHeaders() });
+      const res = await fetch(`/api/audit-logs/export?${params}`, { headers: authHeaders() });
       const data = await res.json();
       if (!data.success) throw new Error("Export failed");
 
@@ -245,10 +376,10 @@ const handlePage = (p: number) => {
 
       const csv = [headers.join(","), ...csvRows].join("\n");
       const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-      const url  = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
 
       const link = document.createElement("a");
-      link.href     = url;
+      link.href = url;
       link.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(link);
       link.click();
@@ -263,24 +394,6 @@ const handlePage = (p: number) => {
 
   return (
     <div className="p-6 md:p-8 fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Audit Logs</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Complete activity trail across all branches</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={() => fetchLogs(page, search, module, branchFilter)} disabled={loading}>
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-          </Btn>
-          <Btn variant="secondary" onClick={exportCSV} disabled={exporting || loading}>
-            {exporting
-              ? <><div className="w-3 h-3 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" /> Exporting…</>
-              : <><Download size={13} /> Export</>
-            }
-          </Btn>
-        </div>
-      </div>
 
       {/* Error */}
       {error && (
@@ -293,10 +406,10 @@ const handlePage = (p: number) => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<Activity size={16} />} label="Total Events" value={stats ? stats.total_events.toLocaleString() : "—"} color="violet"  />
-        <StatCard icon={<Clock    size={16} />} label="Today"        value={stats ? stats.today_count  : "—"}                  color="emerald" />
-        <StatCard icon={<XCircle  size={16} />} label="Voids Today"  value={stats ? stats.voids_today  : "—"}                  color="red"     />
-        <StatCard icon={<Users    size={16} />} label="Unique Users" value={stats ? stats.unique_users : "—"}                  color="amber"   />
+        <StatCard icon={<Activity size={16} />} label="Total Events" value={stats ? stats.total_events.toLocaleString() : "—"} color="violet" />
+        <StatCard icon={<Clock size={16} />} label="Today" value={stats ? stats.today_count : "—"} color="emerald" />
+        <StatCard icon={<XCircle size={16} />} label="Voids Today" value={stats ? stats.voids_today : "—"} color="red" />
+        <StatCard icon={<Users size={16} />} label="Unique Users" value={stats ? stats.unique_users : "—"} color="amber" />
       </div>
 
       {/* Table card */}
@@ -333,6 +446,12 @@ const handlePage = (p: number) => {
               <option key={b.id} value={String(b.id)}>{b.name}</option>
             ))}
           </select>
+          <Btn variant="secondary" onClick={exportCSV} disabled={exporting || loading} className="shrink-0 ml-auto md:ml-0">
+            {exporting
+              ? <><div className="w-3 h-3 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" /> Exporting…</>
+              : <><Download size={13} /> Export</>
+            }
+          </Btn>
         </div>
 
         {/* Table */}
@@ -340,7 +459,7 @@ const handlePage = (p: number) => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["#", "User", "Action", "Details", "Module", "IP", "Date", "Time"].map(h => (
+                {["#", "User", "Action", "Details", "Module", "IP", "Date", "Time", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -376,7 +495,7 @@ const handlePage = (p: number) => {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#3b2063] shrink-0">
+                      <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#6a12b8] shrink-0">
                         {initials(log.user?.name)}
                       </div>
                       <span className="font-medium text-[#1a0f2e] text-xs whitespace-nowrap">
@@ -394,6 +513,11 @@ const handlePage = (p: number) => {
                   <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{log.ip_address ?? "—"}</td>
                   <td className="px-5 py-3.5 text-zinc-400 text-xs whitespace-nowrap">{formatDate(log.created_at)}</td>
                   <td className="px-5 py-3.5 text-zinc-400 text-xs tabular-nums whitespace-nowrap">{formatTime(log.created_at)}</td>
+                  <td className="px-5 py-3.5">
+                    <button onClick={() => setSelectedLog(log)} className="p-1.5 hover:bg-[#ede8ff] text-[#6a12b8] rounded-lg transition-all" title="View Detail">
+                      <Eye size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -415,11 +539,11 @@ const handlePage = (p: number) => {
               {Array.from({ length: Math.min(5, meta.last_page) }, (_, i) => {
                 const p = meta.last_page <= 5 ? i + 1
                   : page <= 3 ? i + 1
-                  : page >= meta.last_page - 2 ? meta.last_page - 4 + i
-                  : page - 2 + i;
+                    : page >= meta.last_page - 2 ? meta.last_page - 4 + i
+                      : page - 2 + i;
                 return (
                   <button key={p} onClick={() => handlePage(p)}
-                    className={`w-7 h-7 text-xs font-bold rounded-[0.4rem] transition-colors ${p === page ? "bg-[#3b2063] text-white" : "text-zinc-400 hover:bg-zinc-100"}`}>
+                    className={`w-7 h-7 text-xs font-bold rounded-[0.4rem] transition-colors ${p === page ? "bg-[#6a12b8] text-white" : "text-zinc-400 hover:bg-zinc-100"}`}>
                     {p}
                   </button>
                 );
@@ -441,6 +565,8 @@ const handlePage = (p: number) => {
           </div>
         )}
       </div>
+
+      {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
     </div>
   );
 };

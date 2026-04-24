@@ -59,11 +59,13 @@ interface ZReading {
   beg_si?: string;
   end_si?: string;
   prepared_by?: string;
+  rounding_adjustment?: number;
 
   payment_breakdown?: { method: string; amount: number }[];
   cash_denominations?: { label: string; qty: number; total: number }[];
   total_cash_count?: number;
   expected_amount?: number;
+  less_vat?: number;
   over_short?: number;
   categories?: {
     category_name: string;
@@ -127,6 +129,8 @@ interface XReadingReport {
   cash_total?: number;
   non_cash_total?: number;
   report_type?: string;
+  net_total?: number;
+  rounding_adjustment?: number;
   logs?: { id: string; reason: string; amount: number; time: string }[];
   hourly_data?: { hour: number; total: number; count: number }[];
   transactions?: {
@@ -179,7 +183,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -272,13 +276,50 @@ const BM_ZReading: React.FC = () => {
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const [shift, _setShift] = useState("all");
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
+  const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
+  const [zStatus, setZStatus] = useState<{ exists: boolean; is_closed: boolean; has_sales: boolean } | null>(null);
+  const [gaps, setGaps] = useState<string[]>([]);
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3500);
   };
+
+  const fetchStatus = useCallback(async () => {
+    if (!branchId) return;
+    setCheckingStatus(true);
+    try {
+      const res = await fetch(`/api/reports/z-reading/status?date=${dateFrom}&branch_id=${branchId}`, { headers: authHeaders() });
+      const json = await res.json();
+      if (json.success) setZStatus(json.data);
+    } catch (err) {
+      console.error("Status check failed", err);
+    } finally {
+      setCheckingStatus(false);
+    }
+  }, [branchId, dateFrom]);
+
+  const fetchGaps = useCallback(async () => {
+    if (!branchId) return;
+    try {
+      const res = await fetch(`/api/reports/z-reading/gaps?branch_id=${branchId}`, { headers: authHeaders() });
+      const json = await res.json();
+      if (json.success) setGaps(json.data);
+    } catch (err) {
+      console.error("Gap check failed", err);
+    }
+  }, [branchId]);
+
+  useEffect(() => {
+    fetchGaps();
+  }, [fetchGaps]);
+
+  useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus]);
 
   // ADD after: const showToast = (msg: string) => { ... };
 
@@ -611,10 +652,10 @@ const handlePrint = async () => {
   // ADD before: return (
 
   // ── Receipt helpers ────────────────────────────────────────────────────────
-  const ReceiptRow = ({ label, value }: { label: string; value: string | number }) => (
+  const ReceiptRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="flex justify-between text-[11px] leading-snug">
       <span className="uppercase w-[60%] leading-tight">{label}</span>
-      <span className="text-right w-[40%]">{value}</span>
+      <span className="text-right w-[40%] whitespace-pre-line">{value}</span>
     </div>
   );
   const ReceiptDivider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
@@ -731,6 +772,75 @@ const handlePrint = async () => {
             ))}
           </div>
         )}
+        {(() => {
+          const cupGroups = [
+            { name: 'Standard Cup', sizes: ['SM', 'SL'] },
+            { name: 'Junior Cup', sizes: ['JR'] },
+            { name: 'Upturn Cup', sizes: ['UM', 'UL'] },
+            { name: 'Plastic Cup', sizes: ['PCM', 'PCL'] },
+          ];
+          
+          const groupData = cupGroups.map(group => {
+            const sizeMap = new Map<string, number>();
+            group.sizes.forEach(s => sizeMap.set(s, 0));
+            return { ...group, sizeMap, total: 0 };
+          });
+
+          let hasAnyCups = false;
+          let grandTotalCups = 0;
+
+          reportData.categories.forEach(cat => {
+            cat.products.forEach(product => {
+              if (product.size) {
+                 const group = groupData.find(g => g.sizes.includes(product.size!));
+                 if (group) {
+                   group.sizeMap.set(product.size, (group.sizeMap.get(product.size) ?? 0) + product.total_qty);
+                   group.total += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
+                 }
+              }
+            });
+          });
+
+          if (!hasAnyCups) return null;
+
+          return (
+            <div className="mt-1">
+              <ReceiptDivider />
+              {groupData.map(group => {
+                if (group.total === 0) return null;
+                return (
+                  <div key={group.name} className="mb-1.5">
+                    <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                      <span className="w-[75%] uppercase">{group.name}</span>
+                      <span className="w-[25%] text-right uppercase">Qty</span>
+                    </div>
+                    {group.sizes.map(size => {
+                       const qty = group.sizeMap.get(size) ?? 0;
+                       if (qty === 0) return null;
+                       return (
+                         <div key={size} className="flex text-[11px] leading-snug">
+                           <span className="w-[75%] uppercase pl-2">{size}</span>
+                           <span className="w-[25%] text-right">{qty}</span>
+                         </div>
+                       );
+                    })}
+                    <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                       <span className="uppercase">TOTAL ({group.name})</span>
+                       <span>{group.total}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              <ReceiptDivider />
+              <div className="flex justify-between text-[11px] font-bold mt-0.5 pt-0.5">
+                <span className="uppercase">TOTAL CUPS</span>
+                <span>Qty: {grandTotalCups}</span>
+              </div>
+            </div>
+          );
+        })()}
         <ReceiptDivider />
         <div className="flex justify-between text-[11px]">
           <span className="uppercase">All Day Total</span>
@@ -962,7 +1072,6 @@ const handlePrint = async () => {
 
   const renderXReading = () => {
     const gross        = reportData?.gross_sales       || 0;
-    const netSales     = reportData?.net_sales         || 0;
     const cashTotal    = reportData?.cash_total        || 0;
     const nonCash      = reportData?.non_cash_total    || 0;
     const txCount      = reportData?.transaction_count || 0;
@@ -970,12 +1079,16 @@ const handlePrint = async () => {
     const pwdDiscount  = reportData?.pwd_discount      || 0;
     const diplomat     = reportData?.diplomat_discount || 0;
     const otherDisc    = reportData?.other_discount    || 0;
-    const totalDisc    = scDiscount + pwdDiscount + diplomat + otherDisc;
+    const totalDisc    = roundTo2(scDiscount + pwdDiscount + diplomat + otherDisc);
     const reportIsVat  = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
     const vatableSales = reportData?.vatable_sales    || 0;
     const vatAmount    = reportData?.vat_amount       || 0;
     const vatExempt    = reportData?.vat_exempt_sales || 0;
     const voids        = reportData?.total_void_amount || 0;
+    
+    const netSales     = roundTo2(reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc)); 
+    const netInclusive = netSales;
+
     const PAYMENT_METHODS = ["food panda","grab","gcash","visa","mastercard","cash"];
     const METHOD_ALIASES: Record<string, string> = { panda: "food panda", foodpanda: "food panda", food_panda: "food panda", grabfood: "grab", "grab food": "grab", "master card": "mastercard", master: "mastercard", "visa card": "visa", "e-wallet": "gcash" };
     const paymentMap = new Map<string, number>();
@@ -1001,7 +1114,7 @@ const handlePrint = async () => {
         <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(vatExempt)} />
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
-        <ReceiptRow label="Net Sales"       value={phCurrency.format(netSales)} />
+        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="Gross Amount"    value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -1024,7 +1137,10 @@ const handlePrint = async () => {
         <ReceiptDivider />
         <ReceiptRow label="Total Cash"      value={phCurrency.format(cashTotal)} />
         <ReceiptRow label="Total Non-Cash"  value={phCurrency.format(nonCash)} />
-        <ReceiptRow label="Total Payments"  value={phCurrency.format(gross)} />
+        {reportData?.rounding_adjustment !== 0 && (
+          <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <ReceiptRow label="Total Payments"  value={phCurrency.format(roundTo2(netInclusive + (reportData?.rounding_adjustment || 0)))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Transaction Summary</p>
         <ReceiptRow label="Cash In"          value={phCurrency.format(reportData?.cash_in || 0)} />
@@ -1046,21 +1162,32 @@ const handlePrint = async () => {
     const pwdDiscount    = data.pwd_discount || 0;
     const diplomat       = data.diplomat_discount || 0;
     const otherDiscount  = data.other_discount || 0;
-    const totalDisc      = data.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
-    const netSales       = data.net_sales ?? (gross - totalDisc);
+    const totalDisc      = roundTo2(data.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount));
+    // Check VAT type
+    const isVat = data.is_vat !== undefined ? data.is_vat : vatType === 'vat';
 
     const txCount            = data.transaction_count || 0;
     const vatableSales       = data.vatable_sales || 0;
     const vatAmount          = data.vat_amount || 0;
+    const vatExempt          = data.vat_exempt_sales || 0;
+    const scPwdVat           = data.less_vat || 0;
     const voids              = data.total_void_amount || 0;
     const qtyTotal           = data.total_qty_sold || 0;
     const cashDrop           = data.cash_drop || 0;
     const cashIn             = data.cash_in || 0;
+
+    // Exclusive Net Sales for breakdown display - Reconciled
+    const netSales       = roundTo2(isVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc));
+    // Inclusive Net Sales for payment reconciliation
+    const netInclusive   = netSales;
+
     const resetCounter       = data.reset_counter ?? 0;
     const zCounter           = data.z_counter ?? 1;
     const presentAccumulated = data.present_accumulated ?? gross;
     const previousAccumulated = data.previous_accumulated ?? 0;
-    const salesForDay        = data.sales_for_the_day ?? gross;
+    
+    // Ensure Sales for the Day matches the breakdown net sales exactly
+    const salesForDay        = data.sales_for_the_day ?? netSales;
 
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
     const METHOD_ALIASES: Record<string, string> = {
@@ -1081,29 +1208,25 @@ const handlePrint = async () => {
     const totalCredit  = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalDebit   = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalCard    = totalCredit + totalDebit;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const actualCash = paymentMap.get('cash') || 0;
-    const actualNonCash = gross - actualCash;
+    const actualNonCash = roundTo2(netInclusive - actualCash);
     
     // Handle specific to ZReading data 
     const cashDenominations = data.cash_denominations ?? [];
     const totalCashCount = data.total_cash_count ?? 0;
     const apiExpected = data.expected_amount ?? 0;
-    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
-    const overShort   = data.over_short ?? (totalCashCount - expectedEOD);
-
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const expectedEOD = roundTo2(apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop));
+    const overShort   = roundTo2(data.over_short ?? (totalCashCount - expectedEOD));
     
-    // Check VAT type
-    const isVat = data.is_vat !== undefined ? data.is_vat : vatType === 'vat';
-
     return (
       <div className="my-2 text-[10px] sm:text-[11px] leading-snug">
         <ReceiptDivider />
         <ReceiptRow label="Report Date" value={new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} />
         <ReceiptRow label="Report Time" value={timeStr} />
-        <ReceiptRow label="Start Date & Time" value={`${dateFrom} ${timeStr}`} />
-        <ReceiptRow label="End Date & Time" value={`${dateTo} ${timeStr}`} />
+        <ReceiptRow label="Start Date & Time" value={`${dateFrom}\n${timeStr}`} />
+        <ReceiptRow label="End Date & Time" value={`${dateTo}\n${timeStr}`} />
         <ReceiptRow label="Terminal #" value="ALL" />
         <ReceiptRow label="Branch" value={data.branch_name} />
         <ReceiptRow label="Cashier" value={data.prepared_by || "Super Admin"} />
@@ -1123,8 +1246,9 @@ const handlePrint = async () => {
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptRow label="Service Charge" value={phCurrency.format(0)} />
         <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="SC/PWD VAT" value={phCurrency.format(scPwdVat)} />
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
-        <ReceiptRow label="GROSS Amount" value={phCurrency.format(gross)} />
+        <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
         <ReceiptRow label="S.C Disc." value={phCurrency.format(scDiscount)} />
@@ -1155,7 +1279,10 @@ const handlePrint = async () => {
         <ReceiptRow label="TOTAL CARD" value={phCurrency.format(totalCard)} />
         <ReceiptRow label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <ReceiptRow label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        {Math.abs(data.rounding_adjustment || 0) > 0.01 && (
+          <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(data.rounding_adjustment || 0)} />
+        )}
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(roundTo2(netInclusive + (data.rounding_adjustment || 0)))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <ReceiptRow label="Transaction Count" value={txCount} />
@@ -1276,6 +1403,33 @@ const handlePrint = async () => {
         />
       )}
 
+      {/* ── GAP WARNING BANNER ── */}
+      {gaps.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 p-4 flex items-center justify-between shadow-sm rounded-[1.25rem] print:hidden">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-100 p-2 rounded-full text-amber-600">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <h4 className="text-amber-900 font-bold text-sm uppercase tracking-tight">Missing Z-Readings detected</h4>
+              <p className="text-amber-700 text-[10px] font-bold leading-tight mt-0.5 uppercase tracking-wide">There are {gaps.length} days with sales that haven't been finalized.</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+             {gaps.slice(0, 3).map(gapDate => (
+               <button 
+                key={gapDate} 
+                onClick={() => { setDateFrom(gapDate); setDateTo(gapDate); }}
+                className="bg-white border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-amber-100 transition-colors"
+               >
+                 {gapDate}
+               </button>
+             ))}
+             {gaps.length > 3 && <span className="text-amber-500 font-bold self-center text-xs">+{gaps.length - 3} more</span>}
+          </div>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -1287,7 +1441,7 @@ const handlePrint = async () => {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${
-                isMenuOpen ? "bg-[#3b2063] text-white border-[#3b2063]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                isMenuOpen ? "bg-[#6a12b8] text-white border-[#6a12b8]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
               }`}
             >
               <Menu size={13} /> Menu
@@ -1296,14 +1450,14 @@ const handlePrint = async () => {
               <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-violet-100 shadow-2xl p-4 z-50 rounded-[0.625rem]">
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#7c14d4]"   },
+                    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#6a12b8]"   },
                     { label: "OVERVIEW",    title: "SALES SUMMARY",  type: "summary",      color: "border-amber-400"   },
-                    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#7c14d4]"   },
-                    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#7c14d4]"   },
-                    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#7c14d4]"   },
-                    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#7c14d4]"   },
+                    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#6a12b8]"   },
+                    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#6a12b8]"   },
+                    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#6a12b8]"   },
+                    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#6a12b8]"   },
                     { label: "Z-READING",   title: "Z READING", type: "z_reading", color: "border-red-500" },
-                    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#7c14d4]"   },
+                    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#6a12b8]"   },
                   ].map(card => (
                     <button
                       key={card.type}
@@ -1356,8 +1510,27 @@ const handlePrint = async () => {
         </div>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date From</p>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+          <div className="relative flex items-center">
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+            <div className="ml-2">
+              {checkingStatus ? (
+                <div className="w-4 h-4 border-2 border-[#6a12b8] border-t-transparent rounded-full animate-spin" />
+              ) : zStatus?.is_closed ? (
+                <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border border-emerald-200">
+                  <CheckCircle size={10} /> Closed
+                </span>
+              ) : zStatus?.has_sales ? (
+                <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border border-amber-200">
+                  Pending
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 bg-zinc-100 text-zinc-400 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border border-zinc-200">
+                  Empty
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>

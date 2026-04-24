@@ -7,6 +7,15 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string $role
+ * @property string $status
+ * @property int|null $branch_id
+ * @property string|null $branch_name
+ */
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -25,6 +34,8 @@ class User extends Authenticatable
         'branch_name',
         'branch_id',
         'manager_pin',
+        'referral_code',
+        'referred_by_id',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────
@@ -52,6 +63,16 @@ class User extends Authenticatable
     public function activeCard()
     {
         return $this->hasOne(UserCard::class)->where('status', 'active');
+    }
+
+    public function referrer()
+    {
+        return $this->belongsTo(User::class, 'referred_by_id');
+    }
+
+    public function referrals()
+    {
+        return $this->hasMany(User::class, 'referred_by_id');
     }
 
     // ── Hidden / Appends ──────────────────────────────────────────────────────

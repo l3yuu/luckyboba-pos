@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   LayoutGrid, Users, History, BarChart2, 
-  Package, Search, LogOut, ShieldCheck
+  Package, Search, LogOut, ShieldCheck,
+  ArrowLeftRight, FileText, Tag, Layers, Utensils, Wallet
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -44,7 +45,19 @@ const MENU_GROUPS: MenuGroup[] = [
   {
     label: 'Floor Ops',
     items: [
-      { id: 'void-logs', label: 'Void Journal', icon: <ShieldCheck size={14} /> },
+      { id: 'void-logs',  label: 'Void Journal',    icon: <ShieldCheck size={14} /> },
+      { id: 'expenses',   label: 'Branch Expenses', icon: <Wallet size={14} /> },
+    ]
+  },
+  {
+    label: 'Inventory',
+    items: [
+      { id: 'raw-materials', label: 'Raw Materials', icon: <Package size={13} /> },
+      { id: 'recipes',       label: 'Recipes',       icon: <Search size={13} /> },
+      { id: 'usage-report',  label: 'Usage Report',  icon: <BarChart2 size={13} /> },
+      { id: 'stock-transfer', label: 'Stock Transfer', icon: <ArrowLeftRight size={13} /> },
+      { id: 'purchase-order', label: 'Purchase Order', icon: <FileText size={13} /> },
+      { id: 'item-checker',   label: 'Item Checker',  icon: <Search size={13} /> },
     ]
   },
   {
@@ -57,10 +70,11 @@ const MENU_GROUPS: MenuGroup[] = [
     ]
   },
   {
-    label: 'Inventory',
+    label: 'Product Menu',
     items: [
-      { id: 'inventory-list', label: 'Stock Levels', icon: <Package size={13} /> },
-      { id: 'item-checker',   label: 'Item Checker', icon: <Search size={13} /> },
+      { id: 'tl-menu-categories',    label: 'Categories',    icon: <Tag size={13} /> },
+      { id: 'tl-menu-subcategories', label: 'Subcategories', icon: <Layers size={13} /> },
+      { id: 'tl-menu-items',         label: 'Menu Items',    icon: <Utensils size={13} /> },
     ]
   }
 ];
@@ -77,12 +91,12 @@ const STYLES = `
     border-radius: 0.5rem; border: none; cursor: pointer;
     background: transparent; transition: background 0.1s, color 0.1s;
   }
-  .sa-tab.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
+  .sa-tab.active { background: #ede8ff; color: #6a12b8; font-weight: 600; }
   .sa-tab.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-    width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
+    width: 2.5px; background: #6a12b8; border-radius: 0 2px 2px 0;
   }
-  .ops-topbar-header { background: linear-gradient(135deg, #3b2063 0%, #4c2b7d 100%); }
+  .ops-topbar-header { background: linear-gradient(135deg, #6a12b8 0%, #4c2b7d 100%); }
 `;
 
 const TeamLeaderSidebar: React.FC<TeamLeaderSidebarProps> = ({
@@ -167,7 +181,7 @@ const TeamLeaderSidebar: React.FC<TeamLeaderSidebarProps> = ({
                       if (window.innerWidth < 768) setSidebarOpen(false);
                     }}
                     className={`sa-tab flex items-center gap-2.5 w-full px-2.5 py-1.5 text-[0.8rem] font-medium text-left relative transition-all ${
-                      currentTab === item.id ? 'active text-[#3b2063]' : 'text-zinc-500 hover:bg-[#f5f3ff] hover:text-[#3b2063]'
+                      currentTab === item.id ? 'active text-[#6a12b8]' : 'text-zinc-500 hover:bg-[#f5f3ff] hover:text-[#6a12b8]'
                     }`}
                   >
                     <div className={`shrink-0 w-8 h-8 rounded-[0.45rem] flex items-center justify-center transition-colors ${

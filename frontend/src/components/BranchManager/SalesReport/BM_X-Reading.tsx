@@ -60,6 +60,7 @@ interface XReadingReport {
   total_void_amount?: number;
   sc_discount?: number;
   pwd_discount?: number;
+  less_vat?: number;
   diplomat_discount?: number;
   beg_si?: string;
   end_si?: string;
@@ -67,6 +68,9 @@ interface XReadingReport {
   cash_drop?: number;
   cash_in_drawer?: number;
   cash_in?: number;
+  z_counter?: number;
+  previous_accumulated?: number;
+  present_accumulated?: number;
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
 }
 
@@ -82,7 +86,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -97,10 +101,10 @@ const Btn: React.FC<BtnProps> = ({
 
 
 // ── Receipt helpers (same as cashier) ─────────────────────────────────────────
-const ReceiptRow = ({ label, value }: { label: string; value: string | number }) => (
+const ReceiptRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex justify-between text-[11px] leading-snug">
     <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%]">{value}</span>
+    <span className="text-right w-[40%] whitespace-pre-line">{value}</span>
   </div>
 );
 const ReceiptDivider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
@@ -275,14 +279,14 @@ const fetchReading = useCallback(async () => {
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
   const menuCards = [
-    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#3b2063]"   },
+    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#6a12b8]"   },
     { label: "OVERVIEW",    title: "SALES SUMMARY",  type: "summary",      color: "border-amber-400"   },
-    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#3b2063]"   },
-    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#3b2063]"   },
-    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#3b2063]"   },
-    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#3b2063]"   },
+    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#6a12b8]"   },
+    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#6a12b8]"   },
+    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#6a12b8]"   },
+    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#6a12b8]"   },
     { label: "X-READING",   title: "X-READING",      type: "x_reading",    color: "border-emerald-500" },
-    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#3b2063]"   },
+    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#6a12b8]"   },
   ];
 
   // ── Receipt render functions (ported from cashier) ────────────────────────
@@ -613,6 +617,10 @@ const fetchReading = useCallback(async () => {
             <span className="w-[35%] text-right">{r.value}</span>
           </div>
         ))}
+        <div className="flex text-[11px] leading-snug">
+          <span className="flex-1 text-right uppercase pr-1">SC/PWD VAT:</span>
+          <span className="w-[35%] text-right">{phCurrency.format(reportData?.less_vat || 0)}</span>
+        </div>
         <div className="flex text-[11px] border-t border-black mt-0.5 pt-0.5">
           <span className="flex-1 text-right uppercase pr-1 font-bold">Net Amount:</span>
           <span className="w-[35%] text-right font-bold">{phCurrency.format(netAmount)}</span>
@@ -631,6 +639,7 @@ const fetchReading = useCallback(async () => {
         ))}
         <ReceiptDivider />
         <ReceiptRow label="SC and PWD Amount:" value={phCurrency.format(scDiscount + pwdDiscount)} />
+        <ReceiptRow label="SC/PWD VAT:"       value={phCurrency.format(reportData?.less_vat || 0)} />
         <ReceiptRow label="Total Voids:"       value={phCurrency.format(voids)} />
       </div>
     );
@@ -681,13 +690,15 @@ const fetchReading = useCallback(async () => {
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
         <ReceiptRow label="Net Sales"        value={phCurrency.format(netSales)} />
+        <ReceiptRow label="SC/PWD VAT"       value={phCurrency.format(reportData?.less_vat || 0)} />
         <ReceiptRow label="Total Discounts"  value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="Gross Amount"     value={phCurrency.format(gross)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Discount Summary</p>
-        <ReceiptRow label="S.C Disc."    value={phCurrency.format(scDiscount)} />
-        <ReceiptRow label="PWD Disc."    value={phCurrency.format(pwdDiscount)} />
-        <ReceiptRow label="Other Disc."  value={phCurrency.format(otherDisc)} />
+        <ReceiptRow label="S.C Disc."      value={phCurrency.format(scDiscount)} />
+        <ReceiptRow label="PWD Disc."      value={phCurrency.format(pwdDiscount)} />
+        <ReceiptRow label="SC/PWD VAT:"    value={phCurrency.format(reportData?.less_vat || 0)} />
+        <ReceiptRow label="Other Disc."    value={phCurrency.format(otherDisc)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Sales Adjustment</p>
         <ReceiptRow label="Canceled" value={phCurrency.format(voids)} />
@@ -712,6 +723,11 @@ const fetchReading = useCallback(async () => {
         <ReceiptDivider />
         <ReceiptRow label="Total Qty Sold"   value={reportData?.total_qty_sold ?? 0} />
         <ReceiptRow label="Transaction Count" value={txCount} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">Accumulated Totals</p>
+        <ReceiptRow label="Previous Accumulated" value={phCurrency.format(reportData?.previous_accumulated || 0)} />
+        <ReceiptRow label="Present Accumulated" value={phCurrency.format(reportData?.present_accumulated || 0)} />
+        <ReceiptRow label="Z-Counter" value={String(reportData?.z_counter || 1).padStart(4, "0")} />
       </div>
     );
   };
@@ -758,7 +774,7 @@ const fetchReading = useCallback(async () => {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${
-                isMenuOpen ? "bg-[#3b2063] text-white border-[#3b2063]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                isMenuOpen ? "bg-[#6a12b8] text-white border-[#6a12b8]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
               }`}
             >
               <Menu size={13} /> Menu

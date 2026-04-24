@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, X, RefreshCw, Download, ChevronDown, ChevronUp,
+  Search, X, Download,
   BarChart3, TrendingUp, TrendingDown, Minus, Clock,
 } from 'lucide-react';
 import api from '../../../services/api';
@@ -32,8 +32,6 @@ interface Movement {
   performed_by: string;
   created_at:   string;
 }
-
-interface Branch { id: number; name: string; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -83,7 +81,7 @@ const MovementDrawer: React.FC<{
   const typeColor = (t: string) => {
     if (t === 'add')      return '#16a34a';
     if (t === 'subtract') return '#dc2626';
-    return '#3b2063';
+    return '#6a12b8';
   };
   const typePrefix = (t: string) => t === 'add' ? '+' : t === 'subtract' ? '-' : '=';
 
@@ -94,7 +92,7 @@ const MovementDrawer: React.FC<{
       <div className="relative bg-white w-full max-w-sm h-full flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#3b2063] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#6a12b8] rounded-lg flex items-center justify-center">
               <Clock size={14} className="text-white" />
             </div>
             <div>
@@ -111,7 +109,7 @@ const MovementDrawer: React.FC<{
         <div className="grid grid-cols-3 border-b border-zinc-100">
           {[
             { label: 'BEG', value: row.beg, color: '#71717a' },
-            { label: 'USED', value: row.usage, color: '#3b2063' },
+            { label: 'USED', value: row.usage, color: '#6a12b8' },
             { label: 'END', value: row.end, color: '#1a0f2e' },
           ].map(s => (
             <div key={s.label} className="text-center py-3 border-r border-zinc-100 last:border-0">
@@ -142,7 +140,7 @@ const MovementDrawer: React.FC<{
                   ? <TrendingUp  size={12} color="#16a34a" />
                   : m.type === 'subtract'
                   ? <TrendingDown size={12} color="#dc2626" />
-                  : <Minus       size={12} color="#3b2063" />}
+                  : <Minus       size={12} color="#6a12b8" />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
@@ -177,53 +175,68 @@ const COLUMN_GUIDE: Record<string, string> = {
 
 const BM_InventoryReports: React.FC = () => {
   const now   = new Date();
+  const [branchId,      setBranchId]      = useState<number | null>(null);
   const [rows,          setRows]          = useState<UsageRow[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [search,        setSearch]        = useState('');
-  const [catFilter,     setCatFilter]     = useState('');
-  const [varFilter,     setVarFilter]     = useState('');
-  const [branch,        setBranch]        = useState('');
-  const [branches,      setBranches]      = useState<Branch[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear,  setSelectedYear]  = useState(now.getFullYear());
+  const [exporting,     setExporting]     = useState(false);
   const [showGuide,     setShowGuide]     = useState(false);
   const [drawerRow,     setDrawerRow]     = useState<UsageRow | null>(null);
-  const [exporting,     setExporting]     = useState(false);
-
-  const period = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+  const [lastUpdated,   setLastUpdated]   = useState<Date>(new Date());
+  const PERIOD = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
 
   const fetchReport = useCallback(async () => {
+    if (branchId == null) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const [reportRes, branchRes] = await Promise.allSettled([
-        api.get('/inventory/usage-report', { params: { period, branch_id: branch || undefined } }),
-        api.get('/branches'),
-      ]);
-      if (reportRes.status === 'fulfilled') {
-        const d = reportRes.value.data;
-        setRows(Array.isArray(d) ? d : d?.data ?? []);
-      }
-      if (branchRes.status === 'fulfilled') {
-        const b = branchRes.value.data;
-        setBranches(Array.isArray(b) ? b : b?.data ?? []);
-      }
+      const res = await api.get('/inventory/usage-report', { params: { period: PERIOD, branch_id: branchId } });
+      const d = res.data;
+      setRows(Array.isArray(d) ? d : d?.data ?? []);
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  }, [period, branch]);
+    finally { 
+      setLoading(false); 
+      setLastUpdated(new Date());
+    }
+  }, [PERIOD, branchId]);
+
+  useEffect(() => {
+    api.get('/user')
+      .then(res => setBranchId(res.data?.branch_id ?? null))
+      .catch(() => setBranchId(null));
+  }, []);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
+
+  // Polling for automated updates
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // Only poll when not explicitly loading and when viewing current period
+      const currentNow = new Date();
+      const isCurrentPeriod = selectedMonth === currentNow.getMonth() && selectedYear === currentNow.getFullYear();
+      if (!loading && isCurrentPeriod) {
+        fetchReport();
+      }
+    }, 30000); // 30 seconds
+    return () => clearInterval(timer);
+  }, [fetchReport, loading, selectedMonth, selectedYear]);
 
   const handleExport = async () => {
     setExporting(true);
     try {
       const res = await api.get('/inventory/usage-report/export', {
-        params: { period, branch_id: branch || undefined },
+        params: { period: PERIOD, branch_id: branchId ?? undefined },
         responseType: 'blob',
       });
       const url  = URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href     = url;
-      link.download = `usage-report-${period}.csv`;
+      link.download = `usage-report-${PERIOD}.csv`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) { console.error(e); }
@@ -232,15 +245,8 @@ const BM_InventoryReports: React.FC = () => {
 
   const filtered = rows.filter(r => {
     const matchSearch = r.name.toLowerCase().includes(search.toLowerCase());
-    const matchCat    = catFilter ? r.category === catFilter : true;
-    const matchVar    = varFilter === 'negative' ? r.variance < 0
-                      : varFilter === 'positive' ? r.variance > 0
-                      : varFilter === 'zero'     ? r.variance === 0
-                      : true;
-    return matchSearch && matchCat && matchVar;
+    return matchSearch;
   });
-
-  const cats = [...new Set(rows.map(r => r.category))].filter(Boolean);
 
   // Summary stats
   const totalUsage  = rows.reduce((s, r) => s + r.usage, 0);
@@ -265,30 +271,43 @@ const BM_InventoryReports: React.FC = () => {
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Usage Report</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {MONTHS[selectedMonth]} {selectedYear} · raw material consumption
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={fetchReport} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button onClick={handleExport} disabled={exporting || loading}
-            className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all disabled:opacity-50">
-            <Download size={13} /> {exporting ? 'Exporting...' : 'Export CSV'}
-          </button>
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          <div className="relative group flex-1 w-full md:w-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
+            <input
+              type="text"
+              placeholder="Search inventory items..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all flex-1">
+              {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+            </select>
+            <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all flex-1">
+              {[now.getFullYear() - 1, now.getFullYear()].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
+            <button onClick={handleExport} disabled={exporting || loading}
+              className="w-full md:w-auto bg-[#6a12b8] hover:bg-[#2d1851] text-white px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm">
+              <Download size={15} /> {exporting ? "Exporting..." : "Export CSV"}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {[
-          { label: 'Total Items',     value: rows.length,  color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Total Items',     value: rows.length,  color: '#6a12b8', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Total Usage',     value: totalUsage,   color: '#1a0f2e', bg: '#faf9ff', border: '#e9d5ff' },
           { label: 'Total Spoilage',  value: totalSpoil,   color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
           { label: 'Negative Var.',   value: negVar,       color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
@@ -298,64 +317,31 @@ const BM_InventoryReports: React.FC = () => {
             <p className="text-2xl font-black tabular-nums" style={{ color: s.color }}>{loading ? '—' : s.value}</p>
           </div>
         ))}
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
-
-          {/* Period selector */}
-          <div className="flex items-center gap-2">
-            <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
-              className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-              {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
-            </select>
-            <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
-              className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-              {[now.getFullYear() - 1, now.getFullYear()].map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+      </div>      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-zinc-50/20">
+          <div className="flex items-center gap-4">
+            <p className="text-xs font-black uppercase tracking-widest text-[#1a0f2e]">Inventory Usage Ledger</p>
+            <div className="flex items-center gap-2 px-2 py-0.5 bg-white border border-emerald-100 rounded-full">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Live</span>
+              <span className="text-[8px] text-zinc-400 font-bold tabular-nums">
+                {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            </div>
           </div>
-
-          <select value={branch} onChange={e => setBranch(e.target.value)}
-            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-            <option value="">All Branches</option>
-            {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
-          </select>
-
-          <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
-            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-            <option value="">All Categories</option>
-            {cats.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-
-          <select value={varFilter} onChange={e => setVarFilter(e.target.value)}
-            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-            <option value="">All Variance</option>
-            <option value="negative">Negative</option>
-            <option value="positive">Positive</option>
-            <option value="zero">Zero</option>
-          </select>
-
-          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 flex-1 min-w-35 h-9">
-            <Search size={13} className="text-zinc-400 shrink-0" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-xs text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search item..." />
-            {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={12} /></button>}
-          </div>
-
-          <button onClick={() => setShowGuide(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-2 h-9 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-500 hover:text-[#3b2063] hover:border-[#e9d5ff] transition-colors ml-auto">
-            Column Guide {showGuide ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          <button onClick={() => setShowGuide(!showGuide)} className="text-[10px] font-bold text-zinc-400 hover:text-[#6a12b8] underline">
+            {showGuide ? "Hide Guide" : "Show Guide"}
           </button>
         </div>
-
         {/* Column guide */}
         {showGuide && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5 py-4 bg-[#faf9ff] border-b border-zinc-100">
             {Object.entries(COLUMN_GUIDE).map(([col, desc]) => (
               <div key={col} className="flex items-start gap-2">
-                <span className="text-[9px] font-black text-[#3b2063] bg-[#f5f0ff] px-1.5 py-0.5 rounded border border-[#e9d5ff] shrink-0 mt-0.5">{col}</span>
+                <span className="text-[9px] font-black text-[#6a12b8] bg-[#f5f0ff] px-1.5 py-0.5 rounded border border-[#e9d5ff] shrink-0 mt-0.5">{col}</span>
                 <p className="text-[10px] text-zinc-500 leading-tight">{desc}</p>
               </div>
             ))}
@@ -378,7 +364,7 @@ const BM_InventoryReports: React.FC = () => {
                 <tr><td colSpan={9} className="py-16 text-center">
                   <BarChart3 size={32} className="mx-auto text-zinc-200 mb-3" />
                   <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">
-                    {search || catFilter || varFilter ? 'No items match your filters' : 'No usage data for this period'}
+                    {search ? 'No items match your search' : 'No usage data for this period'}
                   </p>
                 </td></tr>
               ) : filtered.map(r => {
@@ -394,10 +380,10 @@ const BM_InventoryReports: React.FC = () => {
                     <td className="px-4 py-3.5 text-right text-xs font-medium text-zinc-500 tabular-nums">{r.beg}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.del > 0 ? '#16a34a' : '#a1a1aa' }}>{r.del}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.cooked > 0 ? '#2563eb' : '#a1a1aa' }}>{r.cooked}</td>
-                    <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.out > 0 ? '#3b2063' : '#a1a1aa' }}>{r.out}</td>
+                    <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.out > 0 ? '#6a12b8' : '#a1a1aa' }}>{r.out}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.spoil > 0 ? '#dc2626' : '#a1a1aa' }}>{r.spoil}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-bold text-[#1a0f2e] tabular-nums">{r.end}</td>
-                    <td className="px-4 py-3.5 text-right text-xs font-bold tabular-nums" style={{ color: '#3b2063' }}>{r.usage}</td>
+                    <td className="px-4 py-3.5 text-right text-xs font-bold tabular-nums" style={{ color: '#6a12b8' }}>{r.usage}</td>
                     <td className="px-4 py-3.5 text-right">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold border tabular-nums"
                         style={{ background: vc.bg, color: vc.text, borderColor: vc.border }}>
@@ -432,7 +418,7 @@ const BM_InventoryReports: React.FC = () => {
       {drawerRow && (
         <MovementDrawer
           row={drawerRow}
-          period={period}
+          period={PERIOD}
           onClose={() => setDrawerRow(null)}
         />
       )}

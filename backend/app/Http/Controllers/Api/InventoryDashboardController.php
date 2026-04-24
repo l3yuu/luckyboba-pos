@@ -15,8 +15,8 @@ class InventoryDashboardController extends Controller
             $user     = auth('sanctum')->user() ?? $request->user();
             $branchId = $user?->branch_id;
 
-            $startOfWeek = Carbon::now()->startOfWeek(Carbon::SUNDAY)->format('Y-m-d 00:00:00');
-            $endOfWeek   = Carbon::now()->endOfWeek(Carbon::SATURDAY)->format('Y-m-d 23:59:59');
+            $startOfWeek = Carbon::now()->startOfWeek(0)->format('Y-m-d 00:00:00'); // 0 = Sunday
+            $endOfWeek   = Carbon::now()->endOfWeek(6)->format('Y-m-d 23:59:59');   // 6 = Saturday
 
             $topProducts = DB::table('sale_items')
                 ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
@@ -33,7 +33,7 @@ class InventoryDashboardController extends Controller
                 ')
                 ->groupBy('sale_items.product_name')
                 ->orderBy('total_qty', 'desc')
-                ->limit(5)
+                ->limit(20)
                 ->get();
 
             $data = $topProducts->map(function ($item) {

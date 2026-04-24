@@ -30,6 +30,12 @@ class Branch extends Model
     'maya_name',
     'maya_number',
     'maya_qr',
+    'franchise_id',
+    'latitude',
+    'longitude',
+    'image',
+    'kiosk_pin',
+    'kiosk_password',
 ];
 
 protected $casts = [
@@ -43,11 +49,18 @@ protected $casts = [
     'vat_reg_tin'    => 'string',
     'min_number'     => 'string',
     'serial_number'  => 'string',
+    'latitude'       => 'decimal:8',
+    'longitude'      => 'decimal:8',
 ];
 
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function franchise()
+    {
+        return $this->belongsTo(Franchise::class);
     }
 
     public function manager()

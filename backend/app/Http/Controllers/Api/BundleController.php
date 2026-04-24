@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Bundle;
 use App\Models\Category;
+use App\Traits\MenuCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
 
 class BundleController extends Controller
 {
+    use MenuCache;
     /**
      * GET /api/bundles
      * Returns all bundles with their items — used by POS cache
@@ -31,7 +32,15 @@ public function index(Request $request)
         $query->where('barcode', $request->barcode);  // ✅ add this
     }
 
-    $bundles = $query->orderBy('category')->get();
+    $bundles = $query->orderBy('category')->get()->map(function($bundle) {
+        $bundle->items->map(function($item) {
+            $item->has_ice = $item->menuItem ? $item->menuItem->options->contains('option_type', 'ice') : false;
+            $item->has_pearl = $item->menuItem ? $item->menuItem->options->contains('option_type', 'pearl') : false;
+            $item->has_sugar = $item->menuItem ? $item->menuItem->options->contains('option_type', 'sugar') : false;
+            return $item;
+        });
+        return $bundle;
+    });
 
     return response()->json($bundles);
 }
@@ -122,7 +131,7 @@ public function index(Request $request)
             }
 
             DB::commit();
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json([
                 'success' => true,
@@ -190,7 +199,7 @@ public function index(Request $request)
             }
 
             DB::commit();
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json([
                 'success' => true,
@@ -218,7 +227,7 @@ public function index(Request $request)
             $bundle->items()->delete();
             $bundle->delete();
 
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json([
                 'success' => true,
@@ -241,7 +250,7 @@ public function index(Request $request)
         $bundle = Bundle::findOrFail($id);
         $bundle->update(['is_active' => !$bundle->is_active]);
 
-        Cache::forget('menu_data_v3');
+        $this->clearMenuCache();
 
         return response()->json([
             'success'   => true,

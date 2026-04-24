@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Sidebar from "../components/Cashier/Sidebar";
 import logo from '../assets/logo.png';
-import api from '../services/api'; 
+import api from '../services/api';
+import SyncOverlay from '../components/SyncOverlay';
+import { useToast } from '../hooks/useToast';
 import type { DashboardData, TopSeller } from '../types/dashboard';
 import { Monitor, DollarSign, Receipt, ArrowDownToLine, ArrowUpFromLine, Ban, Trophy, Clock4, RefreshCw, TrendingUp } from 'lucide-react';
 
@@ -54,11 +56,14 @@ const GlobalFont = () => (
   `}</style>
 );
 
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
+  const { showToast } = useToast();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [syncRequired, setSyncRequired] = useState(false);
   const [stats, setStats] = useState<DashboardData | null>(() => {
     const cached = localStorage.getItem('dashboard_stats');
     return cached ? JSON.parse(cached) : null;
@@ -137,6 +142,75 @@ const fetchStats = useCallback(async (force = false) => {
     };
   }, [fetchStats]);
 
+  // Real-time synchronization prompt — NON-DISMISSIBLE overlay
+  useEffect(() => {
+    const SYNC_CHANNEL_NAME = 'lucky_boba_pos_sync_v1';
+    const SYNC_STORAGE_KEY = 'lb-pos-sync-trigger-v1';
+    const origin = window.location.origin;
+
+    const channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
+
+    // Migration: clear stale ms-based values from previous code (PHP uses seconds)
+    const raw = localStorage.getItem('lb-pos-menu-version') || '0';
+    if (parseInt(raw, 10) > 10_000_000_000) {
+      localStorage.removeItem('lb-pos-menu-version');
+    }
+    // Track the last known backend version (in SECONDS, same unit as PHP time())
+    let localMenuVersion = parseInt(localStorage.getItem('lb-pos-menu-version') || '0', 10);
+
+    const handleSync = () => {
+      console.info(`[Sync] 📥 Signal Received at ${origin}: Triggering UI overlay.`);
+      setSyncRequired(true);
+    };
+
+    // 1. BroadcastChannel
+    channel.onmessage = (event) => {
+      const data = event.data;
+      const msg = typeof data === 'string' ? data : data?.type;
+      console.log(`[Sync] Broadcast message received at ${origin}:`, data);
+      if (msg === 'menu-updated') handleSync();
+    };
+
+    // 2. LocalStorage Fallback
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === SYNC_STORAGE_KEY) {
+        console.log(`[Sync] Storage event received at ${origin}:`, e.newValue);
+        handleSync();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 3. API Polling (Cross-Browser / Cross-Device)
+    const checkVersion = async () => {
+      try {
+        const { data } = await api.get('/menu/version');
+        const remoteVersion = parseInt(data.version || '0', 10);
+
+        if (remoteVersion > 0 && localMenuVersion > 0 && remoteVersion > localMenuVersion) {
+          console.info(`[Sync] 🔄 Remote version (${remoteVersion}) > Local (${localMenuVersion}).`);
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+          handleSync();
+        } else if (localMenuVersion === 0 && remoteVersion > 0) {
+          localMenuVersion = remoteVersion;
+          localStorage.setItem('lb-pos-menu-version', remoteVersion.toString());
+        }
+      } catch {
+        // Silent catch for polling
+      }
+    };
+
+    // Check every 10 seconds for faster cross-browser detection
+    const intervalId = setInterval(checkVersion, 10000);
+    checkVersion();
+
+    return () => {
+      channel.close();
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(intervalId);
+    };
+  }, [showToast]);
+
   if (authLoading || (isInitialLoad && !stats)) return <DashboardSkeleton />;
   if (!user) return null;
 
@@ -159,7 +233,10 @@ const fetchStats = useCallback(async (force = false) => {
       case 'menu-list':           return <MenuList />;
       case 'category-list':       return <CategoryList />;
       case 'sub-category-list':   return <SubCategoryList />;
-      case 'inventory-dashboard': return <InventoryDashboard />;
+      case 'inventory-dashboard': return <InventoryDashboard view="dashboard" />;
+      case 'inventory-raw-materials': return <InventoryDashboard view="materials" />;
+      case 'inventory-usage': return <InventoryDashboard view="usage" />;
+      case 'inventory-recipes': return <InventoryDashboard view="recipes" />;
       case 'inventory-list':      return <InventoryList />;
       case 'inventory-category':  return <InventoryCategoryList />;
       case 'supplier':            return <Supplier />;
@@ -184,6 +261,22 @@ const fetchStats = useCallback(async (force = false) => {
           <div className="flex-1 overflow-y-auto">{renderContent()}</div>
         </main>
       </div>
+
+      {/* Mandatory Sync Modal Overlay — NON-DISMISSIBLE until sync completes */}
+      {syncRequired && (
+        <SyncOverlay
+          onSync={async () => {
+            localStorage.removeItem('dashboard_stats_timestamp');
+            // Store the server's version (seconds) — NOT Date.now() (milliseconds)
+            try {
+              const { data } = await api.get('/menu/version');
+              const v = parseInt(data.version || '0', 10);
+              if (v > 0) localStorage.setItem('lb-pos-menu-version', v.toString());
+            } catch { /* version will be picked up on next poll */ }
+            window.location.reload();
+          }}
+        />
+      )}
     </>
   );
 };
@@ -204,10 +297,10 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
     <div className="p-5 md:p-7 min-h-full flex flex-col gap-5">
       <div className="grid grid-cols-12 gap-4">
 
-        {/* Terminal Status — solid #3b2063, same as login purple, NO gradient */}
+        {/* Terminal Status — solid #6a12b8, same as login purple, NO gradient */}
         <div
           className="col-span-12 lg:col-span-5 rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 relative overflow-hidden"
-          style={{ backgroundColor: '#3b2063' }}
+          style={{ backgroundColor: '#6a12b8' }}
         >
           <div className="absolute inset-0 opacity-[0.06]"
             style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
@@ -244,7 +337,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#f5f0ff] border border-[#ddd6fe] flex items-center justify-center rounded-lg">
-                <DollarSign size={18} className="text-[#3b2063]" strokeWidth={2} />
+                <DollarSign size={18} className="text-[#6a12b8]" strokeWidth={2} />
               </div>
               <p className="text-sm font-bold uppercase tracking-widest text-zinc-700">Net Revenue</p>
             </div>
@@ -266,7 +359,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-[#e9d5ff] rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 stat-card">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#f5f0ff] border border-[#ddd6fe] flex items-center justify-center rounded-lg">
-              <Receipt size={18} className="text-[#3b2063]" strokeWidth={2} />
+              <Receipt size={18} className="text-[#6a12b8]" strokeWidth={2} />
             </div>
             <p className="text-sm font-bold uppercase tracking-widest text-zinc-700">Transactions</p>
           </div>
@@ -279,13 +372,13 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard icon={<ArrowUpFromLine size={18} strokeWidth={2} className="text-emerald-600" />} label="Begin Cash" value={fmt(stats?.cash_in_today ?? 0)} isLoading={isLoading} accent="emerald" />
-        <MetricCard icon={<ArrowDownToLine size={18} strokeWidth={2} className="text-[#3b2063]" />}  label="Cash Out"   value={fmt(stats?.cash_out_today ?? 0)}  isLoading={isLoading} accent="purple" />
+        <MetricCard icon={<ArrowDownToLine size={18} strokeWidth={2} className="text-[#6a12b8]" />}  label="Cash Out"   value={fmt(stats?.cash_out_today ?? 0)}  isLoading={isLoading} accent="purple" />
         <MetricCard icon={<Ban size={18} strokeWidth={2} className="text-red-500" />}                label="Voided"     value={fmt(stats?.voided_sales_today ?? 0)} isLoading={isLoading} accent="red" />
       </div>
 
       <div className="grid grid-cols-12 gap-4 flex-1">
-        <LeaderboardCard title="Top Sellers Today"  icon={<Trophy size={17} strokeWidth={2} className="text-[#3b2063]" />} sellers={stats?.top_seller_today ?? []}    loading={isLoading} />
-        <LeaderboardCard title="All Time Leaders"   icon={<Clock4  size={17} strokeWidth={2} className="text-[#3b2063]" />} sellers={stats?.top_seller_all_time ?? []} loading={isLoading} />
+        <LeaderboardCard title="Top Sellers Today"  icon={<Trophy size={17} strokeWidth={2} className="text-[#6a12b8]" />} sellers={stats?.top_seller_today ?? []}    loading={isLoading} />
+        <LeaderboardCard title="All Time Leaders"   icon={<Clock4  size={17} strokeWidth={2} className="text-[#6a12b8]" />} sellers={stats?.top_seller_all_time ?? []} loading={isLoading} />
       </div>
     </div>
   );
@@ -299,7 +392,7 @@ interface MetricCardProps {
   accent: 'emerald' | 'purple' | 'red';
 }
 
-const accentMap = { emerald: 'text-emerald-700', purple: 'text-[#3b2063]', red: 'text-red-600' };
+const accentMap = { emerald: 'text-emerald-700', purple: 'text-[#6a12b8]', red: 'text-red-600' };
 
 const MetricCard = ({ icon, label, value, isLoading, accent }: MetricCardProps) => (
   <div className="bg-white border border-[#e9d5ff] rounded-[0.625rem] px-6 py-5 flex items-center justify-between stat-card">
@@ -350,12 +443,12 @@ const LeaderboardCard = ({ title, icon, sellers, loading }: LeaderboardCardProps
                         <span className="text-sm font-bold tabular-nums text-[#c4b5fd] w-5">{String(i + 1).padStart(2, '0')}</span>
                         <span className="text-base font-semibold text-[#1a0f2e] truncate max-w-55">{item.product_name}</span>
                       </div>
-                      <span className="text-sm font-bold tabular-nums text-[#3b2063] bg-[#f5f0ff] border border-[#ddd6fe] px-3 py-1 rounded-sm">
+                      <span className="text-sm font-bold tabular-nums text-[#6a12b8] bg-[#f5f0ff] border border-[#ddd6fe] px-3 py-1 rounded-sm">
                         {item.total_qty} sold
                       </span>
                     </div>
                     <div className="h-0.5 bg-[#ede9fe] overflow-hidden rounded-full">
-                      <div className="rank-bar h-full bg-[#3b2063]" style={{ width: `${(item.total_qty / max) * 100}%` }} />
+                      <div className="rank-bar h-full bg-[#6a12b8]" style={{ width: `${(item.total_qty / max) * 100}%` }} />
                     </div>
                   </>
                 ) : (
@@ -388,7 +481,7 @@ const DashboardSkeleton = () => (
       </div>
       <div className="flex-1 p-7 flex flex-col gap-5">
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-5 h-44 animate-pulse rounded-[0.625rem]" style={{ backgroundColor: '#3b2063', opacity: 0.25 }} />
+          <div className="col-span-5 h-44 animate-pulse rounded-[0.625rem]" style={{ backgroundColor: '#6a12b8', opacity: 0.25 }} />
           <div className="col-span-4 h-44 bg-white animate-pulse border border-[#e9d5ff] rounded-[0.625rem]" />
           <div className="col-span-3 h-44 bg-white animate-pulse border border-[#e9d5ff] rounded-[0.625rem]" />
         </div>

@@ -30,7 +30,7 @@ const STYLES = `
   .ir-tab { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 13px; border-radius: 0.4rem; border: none; cursor: pointer; transition: background 0.12s, color 0.12s; }
   .ir-tab-on  { background: #1a0f2e; color: #fff; }
   .ir-tab-off { background: transparent; color: #a1a1aa; }
-  .ir-tab-off:hover { background: #ede8ff; color: #3b2063; }
+  .ir-tab-off:hover { background: #ede8ff; color: #6a12b8; }
   .ir-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
   .ir-live  {
     display: inline-flex; align-items: center; gap: 5px;
@@ -176,7 +176,7 @@ const ItemsReport = () => {
       value: phCurrency.format(grandTotal),
       compact: fmtCompact(grandTotal),
       icon: <DollarSign size={14} strokeWidth={2.5} />,
-      iconBg: '#ede9fe', iconColor: '#7c3aed', valueColor: '#3b2063',
+      iconBg: '#ede9fe', iconColor: '#7c3aed', valueColor: '#6a12b8',
     },
     {
       label: 'Total Items Sold',
@@ -335,7 +335,7 @@ const ItemsReport = () => {
                   <select
                     value={reportType}
                     onChange={(e) => setReportType(e.target.value as 'item-list' | 'category-summary')}
-                    className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-100 bg-[#f5f4f8] font-bold text-[#3b2063] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none"
+                    className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-100 bg-[#f5f4f8] font-bold text-[#6a12b8] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none"
                   >
                     <option value="item-list">Detailed Item List</option>
                     <option value="category-summary">Category Summary</option>
@@ -355,14 +355,14 @@ const ItemsReport = () => {
                 </button>
                 <button
                   onClick={generateExcel} disabled={!hasData}
-                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#3b2063] hover:border-[#ddd6f7] flex items-center justify-center transition-all disabled:opacity-30"
+                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#6a12b8] hover:border-[#ddd6f7] flex items-center justify-center transition-all disabled:opacity-30"
                   title="Export to Excel"
                 >
                   <FileDown size={16} />
                 </button>
                 <button
                   onClick={handlePrint} disabled={!hasData}
-                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#3b2063] hover:border-[#ddd6f7] flex items-center justify-center transition-all disabled:opacity-30"
+                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#6a12b8] hover:border-[#ddd6f7] flex items-center justify-center transition-all disabled:opacity-30"
                   title="Print Report"
                 >
                   <Printer size={16} />
@@ -437,7 +437,7 @@ const ItemsReport = () => {
                               width: 22, height: 22, borderRadius: '0.35rem', flexShrink: 0,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontSize: '0.55rem', fontWeight: 800,
-                              background: idx === 0 ? '#3b2063' : '#f4f4f5',
+                              background: idx === 0 ? '#6a12b8' : '#f4f4f5',
                               color: idx === 0 ? '#fff' : '#71717a',
                             }}>
                               {idx + 1}
@@ -465,7 +465,7 @@ const ItemsReport = () => {
                               <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                 <div
                                   className="h-full rounded-full"
-                                  style={{ width: `${rowPct}%`, background: idx === 0 ? '#3b2063' : '#d4d4d8' }}
+                                  style={{ width: `${rowPct}%`, background: idx === 0 ? '#6a12b8' : '#d4d4d8' }}
                                 />
                               </div>
                               <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#a1a1aa', width: 28, textAlign: 'right' }}>
@@ -478,7 +478,7 @@ const ItemsReport = () => {
                           </div>
                         </td>
                         <td className="px-6 py-3.5 text-right">
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#3b2063', letterSpacing: '-0.01em' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#6a12b8', letterSpacing: '-0.01em' }}>
                             {phCurrency.format(item.amount)}
                           </span>
                         </td>
@@ -544,7 +544,7 @@ const ItemsReport = () => {
             {/* Loading progress bar overlay */}
             {loading && data && (
               <div className="absolute top-0 left-0 right-0 h-0.5 bg-purple-100 rounded-t-2xl overflow-hidden">
-                <div className="h-full bg-[#3b2063] animate-pulse" />
+                <div className="h-full bg-[#6a12b8] animate-pulse" />
               </div>
             )}
           </div>
@@ -556,3 +556,5 @@ const ItemsReport = () => {
 };
 
 export default ItemsReport;
+
+

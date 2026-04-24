@@ -127,7 +127,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -145,7 +145,7 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
 );
 
 const PAYMENT_COLORS: Record<string, string> = {
-  cash:   "#3b2063",
+  cash:   "#6a12b8",
   gcash:  "#0ea5e9",
   card:   "#10b981",
   maya:   "#f59e0b",
@@ -292,90 +292,59 @@ const BM_SalesDashboard: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Sales Report</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {bmBranchName ? `Sales breakdown for ${bmBranchName}` : "Sales breakdown for your branch"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-          </Btn>
-          <Btn variant="secondary" onClick={handleExport} disabled={loading}>
-            <Download size={13} /> Export CSV
-          </Btn>
-        </div>
-      </div>
-
-      {/* ── Filters ── */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
-        {/* Mode toggle */}
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Filter Mode</p>
-          <div className="flex rounded-lg overflow-hidden border border-zinc-200">
+      {/* ── Header Filters ── */}
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-2">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          {/* Mode toggle */}
+          <div className="flex rounded-xl overflow-hidden border border-zinc-200 shadow-sm shrink-0">
             {(["period", "range"] as const).map(m => (
               <button key={m} onClick={() => setMode(m)}
-                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === m ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
-                {m === "period" ? "Period" : "Date Range"}
+                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === m ? "bg-[#6a12b8] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                {m === "period" ? "Period" : "Range"}
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Period selector */}
-        {mode === "period" && (
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Period</p>
-            <div className="flex rounded-lg overflow-hidden border border-zinc-200">
+          {/* Period selector */}
+          {mode === "period" && (
+            <div className="flex rounded-xl overflow-hidden border border-zinc-200 shadow-sm shrink-0">
               {(["daily", "weekly", "monthly"] as const).map(p => (
                 <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-                  className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                  className={`px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#6a12b8] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
                   {p}
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Date range */}
-        {mode === "range" && (
-          <>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date From</p>
+          {/* Date range */}
+          {mode === "range" && (
+            <div className="flex items-center gap-2 shrink-0">
               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
+                className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all" />
+              <span className="text-zinc-400 font-bold">-</span>
               <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+                className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all" />
             </div>
-          </>
-        )}
+          )}
 
-        {/* Branch badge — display only, not selectable */}
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
-          <div className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-            {bmBranchName || "Your Branch"}
+          <Btn onClick={fetchAll} disabled={loading} className="px-5 py-3 rounded-xl shadow-sm">
+            {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
+          </Btn>
+
+          {mode === "range" && (
+            <button onClick={() => { setMode("period"); setPeriod("monthly"); }}
+              className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+              <X size={11} /> Clear
+            </button>
+          )}
+
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
+            <Btn variant="secondary" onClick={handleExport} className="w-full md:w-auto px-5 py-3 rounded-xl shadow-sm">
+              <Download size={14} /> Export
+            </Btn>
           </div>
         </div>
-
-        {/* Apply */}
-        <Btn onClick={fetchAll} disabled={loading}>
-          {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
-        </Btn>
-
-        {/* Clear */}
-        {mode === "range" && (
-          <button onClick={() => { setMode("period"); setPeriod("monthly"); }}
-            className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
-            <X size={11} /> Clear
-          </button>
-        )}
       </div>
 
       {/* ── Error ── */}
@@ -409,7 +378,7 @@ const BM_SalesDashboard: React.FC = () => {
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors -mb-px ${
               activeTab === tab.id
-                ? "border-[#3b2063] text-[#3b2063]"
+                ? "border-[#6a12b8] text-[#6a12b8]"
                 : "border-transparent text-zinc-400 hover:text-zinc-600"
             }`}>
             {tab.label}
@@ -438,8 +407,8 @@ const BM_SalesDashboard: React.FC = () => {
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="bmRevGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#3b2063" stopOpacity={0.18} />
-                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0}    />
+                      <stop offset="5%"  stopColor="#6a12b8" stopOpacity={0.18} />
+                      <stop offset="95%" stopColor="#6a12b8" stopOpacity={0}    />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" />
@@ -447,7 +416,7 @@ const BM_SalesDashboard: React.FC = () => {
                   <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
                   <Tooltip formatter={(v) => [`₱${Number(v ?? 0).toLocaleString()}`, "Revenue"] as [string, string]}
                     contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
-                  <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={2.5} fill="url(#bmRevGrad)" name="Revenue" />
+                  <Area type="monotone" dataKey="revenue" stroke="#6a12b8" strokeWidth={2.5} fill="url(#bmRevGrad)" name="Revenue" />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -502,7 +471,7 @@ const BM_SalesDashboard: React.FC = () => {
                     <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                       <td className="px-5 py-3.5 font-medium text-zinc-700">{row.date}</td>
                       <td className="px-5 py-3.5 text-zinc-600">{Number(row.orders).toLocaleString()}</td>
-                      <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(Number(row.revenue))}</td>
+                      <td className="px-5 py-3.5 font-bold text-[#6a12b8]">{fmt(Number(row.revenue))}</td>
                       <td className="px-5 py-3.5 text-zinc-600">
                         {row.orders > 0 ? fmt(Number(row.revenue) / Number(row.orders)) : "—"}
                       </td>
@@ -512,7 +481,7 @@ const BM_SalesDashboard: React.FC = () => {
                     <tr className="bg-zinc-50 border-t border-zinc-200">
                       <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest">Total</td>
                       <td className="px-5 py-3.5 font-black text-[#1a0f2e]">{totalOrders.toLocaleString()}</td>
-                      <td className="px-5 py-3.5 font-black text-[#3b2063]">{fmt(grandTotal)}</td>
+                      <td className="px-5 py-3.5 font-black text-[#6a12b8]">{fmt(grandTotal)}</td>
                       <td className="px-5 py-3.5 font-bold text-zinc-600">{fmt(avgOrderValue)}</td>
                     </tr>
                   )}
@@ -526,13 +495,16 @@ const BM_SalesDashboard: React.FC = () => {
       {/* ── TAB: Top Products ── */}
       {activeTab === "products" && (
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-          <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-3">
-            <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-              <Search size={13} className="text-zinc-400" />
-              <input value={search} onChange={e => setSearch(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-                placeholder="Search products..." />
-              {search && <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500"><X size={12} /></button>}
+          <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
+            <div className="relative group flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
+              />
             </div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 shrink-0">
               {filteredProducts.length} items
@@ -576,7 +548,7 @@ const BM_SalesDashboard: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           <div className="w-16 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-[#3b2063]" style={{ width: `${pct}%` }} />
+                            <div className="h-full rounded-full bg-[#6a12b8]" style={{ width: `${pct}%` }} />
                           </div>
                           <span className="text-zinc-600 font-medium">{p.total_quantity.toLocaleString()}x</span>
                         </div>
@@ -650,7 +622,7 @@ const BM_SalesDashboard: React.FC = () => {
             {!loading && paymentChartData.length > 0 && (
               <div className="bg-zinc-50 border border-zinc-200 rounded-[0.625rem] px-4 py-3.5 flex items-center justify-between">
                 <p className="text-xs font-black text-[#1a0f2e] uppercase tracking-widest">Total</p>
-                <p className="text-sm font-black text-[#3b2063]">
+                <p className="text-sm font-black text-[#6a12b8]">
                   {fmt(paymentChartData.reduce((s, x) => s + x.revenue, 0))}
                 </p>
               </div>

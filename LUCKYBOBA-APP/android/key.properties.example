@@ -1,0 +1,8 @@
+storePassword=CHANGEME
+keyPassword=CHANGEME
+keyAlias=upload
+storeFile=upload-keystore.jks
+storePassword=CHANGEME
+keyPassword=CHANGEME
+keyAlias=upload
+storeFile=upload-keystore.jks

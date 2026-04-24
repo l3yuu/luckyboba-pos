@@ -14,10 +14,10 @@ import PosDeviceManager        from './pages/PosDeviceManager';
 import OnlineOrdersPage        from './components/Cashier/SalesOrder/OnlineOrdersPage'; // ← NEW
 import SupervisorDashboard from './pages/SupervisorDashboard';  // ← ADD THIS IMPORT
 import { DeviceGate } from './components/DeviceGate';
+import KioskPage from './pages/Kiosk/KioskPage';
 
 export const router = createBrowserRouter([
 
-  // ── Public ──────────────────────────────────────────────────────────────
   {
     element:      <PublicRoute />,
     errorElement: <ErrorFallback />,
@@ -25,6 +25,9 @@ export const router = createBrowserRouter([
       { path: '/login', element: <Login /> },
     ],    
   },
+
+  // ── Kiosk (Publicly accessible, no redirect if already logged in) ──────────
+  { path: '/kiosk', element: <KioskPage />, errorElement: <ErrorFallback /> },
 
   // ── Super Admin only ─────────────────────────────────────────────────────
   {

@@ -78,30 +78,32 @@ const authHeaders = () => ({
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#3b2063]" },
+    violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#6a12b8]" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
     red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
     amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
   };
   const c = colors[color];
   return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between card shadow-sm">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 card shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3">
         <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
           <span className={c.icon}>{icon}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums whitespace-nowrap">{value}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">{label}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums truncate">{value}</p>
+            {trend !== undefined && (
+              <div className={`flex items-center gap-0.5 text-xs font-bold shrink-0 ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                {Math.abs(trend)}%
+              </div>
+            )}
+          </div>
+          {sub && <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5">{sub}</p>}
         </div>
       </div>
-      {trend !== undefined && (
-        <div className={`flex items-center gap-1 text-xs font-bold shrink-0 ml-2 ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-          {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-          {Math.abs(trend)}%
-        </div>
-      )}
-      {sub && <p className="text-[11px] text-zinc-400 font-medium shrink-0 ml-2 truncate max-w-[100px]">{sub}</p>}
     </div>
   );
 };
@@ -112,7 +114,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger: "bg-red-600 hover:bg-red-700 text-white",
     ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -213,28 +215,35 @@ const OverviewTab: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [summaryRes, comparisonRes, usersRes, branchesRes, ownershipRes] = await Promise.all([
-        fetch(`/api/reports/admin-sales-summary?period=${period}`, { headers: authHeaders() }),
-        fetch(`/api/reports/branch-comparison?period=${period}`, { headers: authHeaders() }),
-        fetch(`/api/users/stats`, { headers: authHeaders() }),
-        fetch(`/api/branches`, { headers: authHeaders() }),
-        fetch(`/api/branches/ownership-summary?period=${period}`, { headers: authHeaders() }),
-      ]);
+      // Use individual try/catch for each request to prevent one failure from breaking everything
+      const safeFetch = async (url: string) => {
+        try {
+          const res = await fetch(url, { headers: authHeaders() });
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return await res.json();
+        } catch (err) {
+          console.warn(`Fetch failed for ${url}:`, err);
+          return null;
+        }
+      };
 
       const [summary, comparison, users, branches, ownershipData] = await Promise.all([
-        summaryRes.json(), comparisonRes.json(), usersRes.json(),
-        branchesRes.json(), ownershipRes.json(),
+        safeFetch(`/api/reports/admin-sales-summary?period=${period}`),
+        safeFetch(`/api/reports/branch-comparison?period=${period}`),
+        safeFetch(`/api/users/stats`),
+        safeFetch(`/api/branches`),
+        safeFetch(`/api/branches/ownership-summary?period=${period}`),
       ]);
 
-      if (summary.totals) setTotals(summary.totals);
-      if (summary.breakdown) setBreakdown(summary.breakdown);
-      if (summary.top_products) setTopProducts(summary.top_products.slice(0, 5));
-      if (comparison.comparison) setBranchPerf(comparison.comparison);
+      if (summary?.totals) setTotals(summary.totals);
+      if (summary?.breakdown) setBreakdown(summary.breakdown);
+      if (summary?.top_products) setTopProducts(summary.top_products.slice(0, 5));
+      if (comparison?.comparison) setBranchPerf(comparison.comparison);
 
-      if (users.success && users.data) {
+      if (users?.success && users?.data) {
         setUserStats({ active: users.data.active, total: users.data.total });
       }
-      if (branches.success && branches.data) {
+      if (branches?.success && branches?.data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const list = branches.data as any[];
         setBranchStats({
@@ -242,9 +251,9 @@ const OverviewTab: React.FC = () => {
           active: list.filter((b: { status: string }) => b.status === "active").length,
         });
       }
-      if (ownershipData.success) setOwnership(ownershipData);
+      if (ownershipData?.success) setOwnership(ownershipData);
     } catch (e) {
-      console.error("OverviewTab fetch error", e);
+      console.error("OverviewTab top-level fetch error", e);
     } finally {
       setLoading(false);
     }
@@ -253,7 +262,7 @@ const OverviewTab: React.FC = () => {
   const fetchPulse = useCallback(async () => {
     try {
       const token = getToken();
-      const response = await axios.get('/api/pulse', {
+      const response = await axios.get('/api/reports/pulse', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPulse(response.data.data);
@@ -268,6 +277,29 @@ const OverviewTab: React.FC = () => {
     fetchPulse();
     const pulseInterval = setInterval(fetchPulse, 5000);
     return () => clearInterval(pulseInterval);
+  }, [fetchAll, fetchPulse]);
+
+  useEffect(() => {
+    const onSaleRecorded = () => {
+      fetchAll();
+      fetchPulse();
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'lucky_boba_live_sales_tick') {
+        fetchAll();
+        fetchPulse();
+      }
+    };
+
+    window.addEventListener('luckyboba:sale-recorded', onSaleRecorded as EventListener);
+    window.addEventListener('storage', onStorage);
+    const id = setInterval(fetchAll, 10000);
+
+    return () => {
+      window.removeEventListener('luckyboba:sale-recorded', onSaleRecorded as EventListener);
+      window.removeEventListener('storage', onStorage);
+      clearInterval(id);
+    };
   }, [fetchAll, fetchPulse]);
 
   // ── Chart data derived from API ───────────────────────────────────────────
@@ -285,7 +317,7 @@ const OverviewTab: React.FC = () => {
     revenue: r.revenue,
   }));
 
-  const PIE_COLORS = ["#3b2063", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
+  const PIE_COLORS = ["#6a12b8", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
   const totalRev = branchPerf.reduce((s, b) => s + Number(b.total_revenue), 0);
   const pieData = branchPerf.slice(0, 5).map((b, i) => ({
     name: b.branch_name,
@@ -317,27 +349,23 @@ const OverviewTab: React.FC = () => {
       `}</style>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-black text-[#1a0f2e]">Overview</h2>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full border border-rose-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-600 pulse-indicator" />
-              <span className="text-[0.6rem] font-black uppercase tracking-wider">Live</span>
-            </div>
-          </div>
-          <p className="text-xs text-zinc-400 font-bold uppercase tracking-tighter opacity-70 mt-0.5">Real-time control center for business operations</p>
+      <div className="flex flex-wrap items-center justify-start gap-3 mb-6">
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-rose-50 text-rose-600 rounded-lg border border-rose-100">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-600 pulse-indicator" />
+          <span className="text-[0.6rem] font-black uppercase tracking-wider">Live</span>
         </div>
-        <div className="flex items-center gap-2 text-right">
-          <div className="mr-2 hidden sm:block">
-            <p className="text-[0.55rem] font-bold uppercase tracking-widest text-zinc-400">Live Pulse Sync</p>
-            <p className="text-[0.7rem] font-black text-[#3b2063] tabular-nums">
-              {lastPulseSync.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </p>
-          </div>
+
+        <div className="text-left hidden sm:block">
+          <p className="text-[0.55rem] font-bold uppercase tracking-widest text-zinc-400 leading-none">Live Pulse Sync</p>
+          <p className="text-[0.7rem] font-black text-[#6a12b8] tabular-nums leading-none mt-1">
+            {lastPulseSync.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
           {(["daily", "weekly", "monthly"] as const).map(p => (
             <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#6a12b8] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
               {p}
             </button>
           ))}
@@ -348,28 +376,30 @@ const OverviewTab: React.FC = () => {
       </div>
 
       {/* Row 1: Main Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {loading && !totals ? (
            [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />)
         ) : (
           <>
             <StatCard
               icon={<DollarSign size={18} strokeWidth={2.5} />}
-              label="Revenue Performance"
+              label="Revenue"
               value={fmt(totals?.grand_total ?? 0)}
+              sub={`${period} total`}
               color="violet"
             />
-            <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 card relative overflow-hidden group shadow-sm">
+            <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 card relative overflow-hidden group shadow-sm">
               <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
               </div>
-              <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-rose-50 border border-rose-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
                   <span className="text-rose-600"><TrendingUp size={18} strokeWidth={2.5} /></span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Live Sales Today</p>
-                  <p className="text-xl font-black text-rose-600 tabular-nums">₱{liveSalesToday.toLocaleString()}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">Live Sales Today</p>
+                  <p className="text-xl font-black text-rose-600 tabular-nums truncate">₱{liveSalesToday.toLocaleString()}</p>
+                  <p className="text-[10px] text-rose-400 font-bold mt-0.5">● Real-time</p>
                 </div>
               </div>
             </div>
@@ -377,18 +407,21 @@ const OverviewTab: React.FC = () => {
               icon={<GitBranch size={18} strokeWidth={2.5} />}
               label="Active Branches"
               value={pulse?.stats.online_branches ?? branchStats.active}
+              sub={`${branchStats.total} total`}
               color="emerald"
             />
             <StatCard
               icon={<UsersIcon size={18} strokeWidth={2.5} />}
               label="Active Staff"
               value={pulse?.stats.active_staff ?? userStats.active}
+              sub="Staff Online"
               color="amber"
             />
             <StatCard
               icon={<ShoppingBag size={18} strokeWidth={2.5} />}
               label="Total Orders"
               value={(totals?.total_orders ?? 0).toLocaleString()}
+              sub={`Count this ${period}`}
               color="violet"
             />
           </>
@@ -431,10 +464,10 @@ const OverviewTab: React.FC = () => {
         <div className="xl:col-span-8 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <ShoppingBag size={16} className="text-[#3b2063]" />
+              <ShoppingBag size={16} className="text-[#6a12b8]" />
               <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wider opacity-80">Live Sales Ticker</h3>
             </div>
-            <span className="text-[10px] font-black text-[#3b2063] uppercase bg-[#ede8ff] px-2 py-0.5 rounded-md">
+            <span className="text-[10px] font-black text-[#6a12b8] uppercase bg-[#ede8ff] px-2 py-0.5 rounded-md">
               {pulse?.recent_sales.length ?? 0} Transactions
             </span>
           </div>
@@ -476,7 +509,7 @@ const OverviewTab: React.FC = () => {
 
         <div className="xl:col-span-4 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <Activity size={16} className="text-[#3b2063]" />
+            <Activity size={16} className="text-[#6a12b8]" />
             <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wider opacity-80">Online Status</h3>
           </div>
           <div className="max-h-[220px] overflow-y-auto pr-1 custom-scroll space-y-1.5">
@@ -509,24 +542,26 @@ const OverviewTab: React.FC = () => {
             </div>
           </div>
           {loading && !breakdown.length ? <ChartSkeleton height="h-[220px]" /> : (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={revenueChartData}>
-                <defs>
-                  <linearGradient id="unifGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b2063" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e1e9" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", fontSize: 11 }}
-                  formatter={(v) => [fmt(Number(v)), "Revenue"]}
-                />
-                <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={3} fill="url(#unifGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="h-[220px] w-full min-w-0 relative">
+              <ResponsiveContainer width="100%" height="100%" minHeight={100} minWidth={0} debounce={50}>
+                <AreaChart data={revenueChartData}>
+                  <defs>
+                    <linearGradient id="unifGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6a12b8" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#6a12b8" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e1e9" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", fontSize: 11 }}
+                    formatter={(v) => [fmt(Number(v)), "Revenue"]}
+                  />
+                  <Area type="monotone" dataKey="revenue" stroke="#6a12b8" strokeWidth={3} fill="url(#unifGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
 
@@ -535,14 +570,16 @@ const OverviewTab: React.FC = () => {
           <h3 className="text-base font-black text-[#1a0f2e] mb-4">By Branch</h3>
           {loading && !pieData.length ? <Skeleton className="h-[200px] w-full rounded-full" /> : (
             <>
-              <ResponsiveContainer width="100%" height={160}>
-                <RePieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={4} dataKey="value">
-                    {pieData.map((e, idx) => <Cell key={idx} fill={e.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(v) => [`${v}%`, "Share"]} />
-                </RePieChart>
-              </ResponsiveContainer>
+              <div className="h-[160px] w-full min-w-0 relative">
+                <ResponsiveContainer width="100%" height="100%" minHeight={100} minWidth={0} debounce={50}>
+                  <RePieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={4} dataKey="value">
+                      {pieData.map((e, idx) => <Cell key={idx} fill={e.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(v) => [`${v}%`, "Share"]} />
+                  </RePieChart>
+                </ResponsiveContainer>
+              </div>
               <div className="mt-4 space-y-1.5 max-h-[80px] overflow-y-auto custom-scroll pr-1">
                 {pieData.map((d, idx) => (
                   <div key={idx} className="flex items-center justify-between text-[11px]">
@@ -550,7 +587,7 @@ const OverviewTab: React.FC = () => {
                       <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
                       <span className="font-bold text-zinc-500 truncate">{d.name}</span>
                     </div>
-                    <span className="font-black text-[#3b2063] whitespace-nowrap">{d.value}%</span>
+                    <span className="font-black text-[#6a12b8] whitespace-nowrap">{d.value}%</span>
                   </div>
                 ))}
               </div>
@@ -566,14 +603,14 @@ const OverviewTab: React.FC = () => {
             <h3 className="text-base font-black text-[#1a0f2e]">Branch Performance</h3>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">{period} Revenue Summary</p>
           </div>
-          <div className="h-[200px]">
-            {loading && !barData.length ? <Skeleton className="w-full h-full" /> : (
-              <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[200px] w-full min-w-0 relative">
+            {loading && !barData.length ? <ChartSkeleton height="h-[200px]" /> : (
+              <ResponsiveContainer width="100%" height="100%" minHeight={100} minWidth={0} debounce={50}>
                 <ReBarChart data={barData} barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
-                  <Bar dataKey="sales" fill="#3b2063" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sales" fill="#6a12b8" radius={[4, 4, 0, 0]} />
                   <Tooltip cursor={{ fill: '#f4f2ff' }} />
                 </ReBarChart>
               </ResponsiveContainer>
@@ -595,7 +632,7 @@ const OverviewTab: React.FC = () => {
                 return (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0">
-                      <span className="text-[10px] font-black text-[#3b2063]">{i + 1}</span>
+                      <span className="text-[10px] font-black text-[#6a12b8]">{i + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
@@ -603,10 +640,10 @@ const OverviewTab: React.FC = () => {
                         <span className="text-[10px] font-bold text-zinc-400 shrink-0 uppercase tracking-tighter">{p.total_quantity} sold</span>
                       </div>
                       <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#3b2063] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-[#6a12b8] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
-                    <span className="text-[10px] font-black text-[#3b2063] shrink-0 w-20 text-right">₱{Number(p.total_revenue).toLocaleString()}</span>
+                    <span className="text-[10px] font-black text-[#6a12b8] shrink-0 w-20 text-right">₱{Number(p.total_revenue).toLocaleString()}</span>
                   </div>
                 );
               })

@@ -5,7 +5,7 @@ import api from '../../../services/api';
 import {
   Calendar, Printer, RefreshCw, Menu, Search,
   FileText, Clock, BarChart3, AlertCircle, Banknote,
-  ShoppingBag, Activity, CreditCard, Hash, ToggleLeft,
+  ShoppingBag, Activity, CreditCard, Hash, ToggleLeft, Info,
 } from 'lucide-react';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -50,6 +50,7 @@ interface ZReadingReport {
   sc_discount?: number; pwd_discount?: number; diplomat_discount?: number;
   other_discount?: number; naac_discount?: number; solo_parent_discount?: number;
   vat_exempt_sales?: number; sc_pwd_vat?: number;
+  less_vat?: number;
   beg_si?: string; end_si?: string; total_qty_sold?: number; cash_drop?: number;
   cash_in_drawer?: number; cash_in?: number;
   reset_counter?: number; z_counter?: number; present_accumulated?: number;
@@ -58,13 +59,15 @@ interface ZReadingReport {
   cash_denominations?: { label: string; qty: number; total: number }[];
   total_cash_count?: number; over_short?: number; net_total?: number;
   expected_amount?: number; is_vat?: boolean; total_discounts?: number;
+  total_payments?: number;
+  rounding_adjustment?: number;
 }
 
 // ─── Receipt primitives ───────────────────────────────────────────────────────
-const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
+const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
   <div className={`flex justify-between text-[11px] leading-snug ${indent ? 'pl-3' : ''}`}>
     <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%]">{value}</span>
+    <span className="text-right w-[40%] whitespace-pre-line">{value}</span>
   </div>
 );
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
@@ -101,6 +104,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
 
   const menuRef    = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+  const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 
   const localVatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = reportData?.is_vat !== undefined ? reportData.is_vat : localVatType === 'vat';
@@ -229,10 +233,11 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
           previous_accumulated: previousAcc,
           sales_for_the_day:    salesDay,
           cash_denominations:   cashDenominations,
+          net_total:            Number(zData.net_total ?? 0),
+          rounding_adjustment:  Number(zData.rounding_adjustment ?? 0),
           total_cash_count:     ccNested?.grand_total ?? Number(ccData.actual_amount ?? 0),
-          // ── FIX 1 (cont): expected_amount comes only from the cash-count API ──
           expected_amount:      Number(ccData.expected_amount ?? 0),
-          over_short: Number(ccData.actual_amount ?? ccNested?.grand_total ?? 0) - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+          over_short:           Number(ccData.actual_amount ?? ccNested?.grand_total ?? 0) - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
           categories:           ((qtyRes.data as Record<string, unknown>).categories as ZReadingReport['categories']) ?? [],
           all_addons_summary:   ((qtyRes.data as Record<string, unknown>).all_addons_summary as ZReadingReport['all_addons_summary']) ?? [],
           logs:                 ((voidRes.data as Record<string, unknown>).logs as ZReadingReport['logs']) ?? (Array.isArray(voidRes.data) ? voidRes.data as ZReadingReport['logs'] : []),
@@ -337,9 +342,10 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
                 return (
                   <div key={si}>
                     {hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}
+                    {hasSizes && sizeKey === null && products.length > 0 && <p className="text-[11px] uppercase pl-2 mt-1">NO SIZE / BUNDLES:</p>}
                     {products.map((item, i) => (
                       <div key={i} className="flex text-[11px] leading-snug">
-                        <span className={`w-[75%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span>
+                        <span className={`w-[75%] uppercase leading-tight ${hasSizes ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span>
                         <span className="w-[25%] text-right">{item.total_qty}</span>
                       </div>
                     ))}
@@ -358,6 +364,100 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
             <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div>
           </div>
         )}
+        {(() => {
+          const cupGroups = [
+            { name: 'Standard Cup', sizes: ['SM', 'SL'] },
+            { name: 'Junior Cup', sizes: ['JR'] },
+            { name: 'Upturn Cup', sizes: ['UM', 'UL'] },
+            { name: 'Plastic Cup', sizes: ['PCM', 'PCL'] },
+          ];
+          
+          const groupData = cupGroups.map(group => {
+            const sizeMap = new Map<string, number>();
+            group.sizes.forEach(s => sizeMap.set(s, 0));
+            return { ...group, sizeMap, total: 0 };
+          });
+
+          let otherTotal = 0;
+          let hasAnyCups = false;
+          let grandTotalCups = 0;
+
+          reportData.categories.forEach(cat => {
+            cat.products.forEach(product => {
+              if (product.size) {
+                 const group = groupData.find(g => g.sizes.includes(product.size!));
+                 if (group) {
+                   group.sizeMap.set(product.size, (group.sizeMap.get(product.size) ?? 0) + product.total_qty);
+                   group.total += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
+                 } else {
+                   otherTotal += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
+                 }
+              } else {
+                 otherTotal += product.total_qty;
+                 grandTotalCups += product.total_qty;
+                 hasAnyCups = true;
+              }
+            });
+          });
+
+          if (!hasAnyCups) return null;
+
+          return (
+            <div className="mt-1">
+              <Divider />
+              {groupData.map(group => {
+                if (group.total === 0) return null;
+                return (
+                  <div key={group.name} className="mb-1.5">
+                    <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                      <span className="w-[75%] uppercase">{group.name}</span>
+                      <span className="w-[25%] text-right uppercase">QTY</span>
+                    </div>
+                    {group.sizes.map(size => {
+                       const qty = group.sizeMap.get(size) ?? 0;
+                       if (qty === 0) return null;
+                       return (
+                         <div key={size} className="flex text-[11px] leading-snug">
+                           <span className="w-[75%] uppercase pl-2">{size}</span>
+                           <span className="w-[25%] text-right">{qty}</span>
+                         </div>
+                       );
+                    })}
+                    <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                       <span className="uppercase">TOTAL ({group.name})</span>
+                       <span>{group.total}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {otherTotal > 0 && (
+                <div key="other" className="mb-1.5">
+                  <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                    <span className="w-[75%] uppercase">Other / No Size</span>
+                    <span className="w-[25%] text-right uppercase">QTY</span>
+                  </div>
+                  <div className="flex text-[11px] leading-snug">
+                    <span className="w-[75%] uppercase pl-2">BUNDLES / EXTRAS</span>
+                    <span className="w-[25%] text-right">{otherTotal}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                     <span className="uppercase">TOTAL (Other)</span>
+                     <span>{otherTotal}</span>
+                  </div>
+                </div>
+              )}
+              <Divider />
+              <div className="flex justify-between text-[11px] font-bold mt-0.5 pt-0.5">
+                <span className="uppercase">TOTAL CUPS</span>
+                <span>QTY: {grandTotalCups}</span>
+              </div>
+            </div>
+          );
+        })()}
         <Divider />
         <div className="flex justify-between text-[11px]"><span className="uppercase">ALL DAY MEAL</span><span>QTY: {totalItems}</span></div>
       </div>
@@ -458,6 +558,9 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
               ].map((r, i) => (<div key={i} className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">{r.label}</span><span className="w-[35%] text-right">{r.value}</span></div>))}
               <Divider />
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span><span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span></div>
+              <Row label="NET SALES" value={phCurrency.format(vatableSales + vatAmt + (reportData?.vat_exempt_sales || 0))} />
+              <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+              </div>
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">DIPLOMAT:</span><span className="w-[35%] text-right">{phCurrency.format(diplomat)}</span></div>
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">OTHER DISC:</span><span className="w-[35%] text-right">{phCurrency.format(otherDisc)}</span></div>
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">TOTAL VOIDS:</span><span className="w-[35%] text-right">{phCurrency.format(voids)}</span></div>
@@ -533,25 +636,27 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
   };
 
   const renderZReading = () => {
-    const netSales     = reportData?.net_sales         ?? 0;
     const gross        = reportData?.gross_sales       ?? 0;
     const txCount      = reportData?.transaction_count ?? 0;
     const vatableSales = reportData?.vatable_sales     ?? 0;
     const vatAmount    = reportData?.vat_amount        ?? 0;
     const vatExempt    = reportData?.vat_exempt_sales  ?? 0;
+    const scPwdVat     = reportData?.sc_pwd_vat ?? reportData?.less_vat ?? 0;
     const scDisc    = reportData?.sc_discount          ?? 0;
     const pwdDisc   = reportData?.pwd_discount         ?? 0;
     const naacDisc  = (reportData as ZReadingReport & { naac_discount?: number })?.naac_discount ?? 0;
     const soloDisc  = (reportData as ZReadingReport & { solo_parent_discount?: number })?.solo_parent_discount ?? 0;
     const otherDisc = reportData?.diplomat_discount    ?? 0;
-    const totalDisc = scDisc + pwdDisc + naacDisc + soloDisc + otherDisc;
+    const totalDisc = roundTo2(scDisc + pwdDisc + naacDisc + soloDisc + otherDisc);
     const voids     = reportData?.total_void_amount ?? 0;
+    const reportIsVat = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+    const netSales   = roundTo2(reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc));
 
     const resetCounter = reportData?.reset_counter        ?? 0;
     const zCounter     = reportData?.z_counter            ?? 1;
-    const presentAcc   = reportData?.present_accumulated  ?? gross;
+    const salesDay     = netSales;
     const previousAcc  = reportData?.previous_accumulated ?? 0;
-    const salesDay     = reportData?.sales_for_the_day    ?? gross;
+    const presentAcc   = previousAcc + salesDay;
 
     const METHOD_ALIASES: Record<string, string> = { panda: 'food panda', foodpanda: 'food panda', food_panda: 'food panda', 'food panda': 'food panda', grabfood: 'grab', 'grab food': 'grab', grab: 'grab', 'master card': 'mastercard', master: 'mastercard', mastercard: 'mastercard', 'visa card': 'visa', visa: 'visa', 'e-wallet': 'gcash', ewallet: 'gcash', gcash: 'gcash', cash: 'cash' };
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
@@ -561,7 +666,8 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
     const totalCredit   = ['visa', 'mastercard', 'food panda', 'grab', 'gcash'].reduce((a, m) => a + (pMap.get(m) ?? 0), 0);
     const totalDebit    = 0;
     const actualCash    = pMap.get('cash') ?? 0;
-    const actualNonCash = Math.max(0, gross - actualCash);
+    const totalPaymentsReceived = roundTo2(reportData?.total_payments ?? Array.from(pMap.values()).reduce((a, b) => a + b, 0));
+    const actualNonCash = roundTo2(reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash));
 
     const cashDenoms     = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count   ?? reportData?.cash_count?.grand_total   ?? 0;
@@ -570,9 +676,9 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
 
     // ── FIX 2: prefer backend's stored expected_amount; fall back to formula ──
     const apiExpected = reportData?.expected_amount ?? 0;
-    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
+    const expectedEOD = roundTo2(apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop));
     const apiShortOver = reportData?.over_short;
-    const overShort    = apiShortOver !== undefined ? apiShortOver : (totalCashCount - expectedEOD);
+    const overShort    = roundTo2(apiShortOver !== undefined ? apiShortOver : (totalCashCount - expectedEOD));
 
     const netTotal       = reportData?.net_total ?? netSales;
 
@@ -582,13 +688,14 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
     const startDate = isRange ? fromDate : selectedDate;
     const endDate   = isRange ? toDate   : selectedDate;
 
+
     return (
       <div className="my-2">
         <Divider />
         <Row label="Report Date"          value={now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} />
         <Row label="Report Time"          value={timeStr} />
-        <Row label="Start Date & Time"    value={`${startDate} ${timeStr}`} />
-        <Row label="End Date & Time"      value={`${endDate} ${timeStr}`} />
+        <Row label="Start Date & Time"    value={`${startDate}\n${timeStr}`} />
+        <Row label="End Date & Time"      value={`${endDate}\n${timeStr}`} />
         <Row label="Terminal #"           value="ALL" />
         <Row label="Cashier"              value={cashierName} />
         <Row label="Beg. SI #"            value={reportData?.beg_si || '0000000000'} />
@@ -606,7 +713,11 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
         <Row label="VAT-Exempt Sales"           value={phCurrency.format(vatExempt)} />
         <Row label="Zero-Rated Sales"           value={phCurrency.format(0)} />
         <Divider />
-        <Row label="NET SALES"       value={phCurrency.format(netSales)} />
+        <Row label="NET SALES"      value={phCurrency.format(netSales)} />
+        <Row label="SC/PWD VAT"                 value={phCurrency.format(scPwdVat)} />
+        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+          <span></span>
+        </div>
         <Row label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <Row label="GROSS Amount"    value={phCurrency.format(gross)} />
         <Divider />
@@ -634,7 +745,10 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(roundTo2(netSales + (reportData?.rounding_adjustment || 0)))} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />
@@ -715,6 +829,14 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
       <div className="zr-root flex flex-col h-full bg-[#f5f4f8] overflow-hidden">
         <div className="flex-1 overflow-y-auto px-5 md:px-8 pb-8 pt-5 flex flex-col gap-5">
 
+          {/* Read-only notice */}
+          <div className="flex items-start gap-3 p-3 bg-violet-50 border border-violet-200 rounded-[0.625rem] mb-1 print:hidden">
+            <Info size={14} className="text-violet-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-violet-700 font-medium">
+              This is a <span className="font-bold">read-only</span> report for <span className="font-bold">{new Date(selectedDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}</span>. Team Leaders can view but cannot export or modify this data.
+            </p>
+          </div>
+
           {/* ── CONTROLS BAR ── */}
           <div className="bg-white border border-gray-100 rounded-2xl p-5 print:hidden">
             <div className="flex items-center gap-2 mb-4">
@@ -733,7 +855,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="flex items-center gap-2 h-11 px-5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
-                  style={{ background: isMenuOpen ? '#1a0f2e' : '#f5f4f8', color: isMenuOpen ? '#fff' : '#3b2063', border: `1px solid ${isMenuOpen ? '#1a0f2e' : '#e4e4e7'}` }}
+                  style={{ background: isMenuOpen ? '#1a0f2e' : '#f5f4f8', color: isMenuOpen ? '#fff' : '#6a12b8', border: `1px solid ${isMenuOpen ? '#1a0f2e' : '#e4e4e7'}` }}
                 >
                   <Menu size={14} strokeWidth={2.5} />
                   Select Report
@@ -832,7 +954,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
                   {loading ? 'Loading…' : 'Generate'}
                 </button>
                 <button onClick={() => window.print()}
-                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#3b2063] hover:border-[#ddd6f7] flex items-center justify-center transition-all">
+                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#6a12b8] hover:border-[#ddd6f7] flex items-center justify-center transition-all">
                   <Printer size={16} />
                 </button>
               </div>
@@ -875,7 +997,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
             <div className="flex items-start justify-center py-8 px-4 bg-[#f5f4f8] overflow-y-auto" style={{ maxHeight: '75vh' }}>
               {loading ? (
                 <div className="flex flex-col items-center gap-3 py-16">
-                  <div className="w-9 h-9 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
+                  <div className="w-9 h-9 border-2 border-[#6a12b8] border-t-transparent animate-spin rounded-full" />
                   <p className="zr-label" style={{ color: '#a1a1aa' }}>Generating report…</p>
                 </div>
               ) : reportData ? (

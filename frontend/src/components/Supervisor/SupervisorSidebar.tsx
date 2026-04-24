@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   LayoutGrid, Users, History, BarChart2, 
-  Package, Search, LogOut, ShieldCheck
+  Package, Search, LogOut, ShieldCheck,
+  ArrowRightLeft, Wallet
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid size={14} /> },
       { id: 'users',     label: 'Staff Overview', icon: <Users size={14} /> },
+      { id: 'expenses',  label: 'Expenses', icon: <Wallet size={14} /> },
     ]
   },
   {
@@ -52,6 +54,7 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { id: 'sales-dashboard', label: 'Sales Analytics', icon: <BarChart2 size={13} /> },
       { id: 'items-report',    label: 'Items Report', icon: <History size={13} /> },
+      { id: 'usage-report',    label: 'Usage Report', icon: <History size={13} /> },
     ]
   },
   {
@@ -59,6 +62,17 @@ const MENU_GROUPS: MenuGroup[] = [
     items: [
       { id: 'inventory-list', label: 'Stock Levels', icon: <Package size={13} /> },
       { id: 'item-checker',   label: 'Item Checker', icon: <Search size={13} /> },
+      { id: 'raw-materials',  label: 'Raw Materials', icon: <Package size={13} /> },
+      { id: 'stock-transfer', label: 'Stock Transfer', icon: <ArrowRightLeft size={13} /> },
+      { id: 'recipes',        label: 'Recipes', icon: <Package size={13} /> },
+    ]
+  },
+  {
+    label: 'Menu',
+    items: [
+      { id: 'menu-list',          label: 'Menu Items', icon: <Package size={13} /> },
+      { id: 'categories-list',    label: 'Categories', icon: <Package size={13} /> },
+      { id: 'sub-categories-list',label: 'Sub-Categories', icon: <Package size={13} /> },
     ]
   }
 ];
@@ -75,12 +89,12 @@ const STYLES = `
     border-radius: 0.5rem; border: none; cursor: pointer;
     background: transparent; transition: background 0.1s, color 0.1s;
   }
-  .sa-tab.active { background: #3b206310; color: #3b2063; font-weight: 600; }
+  .sa-tab.active { background: #6a12b810; color: #6a12b8; font-weight: 600; }
   .sa-tab.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
-    width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
+    width: 2.5px; background: #6a12b8; border-radius: 0 2px 2px 0;
   }
-  .ops-topbar-header { background: #3b2063; }
+  .ops-topbar-header { background: #6a12b8; }
 `;
 
 const SupervisorSidebar: React.FC<SupervisorSidebarProps> = ({
@@ -144,7 +158,7 @@ const SupervisorSidebar: React.FC<SupervisorSidebarProps> = ({
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <p className="text-[0.52rem] font-black uppercase tracking-[0.15em] text-[#3b2063]/70">
+                <p className="text-[0.52rem] font-black uppercase tracking-[0.15em] text-[#6a12b8]/70">
                   Console Active
                 </p>
               </div>
@@ -168,11 +182,11 @@ const SupervisorSidebar: React.FC<SupervisorSidebarProps> = ({
                       if (window.innerWidth < 768) setSidebarOpen(false);
                     }}
                     className={`sa-tab flex items-center gap-2.5 w-full px-2.5 py-1.5 text-[0.8rem] font-medium text-left relative transition-all ${
-                      currentTab === item.id ? 'active text-[#3b2063]' : 'text-zinc-500 hover:bg-[#3b206305] hover:text-[#3b2063]'
+                      currentTab === item.id ? 'active text-[#6a12b8]' : 'text-zinc-500 hover:bg-[#6a12b805] hover:text-[#6a12b8]'
                     }`}
                   >
                     <div className={`shrink-0 w-8 h-8 rounded-[0.45rem] flex items-center justify-center transition-colors ${
-                      currentTab === item.id ? 'bg-[#3b206320]' : 'bg-[#f8f9fa]'
+                      currentTab === item.id ? 'bg-[#6a12b820]' : 'bg-[#f8f9fa]'
                     }`}>
                       {item.icon}
                     </div>

@@ -10,6 +10,8 @@ interface ToastProps {
   onClose: () => void;
   position?: 'top-right' | 'top-center' | 'bottom-right';
   showProgress?: boolean;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 export const Toast: React.FC<ToastProps> = ({
@@ -17,6 +19,8 @@ export const Toast: React.FC<ToastProps> = ({
   type = 'error',
   duration = 3000,
   onClose,
+  actionLabel,
+  onAction,
 }) => {
   const [exiting, setExiting] = useState(false);
 
@@ -59,7 +63,7 @@ export const Toast: React.FC<ToastProps> = ({
       label: 'Notification',
       icon: <Info size={16} strokeWidth={2.5} />,
       iconBg: '#f5f3ff',
-      iconColor: '#3b2063',
+      iconColor: '#6a12b8',
       dot: '#7c3aed',
       accent: '#c4b5fd',
     },
@@ -108,14 +112,13 @@ export const Toast: React.FC<ToastProps> = ({
 
         .lb-toast {
           display: flex;
-          align-items: center;
-          gap: 0;
+          flex-direction: column;
           background: #ffffff;
           border: 1px solid #e4e4e7;
           border-radius: 0.75rem;
           box-shadow: 0 8px 32px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.06);
           min-width: 320px;
-          max-width: 400px;
+          max-width: 380px;
           overflow: hidden;
           position: relative;
         }
@@ -207,6 +210,33 @@ export const Toast: React.FC<ToastProps> = ({
           border-radius: 0 0 0.75rem 0.75rem;
           animation: toast-progress ${duration}ms linear forwards;
         }
+
+        /* action button area */
+        .lb-toast-action {
+          padding: 0 0.75rem 0.9rem 3.125rem;
+          margin-top: -0.5rem;
+        }
+        .lb-toast-btn {
+          background: ${c.dot};
+          color: white;
+          border: none;
+          border-radius: 0.5rem;
+          padding: 0.4rem 0.8rem;
+          font-size: 0.75rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: transform 0.15s, opacity 0.15s, background 0.15s;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .lb-toast-btn:hover {
+          opacity: 0.9;
+          transform: translateY(-1px);
+        }
+        .lb-toast-btn:active {
+          transform: translateY(0);
+        }
       `}</style>
 
       <div className="lb-toast-wrap">
@@ -229,12 +259,27 @@ export const Toast: React.FC<ToastProps> = ({
               </p>
               <p className="lb-toast-msg">{message}</p>
             </div>
+
+            {/* close */}
+            <button onClick={handleClose} className="lb-toast-close">
+              <X size={14} strokeWidth={2.5} />
+            </button>
           </div>
 
-          {/* close */}
-          <button onClick={handleClose} className="lb-toast-close">
-            <X size={14} strokeWidth={2.5} />
-          </button>
+          {/* optional action area */}
+          {actionLabel && (
+            <div className="lb-toast-action">
+              <button 
+                className="lb-toast-btn"
+                onClick={() => {
+                  if (onAction) onAction();
+                  handleClose();
+                }}
+              >
+                {actionLabel}
+              </button>
+            </div>
+          )}
 
           {/* progress */}
           <div className="lb-toast-progress" />

@@ -163,7 +163,7 @@ class CashCountController extends Controller
         }
 
         $isEodDone = CashCount::where('user_id', $request->user()->id)
-            ->whereDate('created_at', now()->toDateString())
+            ->whereRaw('DATE(created_at) = ?', [now()->toDateString()])
             ->exists();
 
         return response()->json(['isEodDone' => $isEodDone]);
@@ -183,12 +183,72 @@ class CashCountController extends Controller
             // ✅ Check by branch_id, not user_id — shared cash-in unlocks the whole branch
             $hasCashedIn = CashTransaction::where('branch_id', $branchId)
                 ->where('type', 'cash_in')
-                ->whereDate('created_at', now()->toDateString())
+                ->whereRaw('DATE(created_at) = ?', [now()->toDateString()])
                 ->exists();
 
             return response()->json(['hasCashedIn' => $hasCashedIn]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Get the cash count summary for a given branch and date.
+     */
+    public function summary(Request $request): JsonResponse
+    {
+        $branchId = $request->query('branch_id');
+        $date     = $request->query('date', now()->toDateString());
+
+        $query = CashCount::whereRaw('DATE(created_at) = ?', [$date]);
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        // Get the latest written cash count
+        $cashCount = $query->latest()->first();
+
+        // Also aggregate cash_in and cash_drop for that date/branch
+        $cashIn = CashTransaction::whereRaw('DATE(created_at) = ?', [$date])
+            ->where('type', 'cash_in')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->sum('amount');
+
+        $cashDrop = CashTransaction::whereRaw('DATE(created_at) = ?', [$date])
+            ->whereIn('type', ['cash_drop', 'cash_out'])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->sum('amount');
+
+        if (!$cashCount) {
+             return response()->json([
+                 'success'     => true,
+                 'cash_count'  => [
+                     'denominations' => [],
+                     'grand_total'   => 0
+                 ],
+                 'expected_amount' => 0,
+                 'actual_amount'   => 0,
+                 'cash_in'         => $cashIn,
+                 'cash_drop'       => $cashDrop
+             ]);
+        }
+
+        // Breakdown is usually stored as a JSON array
+        $breakdown = is_string($cashCount->breakdown) 
+            ? json_decode($cashCount->breakdown, true) 
+            : $cashCount->breakdown;
+
+        return response()->json([
+            'success'     => true,
+            'cash_count'  => [
+                'denominations' => $breakdown ?? [],
+                'grand_total'   => $cashCount->actual_amount,
+            ],
+            'expected_amount' => $cashCount->expected_amount,
+            'actual_amount'   => $cashCount->actual_amount,
+            'cash_in'         => $cashIn,
+            'cash_drop'       => $cashDrop
+        ]);
     }
 }

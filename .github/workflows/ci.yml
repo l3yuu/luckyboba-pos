@@ -10,12 +10,12 @@ jobs:
   laravel-backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v3
         with:
           submodules: false
       
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@master
         with:
           php-version: '8.3'
           extensions: mbstring, dom, curl, libxml, mysql
@@ -48,11 +48,11 @@ jobs:
   react-frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v3
         with:
           submodules: false
       - name: Setup Node.js
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v3
         with:
           node-version: '20'
           cache: 'npm'
@@ -70,7 +70,7 @@ jobs:
   flutter-app:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
@@ -96,12 +96,12 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment: production
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v3
         with:
           submodules: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v3
         with:
           node-version: '20'
 
@@ -112,8 +112,14 @@ jobs:
           npm install
           npm run build
 
+      - name: Debug Connectivity (Production)
+        run: |
+          echo "Checking if host is reachable..."
+          nslookup ${{ secrets.SSH_HOST }} || echo "DNS Lookup Failed"
+          nc -zv -w 5 ${{ secrets.SSH_HOST }} ${{ secrets.SSH_PORT }} || echo "TCP Connection to Port ${{ secrets.SSH_PORT }} Failed"
+
       - name: Upload Build to Hostinger (Production)
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -145,6 +151,7 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            php artisan queue:restart
             php artisan schedule:run >> /dev/null 2>&1
             cd ..
 
@@ -154,7 +161,6 @@ jobs:
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
-            sed -i '/<meta http-equiv="Content-Security-Policy"/,/blob:;">/d' index.html
 
             # ✅ Fix sw.js internal workbox reference path
             sed -i 's|importScripts("/workbox-|importScripts("/backend/public/workbox-|g' backend/public/sw.js
@@ -199,12 +205,12 @@ jobs:
     if: github.ref == 'refs/heads/staging'
     environment: staging
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v3
         with:
           submodules: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v3
         with:
           node-version: '20'
 
@@ -215,8 +221,14 @@ jobs:
           npm install
           npm run build
 
+      - name: Debug Connectivity (Staging)
+        run: |
+          echo "Checking if host is reachable..."
+          nslookup ${{ secrets.SSH_HOST }} || echo "DNS Lookup Failed"
+          nc -zv -w 5 ${{ secrets.SSH_HOST }} ${{ secrets.SSH_PORT }} || echo "TCP Connection to Port ${{ secrets.SSH_PORT }} Failed"
+
       - name: Upload Build to Hostinger (Staging)
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -254,6 +266,7 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            php artisan queue:restart
             php artisan schedule:run >> /dev/null 2>&1
             cd ..
 
@@ -263,7 +276,6 @@ jobs:
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
-            sed -i '/<meta http-equiv="Content-Security-Policy"/,/blob:;">/d' index.html
 
             # ✅ Fix sw.js internal workbox reference path
             sed -i 's|importScripts("/workbox-|importScripts("/backend/public/workbox-|g' backend/public/sw.js

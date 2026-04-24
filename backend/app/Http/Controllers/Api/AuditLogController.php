@@ -139,7 +139,7 @@ class AuditLogController extends Controller
             'details' => 'nullable|string|max:1000',
         ]);
 
-        AuditLog::create([
+        \App\Jobs\ProcessAuditLog::dispatch([
             'user_id' => auth()->id(),
             'action'  => $request->action,
             'module'  => $request->module,
@@ -159,12 +159,17 @@ class AuditLogController extends Controller
             'date_to'  => 'nullable|date',
         ]);
 
-        $branchId = $request->user()->branch_id;
+        $user = $request->user();
+        $branchId = $user->branch_id;
 
-        $branchUserIds = DB::table('users')
-            ->where('branch_id', $branchId)
-            ->whereIn('role', ['cashier', 'branch_manager', 'team_leader'])
-            ->pluck('id');
+        if ($user->role === 'team_leader') {
+            $branchUserIds = collect([$user->id]);
+        } else {
+            $branchUserIds = DB::table('users')
+                ->where('branch_id', $branchId)
+                ->whereIn('role', ['cashier', 'branch_manager', 'team_leader'])
+                ->pluck('id');
+        }
 
         $query = AuditLog::with('user:id,name')
             ->whereIn('user_id', $branchUserIds)

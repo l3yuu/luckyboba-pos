@@ -2,86 +2,115 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
+  Search, Plus, Edit2, Trash2, X, AlertCircle,
   ChevronDown, History, TrendingUp, TrendingDown, Minus,
-  Package, CheckCircle, FlaskConical,
+  Package, CheckCircle, FlaskConical, Info,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Unit     = 'PC' | 'PK' | 'BAG' | 'BTL' | 'BX' | 'ML' | 'G' | 'KG' | 'L';
+type Unit = 'PC' | 'PK' | 'BAG' | 'BTL' | 'BX' | 'ML' | 'G' | 'KG' | 'L';
 type Category = 'Packaging' | 'Ingredients' | 'Intermediate' | 'Equipment';
-type AdjType  = 'add' | 'subtract' | 'set';
+type AdjType = 'add' | 'subtract' | 'set' | 'waste';
+
+interface BranchStock {
+  id: number;
+  branch?: { name: string };
+  current_stock: number;
+}
 
 interface RawMaterial {
-  id:             number;
-  name:           string;
-  unit:           Unit;
-  category:       Category;
-  current_stock:  number;
-  reorder_level:  number;
+  id: number;
+  name: string;
+  unit: Unit;
+  purchase_unit?: string | null;
+  purchase_to_base_factor: number;
+  last_purchase_price: number;
+  unit_cost: number;
+  category: Category;
+  current_stock: number;
+  incoming_stock?: number;
+  reorder_level: number;
   is_intermediate: boolean;
-  notes?:         string;
-  created_at?:    string;
+  notes?: string;
+  created_at?: string;
+  branch_id?: number | null;
+  branch_stocks?: BranchStock[];
+  stock_history?: number[];
 }
 
 interface Movement {
-  id:           number;
-  type:         AdjType;
-  quantity:     number;
-  reason:       string;
+  id: number;
+  type: AdjType;
+  quantity: number;
+  before: number | null;
+  after: number | null;
+  reason: string;
   performed_by: string;
-  created_at:   string;
+  created_at: string;
 }
 
 interface FormState {
-  name:            string;
-  unit:            Unit;
-  category:        Category;
-  current_stock:   number | '';
-  reorder_level:   number | '';
+  name: string;
+  unit: Unit;
+  purchase_unit: string;
+  purchase_to_base_factor: number | '';
+  last_purchase_price: number | '';
+  category: Category;
+  current_stock: number | '';
+  reorder_level: number | '';
   is_intermediate: boolean;
-  notes:           string;
+  notes: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const UNITS: Unit[]         = ['PC', 'PK', 'BAG', 'BTL', 'BX', 'ML', 'G', 'KG', 'L'];
+const UNITS: Unit[] = ['PC', 'PK', 'BAG', 'BTL', 'BX', 'ML', 'G', 'KG', 'L'];
 const CATEGORIES: Category[] = ['Packaging', 'Ingredients', 'Intermediate', 'Equipment'];
 
 const CATEGORY_COLORS: Record<Category, { bg: string; text: string; border: string }> = {
-  Packaging:    { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
-  Ingredients:  { bg: '#f5f0ff', text: '#3b2063', border: '#e9d5ff' },
+  Packaging: { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
+  Ingredients: { bg: '#f5f0ff', text: '#6a12b8', border: '#e9d5ff' },
   Intermediate: { bg: '#fffbeb', text: '#d97706', border: '#fde68a' },
-  Equipment:    { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },
+  Equipment: { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },
 };
 
 const blankForm = (): FormState => ({
-  name: '', unit: 'PC', category: 'Ingredients',
+  name: '', unit: 'PC', purchase_unit: '', purchase_to_base_factor: 1, last_purchase_price: '',
+  category: 'Ingredients',
   current_stock: '', reorder_level: '', is_intermediate: false, notes: '',
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const stockStatus = (item: RawMaterial) => {
-  if (item.current_stock === 0)                                  return { label: 'Out of Stock', bg: '#fef2f2', text: '#dc2626', border: '#fecaca' };
-  if (item.current_stock <= item.reorder_level * 0.5)           return { label: 'Critical',     bg: '#fef2f2', text: '#dc2626', border: '#fecaca' };
-  if (item.current_stock <= item.reorder_level)                  return { label: 'Low Stock',    bg: '#fffbeb', text: '#d97706', border: '#fde68a' };
-  return                                                                { label: 'In Stock',     bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' };
+  if (item.current_stock === 0) return { label: 'Out of Stock', bg: '#fef2f2', text: '#dc2626', border: '#fecaca' };
+  if (item.current_stock <= item.reorder_level * 0.5) return { label: 'Critical', bg: '#fef2f2', text: '#dc2626', border: '#fecaca' };
+  if (item.current_stock <= item.reorder_level) return { label: 'Low Stock', bg: '#fffbeb', text: '#d97706', border: '#fde68a' };
+  return { label: 'In Stock', bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' };
 };
 
 const timeAgo = (d: string) => {
   const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
-  if (m < 1)   return 'Just now';
-  if (m < 60)  return `${m}m ago`;
+  if (m < 1) return 'Just now';
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  if (h < 24)  return `${h}h ago`;
+  if (h < 24) return `${h}h ago`;
   return new Date(d).toLocaleDateString();
 };
 
-// ─── Shared UI ────────────────────────────────────────────────────────────────
+const REASONS = {
+  add: ['New Delivery', 'Production', 'Cooked', 'Inventory Correction', 'Restock', 'Other'],
+  subtract: ['Error in Logging', 'Inventory Correction', 'Damage', 'Used in Kitchen', 'Other'],
+  waste: ['Spoilage', 'Expired', 'Spilled', 'Damage', 'Customer Complaint', 'Other'],
+  set: ['Physical Count Audit', 'Initial Setup', 'Inventory Correction', 'Other']
+} as const;
+
+const reasonsForType = (t: AdjType): readonly string[] => REASONS[t] as readonly string[];
+const isPresetReason = (t: AdjType, r: string) => reasonsForType(t).includes(r);
+
 
 const inputCls = (err?: string) =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
@@ -107,74 +136,190 @@ const Badge: React.FC<{ bg: string; text: string; border: string; children: Reac
 
 const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ item, onClose }) => {
   const [movements, setMovements] = useState<Movement[]>([]);
-  const [loading,   setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.get(`/raw-materials/${item.id}/history`)
-      .then(r => setMovements(r.data?.data ?? r.data ?? []))
+      .then(r => {
+        const d = r.data;
+        let arr = [];
+        if (Array.isArray(d)) arr = d;
+        else if (Array.isArray(d?.data)) arr = d.data;
+        else if (Array.isArray(d?.data?.data)) arr = d.data.data;
+        else if (Array.isArray(d?.logs)) arr = d.logs;
+        setMovements(arr);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [item.id]);
 
-  const typeIcon = (t: AdjType) => {
-    if (t === 'add')      return <TrendingUp  size={12} color="#16a34a" />;
-    if (t === 'subtract') return <TrendingDown size={12} color="#dc2626" />;
-    return                       <Minus        size={12} color="#3b2063" />;
+  const getStatusCfg = (m: Movement) => {
+    switch (m.type) {
+      case 'add': return { icon: <TrendingUp size={14} />, color: '#16a34a', bg: '#f0fdf4', label: 'Restock' };
+      case 'subtract': return { icon: <TrendingDown size={14} />, color: '#dc2626', bg: '#fef2f2', label: 'Usage' };
+      case 'waste': return { icon: <Trash2 size={14} />, color: '#ea580c', bg: '#fff7ed', label: 'Waste' };
+      case 'set': return { icon: <FlaskConical size={14} />, color: '#6a12b8', bg: '#f5f0ff', label: 'Audit' };
+      default: return { icon: <Info size={14} />, color: '#71717a', bg: '#f4f4f5', label: 'Update' };
+    }
   };
-
-  const typeColor = (t: AdjType) => t === 'add' ? '#16a34a' : t === 'subtract' ? '#dc2626' : '#3b2063';
 
   return createPortal(
     <div className="fixed inset-0 z-9999 flex justify-end"
-      style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.35)' }}>
+      style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(26, 15, 46, 0.4)' }}>
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-sm h-full flex flex-col shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#3b2063] rounded-lg flex items-center justify-center">
-              <History size={14} className="text-white" />
+      <div className="relative bg-white w-full max-w-md h-full flex flex-col shadow-[-20px_0_50px_rgba(0,0,0,0.15)] animate-in slide-in-from-right duration-300">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-6 border-b border-zinc-100 bg-white">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#6a12b8] rounded-2xl flex items-center justify-center shadow-lg shadow-purple-100">
+              <History size={20} className="text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#1a0f2e] leading-tight">{item.name}</p>
-              <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Movement history</p>
+              <p className="text-base font-black text-[#1a0f2e] tracking-tight">{item.name}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] text-zinc-400 uppercase font-black tracking-widest">Enterprise Audit Trail</span>
+                <span className="w-1 h-1 bg-zinc-200 rounded-full" />
+                <span className="text-[10px] text-violet-600 font-bold uppercase tracking-wider">{item.unit}</span>
+              </div>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400">
-            <X size={16} />
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-400 hover:text-zinc-600 transition-all">
+            <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-8 custom-scrollbar bg-[#fafafa]">
           {loading ? (
-            <div className="p-5 space-y-3">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-12 bg-zinc-100 rounded-lg animate-pulse" />
+            <div className="space-y-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-zinc-100 animate-pulse shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-zinc-100 rounded animate-pulse w-1/3" />
+                    <div className="h-12 bg-zinc-100 rounded-xl animate-pulse" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : movements.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-2 text-center px-6">
-              <History size={28} className="text-zinc-200" />
-              <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">No movements recorded</p>
-            </div>
-          ) : movements.map(m => (
-            <div key={m.id} className="flex items-start gap-3 px-5 py-3.5 border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                style={{ background: m.type === 'add' ? '#f0fdf4' : m.type === 'subtract' ? '#fef2f2' : '#f5f0ff' }}>
-                {typeIcon(m.type)}
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center opacity-40">
+              <div className="w-20 h-20 bg-zinc-100 rounded-full flex items-center justify-center">
+                <Package size={32} className="text-zinc-300" />
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold" style={{ color: typeColor(m.type) }}>
-                    {m.type === 'add' ? '+' : m.type === 'subtract' ? '-' : '='}{m.quantity} {item.unit}
-                  </span>
-                  <span className="text-[10px] text-zinc-400">{timeAgo(m.created_at)}</span>
-                </div>
-                <p className="text-[11px] text-zinc-500 mt-0.5 truncate">{m.reason}</p>
-                <p className="text-[10px] text-zinc-400">by {m.performed_by}</p>
+              <div>
+                <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Clean Slate</p>
+                <p className="text-xs text-zinc-400 mt-1">No movement history found for this item.</p>
               </div>
             </div>
-          ))}
+          ) : (
+            <div className="relative space-y-8">
+              {/* Vertical Line */}
+              <div className="absolute left-[15px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-zinc-100 via-zinc-200 to-zinc-100" />
+
+              {movements.map((m) => {
+                const cfg = getStatusCfg(m);
+                const isLegacy = m.before === null || m.after === null;
+                const diff = m.after !== null && m.before !== null ? (m.after - m.before) : 0;
+                
+                return (
+                  <div key={m.id} className="relative flex gap-6 group">
+                    {/* Time Marker */}
+                    <div className="absolute -left-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap -translate-x-full pr-4 pt-1.5 pointer-events-none">
+                      <p className="text-[10px] font-bold text-zinc-400 text-right">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+
+                    {/* Node */}
+                    <div className="z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-sm"
+                         style={{ background: cfg.bg, color: cfg.color }}>
+                      {cfg.icon}
+                    </div>
+
+                    {/* Card */}
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[11px] font-black text-zinc-900 uppercase tracking-tight">{cfg.label}</p>
+                          <span className="text-[10px] text-zinc-400">•</span>
+                          <span className="text-[11px] text-zinc-500 font-medium">{timeAgo(m.created_at)}</span>
+                        </div>
+                        {isLegacy && (
+                          <span className="text-[9px] font-black bg-zinc-100 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-200 uppercase tracking-tighter">Legacy</span>
+                        )}
+                      </div>
+
+                      <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm group-hover:shadow-md transition-shadow">
+                        {/* Snapshot Flow */}
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className="flex-1 overflow-hidden">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Before</p>
+                            <p className="text-sm font-black text-zinc-600 tabular-nums truncate">
+                              {m.before !== null ? Number(m.before).toFixed(2) : '??'}
+                            </p>
+                          </div>
+                          <div className="shrink-0 flex flex-col items-center">
+                            <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                              {diff >= 0 ? '+' : ''}{diff.toFixed(2)}
+                            </div>
+                            <div className="h-4 w-[1px] bg-zinc-100 my-0.5" />
+                          </div>
+                          <div className="flex-1 text-right overflow-hidden">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">After</p>
+                            <p className="text-sm font-black text-zinc-900 tabular-nums truncate" style={{ color: cfg.color }}>
+                              {m.after !== null ? Number(m.after).toFixed(2) : '??'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Details */}
+                        <div className="pt-3 border-t border-zinc-50 space-y-2">
+                          <div className="flex items-start gap-2">
+                            <p className="text-xs text-zinc-700 leading-relaxed font-medium capitalize prose-sm">
+                              {m.reason}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between pt-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-4 h-4 bg-zinc-100 rounded-full flex items-center justify-center text-[8px] font-bold text-zinc-400">
+                                {m.performed_by.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-[10px] text-zinc-500 font-bold">{m.performed_by}</span>
+                            </div>
+                            <span className="text-[9px] text-zinc-300 font-bold tabular-nums">ID #{m.id}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {/* Footer Summary */}
+        {!loading && movements.length > 0 && (
+          <div className="px-6 py-5 bg-white border-t border-zinc-100">
+            <div className="flex items-center justify-between p-4 bg-[#6a12b8] rounded-2xl shadow-lg shadow-purple-100 overflow-hidden relative">
+              <div className="absolute -right-4 -top-4 opacity-10">
+                <FlaskConical size={80} className="text-white" />
+              </div>
+              <div className="relative z-10">
+                <p className="text-[10px] font-bold text-purple-200 uppercase tracking-widest">Opening Stock</p>
+                <p className="text-xl font-black text-white">{Number(movements[movements.length - 1].before || 0).toFixed(2)}</p>
+              </div>
+              <div className="h-8 w-[1px] bg-purple-500 relative z-10" />
+              <div className="text-right relative z-10">
+                <p className="text-[10px] font-bold text-purple-200 uppercase tracking-widest">Ending Stock</p>
+                <div className="flex items-center gap-2 justify-end">
+                  <p className="text-xl font-black text-white">{Number(item.current_stock).toFixed(2)}</p>
+                  <TrendingUp size={14} className="text-emerald-400" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>,
     document.body
@@ -184,21 +329,21 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
 // ─── Adjust Modal ─────────────────────────────────────────────────────────────
 
 const AdjustModal: React.FC<{
-  item:    RawMaterial;
+  item: RawMaterial;
   onClose: () => void;
-  onDone:  (updated: RawMaterial) => void;
+  onDone: (updated: RawMaterial) => void;
 }> = ({ item, onClose, onDone }) => {
   const [adjType, setAdjType] = useState<AdjType>('add');
-  const [qty,     setQty]     = useState<number | ''>('');
-  const [reason,  setReason]  = useState('');
-  const [saving,  setSaving]  = useState(false);
-  const [error,   setError]   = useState('');
+  const [qty, setQty] = useState<number | ''>('');
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   const preview = () => {
     if (qty === '') return item.current_stock;
-    if (adjType === 'add')      return item.current_stock + Number(qty);
-    if (adjType === 'subtract') return Math.max(0, item.current_stock - Number(qty));
+    if (adjType === 'add') return Number(item.current_stock) + Number(qty);
+    if (adjType === 'subtract' || adjType === 'waste') return Math.max(0, Number(item.current_stock) - Number(qty));
     return Number(qty);
   };
 
@@ -219,9 +364,10 @@ const AdjustModal: React.FC<{
   };
 
   const typeConfig = {
-    add:      { label: 'Add Stock',      color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: <TrendingUp  size={14} /> },
-    subtract: { label: 'Subtract Stock', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: <TrendingDown size={14} /> },
-    set:      { label: 'Set Stock',      color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus        size={14} /> },
+    add: { label: 'Add Stock', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: <TrendingUp size={14} /> },
+    subtract: { label: 'Subtract', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: <TrendingDown size={14} /> },
+    waste: { label: 'Waste', color: '#ea580c', bg: '#fff7ed', border: '#fed7aa', icon: <Trash2 size={14} /> },
+    set: { label: 'Set To', color: '#6a12b8', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus size={14} /> },
   };
 
   return createPortal(
@@ -232,7 +378,7 @@ const AdjustModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <Package size={15} className="text-[#3b2063]" />
+              <Package size={15} className="text-[#6a12b8]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">Adjust Stock</p>
@@ -253,15 +399,15 @@ const AdjustModal: React.FC<{
           ) : (
             <>
               {/* Type selector */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {(Object.entries(typeConfig) as [AdjType, typeof typeConfig.add][]).map(([key, cfg]) => (
-                  <button key={key} onClick={() => setAdjType(key)}
-                    className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-lg border text-xs font-bold transition-all"
+                   <button key={key} onClick={() => { setAdjType(key); setReason(''); }}
+                    className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-lg border text-[10px] font-bold transition-all"
                     style={adjType === key
                       ? { background: cfg.bg, color: cfg.color, borderColor: cfg.border }
                       : { background: 'white', color: '#71717a', borderColor: '#e4e4e7' }}>
                     <span style={{ color: adjType === key ? cfg.color : '#a1a1aa' }}>{cfg.icon}</span>
-                    {cfg.label.split(' ')[0]}
+                    {cfg.label}
                   </button>
                 ))}
               </div>
@@ -282,14 +428,34 @@ const AdjustModal: React.FC<{
               </div>
 
               <Field label="Quantity" required>
-                <input type="number" min="0" value={qty}
-                  onChange={e => setQty(e.target.value === '' ? '' : Number(e.target.value))}
-                  className={inputCls()} placeholder="Enter quantity..." />
+                <div className="relative">
+                  <input type="number" min="0" value={qty}
+                    onChange={e => setQty(e.target.value === '' ? '' : Number(e.target.value))}
+                    className={`${inputCls()} pr-10`} placeholder="0" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-400 uppercase">{item.unit}</span>
+                </div>
               </Field>
 
               <Field label="Reason" required>
-                <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2}
-                  className={`${inputCls()} resize-none`} placeholder="e.g. Received from supplier, damaged goods..." />
+                <div className="space-y-2">
+                  <select 
+                    value={isPresetReason(adjType, reason) ? reason : (reason ? 'Other' : '')} 
+                    onChange={e => setReason(e.target.value === 'Other' ? '' : e.target.value)} 
+                    className={inputCls()}
+                  >
+                    <option value="">Select a reason...</option>
+                    {REASONS[adjType as keyof typeof REASONS].map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+
+                  {(!isPresetReason(adjType, reason) || reason === 'Other') && (
+                    <input 
+                      value={reason === 'Other' ? '' : reason} 
+                      onChange={e => setReason(e.target.value)}
+                      className={inputCls()} 
+                      placeholder="Type custom reason here..." 
+                    />
+                  )}
+                </div>
               </Field>
 
               {error && (
@@ -324,26 +490,31 @@ const AdjustModal: React.FC<{
 // ─── Add / Edit Modal ─────────────────────────────────────────────────────────
 
 const MaterialFormModal: React.FC<{
-  onClose:  () => void;
-  onSaved:  (m: RawMaterial) => void;
+  onClose: () => void;
+  onSaved: (m: RawMaterial) => void;
   editing?: RawMaterial | null;
 }> = ({ onClose, onSaved, editing }) => {
-  const [form,    setForm]    = useState<FormState>(
+  const [form, setForm] = useState<FormState>(
     editing
-      ? { name: editing.name, unit: editing.unit, category: editing.category,
-          current_stock: editing.current_stock, reorder_level: editing.reorder_level,
-          is_intermediate: editing.is_intermediate, notes: editing.notes ?? '' }
+      ? {
+        name: editing.name, unit: editing.unit, category: editing.category,
+        purchase_unit: editing.purchase_unit || '',
+        purchase_to_base_factor: editing.purchase_to_base_factor,
+        last_purchase_price: editing.last_purchase_price || '',
+        current_stock: editing.current_stock, reorder_level: editing.reorder_level,
+        is_intermediate: editing.is_intermediate, notes: editing.notes ?? ''
+      }
       : blankForm()
   );
-  const [errors,  setErrors]  = useState<Record<string, string>>({});
-  const [saving,  setSaving]  = useState(false);
-  const [apiErr,  setApiErr]  = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [apiErr, setApiErr] = useState('');
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())           e.name          = 'Name is required.';
-    if (form.current_stock === '')   e.current_stock = 'Stock is required.';
-    if (form.reorder_level === '')   e.reorder_level = 'Reorder level is required.';
+    if (!form.name.trim()) e.name = 'Name is required.';
+    if (form.current_stock === '') e.current_stock = 'Stock is required.';
+    if (form.reorder_level === '') e.reorder_level = 'Reorder level is required.';
     return e;
   };
 
@@ -352,7 +523,13 @@ const MaterialFormModal: React.FC<{
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true); setApiErr('');
     try {
-      const payload = { ...form, current_stock: Number(form.current_stock), reorder_level: Number(form.reorder_level) };
+      const payload = { 
+        ...form, 
+        current_stock: Number(form.current_stock), 
+        reorder_level: Number(form.reorder_level),
+        purchase_to_base_factor: Number(form.purchase_to_base_factor || 1),
+        last_purchase_price: form.last_purchase_price === '' ? null : Number(form.last_purchase_price)
+      };
       const res = editing
         ? await api.put(`/raw-materials/${editing.id}`, payload)
         : await api.post('/raw-materials', payload);
@@ -372,7 +549,7 @@ const MaterialFormModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <FlaskConical size={15} className="text-[#3b2063]" />
+              <FlaskConical size={15} className="text-[#6a12b8]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Material' : 'Add Raw Material'}</p>
@@ -396,7 +573,7 @@ const MaterialFormModal: React.FC<{
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Unit" required>
+            <Field label="Base Unit (Inv)" required>
               <select value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value as Unit }))} className={inputCls()}>
                 {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
@@ -407,6 +584,28 @@ const MaterialFormModal: React.FC<{
               </select>
             </Field>
           </div>
+
+          {!form.is_intermediate && (
+            <div className="p-4 bg-violet-50 border border-violet-100 rounded-xl space-y-3">
+              <p className="text-[10px] font-bold text-violet-600 uppercase tracking-widest">Procurement Settings</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Purchase Unit">
+                  <input value={form.purchase_unit} onChange={e => setForm(p => ({ ...p, purchase_unit: e.target.value }))}
+                    className={inputCls()} placeholder="e.g. SACK, CASE" />
+                </Field>
+                <Field label="Conversion (To Base)">
+                  <input type="number" min="1" value={form.purchase_to_base_factor}
+                    onChange={e => setForm(p => ({ ...p, purchase_to_base_factor: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    className={inputCls()} placeholder="1" />
+                </Field>
+              </div>
+              <Field label="Last Purchase Price (₱)">
+                <input type="number" min="0" value={form.last_purchase_price}
+                  onChange={e => setForm(p => ({ ...p, last_purchase_price: e.target.value === '' ? '' : Number(e.target.value) }))}
+                  className={inputCls()} placeholder="0.00" />
+              </Field>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Current Stock" required error={errors.current_stock}>
@@ -427,8 +626,8 @@ const MaterialFormModal: React.FC<{
           </Field>
 
           <label className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:bg-[#faf9ff] transition-colors">
-            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_intermediate ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}
-              onClick={() => setForm(p => ({ ...p, is_intermediate: !p.is_intermediate }))}>  
+            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_intermediate ? 'bg-[#6a12b8]' : 'bg-zinc-300'}`}
+              onClick={() => setForm(p => ({ ...p, is_intermediate: !p.is_intermediate }))}>
               <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${form.is_intermediate ? 'translate-x-4' : ''}`} />
             </div>
             <div>
@@ -444,7 +643,7 @@ const MaterialFormModal: React.FC<{
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 bg-[#6a12b8] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Add Material'}
           </button>
         </div>
@@ -457,12 +656,12 @@ const MaterialFormModal: React.FC<{
 // ─── Delete Confirm ───────────────────────────────────────────────────────────
 
 const DeleteModal: React.FC<{
-  item:      RawMaterial;
-  onClose:   () => void;
+  item: RawMaterial;
+  onClose: () => void;
   onDeleted: (id: number) => void;
 }> = ({ item, onClose, onDeleted }) => {
   const [saving, setSaving] = useState(false);
-  const [error,  setError]  = useState('');
+  const [error, setError] = useState('');
 
   const handleDelete = async () => {
     setSaving(true);
@@ -515,83 +714,91 @@ const DeleteModal: React.FC<{
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const RawMaterialsTab: React.FC = () => {
-  const [materials,   setMaterials]   = useState<RawMaterial[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [search,      setSearch]      = useState('');
-  const [catFilter,   setCatFilter]   = useState('');
+  const [materials, setMaterials] = useState<RawMaterial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [catFilter, setCatFilter] = useState('');
   const [stockFilter, setStockFilter] = useState('');
 
-  const [addOpen,     setAddOpen]     = useState(false);
-  const [editTarget,  setEditTarget]  = useState<RawMaterial | null>(null);
-  const [delTarget,   setDelTarget]   = useState<RawMaterial | null>(null);
-  const [adjTarget,   setAdjTarget]   = useState<RawMaterial | null>(null);
-  const [histTarget,  setHistTarget]  = useState<RawMaterial | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<RawMaterial | null>(null);
+  const [delTarget, setDelTarget] = useState<RawMaterial | null>(null);
+  const [adjTarget, setAdjTarget] = useState<RawMaterial | null>(null);
+  const [histTarget, setHistTarget] = useState<RawMaterial | null>(null);
+  const [stockPopId, setStockPopId] = useState<number | null>(null);
+  const [popSearch, setPopSearch] = useState('');
+  const [branches, setBranches] = useState<Array<{ id: number; name: string }>>([]);
+  const [branchId, setBranchId] = useState<string>(localStorage.getItem('superadmin_selected_branch') || '');
 
-    const normalize = (m: RawMaterial): RawMaterial => ({
+  const normalize = (m: RawMaterial): RawMaterial => ({
     ...m,
     category: (m.category
-        ? (m.category.charAt(0).toUpperCase() + m.category.slice(1).toLowerCase()) as Category
-        : 'Ingredients') as Category,
-    });  
-    
-    const fetchMaterials = useCallback(async () => {
-    setLoading(true);
-    try {
-        const res = await api.get('/raw-materials');
-        const data = res.data;
-        const raw = Array.isArray(data) ? data : data?.data ?? [];
-        setMaterials(raw.map(normalize)); // ← add .map(normalize) here
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-    }, []);
+      ? (m.category.charAt(0).toUpperCase() + m.category.slice(1).toLowerCase()) as Category
+      : 'Ingredients') as Category,
+  });
 
-  useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
+  const fetchMaterials = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    try {
+      const res = await api.get('/raw-materials', {
+        params: { branch_id: branchId || undefined }
+      });
+      const data = res.data;
+      const raw = Array.isArray(data) ? data : data?.data ?? [];
+      setMaterials(raw.map(normalize));
+    } catch (e) { console.error(e); }
+    finally { if (!isSilent) setLoading(false); }
+  }, [branchId]);
+
+  const fetchBranches = useCallback(async () => {
+    try {
+      const res = await api.get('/branches');
+      setBranches(Array.isArray(res.data) ? res.data : res.data?.data ?? []);
+    } catch (e) { console.error(e); }
+  }, []);
+
+  useEffect(() => {
+    fetchMaterials(); // Initial load
+    fetchBranches();
+
+    const interval = setInterval(() => {
+      fetchMaterials(true); // Silent update every 30s
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [fetchMaterials, fetchBranches]);
+
+  const handleBranchChange = (val: string) => {
+    setBranchId(val);
+    localStorage.setItem('superadmin_selected_branch', val);
+  };
 
   const filtered = materials.filter(m => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase());
-    const matchCat    = catFilter   ? m.category === catFilter : true;
-    const matchStock  = stockFilter === 'low'  ? m.current_stock <= m.reorder_level
-                      : stockFilter === 'out'  ? m.current_stock === 0
-                      : stockFilter === 'ok'   ? m.current_stock > m.reorder_level
-                      : true;
+    const matchCat = catFilter ? m.category === catFilter : true;
+    const matchStock = stockFilter === 'low' ? m.current_stock <= m.reorder_level
+      : stockFilter === 'out' ? m.current_stock === 0
+        : stockFilter === 'ok' ? m.current_stock > m.reorder_level
+          : true;
     return matchSearch && matchCat && matchStock;
   });
 
-  const totalItems   = materials.length;
-  const lowStockCnt  = materials.filter(m => m.current_stock > 0 && m.current_stock <= m.reorder_level).length;
+  const totalItems = materials.length;
+  const lowStockCnt = materials.filter(m => m.current_stock > 0 && m.current_stock <= m.reorder_level).length;
   const outOfStockCnt = materials.filter(m => m.current_stock === 0).length;
   const intermediateCnt = materials.filter(m => m.is_intermediate).length;
 
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Raw Materials</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {loading ? 'Loading...' : `${materials.length} materials · inventory management`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={fetchMaterials} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button onClick={() => setAddOpen(true)}
-            className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
-            <Plus size={13} /> Add Material
-          </button>
-        </div>
-      </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {[
-          { label: 'Total Items',    value: totalItems,      color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
-          { label: 'Low Stock',      value: lowStockCnt,     color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
-          { label: 'Out of Stock',   value: outOfStockCnt,   color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
-          { label: 'Intermediate',   value: intermediateCnt, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+          { label: 'Total Items', value: totalItems, color: '#6a12b8', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Low Stock', value: lowStockCnt, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+          { label: 'Out of Stock', value: outOfStockCnt, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+          { label: 'Intermediate', value: intermediateCnt, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
         ].map(s => (
           <div key={s.label} className="bg-white border rounded-[0.625rem] px-5 py-4 shadow-sm" style={{ borderColor: s.border }}>
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{s.label}</p>
@@ -612,6 +819,11 @@ const RawMaterialsTab: React.FC = () => {
               placeholder="Search materials..." />
             {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500 transition-colors"><X size={13} /></button>}
           </div>
+          <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#6a12b8] outline-none h-9 focus:ring-2 focus:ring-[#e9d5ff]">
+            <option value="">All Branches</option>
+            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
           <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
             className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
             <option value="">All Categories</option>
@@ -624,9 +836,10 @@ const RawMaterialsTab: React.FC = () => {
             <option value="low">Low Stock</option>
             <option value="out">Out of Stock</option>
           </select>
-          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">
-            {filtered.length} results
-          </span>
+          <button onClick={() => setAddOpen(true)}
+            className="bg-[#6a12b8] hover:bg-[#2d1851] shrink-0 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all ml-auto md:ml-0">
+            <Plus size={13} /> Add Material
+          </button>
         </div>
 
         {/* Table */}
@@ -634,7 +847,7 @@ const RawMaterialsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {['Item', 'Category', 'Unit', 'Current Stock', 'Reorder Level', 'Status', 'Actions'].map(h => (
+                {['Item', 'Category', 'Unit', 'Last Price', 'Base Cost', 'Incoming', 'Current Stock', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -662,7 +875,7 @@ const RawMaterialsTab: React.FC = () => {
               {!loading && filtered.map(m => {
                 const status = stockStatus(m);
                 const cat = CATEGORY_COLORS[m.category as Category] ?? { bg: '#f4f4f5', text: '#71717a', border: '#e4e4e7' };
-                const pct    = m.reorder_level > 0 ? Math.min((m.current_stock / (m.reorder_level * 2)) * 100, 100) : 100;
+                const pct = m.reorder_level > 0 ? Math.min((m.current_stock / (m.reorder_level * 2)) * 100, 100) : 100;
                 const barColor = m.current_stock === 0 ? '#dc2626' : m.current_stock <= m.reorder_level * 0.5 ? '#dc2626' : m.current_stock <= m.reorder_level ? '#d97706' : '#16a34a';
 
                 return (
@@ -687,11 +900,81 @@ const RawMaterialsTab: React.FC = () => {
                       <span className="text-xs font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded">{m.unit}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-zinc-700">₱{Number(m.last_purchase_price || 0).toFixed(2)}</span>
+                        {m.purchase_unit && <span className="text-[9px] text-zinc-400 font-bold uppercase">per {m.purchase_unit}</span>}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-violet-600">₱{Number(m.unit_cost || 0).toFixed(2)}</span>
+                        <span className="text-[9px] text-zinc-400 font-bold uppercase">per {m.unit}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`text-xs font-bold ${m.incoming_stock ? 'text-blue-500' : 'text-zinc-300'}`}>
+                        {m.incoming_stock ? `+${Number(m.incoming_stock).toFixed(1)}` : '—'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 relative">
+                      <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setStockPopId(stockPopId === m.id ? null : m.id)}>
                         <span className="text-sm font-black tabular-nums" style={{ color: barColor }}>{m.current_stock}</span>
                         <div className="w-14 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
                         </div>
+                        {!branchId && m.branch_stocks && m.branch_stocks.length > 0 && (
+                          <div className="w-4 h-4 rounded-full bg-zinc-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Plus size={10} className="text-zinc-500" />
+                          </div>
+                        )}
+
+                        {/* Stock Popover */}
+                        {stockPopId === m.id && m.branch_stocks && (
+                          <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 z-50 w-64 bg-white border border-zinc-200 rounded-xl shadow-xl p-3 animate-in fade-in zoom-in slide-in-from-bottom-2 duration-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-[#6a12b8]">Branch Distribution</p>
+                              <button onClick={(e) => { e.stopPropagation(); setStockPopId(null); setPopSearch(''); }} className="text-zinc-300 hover:text-zinc-500"><X size={10} /></button>
+                            </div>
+
+                            {/* Mini Search */}
+                            {m.branch_stocks.length > 5 && (
+                              <div className="mb-2 relative">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-300" size={10} />
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  placeholder="Filter branches..."
+                                  value={popSearch}
+                                  onChange={(e) => setPopSearch(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-full bg-zinc-50 border border-zinc-100 rounded-lg pl-6 pr-2 py-1 text-[10px] outline-none focus:ring-1 focus:ring-[#e9d5ff]"
+                                />
+                              </div>
+                            )}
+
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                              {m.branch_stocks
+                                .filter(bs => bs.branch?.name.toLowerCase().includes(popSearch.toLowerCase()))
+                                .map(bs => (
+                                  <div key={bs.id} className="flex items-center justify-between text-[11px] py-0.5 border-b border-transparent hover:border-zinc-50 transition-colors">
+                                    <span className="text-zinc-500 font-medium">{bs.branch?.name ?? 'Unknown'}</span>
+                                    <span className="font-bold text-[#1a0f2e]">{bs.current_stock} {m.unit}</span>
+                                  </div>
+                                ))}
+                              {m.branch_stocks.filter(bs => bs.branch?.name.toLowerCase().includes(popSearch.toLowerCase())).length === 0 && (
+                                <p className="text-[10px] text-center text-zinc-400 py-2">No branches found.</p>
+                              )}
+                            </div>
+
+                            <div className="pt-2 border-t border-zinc-100 mt-2 flex items-center justify-between text-[11px]">
+                              <span className="font-bold text-zinc-900 uppercase tracking-tighter">System Total</span>
+                              <span className="font-black text-[#6a12b8] underline decoration-[#e9d5ff] underline-offset-2">
+                                {m.branch_stocks.reduce((acc, s) => acc + Number(s.current_stock), 0)} {m.unit}
+                              </span>
+                            </div>
+                            <div className="absolute w-2 h-2 bg-white border-r border-b border-zinc-200 rotate-45 left-1/2 -translate-x-1/2 -bottom-1" />
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-zinc-500 text-xs font-medium">{m.reorder_level}</td>
@@ -701,15 +984,15 @@ const RawMaterialsTab: React.FC = () => {
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1">
                         <button onClick={() => setAdjTarget(m)} title="Adjust Stock"
-                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                           <ChevronDown size={13} />
                         </button>
                         <button onClick={() => setHistTarget(m)} title="View History"
-                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                           <History size={13} />
                         </button>
                         <button onClick={() => setEditTarget(m)} title="Edit"
-                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#6a12b8] transition-colors">
                           <Edit2 size={13} />
                         </button>
                         <button onClick={() => setDelTarget(m)} title="Delete"

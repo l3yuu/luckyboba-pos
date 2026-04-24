@@ -87,23 +87,35 @@ interface XReadingReport {
   cash_drop?: number;
   cash_in_drawer?: number;
   cash_in?: number;
-  is_vat?: boolean;           // ← add
-  vat_exempt_sales?: number;  // ← add
+  is_vat?: boolean;
+  vat_exempt_sales?: number;
   pre_discount_gross?: number;
+  rounding_adjustment?: number;
+  net_total?: number;
+  less_vat?: number;
+  z_counter?: number;
+  previous_accumulated?: number;
+  present_accumulated?: number;
 }
 
-const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
-  <div className={`flex justify-between text-[11px] leading-snug ${indent ? 'pl-3' : ''}`}>
-    <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%]">{value}</span>
+const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
+  <div className={`flex justify-between text-[11px] font-bold leading-snug ${indent ? 'pl-3' : ''}`}>
+    <span className="uppercase w-[60%] leading-tight text-black">{label}</span>
+    <span className="text-right w-[40%] text-black whitespace-pre-line">{value}</span>
   </div>
 );
 
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
 
 const XReading = () => {
-  const today = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState(today);
+  const getLocalDate = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localNow = new Date(now.getTime() - (offset * 60 * 1000));
+    return localNow.toISOString().split('T')[0];
+  };
+
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDate());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [reportData, setReportData] = useState<XReadingReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -116,6 +128,7 @@ const XReading = () => {
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const vatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = vatType === 'vat';
+  const branchId = localStorage.getItem('lucky_boba_user_branch_id') || '';
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -141,9 +154,15 @@ const XReading = () => {
     setRawApiResponse(null);
     try {
       if (type === 'summary') {
+        const sParams: Record<string, string | number> = { from: selectedDate, to: selectedDate };
+        const qParams: Record<string, string | number> = { date: selectedDate };
+        if (branchId) {
+          sParams.branch_id = branchId;
+          qParams.branch_id = branchId;
+        }
         const [summaryRes, qtyRes] = await Promise.all([
-          api.get('/reports/sales-summary',   { params: { from: selectedDate, to: selectedDate } }),
-          api.get('/reports/item-quantities', { params: { date: selectedDate } }),
+          api.get('/reports/sales-summary',   { params: sParams }),
+          api.get('/reports/item-quantities', { params: qParams }),
         ]);
         const merged = {
           ...summaryRes.data,
@@ -167,7 +186,10 @@ const XReading = () => {
       };
 
       const { url, params } = endpointMap[type];
-      const response = await api.get(url, { params });
+      const finalParams: Record<string, string | number> = { ...params };
+      if (branchId) finalParams.branch_id = branchId;
+
+      const response = await api.get(url, { params: finalParams });
       setRawApiResponse(response.data as Record<string, unknown>);
       const normalized = normalizeResponse(type, response.data);
       setReportData({ ...normalized, report_type: type });
@@ -194,7 +216,7 @@ const XReading = () => {
         return { ...data, summary_data: summaryData ?? [] } as unknown as XReadingReport;
       }
       case 'search': {
-        const raw = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
+        const raw = (Array.isArray(data) ? data : (data.results ?? [])) as Record<string, unknown>[];
         const txData = raw.map(r => ({
           Invoice:   r.si_number    ?? r.Invoice   ?? '',
           Amount:    r.total_amount ?? r.Amount    ?? 0,
@@ -259,16 +281,16 @@ const XReading = () => {
   };
 
   const menuCards = [
-    { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#3b2063]" },
+    { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#6a12b8]" },
     { label: "OVERVIEW",        title: "SALES SUMMARY REPORT", type: "summary",      color: "border-amber-400" },
-    { label: "AUDIT",           title: "VOID LOGS",            type: "void_logs",    color: "border-[#3b2063]" },
-    { label: "TRANSACTION",     title: "SEARCH RECEIPT",       type: "search",       color: "border-[#3b2063]" },
-    { label: "DATA MANAGEMENT", title: "EXPORT SALES",         type: "export_sales", color: "border-[#3b2063]" },
-    { label: "ANALYSIS",        title: "SALES DETAILED",       type: "detailed",     color: "border-[#3b2063]" },
-    { label: "INVENTORY",       title: "EXPORT ITEMS",         type: "export_items", color: "border-[#3b2063]" },
-    { label: "INVENTORY",       title: "QTY ITEMS",            type: "qty_items",    color: "border-[#3b2063]" },
+    { label: "AUDIT",           title: "VOID LOGS",            type: "void_logs",    color: "border-[#6a12b8]" },
+    { label: "TRANSACTION",     title: "SEARCH RECEIPT",       type: "search",       color: "border-[#6a12b8]" },
+    { label: "DATA MANAGEMENT", title: "EXPORT SALES",         type: "export_sales", color: "border-[#6a12b8]" },
+    { label: "ANALYSIS",        title: "SALES DETAILED",       type: "detailed",     color: "border-[#6a12b8]" },
+    { label: "INVENTORY",       title: "EXPORT ITEMS",         type: "export_items", color: "border-[#6a12b8]" },
+    { label: "INVENTORY",       title: "QTY ITEMS",            type: "qty_items",    color: "border-[#6a12b8]" },
     { label: "X-READING",  title: "", isAction: true, type: "x_reading",  actionLabel: "X-READING",  actionText: "PRINT", color: "border-emerald-500" },
-    { label: "CASH COUNT", title: "", isAction: true, type: "cash_count", actionLabel: "CASH COUNT", actionText: "VIEW",  color: "border-[#3b2063]" },
+    { label: "CASH COUNT", title: "", isAction: true, type: "cash_count", actionLabel: "CASH COUNT", actionText: "VIEW",  color: "border-[#6a12b8]" },
   ];
 
   const renderHourlySales = () => {
@@ -283,7 +305,7 @@ const XReading = () => {
     return (
       <div className="my-2">
         <Divider />
-        <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
+        <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
           <span className="w-[40%] uppercase">HOUR</span>
           <span className="w-[20%] text-center uppercase">QTY</span>
           <span className="w-[40%] text-right uppercase">AMOUNT</span>
@@ -291,7 +313,7 @@ const XReading = () => {
         {HOUR_LABELS.map((label, h) => {
           const d = salesMap.get(h) ?? { total: 0, count: 0 };
           return (
-            <div key={h} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300">
+            <div key={h} className="flex text-[11px] font-bold leading-snug border-b border-dotted border-zinc-300">
               <span className="w-[40%] uppercase">{label}</span>
               <span className="w-[20%] text-center">{d.count}</span>
               <span className="w-[40%] text-right">{phCurrency.format(d.total)}</span>
@@ -309,14 +331,14 @@ const XReading = () => {
     <div className="my-2">
       <Divider />
       <p className="text-[11px] uppercase mb-0.5">VOIDED TRANSACTIONS</p>
-      <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
+      <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
         <span className="w-[25%] uppercase">TIME</span>
         <span className="w-[50%] uppercase">REASON</span>
         <span className="w-[25%] text-right uppercase">AMT</span>
       </div>
       {reportData?.logs?.length ? (
         reportData.logs.map((log, i) => (
-          <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300">
+          <div key={i} className="flex text-[11px] font-bold leading-snug border-b border-dotted border-zinc-300">
             <span className="w-[25%]">{log.time}</span>
             <span className="w-[50%] uppercase">{log.reason}</span>
             <span className="w-[25%] text-right">{phCurrency.format(log.amount)}</span>
@@ -337,7 +359,7 @@ const XReading = () => {
     return (
       <div className="my-2">
         <Divider />
-        <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
+        <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
           <span className="w-[75%] uppercase">DESCRIPTION</span>
           <span className="w-[25%] text-right uppercase">QTY</span>
         </div>
@@ -363,7 +385,7 @@ const XReading = () => {
                   <div key={si}>
                     {hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}
                     {products.map((item, i) => (
-                      <div key={i} className="flex text-[11px] leading-snug">
+                      <div key={i} className="flex text-[11px] font-bold leading-snug">
                         <span className={`w-[75%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>
                           {item.product_name}{item.size ? ` (${item.size})` : ''}
                         </span>
@@ -373,7 +395,7 @@ const XReading = () => {
                   </div>
                 );
               })}
-              <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+              <div className="flex justify-between text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
                 <span className="uppercase">T. PER: {cat.category_name}</span>
                 <span>QTY: {catTotal}</span>
               </div>
@@ -397,7 +419,7 @@ const XReading = () => {
           </div>
         )}
         <Divider />
-        <div className="flex justify-between text-[11px]">
+        <div className="flex justify-between text-[11px] font-bold">
           <span className="uppercase">ALL DAY MEAL</span>
           <span>QTY: {totalItems}</span>
         </div>
@@ -416,13 +438,13 @@ const XReading = () => {
           <p className="text-[11px]">No denomination data available.</p>
         ) : (
           <>
-            <div className="flex text-[11px] mb-0.5">
+            <div className="flex text-[11px] font-bold mb-0.5">
               <span className="w-[45%] uppercase">DENOM</span>
               <span className="w-[20%] text-center uppercase">QTY</span>
               <span className="w-[35%] text-right uppercase">TOTAL</span>
             </div>
             {denominations.map((d, i) => (
-              <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300">
+              <div key={i} className="flex text-[11px] font-bold leading-snug border-b border-dotted border-zinc-300">
                 <span className="w-[45%] uppercase">₱{d.label}</span>
                 <span className="w-[20%] text-center">x{d.qty}</span>
                 <span className="w-[35%] text-right">{phCurrency.format(d.total)}</span>
@@ -461,12 +483,12 @@ const XReading = () => {
             const siDisplay = String(tx.Invoice).replace(/^OR-0+/, '#').replace(/^OR-/, '#');
             return (
               <div key={i} className={`border-b border-dotted border-zinc-300 py-0.5 ${isCancelled ? 'opacity-50' : ''}`}>
-                <div className="flex text-[8px] leading-snug items-start">
-                  <span className="w-[30%] uppercase leading-tight">{siDisplay}<br /><span className="text-zinc-500 text-[7px]">{timeOnly}</span></span>
-                  <span className="w-[10%] text-center text-zinc-600">{tx.Items_Count ? tx.Items_Count : <span className="text-zinc-400">—</span>}</span>
-                  <span className="w-[20%] text-center text-zinc-600 truncate" style={{ fontSize: '7px' }}>{tx.Cashier || <span className="text-zinc-400">—</span>}</span>
-                  <span className="w-[20%] text-right text-zinc-600">{tx.Vatable ? phCurrency.format(tx.Vatable) : <span className="text-zinc-400">—</span>}</span>
-                  <span className={`w-[20%] text-right font-medium ${isCancelled ? 'line-through text-zinc-400' : ''}`}>{phCurrency.format(tx.Amount)}</span>
+                <div className="flex text-[9px] font-bold leading-snug items-start">
+                  <span className="w-[30%] uppercase leading-tight">{siDisplay}<br /><span className="text-zinc-600 text-[8px]">{timeOnly}</span></span>
+                  <span className="w-[10%] text-center text-zinc-900">{tx.Items_Count ? tx.Items_Count : <span className="text-zinc-500">—</span>}</span>
+                  <span className="w-[20%] text-center text-zinc-900 truncate" style={{ fontSize: '8px' }}>{tx.Cashier || <span className="text-zinc-500">—</span>}</span>
+                  <span className="w-[20%] text-right text-zinc-900">{tx.Vatable ? phCurrency.format(tx.Vatable) : <span className="text-zinc-500">—</span>}</span>
+                  <span className={`w-[20%] text-right font-black ${isCancelled ? 'line-through text-zinc-500' : 'text-black'}`}>{phCurrency.format(tx.Amount)}</span>
                 </div>
               </div>
             );
@@ -525,7 +547,7 @@ const XReading = () => {
         {reportData?.categories && reportData.categories.length > 0 && (
           <>
             <Divider />
-            <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
+            <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
               <span className="w-[55%] uppercase">DESCRIPTION</span>
               <span className="w-[15%] text-center uppercase">QTY</span>
               <span className="w-[30%] text-right uppercase">AMOUNT</span>
@@ -549,7 +571,7 @@ const XReading = () => {
                         {hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}
                         {products.map((item, i) => (
                           <React.Fragment key={i}>
-                            <div className="flex text-[11px] leading-snug">
+                            <div className="flex text-[11px] font-bold leading-snug">
                               <span className={`w-[55%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span>
                               <span className="w-[15%] text-center">{item.total_qty}</span>
                               <span className="w-[30%] text-right">{phCurrency.format(item.total_sales)}</span>
@@ -618,7 +640,7 @@ const XReading = () => {
                   <span className="w-[35%] text-right">{noSizeTotal} pcs</span>
                 </div>
               )}
-              <div className="flex text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+              <div className="flex text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
                 <span className="w-[65%] uppercase font-bold">TOTAL CUPS SOLD</span>
                 <span className="w-[35%] text-right font-bold">{grandTotalQty}</span>
               </div>
@@ -646,6 +668,7 @@ const XReading = () => {
             { label: 'LESS SC DISCOUNT:',      value: scDiscount  > 0 ? `-${phCurrency.format(scDiscount)}`  : phCurrency.format(0) },
             { label: 'LESS DIPLOMAT:',         value: diplomat    > 0 ? `-${phCurrency.format(diplomat)}`    : phCurrency.format(0) },
             { label: 'LESS OTHER DISC:',       value: otherDisc   > 0 ? `-${phCurrency.format(otherDisc)}`  : phCurrency.format(0) },
+            { label: 'SC/PWD VAT:',            value: reportData?.less_vat ? `-${phCurrency.format(reportData.less_vat)}` : phCurrency.format(0) },
             { label: 'LESS 12% VAT:',          value: (reportData?.is_vat ?? isVat) && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
           ];
           return (
@@ -683,6 +706,10 @@ const XReading = () => {
                 <span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span>
               </div>
               <div className="flex text-[11px] leading-snug">
+                <span className="flex-1 text-right uppercase pr-1">SC/PWD VAT:</span>
+                <span className="w-[35%] text-right">{phCurrency.format(reportData?.less_vat || 0)}</span>
+              </div>
+              <div className="flex text-[11px] leading-snug">
                 <span className="flex-1 text-right uppercase pr-1">TOTAL VOIDS:</span>
                 <span className="w-[35%] text-right">{phCurrency.format(voids)}</span>
               </div>
@@ -702,7 +729,7 @@ const XReading = () => {
 
   const renderXReading = () => {
     const gross = reportData?.gross_sales || 0;
-    const netSales = reportData?.net_sales || 0;
+    const netInclusive = reportData?.net_sales || 0; // Inclusive
     const cashTotal = reportData?.cash_total || 0;
     const nonCash = reportData?.non_cash_total || 0;
     const txCount = reportData?.transaction_count || 0;
@@ -729,8 +756,8 @@ const XReading = () => {
       <div className="my-2">
         <Divider />
         <Row label="REPORT DATE" value={selectedDate} />
-        <Row label="START DATE & TIME" value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
-        <Row label="END DATE & TIME" value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+        <Row label="START DATE & TIME" value={`${selectedDate}\n${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+        <Row label="END DATE & TIME" value={`${selectedDate}\n${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
         <Row label="TERMINAL #" value="POS-01" />
         <Row label="CASHIER" value={reportData?.prepared_by || cashierName} />
         <Row label="BEG. SI #" value={reportData?.beg_si || '0000000000'} />
@@ -742,10 +769,11 @@ const XReading = () => {
         <Row label="VAT EXEMPT SALES" value={phCurrency.format(vatExempt)} />
         <Row label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <Divider />
-        <Row label="SERVICE CHARGE" value={phCurrency.format(0)} />
-        <Row label="NET SALES" value={phCurrency.format(netSales)} />
-        <Row label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
-        <Row label="GROSS AMOUNT" value={phCurrency.format(gross)} />
+        <Row label="SERVICE CHARGE"   value={phCurrency.format(0)} />
+        <Row label="NET SALES"        value={phCurrency.format(netInclusive)} />
+        <Row label="SC/PWD VAT"       value={phCurrency.format(reportData?.less_vat || 0)} />
+        <Row label="TOTAL DISCOUNTS"  value={phCurrency.format(totalDisc)} />
+        <Row label="GROSS AMOUNT"     value={phCurrency.format(gross)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
         <Row label="S.C DISC." value={phCurrency.format(scDiscount)} />
@@ -767,7 +795,10 @@ const XReading = () => {
         <Divider />
         <Row label="TOTAL CASH" value={phCurrency.format(cashTotal)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(nonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netInclusive + (reportData?.rounding_adjustment || 0))} />
         <Row label="CANCELED" value={phCurrency.format(voids)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
@@ -777,6 +808,11 @@ const XReading = () => {
         <Divider />
         <Row label="TOTAL QTY SOLD" value={reportData?.total_qty_sold ?? 0} />
         <Row label="TRANSACTION COUNT" value={txCount} />
+        <Divider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">ACCUMULATED TOTALS</p>
+        <Row label="PREVIOUS ACCUMULATED" value={phCurrency.format(reportData?.previous_accumulated || 0)} />
+        <Row label="PRESENT ACCUMULATED"  value={phCurrency.format(reportData?.present_accumulated  || 0)} />
+        <Row label="Z-COUNTER"            value={String(reportData?.z_counter || 1).padStart(4, '0')} />
       </div>
     );
   };
@@ -824,21 +860,27 @@ const XReading = () => {
               background: white !important; 
               color: #000 !important; 
               font-family: Arial, Helvetica, sans-serif !important; 
-              font-size: 11px !important; 
+              font-size: 12px !important; 
+              font-weight: bold !important;
               line-height: 1.4 !important; 
               box-shadow: none !important; 
               border: none !important; 
               border-radius: 0 !important; 
               overflow: visible !important;
+              -webkit-font-smoothing: none !important;
             }
-            .receipt-area * { overflow: visible !important; }
+            .receipt-area * { 
+              overflow: visible !important; 
+              font-weight: 900 !important; 
+              -webkit-font-smoothing: none !important;
+            }
             .receipt-area > div > div {
               break-inside: avoid !important;
             }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
-            table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
-            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 500 !important; font-size: 11px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 11px !important; font-weight: 400 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 12px !important; }
+            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: bold !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: bold !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
           }
         `}</style>
 
@@ -847,7 +889,7 @@ const XReading = () => {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-[0.625rem] ${isMenuOpen ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'text-zinc-700 border-zinc-300 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'}`}
+              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-[0.625rem] ${isMenuOpen ? 'bg-[#6a12b8] text-white border-[#6a12b8]' : 'text-zinc-700 border-zinc-300 hover:border-[#6a12b8] hover:text-[#6a12b8] hover:bg-[#f5f0ff]'}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -864,7 +906,7 @@ const XReading = () => {
                       className={`bg-white border-l-4 ${card.color} shadow-sm p-4 h-20 flex flex-col justify-center cursor-pointer group hover:bg-[#f5f0ff] transition-all rounded-[0.625rem]`}
                     >
                       <h3 className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1">{card.label}</h3>
-                      <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#3b2063]">{card.title || card.actionLabel}</h2>
+                      <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#6a12b8]">{card.title || card.actionLabel}</h2>
                     </div>
                   ))}
                 </div>
@@ -877,7 +919,7 @@ const XReading = () => {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]"
+              className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#6a12b8]"
             />
             {reportData?.report_type === 'search' && (
               <div className="flex gap-2 flex-1">
@@ -887,12 +929,12 @@ const XReading = () => {
                   onChange={(e) => setInvoiceQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchReportData('search')}
                   placeholder="Search invoice / cashier..."
-                  className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]"
+                  className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#6a12b8]"
                 />
                 <button
                   onClick={() => fetchReportData('search')}
                   disabled={loading}
-                  className="px-5 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors disabled:opacity-50 rounded-[0.625rem]"
+                  className="px-5 h-11 bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors disabled:opacity-50 rounded-[0.625rem]"
                 >
                   Search
                 </button>
@@ -904,13 +946,13 @@ const XReading = () => {
             <button
               onClick={handleGenerate}
               disabled={loading}
-              className="px-6 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] active:bg-[#5a0fa0] transition-colors disabled:opacity-50 rounded-[0.625rem] border border-[#3b2063]"
+              className="px-6 h-11 bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] active:bg-[#5a0fa0] transition-colors disabled:opacity-50 rounded-[0.625rem] border border-[#6a12b8]"
             >
               {loading ? 'Processing...' : 'Generate'}
             </button>
             <button
               onClick={handlePrint}
-              className="px-6 h-11 bg-white text-[#3b2063] font-bold text-xs uppercase tracking-widest border border-[#3b2063] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]"
+              className="px-6 h-11 bg-white text-[#6a12b8] font-bold text-xs uppercase tracking-widest border border-[#6a12b8] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]"
             >
               Print
             </button>
@@ -933,12 +975,12 @@ const XReading = () => {
         <div className="flex-1 flex flex-col items-center justify-start py-10">
           {loading ? (
             <div className="flex flex-col items-center mt-20 opacity-50">
-              <div className="w-8 h-8 border-4 border-[#3b2063] border-t-transparent rounded-full animate-spin mb-3" />
+              <div className="w-8 h-8 border-4 border-[#6a12b8] border-t-transparent rounded-full animate-spin mb-3" />
               <p className="text-sm text-zinc-400 font-bold uppercase">Generating report...</p>
             </div>
           ) : reportData ? (
             <div className="printable-receipt-container">
-              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem' }}>
+              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem', fontWeight: 'bold' }}>
                 <div className="text-center">
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>

@@ -55,7 +55,7 @@ const MenuItemCard: React.FC<{ item: ItemResult }> = ({ item }) => {
       <div className="px-6 py-5 border-b border-zinc-100 bg-[#faf9ff] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#f5f0ff] border border-[#e9d5ff] rounded-xl flex items-center justify-center">
-            <Tag size={18} className="text-[#3b2063]" />
+            <Tag size={18} className="text-[#6a12b8]" />
           </div>
           <div>
             <p className="text-base font-black text-[#1a0f2e]">{item.name}</p>
@@ -63,7 +63,7 @@ const MenuItemCard: React.FC<{ item: ItemResult }> = ({ item }) => {
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xl font-black text-[#3b2063]">{formatPrice(item.price)}</p>
+          <p className="text-xl font-black text-[#6a12b8]">{formatPrice(item.price)}</p>
           <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-widest ${item.is_available ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
             {item.is_available ? 'Available' : 'Unavailable'}
           </span>
@@ -97,7 +97,7 @@ const MenuItemCard: React.FC<{ item: ItemResult }> = ({ item }) => {
               return (
                 <div key={bs.branch_id} className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-100 rounded-xl">
                   <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                    <Building2 size={12} className="text-[#3b2063]" />
+                    <Building2 size={12} className="text-[#6a12b8]" />
                   </div>
                   <p className="text-xs font-semibold text-zinc-700 flex-1 truncate">{bs.branch_name}</p>
                   <div className="flex items-center gap-2">
@@ -130,7 +130,7 @@ const RawMaterialCard: React.FC<{ item: ItemResult }> = ({ item }) => {
       <div className="px-6 py-5 border-b border-zinc-100 bg-[#faf9ff] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#f5f0ff] border border-[#e9d5ff] rounded-xl flex items-center justify-center">
-            <Package size={18} className="text-[#3b2063]" />
+            <Package size={18} className="text-[#6a12b8]" />
           </div>
           <div>
             <p className="text-base font-black text-[#1a0f2e]">{item.name}</p>
@@ -235,36 +235,36 @@ const BM_InventoryItemChecker: React.FC = () => {
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Item Checker</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            Quick lookup · barcode scan or search by name
-          </p>
-        </div>
-        <button
-          onClick={() => { setBarcodeMode(v => !v); inputRef.current?.focus(); }}
-          className={`flex items-center gap-1.5 px-3 py-2 h-9 rounded-lg border font-bold text-xs uppercase tracking-widest transition-all ${barcodeMode ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'bg-white text-zinc-400 border-zinc-200 hover:text-[#3b2063] hover:border-[#e9d5ff]'}`}>
-          <Barcode size={14} /> {barcodeMode ? 'Scanning...' : 'Barcode Mode'}
-        </button>
-      </div>
+      <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+        <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+          <div className="flex items-center gap-1.5 p-1 bg-white border border-zinc-200 rounded-xl overflow-hidden shrink-0">
+            {(['menu', 'stock'] as SearchMode[]).map(m => (
+              <button
+                key={m}
+                onClick={() => { setMode(m); handleClear(); }}
+                className={`px-4 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest transition-all ${mode === m ? 'bg-[#6a12b8] text-white shadow-sm' : 'text-zinc-500 hover:text-[#6a12b8] hover:bg-[#faf9ff]'}`}
+              >
+                {m === 'menu' ? 'Menu Items' : 'Raw Materials'}
+              </button>
+            ))}
+          </div>
 
-      {/* Mode toggle */}
-      <div className="flex items-center gap-2 mb-4">
-        {(['menu', 'stock'] as SearchMode[]).map(m => (
-          <button key={m} onClick={() => { setMode(m); handleClear(); }}
-            className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-all ${mode === m ? 'bg-[#3b2063] text-white' : 'bg-white border border-zinc-200 text-zinc-500 hover:border-[#e9d5ff] hover:text-[#3b2063]'}`}>
-            {m === 'menu' ? 'Menu Items' : 'Raw Materials'}
+          <div className="w-[1px] h-8 bg-zinc-200 hidden md:block" />
+
+          <button
+            onClick={() => { setBarcodeMode(v => !v); inputRef.current?.focus(); }}
+            className={`flex items-center justify-center gap-2 px-4 py-3 bg-white border rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shrink-0 w-full md:w-auto shadow-sm ${barcodeMode ? 'border-[#6a12b8] text-[#6a12b8] bg-[#f5f0ff]' : 'border-zinc-200 text-zinc-500 hover:border-[#6a12b8] hover:text-[#6a12b8]'}`}
+          >
+            <Barcode size={14} className={barcodeMode ? "animate-pulse" : ""} />
+            {barcodeMode ? 'Scanning...' : 'Barcode Mode'}
           </button>
-        ))}
+        </div>
       </div>
 
-      {/* Search bar */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className={`flex items-center gap-3 bg-white border-2 rounded-xl flex-1 shadow-sm transition-all ${barcodeMode ? 'border-[#3b2063]' : 'border-zinc-200 focus-within:border-[#3b2063]'}`}>
+      <div className="flex items-center gap-3 mb-8">
+        <div className={`flex items-center gap-3 bg-white border-2 rounded-[1rem] flex-1 shadow-sm transition-all ${barcodeMode ? 'border-[#6a12b8]' : 'border-zinc-200 focus-within:border-[#6a12b8]'}`}>
           <div className="pl-4 text-zinc-400 shrink-0">
-            {barcodeMode ? <Barcode size={20} className="text-[#3b2063]" /> : <Search size={20} />}
+            {barcodeMode ? <Barcode size={22} className="text-[#6a12b8]" /> : <Search size={22} />}
           </div>
           <input
             ref={inputRef}
@@ -274,28 +274,28 @@ const BM_InventoryItemChecker: React.FC = () => {
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
             placeholder={barcodeMode
               ? 'Scan barcode now — point scanner at item...'
-              : `Search ${mode === 'menu' ? 'menu items' : 'raw materials'} by name...`}
-            className="flex-1 h-14 text-base font-semibold text-[#1a0f2e] outline-none bg-transparent placeholder:text-zinc-300"
+              : `Search ${mode === 'menu' ? 'menu items' : 'materials'} by name...`}
+            className="flex-1 h-16 text-lg font-semibold text-[#1a0f2e] outline-none bg-transparent placeholder:text-zinc-300"
           />
           {query && (
             <button onClick={handleClear} className="pr-4 text-zinc-300 hover:text-red-500 transition-colors">
-              <X size={18} />
+              <X size={20} />
             </button>
           )}
         </div>
         <button
           onClick={() => handleSearch()}
           disabled={loading || !query.trim()}
-          className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-6 h-14 rounded-xl font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 flex items-center gap-2">
-          {loading ? <RefreshCw size={16} className="animate-spin" /> : <Search size={16} />}
-          {loading ? 'Searching' : 'Search'}
+          className="bg-[#6a12b8] hover:bg-[#2a1647] text-white px-8 h-16 rounded-[1rem] font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-2 shadow-sm">
+          {loading ? <RefreshCw size={18} className="animate-spin" /> : <Search size={18} />}
+          {loading ? 'Finding...' : 'Search'}
         </button>
       </div>
 
       {/* Barcode mode hint */}
       {barcodeMode && (
         <div className="flex items-center gap-3 p-4 bg-[#f5f0ff] border border-[#e9d5ff] rounded-xl mb-5">
-          <Barcode size={20} className="text-[#3b2063] shrink-0" />
+          <Barcode size={20} className="text-[#6a12b8] shrink-0" />
           <div>
             <p className="text-xs font-bold text-[#1a0f2e]">Barcode scanner active</p>
             <p className="text-[11px] text-zinc-500">Point your scanner at any item. Results will appear automatically.</p>
@@ -344,7 +344,7 @@ const BM_InventoryItemChecker: React.FC = () => {
       {!loading && !hasSearched && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <div className="w-16 h-16 bg-[#f5f0ff] border border-[#e9d5ff] rounded-2xl flex items-center justify-center">
-            <Search size={28} className="text-[#3b2063]" />
+            <Search size={28} className="text-[#6a12b8]" />
           </div>
           <div className="text-center">
             <p className="text-sm font-bold text-zinc-400">Search for any item</p>
@@ -353,7 +353,7 @@ const BM_InventoryItemChecker: React.FC = () => {
           <div className="flex items-center gap-6 mt-2">
             {[
               { icon: <CheckCircle size={14} className="text-emerald-500" />, label: 'Real-time stock' },
-              { icon: <Tag         size={14} className="text-[#3b2063]"   />, label: 'Pricing info'   },
+              { icon: <Tag         size={14} className="text-[#6a12b8]"   />, label: 'Pricing info'   },
               { icon: <Building2  size={14} className="text-blue-500"    />, label: 'Per-branch data' },
               { icon: <AlertTriangle size={14} className="text-amber-500"/>, label: 'Low stock alerts'},
             ].map(f => (

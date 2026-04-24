@@ -232,7 +232,7 @@ useEffect(() => {
                 <input
                   type="date" value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors"
+                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#6a12b8] transition-colors"
                 />
               </div>
 
@@ -244,7 +244,7 @@ useEffect(() => {
                 <input
                   type="date" value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors"
+                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#6a12b8] transition-colors"
                 />
               </div>
 
@@ -257,7 +257,7 @@ useEffect(() => {
                   <select
                     value={reportType}
                     onChange={(e) => setReportType(e.target.value as 'item-list' | 'category-summary')}
-                    className="w-full p-3.5 pr-10 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#3b2063] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none focus:border-[#3b2063]"
+                    className="w-full p-3.5 pr-10 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#6a12b8] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none focus:border-[#6a12b8]"
                   >
                     <option value="item-list">Detailed Item List</option>
                     <option value="category-summary">Category Summary</option>
@@ -270,19 +270,19 @@ useEffect(() => {
               <div className="flex gap-2 w-full lg:w-auto">
                 <button
                   onClick={fetchReport} disabled={loading}
-                  className="flex-1 lg:w-32 h-11 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 rounded-[0.625rem]"
+                  className="flex-1 lg:w-32 h-11 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 rounded-[0.625rem]"
                 >
                   {loading ? 'Loading...' : 'Query'}
                 </button>
                 <button
                   onClick={generateExcel} disabled={!hasData}
-                  className="w-11 h-11 bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
+                  className="w-11 h-11 bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#6a12b8] hover:border-[#6a12b8] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
                 >
                   <FileDown size={17} />
                 </button>
                 <button
                   onClick={handlePrint} disabled={!hasData}
-                  className="w-11 h-11 bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
+                  className="w-11 h-11 bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#6a12b8] hover:border-[#6a12b8] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
                 >
                   <Printer size={17} />
                 </button>
@@ -300,7 +300,7 @@ useEffect(() => {
             {/* Table Header */}
             <div className="px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center rounded-sm">
+                <div className="w-9 h-9 bg-[#6a12b8] flex items-center justify-center rounded-sm">
                   <FileText size={16} className="text-white" />
                 </div>
                 <div>
@@ -316,11 +316,11 @@ useEffect(() => {
               <div className="flex items-center gap-6">
                 <div className="text-right hidden md:block">
                   <p className="text-[8px] font-black text-zinc-300 uppercase tracking-widest">Operator</p>
-                  <p className="text-[10px] font-black text-[#3b2063] uppercase">{data?.cashier_name || 'Terminal Root'}</p>
+                  <p className="text-[10px] font-black text-[#6a12b8] uppercase">{data?.cashier_name || 'Terminal Root'}</p>
                 </div>
                 <div className="bg-white border border-[#e9d5ff] px-4 py-2 flex items-center gap-2 rounded-sm">
                   <Activity size={12} className="text-emerald-500" />
-                  <span className="text-[9px] font-black text-[#3b2063] uppercase tracking-widest">{data?.items.length || 0} Records</span>
+                  <span className="text-[9px] font-black text-[#6a12b8] uppercase tracking-widest">{data?.items.length || 0} Records</span>
                 </div>
               </div>
             </div>
@@ -358,7 +358,7 @@ useEffect(() => {
             </div>
 
             {/* GRAND TOTAL BAR */}
-            <div className="bg-[#3b2063] text-white flex justify-between items-center px-8 py-6">
+            <div className="bg-[#6a12b8] text-white flex justify-between items-center px-8 py-6">
               <div className="flex items-center gap-3">
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-purple-300">Shift Total Settlement</span>
               </div>
@@ -376,7 +376,7 @@ useEffect(() => {
 
             {loading && data && (
               <div className="absolute top-0 left-0 right-0 h-1 bg-purple-200">
-                <div className="h-full bg-[#3b2063] animate-pulse" />
+                <div className="h-full bg-[#6a12b8] animate-pulse" />
               </div>
             )}
           </div>
@@ -387,3 +387,4 @@ useEffect(() => {
 };
 
 export default ItemsReport;
+

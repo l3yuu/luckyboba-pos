@@ -25,6 +25,8 @@ const authHeaders = () => ({
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ItemRow {
   product_name:   string;
+  size?:          string;
+  cup_size_label?: string;
   category:       string;
   total_quantity: number;
   total_revenue:  number;
@@ -36,6 +38,8 @@ interface CategoryOption { id: number; name: string; }
 
 interface ApiItemRow {
   product_name:   string;
+  size?:          string;
+  cup_size_label?: string;
   category:       string | null;
   total_quantity: string | number;
   total_revenue:  string | number;
@@ -89,7 +93,7 @@ const Btn: React.FC<BtnProps> = ({
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary:   "bg-[#6a12b8] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
     danger:    "bg-red-600 hover:bg-red-700 text-white",
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
@@ -106,8 +110,8 @@ const Btn: React.FC<BtnProps> = ({
 const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ col, active, dir }) => {
   if (col !== active) return <ChevronDown size={11} className="text-zinc-300 ml-0.5" />;
   return dir === "asc"
-    ? <ChevronUp size={11} className="text-[#3b2063] ml-0.5" />
-    : <ChevronDown size={11} className="text-[#3b2063] ml-0.5" />;
+    ? <ChevronUp size={11} className="text-[#6a12b8] ml-0.5" />
+    : <ChevronDown size={11} className="text-[#6a12b8] ml-0.5" />;
 };
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -118,7 +122,7 @@ const ItemsReportTab: React.FC = () => {
 
   const [dateFrom,  setDateFrom]  = useState(firstMonth);
   const [dateTo,    setDateTo]    = useState(today);
-  const [branchId,  setBranchId]  = useState("");
+  const [branchId, setBranchId] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [categoryId, setCategoryId] = useState("");
   const [search,    setSearch]    = useState("");
   const [sortKey,   setSortKey]   = useState<SortKey>("total_quantity");
@@ -132,16 +136,28 @@ const ItemsReportTab: React.FC = () => {
 
   const fmt  = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    localStorage.setItem('superadmin_selected_branch', id);
+  };
+
   // Fetch branches + categories once
   useEffect(() => {
     Promise.all([
       fetch("/api/branches",   { headers: authHeaders() }).then(r => r.json()),
       fetch("/api/categories", { headers: authHeaders() }).then(r => r.json()),
     ]).then(([bData, cData]) => {
-      if (bData.success)   setBranches(bData.data);
+      if (bData.success) {
+        setBranches(bData.data);
+        if (!branchId && bData.data.length > 0) {
+          const defaultId = String(bData.data[0].id);
+          setBranchId(defaultId);
+          localStorage.setItem('superadmin_selected_branch', defaultId);
+        }
+      }
       if (cData.success !== false) setCategories(Array.isArray(cData) ? cData : (cData.data ?? []));
     }).catch(() => {});
-  }, []);
+  }, [branchId]);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -160,6 +176,8 @@ const ItemsReportTab: React.FC = () => {
       if (data.top_products) {
         setItems(data.top_products.map((p) => ({
           product_name:   p.product_name,
+          size:           p.size,
+          cup_size_label: p.cup_size_label,
           category:       p.category ?? "—",
           total_quantity: Number(p.total_quantity),
           total_revenue:  Number(p.total_revenue),
@@ -239,21 +257,7 @@ const ItemsReportTab: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Items Report</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Per-item sales performance — quantity sold, revenue & pricing</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchItems} disabled={loading}>
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-          </Btn>
-          <Btn variant="secondary" onClick={handleExport} disabled={loading}>
-            <Download size={13} /> Export CSV
-          </Btn>
-        </div>
-      </div>
+
 
       {/* ── Filters ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
@@ -273,7 +277,7 @@ const ItemsReportTab: React.FC = () => {
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
           <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
               <option value="">All Branches</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
@@ -294,14 +298,17 @@ const ItemsReportTab: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Apply + Clear grouped together ── */}
+        {/* ── Apply + Export + Clear grouped together ── */}
         <div className="flex items-center gap-2">
           <Btn onClick={fetchItems} disabled={loading}>
             {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
           </Btn>
+          <Btn variant="secondary" onClick={handleExport} disabled={loading}>
+            <Download size={13} /> Export CSV
+          </Btn>
           {(branchId || categoryId) && (
             <button
-              onClick={() => { setBranchId(""); setCategoryId(""); }}
+              onClick={() => { handleBranchChange(""); setCategoryId(""); }}
               className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 rounded-lg transition-colors"
             >
               <X size={11} /> Clear
@@ -357,6 +364,7 @@ const ItemsReportTab: React.FC = () => {
               <tr className="border-b border-zinc-100">
                 <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 w-8">#</th>
                 <SortTh col="product_name"   label="Item Name"    />
+                <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Size</th>
                 <SortTh col="category"       label="Category"     />
                 <SortTh col="total_quantity" label="Qty Sold"     />
                 <SortTh col="total_revenue"  label="Revenue"      />
@@ -404,6 +412,9 @@ const ItemsReportTab: React.FC = () => {
                         <span className="font-semibold text-[#1a0f2e] text-xs">{item.product_name}</span>
                       </div>
                     </td>
+                    <td className="px-5 py-3.5 text-zinc-600 text-xs font-bold">
+                        {item.cup_size_label || item.size || "—"}
+                    </td>
                     <td className="px-5 py-3.5">
                       {item.category !== "—" ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200">
@@ -416,12 +427,12 @@ const ItemsReportTab: React.FC = () => {
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
                         <div className="w-12 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-[#3b2063]" style={{ width: `${qtyPct}%` }} />
+                          <div className="h-full rounded-full bg-[#6a12b8]" style={{ width: `${qtyPct}%` }} />
                         </div>
                         <span className="text-zinc-700 font-medium text-xs">{item.total_quantity.toLocaleString()}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.total_revenue)}</td>
+                    <td className="px-5 py-3.5 font-bold text-[#6a12b8] text-xs">{fmt(item.total_revenue)}</td>
                     <td className="px-5 py-3.5 text-zinc-600 text-xs">{item.avg_price > 0 ? fmt(item.avg_price) : "—"}</td>
                     <td className="px-5 py-3.5 text-zinc-600 text-xs">{item.times_ordered > 0 ? item.times_ordered.toLocaleString() : "—"}</td>
                     <td className="px-5 py-3.5">
@@ -440,11 +451,11 @@ const ItemsReportTab: React.FC = () => {
               {!loading && filtered.length > 0 && (
                 <tr className="bg-zinc-50 border-t border-zinc-200">
                   <td className="px-5 py-3.5" />
-                  <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest" colSpan={2}>
+                  <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest" colSpan={3}>
                     Total ({filtered.length} items)
                   </td>
                   <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs">{totalQty.toLocaleString()}</td>
-                  <td className="px-5 py-3.5 font-black text-[#3b2063] text-xs">{fmt(totalRevenue)}</td>
+                  <td className="px-5 py-3.5 font-black text-[#6a12b8] text-xs">{fmt(totalRevenue)}</td>
                   <td className="px-5 py-3.5" />
                   <td className="px-5 py-3.5" />
                   <td className="px-5 py-3.5 font-black text-zinc-600 text-xs">100%</td>

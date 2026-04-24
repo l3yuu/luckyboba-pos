@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import TopNavbar from '../../Cashier/TopNavbar';
-import { Search, Printer, Download, ArrowLeft, Calendar } from 'lucide-react';
+import { Search, Printer, Download, ArrowLeft, Calendar, Loader2 } from 'lucide-react';
 
 // Define tab types for consistency
 type TabType = 'CUSTOMER' | 'REPORT';
@@ -12,42 +12,75 @@ interface CustomerReportProps {
   setActiveTab: (tab: TabType) => void;
 }
 
-const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState('this-month');
+interface Customer {
+  id: number;
+  name: string;
+  email: string;
+  status: string;
+  order_count: number;
+  total_spent: number;
+  has_card: boolean;
+  card_title: string | null;
+  created_at: string;
+}
 
-  const customerReports = [
-    { 
-      id: 'R001', 
-      customerName: 'John Doe', 
-      cardNumber: '1001', 
-      totalSpent: '₱1,250.00', 
-      visitsCount: 15, 
-      lastVisit: '2026-02-10', 
-      favoriteItem: 'Classic Milk Tea',
-      status: 'ACTIVE'
-    },
-    { 
-      id: 'R002', 
-      customerName: 'Jane Smith', 
-      cardNumber: '1002', 
-      totalSpent: '₱850.00', 
-      visitsCount: 8, 
-      lastVisit: '2026-02-11', 
-      favoriteItem: 'Taro Milk Tea',
-      status: 'ACTIVE'
-    },
-    { 
-      id: 'R003', 
-      customerName: 'Mike Johnson', 
-      cardNumber: '1003', 
-      totalSpent: '₱2,100.00', 
-      visitsCount: 22, 
-      lastVisit: '2026-02-09', 
-      favoriteItem: 'Wintermelon Milk Tea',
-      status: 'VIP'
-    },
-  ];
+interface Stats {
+  total: number;
+  active: number;
+  new_this_month: number;
+  with_cards: number;
+  total_revenue: number;
+  avg_order_value: number;
+}
+
+const getToken = () =>
+  localStorage.getItem('auth_token') ||
+  localStorage.getItem('lucky_boba_token') || '';
+
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {}),
+});
+
+const fmt = (v: number) =>
+  `₱${Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+
+const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps) => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [cusRes, statsRes] = await Promise.all([
+        fetch(`/api/customers?search=${searchTerm}&status=${statusFilter}`, { headers: authHeaders() }),
+        fetch(`/api/customers/stats`, { headers: authHeaders() })
+      ]);
+
+      if (!cusRes.ok || !statsRes.ok) throw new Error('Failed to fetch customer data');
+
+      const cusData = await cusRes.json();
+      const statsData = await statsRes.json();
+
+      setCustomers(cusData.data || []);
+      setStats(statsData.data || null);
+    } catch (err) {
+      console.error(err);
+      setError('Could not load customer information.');
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, statusFilter]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return (
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
@@ -56,7 +89,7 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">
+            <h1 className="text-xl font-black text-[#6a12b8] uppercase tracking-widest">
               LUCKY BOBA MILKTEA
             </h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">
@@ -72,89 +105,60 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Total Customers</p>
-                <p className="text-xl font-black text-[#3b2063] mt-1">247</p>
-              </div>
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <div className="w-4 h-4 bg-blue-500 rounded"></div>
-              </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-5">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Total Customers</p>
+            <p className="text-2xl font-black text-[#6a12b8] mt-2">{stats?.total ?? 0}</p>
+            <div className="flex items-center gap-1 mt-2">
+              <span className="text-[10px] font-bold text-green-600">+{stats?.new_this_month ?? 0}</span>
+              <span className="text-[10px] text-zinc-400">new this month</span>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Active Today</p>
-                <p className="text-xl font-black text-green-600 mt-1">18</p>
-              </div>
-              <div className="p-2 bg-green-100 rounded-lg">
-                <div className="w-4 h-4 bg-green-500 rounded"></div>
-              </div>
-            </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-5">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Active Accounts</p>
+            <p className="text-2xl font-black text-emerald-600 mt-2">{stats?.active ?? 0}</p>
+            <p className="text-[10px] text-zinc-400 mt-2">Currently enabled</p>
           </div>
           
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Avg. Spend</p>
-                <p className="text-xl font-black text-[#3b2063] mt-1">₱156</p>
-              </div>
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <div className="w-4 h-4 bg-purple-500 rounded"></div>
-              </div>
-            </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-5">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Avg. Spend</p>
+            <p className="text-2xl font-black text-[#6a12b8] mt-2">{fmt(stats?.avg_order_value ?? 0)}</p>
+            <p className="text-[10px] text-zinc-400 mt-2">Per unique customer</p>
           </div>
           
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">VIP Members</p>
-                <p className="text-xl font-black text-yellow-600 mt-1">12</p>
-              </div>
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-              </div>
-            </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-5">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Loyalty Cards</p>
+            <p className="text-2xl font-black text-orange-500 mt-2">{stats?.with_cards ?? 0}</p>
+            <p className="text-[10px] text-zinc-400 mt-2">LUCKY CARD owners</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden flex flex-col flex-1">
-          <div className="p-6 border-b border-zinc-200 bg-zinc-50/50 flex flex-col md:flex-row gap-4 items-end">
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+        <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden flex flex-col flex-1">
+          <div className="p-6 border-b border-zinc-100 bg-zinc-50/30 flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Search Customer</label>
-                <input 
-                  type="text" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-xs font-bold outline-none focus:border-blue-500" 
-                  placeholder="Enter name or card #"
-                />
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Search Customer</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={12} />
+                  <input 
+                    type="text" 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all" 
+                    placeholder="Search by name or email"
+                  />
+                </div>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Date Range</label>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Status Filter</label>
                 <select 
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value)}
-                  className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-xs font-bold outline-none focus:border-blue-500"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all"
                 >
-                  <option value="today">Today</option>
-                  <option value="this-week">This Week</option>
-                  <option value="this-month">This Month</option>
-                  <option value="last-month">Last Month</option>
-                  <option value="custom">Custom Range</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Status</label>
-                <select className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-xs font-bold outline-none focus:border-blue-500">
                   <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="vip">VIP</option>
+                  <option value="active">Active Only</option>
+                  <option value="inactive">Inactive Only</option>
                 </select>
               </div>
             </div>
@@ -162,7 +166,7 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
               <button className="flex-1 md:flex-none px-6 py-2 bg-[#1e40af] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] flex items-center justify-center gap-2 shadow-md">
                 <Search size={14} strokeWidth={3} />Search
               </button>
-              <button className="flex-1 md:flex-none px-6 py-2 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-md">
+              <button className="flex-1 md:flex-none px-6 py-2 bg-[#6a12b8] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-md">
                 <Printer size={14} strokeWidth={3} />Print
               </button>
               <button className="flex-1 md:flex-none px-6 py-2 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center justify-center gap-2 shadow-md">
@@ -175,33 +179,69 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-zinc-50 border-b border-zinc-200">
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Report ID</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Customer Name</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Card #</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Total Spent</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Visits</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Last Visit</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Favorite</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Customer</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Card</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right">Orders</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right">Total Spent</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Joined</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {customerReports.map((report, i) => (
-                  <tr key={i} className="hover:bg-blue-50/30 transition-colors group cursor-pointer">
-                    <td className="px-6 py-4 text-xs font-black text-[#3b2063]">{report.id}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-slate-700">{report.customerName}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-zinc-500">{report.cardNumber}</td>
-                    <td className="px-6 py-4 text-xs font-black text-emerald-600">{report.totalSpent}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-zinc-500">{report.visitsCount}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-zinc-500">{report.lastVisit}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-zinc-500">{report.favoriteItem}</td>
-                    <td className="px-6 py-4 text-xs font-bold">
-                      <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${
-                        report.status === 'VIP' 
-                          ? 'bg-yellow-100 text-yellow-700' 
-                          : 'bg-green-100 text-green-700'
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="py-20 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="animate-spin text-[#6a12b8]" size={24} />
+                        <p className="text-zinc-400 font-bold text-[10px] uppercase tracking-widest">Loading Customer Data...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-red-500 text-xs font-bold">{error}</td>
+                  </tr>
+                ) : customers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-20 text-center">
+                      <p className="text-zinc-400 font-bold text-xs">No customers found matching your criteria.</p>
+                    </td>
+                  </tr>
+                ) : customers.map((customer) => (
+                  <tr key={customer.id} className="hover:bg-zinc-50/80 transition-colors cursor-pointer group">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-[#6a12b8]">{customer.name}</span>
+                        <span className="text-[10px] font-bold text-zinc-400">{customer.email}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {customer.has_card ? (
+                        <span className="px-2 py-0.5 rounded-lg bg-orange-50 text-orange-600 text-[10px] font-black uppercase border border-orange-100 italic">
+                          {customer.card_title || 'Lucky Card'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-zinc-400">Regular</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className="text-xs font-black text-zinc-600">{customer.order_count}</span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className="text-xs font-black text-emerald-600">{fmt(customer.total_spent)}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${
+                        customer.status === 'ACTIVE' 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-zinc-100 text-zinc-500'
                       }`}>
-                        {report.status}
+                        {customer.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-[10px] font-bold text-zinc-500">
+                        {new Date(customer.created_at).toLocaleDateString()}
                       </span>
                     </td>
                   </tr>

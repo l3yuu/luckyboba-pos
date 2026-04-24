@@ -8,15 +8,15 @@
  */
 
 import React from 'react';
-import { WifiOff, RefreshCw, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { WifiOff, RefreshCw, RefreshCcw, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { type OfflineQueueState } from '../../../hooks/useOfflineQueue';
 
-interface Props extends Pick<OfflineQueueState, 'queue' | 'queueCount' | 'isSyncing' | 'syncNow' | 'remove'> {
+interface Props extends Pick<OfflineQueueState, 'queue' | 'queueCount' | 'isSyncing' | 'syncNow' | 'remove' | 'resetAttempts'> {
   isOnline: boolean;
 }
 
 const OfflineQueueBanner: React.FC<Props> = ({
-  queue, queueCount, isSyncing, syncNow, remove, isOnline,
+  queue, queueCount, isSyncing, syncNow, remove, resetAttempts, isOnline,
 }) => {
   const [expanded, setExpanded] = React.useState(false);
 
@@ -58,7 +58,7 @@ const OfflineQueueBanner: React.FC<Props> = ({
             <button
               onClick={syncNow}
               disabled={isSyncing}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white text-[10px] font-bold uppercase tracking-widest rounded-lg disabled:opacity-50 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#6a12b8] hover:bg-[#6a12b8] text-white text-[10px] font-bold uppercase tracking-widest rounded-lg disabled:opacity-50 transition-all"
             >
               <RefreshCw size={11} className={isSyncing ? 'animate-spin' : ''} />
               {isSyncing ? 'Syncing...' : 'Sync Now'}
@@ -101,13 +101,22 @@ const OfflineQueueBanner: React.FC<Props> = ({
                   )}
                 </div>
                 {isDead && (
-                  <button
-                    onClick={() => remove(item.id)}
-                    className="shrink-0 text-zinc-400 hover:text-red-500 transition-colors"
-                    title="Remove from queue"
-                  >
-                    <X size={14} />
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => { resetAttempts(item.id); setTimeout(syncNow, 100); }}
+                      className="text-zinc-400 hover:text-blue-500 transition-colors"
+                      title="Retry this order"
+                    >
+                      <RefreshCcw size={14} />
+                    </button>
+                    <button
+                      onClick={() => remove(item.id)}
+                      className="text-zinc-400 hover:text-red-500 transition-colors"
+                      title="Remove from queue"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 )}
               </div>
             );

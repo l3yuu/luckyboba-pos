@@ -22,7 +22,7 @@ class BranchController extends Controller
                 ->with(['manager:id,name,branch_id,role'])
                 ->orderBy('created_at', 'desc')
                 ->get()
-                ->map(fn($branch) => array_merge($branch->toArray(), [
+                ->map(fn(Branch $branch) => array_merge($branch->toArray(), [
                     'manager_name' => $branch->manager?->name ?? '—',
                     'staff_count'  => $branch->staff_count ?? 0,
                 ]));
@@ -37,6 +37,34 @@ class BranchController extends Controller
                 'success' => false,
                 'message' => 'Failed to retrieve branches',
                 'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Public endpoint for mobile app store finder
+     * GET /api/branches/available
+     */
+    public function availableBranches()
+    {
+        try {
+            $branches = Branch::where('status', 'active')
+                ->select(['id', 'name', 'location', 'store_address', 'latitude', 'longitude', 'status', 'image'])
+                ->get()
+                ->map(function (Branch $branch) {
+                    return array_merge($branch->toArray(), [
+                        'image' => $branch->image ? url('storage/' . $branch->image) : null,
+                    ]);
+                });
+
+            return response()->json([
+                'success' => true,
+                'data'    => $branches
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch available branches'
             ], 500);
         }
     }
@@ -59,6 +87,9 @@ public function store(Request $request)
     'vat_reg_tin'    => 'sometimes|nullable|string|max:255',
     'min_number'     => 'sometimes|nullable|string|max:255',
     'serial_number'  => 'sometimes|nullable|string|max:255',
+    'latitude'       => 'sometimes|nullable|string',
+    'longitude'      => 'sometimes|nullable|string',
+    'image'          => 'sometimes|nullable|image|max:2048',
 ], [
     'name.required'     => 'Branch name is required.',
     'name.unique'       => 'A branch with this name already exists.',
@@ -76,6 +107,11 @@ public function store(Request $request)
     }
 
     try {
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('branches', 'public');
+        }
+
         $branch = Branch::create([
             'name'           => $request->name,
             'location'       => $request->location,
@@ -84,7 +120,6 @@ public function store(Request $request)
             'vat_type'       => $request->vat_type       ?? 'vat',
             'total_sales'    => 0.00,
             'today_sales'    => 0.00,
-            // ✅ Add these
             'brand'          => $request->brand          ?? 'Lucky Boba Milk Tea',
             'company_name'   => $request->company_name   ?? '',
             'store_address'  => $request->store_address  ?? '',
@@ -92,9 +127,23 @@ public function store(Request $request)
             'min_number'     => $request->min_number     ?? '',
             'serial_number'  => $request->serial_number  ?? '',
             'owner_name'     => $request->owner_name     ?? '',  
+            'latitude'       => $request->latitude,
+            'longitude'      => $request->longitude,
+            'image'          => $imagePath,
         ]);
 
             AuditHelper::log('branch', "Created branch: {$branch->name}");
+
+            // Auto-clone all global raw materials to the new branch
+            $globals = \App\Models\RawMaterial::whereNull('branch_id')->get();
+            /** @var \App\Models\RawMaterial $global */
+            foreach ($globals as $global) {
+                $clone = $global->replicate();
+                $clone->branch_id = $branch->id;
+                $clone->parent_id = $global->id;
+                $clone->current_stock = 0;
+                $clone->save();
+            }
 
             return response()->json([
                 'success' => true,
@@ -150,6 +199,11 @@ public function store(Request $request)
             'status'         => 'sometimes|required|in:active,inactive',
             'ownership_type' => 'sometimes|required|in:company,franchise',
             'vat_type'       => 'sometimes|required|in:vat,non_vat',
+            'kiosk_pin'      => 'sometimes|nullable|string|min:4|max:10',
+            'kiosk_password' => 'sometimes|nullable|string|min:4|max:255',
+            'latitude'       => 'sometimes|nullable|string',
+            'longitude'      => 'sometimes|nullable|string',
+            'image'          => 'sometimes|nullable|image|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -161,23 +215,32 @@ public function store(Request $request)
         }
 
         try {
+            $user = $request->user();
+            // Security: Branch Managers can only update their own branch
+            if ($user->role === 'branch_manager' && $user->branch_id != $id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. You can only update your own branch settings.'
+                ], 403);
+            }
+
             $branch  = Branch::findOrFail($id);
             $oldName = $branch->name;
 
-            $branch->update($request->only([
-    'name',
-    'location',
-    'status',
-    'ownership_type',
-    'vat_type',
-    'brand',
-    'company_name',
-    'store_address',
-    'vat_reg_tin',
-    'min_number',
-    'serial_number',
-    'owner_name',
-]));
+            $updateData = $request->only([
+                'name', 'location', 'status', 'ownership_type', 'vat_type',
+                'brand', 'company_name', 'store_address', 'vat_reg_tin',
+                'min_number', 'serial_number', 'owner_name', 'kiosk_pin',
+                'kiosk_password', 'latitude', 'longitude'
+            ]);
+
+            if ($request->hasFile('image')) {
+                // Delete old image if desired: 
+                // if ($branch->image) { \Storage::disk('public')->delete($branch->image); }
+                $updateData['image'] = $request->file('image')->store('branches', 'public');
+            }
+
+            $branch->update($updateData);
 
             // Sync users.branch_name whenever branch name changes
             if ($request->has('name') && $oldName !== $branch->name) {

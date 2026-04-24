@@ -32,7 +32,7 @@ const STYLES = `
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ZReadingReport {
   date?: string; gross_sales?: number; net_sales?: number; transaction_count?: number;
-  cash_total?: number; non_cash_total?: number; report_type?: string;
+  cash_total?: number; non_cash_total?: number; total_payments?: number; report_type?: string;
   logs?: { id: string; reason: string; amount: number; time: string }[];
   hourly_data?: { hour: number; total: number; count: number }[];
   transactions?: { Invoice: string; Amount: number; Status: string; Date_Time: string; Method?: string; Cashier?: string; Vatable?: number; Tax?: number; Items_Count?: number; Disc?: number }[];
@@ -53,6 +53,7 @@ interface ZReadingReport {
   solo_parent_discount?: number;
   vat_exempt_sales?: number;
   sc_pwd_vat?: number;
+  less_vat?: number;
   beg_si?: string; end_si?: string; total_qty_sold?: number; cash_drop?: number; cash_in_drawer?: number; cash_in?: number;
   reset_counter?: number; z_counter?: number; present_accumulated?: number; previous_accumulated?: number; sales_for_the_day?: number;
   category_breakdown?: { category_name: string; total_qty: number; total_disc: number; total_sold: number }[];
@@ -61,6 +62,7 @@ interface ZReadingReport {
   expected_amount?: number;
   is_vat?: boolean;
   total_discounts?: number;
+  rounding_adjustment?: number;
 }
 
 interface SVZReadingProps {
@@ -68,26 +70,26 @@ interface SVZReadingProps {
 }
 
 // ─── Receipt primitives ───────────────────────────────────────────────────────
-const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
+const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
   <div className={`flex justify-between text-[11px] leading-snug ${indent ? 'pl-3' : ''}`}>
-    <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%]">{value}</span>
+    <span className="uppercase w-[60%] leading-tight text-zinc-500">{label}</span>
+    <span className="text-right w-[40%] text-zinc-900 font-medium whitespace-pre-line">{value}</span>
   </div>
 );
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
 
 // ─── Menu card config ─────────────────────────────────────────────────────────
 const MENU_CARDS = [
-  { label: 'Report',      title: 'Hourly Sales',   type: 'hourly_sales', icon: <BarChart3 size={15} />,   iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Overview',    title: 'Sales Summary',  type: 'summary',      icon: <Activity size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Audit',       title: 'Void Logs',      type: 'void_logs',    icon: <AlertCircle size={15} />, iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Transaction', title: 'Search Receipt', type: 'search',       icon: <Search size={15} />,      iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Export',      title: 'Export Sales',   type: 'export_sales', icon: <FileText size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Analysis',    title: 'Sales Detailed', type: 'detailed',     icon: <CreditCard size={15} />,  iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Inventory',   title: 'Export Items',   type: 'export_items', icon: <ShoppingBag size={15} />, iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Inventory',   title: 'Qty Items',      type: 'qty_items',    icon: <Hash size={15} />,        iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Z-Reading',   title: 'Z-Reading',      type: 'z_reading',    icon: <FileText size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
-  { label: 'Cash',        title: 'Cash Count',     type: 'cash_count',   icon: <Banknote size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Report',      title: 'Hourly Sales',   type: 'hourly_sales', icon: <BarChart3 size={15} />,   iconBg: '#6a12b810', iconColor: '#6a12b8' },
+  { label: 'Overview',    title: 'Sales Summary',  type: 'summary',      icon: <Activity size={15} />,    iconBg: '#6a12b810', iconColor: '#6a12b8' },
+  { label: 'Audit',       title: 'Void Logs',      type: 'void_logs',    icon: <AlertCircle size={15} />, iconBg: '#6a12b810', iconColor: '#6a12b8' },
+  { label: 'Transaction', title: 'Search Receipt', type: 'search',       icon: <Search size={15} />,      iconBg: '#6a12b810', iconColor: '#6a12b8' },
+  { label: 'Export',      title: 'Export Sales',   type: 'export_sales', icon: <FileText size={15} />,    iconBg: '#6a12b810', iconColor: '#6a12b8' },
+  { label: 'Analysis',    title: 'Sales Detailed', type: 'detailed',     icon: <CreditCard size={15} />,  iconBg: '#6a12b810', iconColor: '#6a12b8' },
+  { label: 'Inventory',   title: 'Export Items',   type: 'export_items', icon: <ShoppingBag size={15} />, iconBg: '#6a12b810', iconColor: '#6a12b8' },
+  { label: 'Inventory',   title: 'Qty Items',      type: 'qty_items',    icon: <Hash size={15} />,        iconBg: '#6a12b810', iconColor: '#6a12b8' },
+  { label: 'Z-Reading',   title: 'Z-Reading',      type: 'z_reading',    icon: <FileText size={15} />,    iconBg: '#6a12b810', iconColor: '#6a12b8' },
+  { label: 'Cash',        title: 'Cash Count',     type: 'cash_count',   icon: <Banknote size={15} />,    iconBg: '#6a12b810', iconColor: '#6a12b8' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -108,6 +110,7 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
 
   const menuRef    = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+  const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 
   const localVatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = reportData?.is_vat !== undefined ? reportData.is_vat : localVatType === 'vat';
@@ -236,6 +239,8 @@ const ccData   = ccRes.data as Record<string, unknown>;
           sales_for_the_day:    salesDay,
           // Cash count
           cash_denominations: cashDenominations,
+          net_total:          Number(zData.net_total ?? 0),
+          rounding_adjustment: Number(zData.rounding_adjustment ?? 0),
           total_cash_count:   ccNested?.grand_total ?? Number(ccData.actual_amount ?? 0),
           expected_amount:    Number(ccData.expected_amount ?? 0),
           over_short:         Number(ccData.short_over ?? 0),
@@ -473,6 +478,9 @@ const ccData   = ccRes.data as Record<string, unknown>;
               ].map((r, i) => (<div key={i} className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">{r.label}</span><span className="w-[35%] text-right">{r.value}</span></div>))}
               <Divider />
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span><span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span></div>
+              <Row label="NET SALES" value={phCurrency.format(vatableSales + vatAmt + (reportData?.vat_exempt_sales || 0))} />
+              <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+              </div>
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">DIPLOMAT:</span><span className="w-[35%] text-right">{phCurrency.format(diplomat)}</span></div>
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">OTHER DISC:</span><span className="w-[35%] text-right">{phCurrency.format(otherDisc)}</span></div>
               <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">TOTAL VOIDS:</span><span className="w-[35%] text-right">{phCurrency.format(voids)}</span></div>
@@ -551,25 +559,27 @@ const ccData   = ccRes.data as Record<string, unknown>;
 
   // ── Z-Reading ──────────────────────────────────────────────────────────────
   const renderZReading = () => {
-    const netSales   = reportData?.net_sales      ?? 0;
     const gross      = reportData?.gross_sales    ?? 0;
     const txCount    = reportData?.transaction_count ?? 0;
     const vatableSales = reportData?.vatable_sales    ?? 0;
     const vatAmount    = reportData?.vat_amount       ?? 0;
     const vatExempt    = reportData?.vat_exempt_sales ?? 0;
+    const scPwdVat     = reportData?.sc_pwd_vat ?? reportData?.less_vat ?? 0;
     const scDisc    = reportData?.sc_discount          ?? 0;
     const pwdDisc   = reportData?.pwd_discount         ?? 0;
     const naacDisc  = (reportData as ZReadingReport & { naac_discount?: number })?.naac_discount ?? 0;
     const soloDisc  = (reportData as ZReadingReport & { solo_parent_discount?: number })?.solo_parent_discount ?? 0;
     const otherDisc = reportData?.diplomat_discount    ?? 0;
-    const totalDisc = scDisc + pwdDisc + naacDisc + soloDisc + otherDisc;
+    const totalDisc = roundTo2(scDisc + pwdDisc + naacDisc + soloDisc + otherDisc);
     const voids     = reportData?.total_void_amount ?? 0;
+    const reportIsVat = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+    const netSales   = roundTo2(reportIsVat ? (vatableSales + vatAmount + vatExempt) : (gross - totalDisc));
 
     const resetCounter = reportData?.reset_counter        ?? 0;
     const zCounter     = reportData?.z_counter            ?? 1;
-    const presentAcc   = reportData?.present_accumulated  ?? gross;
+    const salesDay     = netSales;
     const previousAcc  = reportData?.previous_accumulated ?? 0;
-    const salesDay     = reportData?.sales_for_the_day    ?? gross;
+    const presentAcc   = previousAcc + salesDay;
 
     const METHOD_ALIASES: Record<string, string> = { panda: 'food panda', foodpanda: 'food panda', food_panda: 'food panda', 'food panda': 'food panda', grabfood: 'grab', 'grab food': 'grab', grab: 'grab', 'master card': 'mastercard', master: 'mastercard', mastercard: 'mastercard', 'visa card': 'visa', visa: 'visa', 'e-wallet': 'gcash', ewallet: 'gcash', gcash: 'gcash', cash: 'cash' };
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
@@ -579,16 +589,17 @@ const ccData   = ccRes.data as Record<string, unknown>;
     const totalCredit  = ['visa', 'mastercard', 'food panda', 'grab', 'gcash'].reduce((a, m) => a + (pMap.get(m) ?? 0), 0);
     const totalDebit   = 0;
     const actualCash   = pMap.get('cash') ?? 0;
-    const actualNonCash = totalCredit + totalDebit;
+    const totalPaymentsReceived = roundTo2(reportData?.total_payments ?? Array.from(pMap.values()).reduce((a, b) => a + b, 0));
+    const actualNonCash = roundTo2(reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash));
 
     const cashDenoms     = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count   ?? reportData?.cash_count?.grand_total   ?? 0;
     const cashIn         = reportData?.cash_in   ?? 0;
     const cashDrop       = reportData?.cash_drop ?? 0;
     const apiExpected    = reportData?.expected_amount ?? 0;
-    const expectedEOD    = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
+    const expectedEOD    = roundTo2(apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop));
     const apiShortOver   = reportData?.over_short;
-    const overShort      = apiShortOver !== undefined ? apiShortOver : (totalCashCount - expectedEOD);
+    const overShort      = roundTo2(apiShortOver !== undefined ? apiShortOver : (totalCashCount - expectedEOD));
     const netTotal       = reportData?.net_total ?? netSales;
 
     const isRange   = dateMode === 'range';
@@ -602,8 +613,8 @@ const ccData   = ccRes.data as Record<string, unknown>;
         <Divider />
         <Row label="Report Date"           value={now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} />
         <Row label="Report Time"           value={timeStr} />
-        <Row label="Start Date & Time"     value={`${startDate} ${timeStr}`} />
-        <Row label="End Date & Time"       value={`${endDate} ${timeStr}`} />
+        <Row label="Start Date & Time"     value={`${startDate}\n${timeStr}`} />
+        <Row label="End Date & Time"       value={`${endDate}\n${timeStr}`} />
         <Row label="Terminal #"            value="ALL" />
         <Row label="Cashier"               value={reportData?.prepared_by || cashierName} />
         <Row label="Beg. SI #"             value={reportData?.beg_si || '0000000000'} />
@@ -621,7 +632,11 @@ const ccData   = ccRes.data as Record<string, unknown>;
         <Row label="VAT-Exempt Sales"           value={phCurrency.format(vatExempt)} />
         <Row label="Zero-Rated Sales"           value={phCurrency.format(0)} />
         <Divider />
-        <Row label="NET SALES"       value={phCurrency.format(netSales)} />
+        <Row label="NET SALES" value={phCurrency.format(netSales)} />
+        <Row label="SC/PWD VAT"                 value={phCurrency.format(scPwdVat)} />
+        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+          <span></span>
+        </div>
         <Row label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <Row label="GROSS Amount"    value={phCurrency.format(gross)} />
         <Divider />
@@ -649,7 +664,10 @@ const ccData   = ccRes.data as Record<string, unknown>;
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(roundTo2(netSales + (reportData?.rounding_adjustment || 0)))} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />
@@ -740,7 +758,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
               <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: '#dcfce7', color: '#16a34a' }}>
                 <FileText size={13} strokeWidth={2.5} />
               </div>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#3b2063', letterSpacing: '-0.025em', margin: 0 }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#6a12b8', letterSpacing: '-0.025em', margin: 0 }}>
                 Report Controls
               </h2>
             </div>
@@ -752,7 +770,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="flex items-center gap-2 h-11 px-5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
-                  style={{ background: isMenuOpen ? '#3b2063' : '#f5f4f8', color: isMenuOpen ? '#fff' : '#3b2063', border: `1px solid ${isMenuOpen ? '#3b2063' : '#e4e4e7'}` }}
+                  style={{ background: isMenuOpen ? '#6a12b8' : '#f5f4f8', color: isMenuOpen ? '#fff' : '#6a12b8', border: `1px solid ${isMenuOpen ? '#6a12b8' : '#e4e4e7'}` }}
                 >
                   <Menu size={14} strokeWidth={2.5} />
                   Select Report
@@ -789,9 +807,9 @@ const ccData   = ccRes.data as Record<string, unknown>;
                     <label className="zr-label flex items-center gap-1.5 ml-1"><ToggleLeft size={11} /> Date Mode</label>
                     <div className="flex rounded-xl overflow-hidden border border-gray-100">
                       <button onClick={() => setDateMode('single')} className="px-4 h-11 text-xs font-bold uppercase tracking-widest transition-all"
-                        style={{ background: dateMode === 'single' ? '#3b2063' : '#f5f4f8', color: dateMode === 'single' ? '#fff' : '#a1a1aa' }}>Day</button>
+                        style={{ background: dateMode === 'single' ? '#6a12b8' : '#f5f4f8', color: dateMode === 'single' ? '#fff' : '#a1a1aa' }}>Day</button>
                       <button onClick={() => setDateMode('range')} className="px-4 h-11 text-xs font-bold uppercase tracking-widest transition-all border-l border-gray-100"
-                        style={{ background: dateMode === 'range' ? '#3b2063' : '#f5f4f8', color: dateMode === 'range' ? '#fff' : '#a1a1aa' }}>Range</button>
+                        style={{ background: dateMode === 'range' ? '#6a12b8' : '#f5f4f8', color: dateMode === 'range' ? '#fff' : '#a1a1aa' }}>Range</button>
                     </div>
                   </div>
                 </div>
@@ -848,14 +866,14 @@ const ccData   = ccRes.data as Record<string, unknown>;
                 <button 
                   onClick={() => fetchReportData(reportData?.report_type ?? 'z_reading')} 
                   disabled={loading}
-                  style={{ backgroundColor: '#3b2063' }}
+                  style={{ backgroundColor: '#6a12b8' }}
                   className="flex-1 lg:flex-none px-5 h-11 rounded-xl text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
                   {loading ? 'Loading…' : 'Generate'}
                 </button>
                 <button onClick={() => window.print()}
-                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#3b2063] hover:border-[#ddd6f7] flex items-center justify-center transition-all">
+                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#6a12b8] hover:border-[#ddd6f7] flex items-center justify-center transition-all">
                   <Printer size={16} />
                 </button>
               </div>
@@ -898,7 +916,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
             <div className="flex-1 flex items-start justify-center py-8 px-4 bg-[#f5f4f8] overflow-y-auto min-h-0">
               {loading ? (
                 <div className="flex flex-col items-center gap-3 py-16">
-                  <div className="w-9 h-9 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
+                  <div className="w-9 h-9 border-2 border-[#6a12b8] border-t-transparent animate-spin rounded-full" />
                   <p className="zr-label" style={{ color: '#a1a1aa' }}>Generating report…</p>
                 </div>
               ) : reportData ? (

@@ -22,7 +22,7 @@ const PWAUpdateBanner: React.FC<Props> = ({ needsUpdate, onUpdate }) => {
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-999 w-full max-w-sm px-4">
-      <div className="bg-[#3b2063] border border-[#2a1647] rounded-[0.625rem] shadow-2xl px-5 py-4 flex items-center justify-between gap-4">
+      <div className="bg-[#6a12b8] border border-[#2a1647] rounded-[0.625rem] shadow-2xl px-5 py-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center shrink-0">
             <Sparkles size={15} className="text-violet-300" />
@@ -38,7 +38,7 @@ const PWAUpdateBanner: React.FC<Props> = ({ needsUpdate, onUpdate }) => {
         </div>
         <button
           onClick={onUpdate}
-          className="flex items-center gap-1.5 px-3 py-2 bg-white text-[#3b2063] text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-violet-50 transition-all active:scale-[0.97] shrink-0"
+          className="flex items-center gap-1.5 px-3 py-2 bg-white text-[#6a12b8] text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-violet-50 transition-all active:scale-[0.97] shrink-0"
         >
           <RefreshCw size={11} />
           Update

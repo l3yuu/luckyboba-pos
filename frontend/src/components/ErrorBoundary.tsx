@@ -73,7 +73,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
                 </svg>
               </div>
-              <h2 className="text-[#3b2063] font-black uppercase text-lg tracking-tight">Persistent Error Detected</h2>
+              <h2 className="text-[#6a12b8] font-black uppercase text-lg tracking-tight">Persistent Error Detected</h2>
               <p className="text-zinc-500 text-sm">This component has failed multiple times. A full page reload is recommended.</p>
               {import.meta.env.DEV && this.state.error && (
                 <details className="text-left bg-zinc-50 rounded-xl p-4 border border-zinc-200">
@@ -87,7 +87,7 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
               <button
                 onClick={this.handleReload}
-                className="w-full py-3 bg-[#3b2063] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-[#2a1647] transition-all"
+                className="w-full py-3 bg-[#6a12b8] text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-[#2a1647] transition-all"
               >
                 Reload Page
               </button>

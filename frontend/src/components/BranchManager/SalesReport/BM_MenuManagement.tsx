@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  ShoppingBag, RefreshCw, Search, ToggleLeft, ToggleRight,
+  ShoppingBag, Search, ToggleLeft, ToggleRight,
   ChevronDown, AlertCircle,
 } from 'lucide-react';
 
@@ -17,10 +17,15 @@ const STYLES = `
   .mm-spin  { animation: mm-spin 0.7s linear infinite; }
 `;
 
-const API_BASE = 'http://localhost:8000/api';
 const getToken = () =>
   localStorage.getItem('auth_token') ||
   localStorage.getItem('lucky_boba_token') || '';
+
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {}),
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface MenuItem {
@@ -63,9 +68,9 @@ const Toggle = ({
     title={checked ? 'Disable item' : 'Enable item'}
   >
     {loading
-      ? <div style={{ width: 20, height: 20, border: '2px solid #d4d4d8', borderTopColor: '#3b2063', borderRadius: '50%' }} className="mm-spin" />
+      ? <div style={{ width: 20, height: 20, border: '2px solid #d4d4d8', borderTopColor: '#6a12b8', borderRadius: '50%' }} className="mm-spin" />
       : checked
-        ? <ToggleRight size={30} color="#3b2063" strokeWidth={1.8} />
+        ? <ToggleRight size={30} color="#6a12b8" strokeWidth={1.8} />
         : <ToggleLeft  size={30} color="#d4d4d8" strokeWidth={1.8} />
     }
   </button>
@@ -112,7 +117,7 @@ const MenuItemRow = ({
         <span
           style={{
             fontSize: '0.56rem', fontWeight: 700, letterSpacing: '0.14em',
-            textTransform: 'uppercase', background: '#ede9fe', color: '#3b2063',
+            textTransform: 'uppercase', background: '#ede9fe', color: '#6a12b8',
             borderRadius: '100px', padding: '2px 7px',
           }}
         >
@@ -124,7 +129,7 @@ const MenuItemRow = ({
 
     {/* Price */}
     <div className="text-right shrink-0 hidden sm:block">
-      <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#3b2063', margin: 0 }}>
+      <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#6a12b8', margin: 0 }}>
         {fmt(item.sellingPrice)}
       </p>
     </div>
@@ -155,7 +160,7 @@ const MenuItemRow = ({
 const BM_MenuManagement = () => {
   const [items,       setItems]       = useState<MenuItem[]>([]);
   const [loading,     setLoading]     = useState(true);
-  const [refreshing,  setRefreshing]  = useState(false);
+
   const [error,       setError]       = useState<string | null>(null);
   const [toggling,    setToggling]    = useState<Set<number>>(new Set());
   const [search,      setSearch]      = useState('');
@@ -164,16 +169,12 @@ const BM_MenuManagement = () => {
   const [openCats,    setOpenCats]    = useState<Set<string>>(new Set());
 
   // ── Fetch menu ──────────────────────────────────────────────────────────────
-  const fetchMenu = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    else         setRefreshing(true);
+  const fetchMenu = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/branch/menu-items`, {
-        headers: {
-          'Accept':        'application/json',
-          'Authorization': `Bearer ${getToken()}`,
-        },
+      const res = await fetch(`/api/branch/menu-items`, {
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -194,7 +195,6 @@ const BM_MenuManagement = () => {
       console.error(e);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 
@@ -204,12 +204,9 @@ const BM_MenuManagement = () => {
   const handleToggle = async (id: number) => {
     setToggling(prev => new Set(prev).add(id));
     try {
-      const res = await fetch(`${API_BASE}/branch/menu-items/${id}/toggle`, {
+      const res = await fetch(`/api/branch/menu-items/${id}/toggle`, {
         method: 'POST',
-        headers: {
-          'Accept':        'application/json',
-          'Authorization': `Bearer ${getToken()}`,
-        },
+        headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -259,32 +256,32 @@ const BM_MenuManagement = () => {
       <section className="mm-root px-5 md:px-8 pb-8 pt-5 space-y-5">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
-                Menu Management
-              </h2>
-              <p className="mm-label" style={{ color: '#a1a1aa', marginTop: 2 }}>
-                Enable or disable items for your branch
-              </p>
+        <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+          <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
+            <div className="relative group flex-1 w-full md:w-auto">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#6a12b8]" size={15} />
+              <input
+                type="text"
+                placeholder="Search items or category..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#6a12b8] transition-all shadow-sm"
+              />
             </div>
-          </div>
+            
+            <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
+              <option value="all">All Categories</option>
+              {categories.filter(c => c !== 'all').map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
 
-          <button
-            onClick={() => fetchMenu(true)}
-            disabled={refreshing}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '7px 14px', background: '#f4f4f5', border: 'none',
-              borderRadius: '0.5rem', cursor: 'pointer',
-              fontSize: '0.65rem', fontWeight: 700, color: '#52525b',
-              letterSpacing: '0.1em', textTransform: 'uppercase',
-            }}
-          >
-            <RefreshCw size={11} className={refreshing ? 'mm-spin' : ''} />
-            Refresh
-          </button>
+            <select value={avFilter} onChange={e => setAvFilter(e.target.value as 'all' | 'available' | 'unavailable')}
+              className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
+              <option value="all">All Status</option>
+              <option value="available">Available</option>
+              <option value="unavailable">Unavailable</option>
+            </select>
+          </div>
         </div>
 
         {/* ── Summary pills ── */}
@@ -294,7 +291,7 @@ const BM_MenuManagement = () => {
               { label: 'Total Items',   value: items.length,        bg: '#f4f4f5', color: '#52525b' },
               { label: 'Available',     value: availableCount,      bg: '#dcfce7', color: '#166534' },
               { label: 'Unavailable',   value: unavailableCount,    bg: '#fee2e2', color: '#991b1b' },
-              { label: 'Categories',    value: categories.length - 1, bg: '#ede9fe', color: '#3b2063' },
+              { label: 'Categories',    value: categories.length - 1, bg: '#ede9fe', color: '#6a12b8' },
             ].map(({ label, value, bg, color }) => (
               <div key={label} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -321,73 +318,12 @@ const BM_MenuManagement = () => {
           </div>
         )}
 
-        {/* ── Filters ── */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
 
-          {/* Category filter */}
-          <div className="flex items-center gap-1 flex-wrap flex-1">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setCatFilter(cat)}
-                style={{
-                  padding: '4px 10px', border: 'none', borderRadius: '100px',
-                  fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
-                  textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.12s',
-                  background: catFilter === cat ? '#3b2063' : '#f4f4f5',
-                  color:      catFilter === cat ? '#fff'    : '#71717a',
-                }}
-              >
-                {cat === 'all' ? 'All Categories' : cat}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 sm:ml-auto">
-            {/* Available filter */}
-            {(['all', 'available', 'unavailable'] as const).map(v => (
-              <button
-                key={v}
-                onClick={() => setAvFilter(v)}
-                style={{
-                  padding: '4px 10px', border: 'none', borderRadius: '100px',
-                  fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
-                  textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.12s',
-                  background: avFilter === v
-                    ? v === 'available' ? '#dcfce7' : v === 'unavailable' ? '#fee2e2' : '#3b2063'
-                    : '#f4f4f5',
-                  color: avFilter === v
-                    ? v === 'available' ? '#166534' : v === 'unavailable' ? '#991b1b' : '#fff'
-                    : '#71717a',
-                }}
-              >
-                {v === 'all' ? 'All' : v}
-              </button>
-            ))}
-
-            {/* Search */}
-            <div className="relative">
-              <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }} />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search items…"
-                style={{
-                  paddingLeft: 28, paddingRight: 12, paddingTop: 7, paddingBottom: 7,
-                  border: '1.5px solid #e4e4e7', borderRadius: '0.5rem',
-                  fontSize: '0.78rem', color: '#1a0f2e', background: '#fafafa',
-                  outline: 'none', width: 180,
-                }}
-              />
-            </div>
-          </div>
-        </div>
 
         {/* ── Content ── */}
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20">
-            <div style={{ width: 36, height: 36, border: '2.5px solid #3b2063', borderTopColor: 'transparent', borderRadius: '50%' }} className="mm-spin" />
+            <div style={{ width: 36, height: 36, border: '2.5px solid #6a12b8', borderTopColor: 'transparent', borderRadius: '50%' }} className="mm-spin" />
             <p className="mm-label" style={{ color: '#a1a1aa' }}>Loading menu…</p>
           </div>
 
@@ -399,7 +335,7 @@ const BM_MenuManagement = () => {
             <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#dc2626' }}>{error}</p>
             <button
               onClick={() => fetchMenu()}
-              style={{ padding: '8px 20px', background: '#3b2063', color: '#fff', border: 'none', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}
+              style={{ padding: '8px 20px', background: '#6a12b8', color: '#fff', border: 'none', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}
             >
               Try Again
             </button>
@@ -437,7 +373,7 @@ const BM_MenuManagement = () => {
                       </span>
                       <span style={{
                         fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.14em',
-                        textTransform: 'uppercase', background: '#ede9fe', color: '#3b2063',
+                        textTransform: 'uppercase', background: '#ede9fe', color: '#6a12b8',
                         borderRadius: '100px', padding: '2px 8px',
                       }}>
                         {avCount}/{catItems.length} available

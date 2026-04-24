@@ -36,6 +36,7 @@ interface SaleItem {
   cashier_name?:      string;
   customer_name?:     string;
   display_order_number?: number;
+  payment_method?:    string;
 }
 
 interface Stats { gross: number; voided: number; net: number; }
@@ -58,7 +59,11 @@ interface ReprintPayload {
     total?:           number;
     vatable_sales?:   number;
     vat_amount?:      number;
+    pax_senior?:      number;
+    pax_pwd?:         number;
     discount_amount?: number;
+    sc_discount_amount?: number;
+    pwd_discount_amount?: number;
     vat_type?:        string;   // ← add this
     branch?: {
       name?:           string;
@@ -93,6 +98,7 @@ interface RawSaleItem {
   quantity:      number;
   unit_price?:   number;
   price?:        number;  
+  discount_amount?: number;
   total_price?:  number;
   final_price?:  number;  
   size?:         string | null;
@@ -103,10 +109,10 @@ interface RawSaleItem {
   remarks?:      string | null;
   charges?:      { grab?: boolean; panda?: boolean } | null;
   is_bundle?:    boolean;
-  discount_amount?: number;
   discount_label?:  string;
   discount_type?:   string;
   discount_value?:  number;
+  pax_assignment?:  string | string[];
 }
 
 type ReprintType = 'receipt' | 'kitchen' | 'sticker';
@@ -135,7 +141,7 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     id:           raw.menu_item_id ?? raw.id,
     category_id:  0,
     name:         resolvedName,
-    price:        Number(raw.unit_price ?? raw.price ?? 0),
+    price:        Number(raw.unit_price) || Number(raw.price) || 0,
     barcode:      '',
     qty:          Number(raw.quantity ?? 1),
     size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
@@ -154,6 +160,16 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
   };
 }
 
+function mapPaymentMethod(method?: string): string {
+  if (!method) return 'CASH';
+  const m = method.toLowerCase();
+  if (m === 'grab') return 'GRABFOOD';
+  if (m === 'food_panda' || m === 'panda') return 'FOODPANDA';
+  if (m === 'gcash') return 'GCASH';
+  if (m === 'paymaya' || m === 'maya') return 'MAYA';
+  return m.toUpperCase();
+}
+
 // ============================================================
 // SUB-COMPONENTS
 // ============================================================
@@ -161,7 +177,7 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
 const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; isBrand?: boolean; isDanger?: boolean }> = ({ label, value, isDanger }) => (
   <div className={`bg-white border rounded-lg p-4 text-center shadow-sm ${isDanger ? 'border-red-200' : 'border-zinc-200'}`}>
     <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isDanger ? 'text-red-400' : 'text-zinc-400'}`}>{label}</div>
-    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#1a0f2e]'}`}>₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#1a0f2e]'}`}>₱{Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
   </div>
 );
 
@@ -224,7 +240,7 @@ const SearchReceipts = () => {
       });
       setPrintPayload(data);
       setPrintType(type);
-      setTimeout(() => window.print(), 300);
+      setTimeout(() => window.print(), 1000);
     } catch (err) {
       console.error('Reprint error:', err);
       setReprintError('Reprint failed. Please try again.');
@@ -314,10 +330,10 @@ const buildPrintProps = (payload: ReprintPayload, displayOrderNumber?: number) =
   const promoDiscount     = Number(sale.discount_amount ?? 0);
   const totalDiscountDisplay = itemDiscountTotal + promoDiscount;
 
-  const subtotal    = cart.reduce((acc, item) => acc + item.finalPrice + getItemSurcharge(item), 0);
-  const amtDue      = sale.total ?? subtotal;
-  const vatableSales = sale.vatable_sales ?? amtDue / 1.12;
-  const vatAmount    = sale.vat_amount    ?? (amtDue - vatableSales);
+  const subtotal = cart.reduce((acc, item) => acc + Number(item.finalPrice ?? 0) + Number(getItemSurcharge(item) ?? 0), 0);
+  const amtDue = Number(sale.total ?? subtotal);
+  const vatableSales = Number(sale.vatable_sales ?? (amtDue / 1.12));
+  const vatAmount = Number(sale.vat_amount ?? (amtDue - vatableSales));
 
 return {
   cart,
@@ -333,7 +349,7 @@ return {
   referenceNumber: sale.reference_number ?? '',
   orderCharge: null as 'grab' | 'panda' | null,
   totalCount: cart.reduce((a, i) => a + i.qty, 0),
-  subtotal: sale.subtotal ?? subtotal,
+  subtotal: Number(sale.subtotal ?? subtotal),
   amtDue,
   vatableSales,
   vatAmount,
@@ -355,15 +371,34 @@ return {
   serialNumber:    sale.branch?.serial_number,
   ownerName:        sale.branch?.owner_name ?? payload.settings?.receipt_owner,
   businessName:     payload.settings?.business_name,
-  businessEmail:    payload.settings?.contact_email,
-  businessPhone:    payload.settings?.contact_phone,
+  contactEmail:     payload.settings?.contact_email,
+  contactPhone:     payload.settings?.contact_phone,
   businessAddress:  payload.settings?.address,
-  paxSenior: 0,
-  paxPwd: 0,
-  seniorId: sale.tin ?? sale.senior_id ?? '',
-pwdId: sale.pwd_id ?? '',
-posFooter: payload.settings ?? {},
-receiptFooter: payload.settings?.receipt_footer ?? '',
+  paxSenior: Number(sale.pax_senior ?? 0),
+  paxPwd: Number(sale.pax_pwd ?? 0),
+  seniorIds: (sale.tin ?? sale.senior_id) ? [sale.tin ?? sale.senior_id ?? ''] : [],
+  pwdIds: sale.pwd_id ? [sale.pwd_id] : [],
+  sc_discount_amount: Number(sale.sc_discount_amount ?? 0),
+  pwd_discount_amount: Number(sale.pwd_discount_amount ?? 0),
+  itemPaxAssignments: (sale.sale_items || []).reduce((acc: Record<string, ('none' | 'sc' | 'pwd')[]>, raw: RawSaleItem, idx: number) => {
+    let assignments: ('none' | 'sc' | 'pwd')[] = [];
+    const rawVal = raw.pax_assignment;
+    
+    if (typeof rawVal === 'string') {
+      try {
+        const parsed = JSON.parse(rawVal);
+        assignments = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        assignments = [rawVal as 'none' | 'sc' | 'pwd'];
+      }
+    } else if (Array.isArray(rawVal)) {
+      assignments = rawVal as ('none' | 'sc' | 'pwd')[];
+    }
+
+    acc[String(idx)] = assignments.length > 0 ? assignments : Array(raw.quantity).fill('none' as const);
+    return acc;
+  }, {}),
+  posFooter: payload.settings ?? {},
 };
 };
 
@@ -379,39 +414,21 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#f4f2fb] overflow-hidden relative">
-      <TopNavbar />
-
-      {/* ── Hidden print target ── */}
+    <>
+      {/* ── Hidden print target — MUST be outside the layout div ── */}
       {printPayload && printType && (() => {
         const props = buildPrintProps(printPayload, reprintSale?.display_order_number);
         return (
           <>
-            <style>{`
-              @media print {
-                @page { ${printType === 'sticker' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'} margin: 0 !important; }
-                html, body { margin: 0 !important; padding: 0 !important; }
-                body * { visibility: hidden; }
-                nav, header, aside, button, .print\\:hidden { display: none !important; }
-                .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
-                .printable-receipt-container {
-                  position: static !important;
-                  width: 100% !important;
-                  max-width: ${printType === 'sticker' ? '38.5mm' : '76mm'} !important;
-                  margin: 0 !important; padding: 0 !important;
-                  height: auto !important;
-                }
-                .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
-                .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
-                .queue-stub { page-break-before: always !important; break-before: page !important; }
-              }
-            `}</style>
-            {printType === 'receipt' && <ReceiptPrint {...props} posFooter={props.posFooter} receiptFooter={props.receiptFooter} showDoubleQueueStub={false} isReprint={true} />}
+            {printType === 'receipt' && <ReceiptPrint {...props} posFooter={props.posFooter} showDoubleQueueStub={false} isReprint={true} />}
             {printType === 'kitchen' && <KitchenPrint {...props} />}
             {printType === 'sticker' && <StickerPrint {...props} customerName={props.customerName} />}
           </>
         );
       })()}
+
+    <div className="flex flex-col h-full w-full bg-[#f4f2fb] overflow-hidden relative print:hidden">
+      <TopNavbar />
 
       <div className={`flex-1 flex flex-col items-center justify-start p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-72' : ''}`}>
 
@@ -435,11 +452,11 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
             )}
           </div>
           <button onClick={() => handleSearch()} disabled={isLoading}
-            className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem]">
+            className="bg-[#6a12b8] hover:bg-[#6a12b8] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem]">
             {isLoading ? '...' : 'Search'}
           </button>
           <button onClick={handleRefresh}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-4 h-12 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]">
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#6a12b8] hover:border-[#6a12b8] px-4 h-12 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]">
             <RotateCcw size={16} />
           </button>
         </div>
@@ -454,7 +471,7 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
         {/* Table */}
         <div className="w-full max-w-6xl bg-white border border-zinc-200 overflow-hidden flex-1 flex flex-col shadow-sm rounded-[0.625rem]">
           <div className="px-6 py-4 border-b border-[#e9d5ff] bg-[#f5f0ff] flex items-center gap-3">
-            <div className="bg-[#3b2063] p-2 text-white rounded">
+            <div className="bg-[#6a12b8] p-2 text-white rounded">
               <Terminal size={15} className="text-white" />
             </div>
             <div>
@@ -470,6 +487,7 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
                   <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Date</th>
                   <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Customer</th>
                   <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Total</th>
+                  <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Payment</th>
                   <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Status</th>
                   <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Actions</th>
                 </tr>
@@ -522,6 +540,15 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
                         <p className="text-sm font-bold text-black">₱{Number(item.total_amount || 0).toLocaleString()}</p>
                       </td>
                       <td className="px-7 py-4">
+                        <p className={`text-[10px] font-black px-2 py-1 rounded-md border inline-block uppercase tracking-widest ${
+                          ['grab', 'food_panda', 'panda'].includes(item.payment_method?.toLowerCase() ?? '')
+                            ? 'bg-amber-50 text-amber-700 border-amber-100'
+                            : 'bg-zinc-50 text-zinc-500 border-zinc-100'
+                        }`}>
+                          {mapPaymentMethod(item.payment_method)}
+                        </p>
+                      </td>
+                      <td className="px-7 py-4">
                         <span className={`text-[9px] font-bold px-2 py-0.5 border uppercase tracking-widest ${
                           item.status === 'cancelled'
                             ? 'bg-red-50 text-red-600 border-red-100'
@@ -534,7 +561,7 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
                         <div className="flex gap-2">
 
                           <button onClick={() => openReprintModal(item)}
-                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-[#e9d5ff] text-zinc-400 hover:bg-[#3b2063] hover:text-white hover:border-[#3b2063] transition-all rounded-[0.625rem]">
+                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-[#e9d5ff] text-zinc-400 hover:bg-[#6a12b8] hover:text-white hover:border-[#6a12b8] transition-all rounded-[0.625rem]">
                             <Printer size={14} />
                           </button>
                         </div>
@@ -552,7 +579,7 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-[0.625rem] shadow-2xl w-full max-w-md mx-4">
-            <div className="bg-[#3b2063] p-4 text-white rounded-t-[0.625rem]">
+            <div className="bg-[#6a12b8] p-4 text-white rounded-t-[0.625rem]">
               <h3 className="font-bold text-lg">Manager Approval Required</h3>
             </div>
 <div className="p-5">
@@ -565,13 +592,13 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
         value={managerPin}
         onChange={e => setManagerPin(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && handleManagerApprove()}
-        className="w-full p-3 border border-[#e9d5ff] rounded-[0.625rem] text-sm focus:outline-none focus:border-[#3b2063]"
+        className="w-full p-3 border border-[#e9d5ff] rounded-[0.625rem] text-sm focus:outline-none focus:border-[#6a12b8]"
         placeholder="Enter branch manager PIN..."
       />
       {pinError && <p className="text-red-500 text-sm mt-2">{pinError}</p>}
       <div className="flex gap-3 mt-4">
         <button onClick={handleManagerApprove} disabled={isVoiding || !managerPin.trim()}
-          className="flex-1 bg-[#3b2063] hover:bg-[#6a12b8] text-white py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest disabled:opacity-50 transition-all">
+          className="flex-1 bg-[#6a12b8] hover:bg-[#6a12b8] text-white py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest disabled:opacity-50 transition-all">
           {isVoiding ? 'Processing...' : 'Approve'}
         </button>
         <button onClick={closeVoidModal}
@@ -596,7 +623,7 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
       {reprintSale && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-[0.625rem] shadow-2xl w-full max-w-md mx-4">
-            <div className="bg-[#3b2063] p-4 text-white rounded-t-[0.625rem]">
+            <div className="bg-[#6a12b8] p-4 text-white rounded-t-[0.625rem]">
               <h3 className="font-bold text-lg">Reprint Receipt</h3>
             </div>
             <div className="p-5">
@@ -608,8 +635,8 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
                     <button key={type} onClick={() => handleReprint(type)} disabled={isActive}
                       className={`w-full py-3 px-4 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest transition-all flex items-center justify-between
                         ${isActive
-                          ? 'bg-[#3b2063] text-white'
-                          : 'bg-[#f5f0ff] border border-[#e9d5ff] text-black hover:bg-[#3b2063] hover:text-white hover:border-[#3b2063]'
+                          ? 'bg-[#6a12b8] text-white'
+                          : 'bg-[#f5f0ff] border border-[#e9d5ff] text-black hover:bg-[#6a12b8] hover:text-white hover:border-[#6a12b8]'
                         } disabled:opacity-50`}
                     >
                       <span>{label}</span>
@@ -635,6 +662,7 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
         </div>
       )}
     </div>
+    </>
   );
 };
 
