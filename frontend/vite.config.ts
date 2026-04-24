@@ -17,7 +17,7 @@ export default defineConfig({
 
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,jpg,png,svg,woff2}'],
-        globIgnores: ['slideshow-content/**'],
+        globIgnores: ['**/slideshow-content/**'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         navigationPreload: false,
