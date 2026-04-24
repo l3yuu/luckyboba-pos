@@ -229,6 +229,17 @@ const ZReading = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDebug] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<'AM' | 'PM'>(() => {
+    const stored = localStorage.getItem('pos_current_shift');
+    if (stored === 'PM') return 'PM';
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      return user.current_shift === 'PM' ? 'PM' : 'AM';
+    }
+    return 'AM';
+  });
+  const activeShift = localStorage.getItem('pos_current_shift') || 'AM';
   const [rawApiResponse, setRawApiResponse] = useState<Record<string, unknown> | unknown[] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
@@ -250,14 +261,14 @@ const ZReading = () => {
   const fetchStatus = useCallback(async () => {
     setCheckingStatus(true);
     try {
-      const res = await api.get('/reports/z-reading/status', { params: { date: selectedDate } });
+      const res = await api.get('/reports/z-reading/status', { params: { date: selectedDate, shift: selectedShift } });
       setZStatus(res.data.data);
     } catch (err) {
       console.error("Status check failed", err);
     } finally {
       setCheckingStatus(false);
     }
-  }, [selectedDate]);
+  }, [selectedDate, selectedShift]);
 
   const fetchGaps = useCallback(async () => {
     try {
@@ -278,7 +289,7 @@ const ZReading = () => {
     if (dateMode === 'single') {
       fetchStatus();
     }
-  }, [selectedDate, dateMode, fetchStatus]);
+  }, [selectedDate, dateMode, selectedShift, fetchStatus]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -297,11 +308,13 @@ const ZReading = () => {
 
         const sParams = { 
           ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { from: selectedDate, to: selectedDate }),
-          ...commonParams 
+          ...commonParams,
+          shift: selectedShift
         };
         const qParams = { 
           ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }),
-          ...commonParams 
+          ...commonParams,
+          shift: selectedShift 
         };
 
         const [summaryRes, qtyRes] = await Promise.all([
@@ -327,10 +340,10 @@ const ZReading = () => {
         };
 
         const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
-          api.get('/reports/z-reading',       { params: zParams }),
-          api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams } }),
-          api.get('/reports/item-quantities', { params: { ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }), ...commonParams } }),
-          api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams } }),
+          api.get('/reports/z-reading',       { params: { ...zParams, shift: selectedShift } }),
+          api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams, shift: selectedShift } }),
+          api.get('/reports/item-quantities', { params: { ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }), ...commonParams, shift: selectedShift } }),
+          api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams, shift: selectedShift } }),
         ]);
 
 
@@ -390,7 +403,7 @@ const ZReading = () => {
         detailed:     { url: '/reports/sales-detailed',  params: { date: dateMode === 'range' ? toDate : selectedDate } },
       };
       const { url, params } = endpointMap[type];
-      const response = await api.get(url, { params: { ...params, ...commonParams } });
+      const response = await api.get(url, { params: { ...params, ...commonParams, shift: selectedShift } });
       setRawApiResponse(response.data as Record<string, unknown>);
       setReportData({ ...normalizeResponse(type, response.data), report_type: type });
     } catch (err: unknown) {
@@ -449,7 +462,7 @@ const ZReading = () => {
     if (type === 'export_sales' || type === 'export_items') {
       try {
         const endpoint = type === 'export_sales' ? 'export-sales' : 'export-items';
-        const response = await api.get(`/reports/${endpoint}`, { params: { date: selectedDate }, responseType: 'blob' });
+        const response = await api.get(`/reports/${endpoint}`, { params: { date: selectedDate, shift: selectedShift }, responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url; link.setAttribute('download', `lucky_boba_${endpoint}_${selectedDate}.csv`);
@@ -1091,7 +1104,7 @@ const ZReading = () => {
         />
       )}
 
-      <TopNavbar />
+      <TopNavbar currentShift={activeShift} />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col relative">
         <style>{`
           .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
@@ -1213,6 +1226,33 @@ const ZReading = () => {
             )}
           </div>
 
+          {/* Shift Selector */}
+          <div className="flex bg-[#f5f0ff] rounded-[0.625rem] p-1 border border-zinc-300 shadow-sm print:hidden">
+            <button
+              onClick={() => setSelectedShift('AM')}
+              disabled={activeShift !== 'AM'}
+              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-md h-9 ${
+                selectedShift === 'AM'
+                  ? 'bg-[#6a12b8] text-white shadow-md'
+                  : activeShift !== 'AM'
+                  ? 'text-zinc-300 cursor-not-allowed'
+                  : 'text-zinc-500 hover:text-[#6a12b8]'
+              }`}
+            >
+              AM
+            </button>
+            <button
+              onClick={() => setSelectedShift('PM')}
+              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-md h-9 ${
+                selectedShift === 'PM'
+                  ? 'bg-[#6a12b8] text-white shadow-md'
+                  : 'text-zinc-500 hover:text-[#6a12b8]'
+              }`}
+            >
+              PM
+            </button>
+          </div>
+
           <div className="flex-1 w-full flex gap-2">
             {(!reportData || reportData.report_type === 'z_reading') && (
               <div className="flex border border-zinc-300 rounded-[0.625rem] overflow-hidden shrink-0">
@@ -1314,7 +1354,7 @@ const ZReading = () => {
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>
                   <Divider />
                   <p className="uppercase text-[12px] font-bold tracking-widest">
-                    [Z] {reportData.report_type === 'z_reading' ? (dateMode === 'range' ? 'Z-READING (RANGE)' : 'Z-READING') : reportData.report_type?.replace(/_/g, ' ') || 'Z READING'}
+                    [Z] {reportData.report_type === 'z_reading' ? (dateMode === 'range' ? 'Z-READING (RANGE)' : 'Z-READING') : reportData.report_type?.replace(/_/g, ' ') || 'Z READING'} - {selectedShift}
                   </p>
                 </div>
                 {(() => {

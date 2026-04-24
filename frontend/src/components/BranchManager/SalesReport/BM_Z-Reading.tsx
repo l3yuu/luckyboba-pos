@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import React from "react";
 import {
   RefreshCw, AlertCircle, Printer, Lock, CheckCircle,
-  X, Menu,
+  X, Menu, History,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -16,6 +16,11 @@ const authHeaders = () => ({
   "Content-Type": "application/json",
   "Accept":       "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+});
+
+const phCurrency = new Intl.NumberFormat('en-PH', {
+  style: 'currency',
+  currency: 'PHP',
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -60,6 +65,7 @@ interface ZReading {
   end_si?: string;
   prepared_by?: string;
   rounding_adjustment?: number;
+  shift?: string;
 
   payment_breakdown?: { method: string; amount: number }[];
   cash_denominations?: { label: string; qty: number; total: number }[];
@@ -90,6 +96,7 @@ interface ZHistory {
   net:        number;
   total_orders: number;
   closed_at:  string;
+  shift?:     string;
   cashier_name?: string;
 }
 interface CashierRow {
@@ -208,7 +215,7 @@ const CloseShiftModal: React.FC<{
   onCancel: () => void;
   loading: boolean;
 }> = ({ branchName, date, netSales, onConfirm, onCancel, loading }) => {
-  const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
   return createPortal(
     <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
       style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
@@ -235,7 +242,7 @@ const CloseShiftModal: React.FC<{
           </div>
           <div className="flex items-center justify-between border-t border-zinc-200 pt-1.5 mt-1.5">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Net Sales</span>
-            <span className="text-sm font-black text-emerald-600">{fmt(netSales)}</span>
+            <span className="text-sm font-black text-emerald-600">{phCurrency.format(netSales)}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 px-6 pb-6">
@@ -265,8 +272,8 @@ const BM_ZReading: React.FC = () => {
   const [error,        setError]        = useState("");
   const [toast,        setToast]        = useState("");
   const [data,         setData]         = useState<ZReading | null>(null);
-  const [,      setHistory]      = useState<ZHistory[]>([]);
-  const [,  setHistLoading]  = useState(false);
+  const [history, setHistory] = useState<ZHistory[]>([]);
+  const [histLoading, setHistLoading] = useState(false);
   const [showConfirm,  setShowConfirm]  = useState(false);
   const [activeView,   setActiveView]   = useState<"history" | "receipt">("receipt");
   const [reportType, setReportType] = useState("z_reading");
@@ -274,8 +281,8 @@ const BM_ZReading: React.FC = () => {
   const menuRef    = useRef<HTMLDivElement>(null);
   const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
   const [invoiceQuery, setInvoiceQuery] = useState("");
-  const [shift, _setShift] = useState("all");
-  const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
+  const [shift, setShift] = useState("all");
+
   const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
@@ -292,7 +299,9 @@ const BM_ZReading: React.FC = () => {
     if (!branchId) return;
     setCheckingStatus(true);
     try {
-      const res = await fetch(`/api/reports/z-reading/status?date=${dateFrom}&branch_id=${branchId}`, { headers: authHeaders() });
+      const params = new URLSearchParams({ date: dateFrom, branch_id: branchId });
+      if (shift !== "all") params.set("shift", shift);
+      const res = await fetch(`/api/reports/z-reading/status?${params}`, { headers: authHeaders() });
       const json = await res.json();
       if (json.success) setZStatus(json.data);
     } catch (err) {
@@ -300,7 +309,7 @@ const BM_ZReading: React.FC = () => {
     } finally {
       setCheckingStatus(false);
     }
-  }, [branchId, dateFrom]);
+  }, [branchId, dateFrom, shift]);
 
   const fetchGaps = useCallback(async () => {
     if (!branchId) return;
@@ -407,8 +416,8 @@ const BM_ZReading: React.FC = () => {
 
       if (reportType === "summary") {
         const [summaryRes, qtyRes] = await Promise.all([
-          fetch(`/api/reports/sales-summary?from=${dateFrom}&to=${dateTo}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-          fetch(`/api/reports/item-quantities?from=${dateFrom}&to=${dateTo}&date=${dateFrom}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/sales-summary?${params}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/item-quantities?${params}`, { headers: authHeaders() }).then(r => r.json()),
         ]);
         const merged = { ...summaryRes, categories: qtyRes.categories ?? [], all_addons_summary: qtyRes.all_addons_summary ?? [] };
         setReportData({ ...normalizeResponse("summary", merged as Record<string, unknown>), report_type: "summary" });
@@ -472,16 +481,16 @@ const BM_ZReading: React.FC = () => {
     try {
       const zParams = new URLSearchParams({ 
         branch_id: branchId, 
-        date: dateFrom,
-        date_from: dateFrom,
-        date_to: dateTo,
-        from: dateFrom,
-        to: dateTo
+        from: dateFrom, 
+        to: dateTo 
       });
+      if (shift !== "all") zParams.set("shift", shift);
+
       const extraParams = new URLSearchParams({
         branch_id: branchId,
         date: dateTo
       });
+      if (shift !== "all") extraParams.set("shift", shift);
 
       const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
         fetch(`/api/reports/z-reading?${zParams}`, { headers: authHeaders() }).then(r => r.json()),
@@ -562,7 +571,7 @@ const BM_ZReading: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, dateFrom, dateTo, branchName]);
+  }, [branchId, dateFrom, dateTo, branchName, shift]);
 
   const fetchHistory = useCallback(async () => {
     if (!branchId) return;
@@ -570,6 +579,7 @@ const BM_ZReading: React.FC = () => {
     setHistory([]);   // ← clear stale history
     try {
         const params = new URLSearchParams({ branch_id: branchId });
+        if (shift !== "all") params.set("shift", shift);
         const res    = await fetch(`/api/reports/z-reading/history?${params}`, { headers: authHeaders() });
         if (!res.ok) { setHistory([]); return; } // ← add this line
         const json = await res.json();
@@ -580,7 +590,7 @@ const BM_ZReading: React.FC = () => {
     } finally {
         setHistLoading(false);
     }
-    }, [branchId]);
+    }, [branchId, shift]);
 
   useEffect(() => {
     if (branchId) {
@@ -1391,6 +1401,27 @@ const handlePrint = async () => {
         </div>
       )}
 
+      {/* ── Sub Tabs ── */}
+      <div className="flex items-center gap-1 bg-zinc-100/50 p-1 rounded-xl w-fit print:hidden">
+        {([
+          { id: "receipt", label: "Receipt", icon: <Printer size={12} /> },
+          { id: "history", label: "History", icon: <History size={12} /> },
+        ] as const).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveView(tab.id)}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              activeView === tab.id
+                ? "bg-white text-[#6a12b8] shadow-sm ring-1 ring-zinc-200"
+                : "text-zinc-500 hover:text-zinc-700 hover:bg-white/50"
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* ── Close Confirm Modal ── */}
       {showConfirm && data && (
         <CloseShiftModal
@@ -1537,6 +1568,18 @@ const handlePrint = async () => {
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
         </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Shift</p>
+          <select 
+            value={shift} 
+            onChange={e => setShift(e.target.value)}
+            className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400"
+          >
+            <option value="all">All Shifts</option>
+            <option value="AM">AM Shift</option>
+            <option value="PM">PM Shift</option>
+          </select>
+        </div>
         <Btn onClick={() => reportType === "z_reading" ? fetchReading() : fetchXReport()} disabled={loading || !branchId}>
           {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Load Reading"}
         </Btn>
@@ -1589,6 +1632,7 @@ const handlePrint = async () => {
                       : reportData?.report_type === "x_reading"
                       ? "X-READING"
                       : (reportData?.report_type ?? "REPORT").replace(/_/g, " ").toUpperCase()}
+                    {shift !== "all" && ` - ${shift}`}
                   </p>
                   <p className="text-[10px] text-zinc-500">
                     {dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom}
@@ -1616,6 +1660,76 @@ const handlePrint = async () => {
             </div>
           )}
         </>
+      )}
+      {activeView === "history" && (
+        <div className="bg-white border border-zinc-200 rounded-[1.25rem] shadow-sm overflow-hidden flex-1 flex flex-col min-h-[400px]">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-zinc-50/50 border-b border-zinc-100">
+                  <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Date</th>
+                  <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Shift</th>
+                  <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Orders</th>
+                  <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Gross</th>
+                  <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Net Sales</th>
+                  <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Closed At</th>
+                  <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-50">
+                {histLoading && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-20 text-center">
+                      <div className="flex flex-col items-center gap-2 opacity-50">
+                        <div className="w-6 h-6 border-2 border-[#6a12b8] border-t-transparent rounded-full animate-spin" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Loading history...</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!histLoading && history.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
+                      No Z Reading history found.
+                    </td>
+                  </tr>
+                )}
+                {!histLoading && history.map((h, i) => (
+                  <tr key={i} className="hover:bg-zinc-50/50 transition-colors">
+                    <td className="px-5 py-3.5 font-medium text-zinc-700 text-xs">{h.date}</td>
+                    <td className="px-5 py-3.5 text-zinc-600 text-xs">
+                       {h.shift ? (
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          h.shift === "AM" ? "bg-amber-100 text-amber-700" : "bg-violet-100 text-violet-700"
+                        }`}>
+                          {h.shift}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400">All</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-zinc-600 text-xs">{Number(h.total_orders).toLocaleString()}</td>
+                    <td className="px-5 py-3.5 font-bold text-[#6a12b8] text-xs">{phCurrency.format(Number(h.gross))}</td>
+                    <td className="px-5 py-3.5 font-bold text-emerald-600 text-xs">{phCurrency.format(Number(h.net))}</td>
+                    <td className="px-5 py-3.5 text-zinc-400 text-xs text-[10px]">
+                      {h.closed_at ? new Date(h.closed_at).toLocaleString("en-PH", {
+                        month: "short", day: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      }) : "—"}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                        h.closed_at ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                      }`}>
+                        {h.closed_at ? <><CheckCircle size={10} /> Closed</> : "Pending"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
 

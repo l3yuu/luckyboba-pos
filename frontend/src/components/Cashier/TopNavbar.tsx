@@ -23,6 +23,7 @@ interface Notification {
 
 interface TopNavbarProps {
   isEodLocked?: boolean;
+  currentShift?: string | null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ function timeAgo(iso: string): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
+const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked, currentShift }) => {
   const [isNotifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -180,6 +181,29 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
             <div className="text-[11px] font-black text-[#c2410c] uppercase leading-tight mt-0.5">{cashierInfo.name}</div>
           </div>
         </div>
+
+        {/* Current Shift Badge */}
+        {currentShift && (
+          <div className={`flex items-center gap-2.5 px-4 py-2.5 border rounded-[0.625rem] ${
+            currentShift === 'AM'
+              ? 'bg-sky-50 border-sky-200'
+              : 'bg-indigo-50 border-indigo-200'
+          }`}>
+            <div className={`w-7 h-7 flex items-center justify-center shrink-0 rounded-[0.625rem] ${
+              currentShift === 'AM' ? 'bg-sky-500' : 'bg-indigo-500'
+            }`}>
+              <span className="text-[10px] font-black text-white">{currentShift}</span>
+            </div>
+            <div>
+              <div className={`text-[9px] font-bold uppercase tracking-widest leading-none ${
+                currentShift === 'AM' ? 'text-sky-500/50' : 'text-indigo-500/50'
+              }`}>Shift</div>
+              <div className={`text-[11px] font-black uppercase leading-tight mt-0.5 ${
+                currentShift === 'AM' ? 'text-sky-700' : 'text-indigo-700'
+              }`}>{currentShift === 'AM' ? 'Morning' : 'Afternoon'}</div>
+            </div>
+          </div>
+        )}
 
         {/* EOD Locked Badge */}
         {isEodLocked && (

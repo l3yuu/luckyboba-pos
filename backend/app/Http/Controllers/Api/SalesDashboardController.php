@@ -104,8 +104,8 @@ class SalesDashboardController extends Controller
             $branchId = $request->input('branch_id')
                 ? (int) $request->input('branch_id')
                 : $user?->branch_id;
-
-            $report                = $this->salesService->generateZReading($from, $to, $branchId);
+            $shift    = $request->input('shift');
+            $report   = $this->salesService->generateZReading($from, $to, $branchId, $shift);
             $report['prepared_by'] = $user?->name ?? 'System Admin';
 
             $zRecord = ZReading::where('reading_date', $from)
@@ -185,9 +185,10 @@ class SalesDashboardController extends Controller
     {
         try {
             $user     = auth('sanctum')->user() ?? $request->user();
-            $branchId = $user?->branch_id;
+            $branchId = $request->input('branch_id') ? (int) $request->input('branch_id') : $user?->branch_id;
 
-            $history = $this->salesService->getZReadingHistory($branchId);
+            $shift   = $request->input('shift');
+            $history = $this->salesService->getZReadingHistory($branchId, 50, $shift);
 
             return response()->json([
                 'success' => true,
@@ -206,11 +207,13 @@ class SalesDashboardController extends Controller
     {
         try {
             $user     = auth('sanctum')->user() ?? $request->user();
-            $branchId = $user?->branch_id;
+            $branchId = $request->input('branch_id') ? (int) $request->input('branch_id') : $user?->branch_id;
             $date     = $request->input('date', now()->toDateString());
+            $shift    = $request->input('shift');
 
             ZReading::where('reading_date', $date)
                 ->where('branch_id', $branchId)
+                ->when($shift, fn($q) => $q->where('shift', $shift))
                 ->update([
                     'is_closed' => true,
                     'closed_at' => now(),
@@ -247,8 +250,9 @@ class SalesDashboardController extends Controller
             $user     = auth('sanctum')->user() ?? $request->user();
             $branchId = $request->input('branch_id') ? (int) $request->input('branch_id') : $user?->branch_id;
             $date     = $request->input('date', now()->toDateString());
+            $shift    = $request->input('shift');
 
-            $status = $this->salesService->checkZReadingStatus($date, $branchId);
+            $status = $this->salesService->checkZReadingStatus($date, $branchId, $shift);
 
             return response()->json([
                 'success' => true,

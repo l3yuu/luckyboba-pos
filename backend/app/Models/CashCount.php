@@ -17,6 +17,7 @@ class CashCount extends Model
         'breakdown',
         'remarks',
         'date',
+        'shift',
     ];
 
     protected $casts = [

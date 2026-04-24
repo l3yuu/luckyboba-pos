@@ -121,6 +121,17 @@ const XReading = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDebug] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<'AM' | 'PM'>(() => {
+    const stored = localStorage.getItem('pos_current_shift');
+    if (stored === 'PM') return 'PM';
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      return user.current_shift === 'PM' ? 'PM' : 'AM';
+    }
+    return 'AM';
+  });
+  const activeShift = localStorage.getItem('pos_current_shift') || 'AM';
   const [rawApiResponse, setRawApiResponse] = useState<Record<string, unknown> | unknown[] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
@@ -161,8 +172,8 @@ const XReading = () => {
           qParams.branch_id = branchId;
         }
         const [summaryRes, qtyRes] = await Promise.all([
-          api.get('/reports/sales-summary',   { params: sParams }),
-          api.get('/reports/item-quantities', { params: qParams }),
+          api.get('/reports/sales-summary',   { params: { ...sParams, shift: selectedShift } }),
+          api.get('/reports/item-quantities', { params: { ...qParams, shift: selectedShift } }),
         ]);
         const merged = {
           ...summaryRes.data,
@@ -186,7 +197,7 @@ const XReading = () => {
       };
 
       const { url, params } = endpointMap[type];
-      const finalParams: Record<string, string | number> = { ...params };
+      const finalParams: Record<string, string | number> = { ...params, shift: selectedShift };
       if (branchId) finalParams.branch_id = branchId;
 
       const response = await api.get(url, { params: finalParams });
@@ -265,7 +276,7 @@ const XReading = () => {
     } else if (type === 'export_sales' || type === 'export_items') {
       try {
         const endpoint = type === 'export_sales' ? 'export-sales' : 'export-items';
-        const response = await api.get(`/reports/${endpoint}`, { params: { date: selectedDate }, responseType: 'blob' });
+        const response = await api.get(`/reports/${endpoint}`, { params: { date: selectedDate, shift: selectedShift }, responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -821,7 +832,7 @@ const XReading = () => {
 
   return (
     <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col overflow-hidden font-sans">
-      <TopNavbar />
+      <TopNavbar currentShift={activeShift} />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col relative">
         <style>{`
           .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
@@ -914,6 +925,36 @@ const XReading = () => {
             )}
           </div>
 
+          {/* Shift Selector */}
+          <div className="flex bg-[#f5f0ff] rounded-[0.625rem] p-1 border border-zinc-300 shadow-sm">
+            <button
+              onClick={() => setSelectedShift('AM')}
+              disabled={activeShift !== 'AM'}
+              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-md h-9 ${
+                selectedShift === 'AM'
+                  ? 'bg-[#6a12b8] text-white shadow-md'
+                  : activeShift !== 'AM'
+                  ? 'text-zinc-300 cursor-not-allowed'
+                  : 'text-zinc-500 hover:text-[#6a12b8]'
+              }`}
+            >
+              AM
+            </button>
+            <button
+              onClick={() => setSelectedShift('PM')}
+              disabled={activeShift !== 'PM'}
+              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-md h-9 ${
+                selectedShift === 'PM'
+                  ? 'bg-[#6a12b8] text-white shadow-md'
+                  : activeShift !== 'PM'
+                  ? 'text-zinc-300 cursor-not-allowed'
+                  : 'text-zinc-500 hover:text-[#6a12b8]'
+              }`}
+            >
+              PM
+            </button>
+          </div>
+
           <div className="flex-1 w-full flex gap-2">
             <input
               type="date"
@@ -986,7 +1027,7 @@ const XReading = () => {
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>
                   <Divider />
                   <p className="uppercase text-[12px] font-bold tracking-widest">
-                    [X] {reportData.report_type === 'x_reading' ? 'X-READING' : reportData.report_type?.replace(/_/g, ' ') || 'REPORT'}
+                    [X] {reportData.report_type === 'x_reading' ? 'X-READING' : reportData.report_type?.replace(/_/g, ' ') || 'REPORT'} - {selectedShift}
                   </p>
                 </div>
                 {(() => {
