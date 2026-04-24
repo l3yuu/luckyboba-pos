@@ -204,6 +204,11 @@ jobs:
     needs: [laravel-backend, react-frontend]
     if: github.ref == 'refs/heads/staging'
     environment: staging
+    env:
+      STAGING_DB_DATABASE: ${{ secrets.STAGING_DB_DATABASE }}
+      STAGING_DB_USERNAME: ${{ secrets.STAGING_DB_USERNAME }}
+      STAGING_DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+      STAGING_DB_HOST: ${{ secrets.STAGING_DB_HOST }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -247,18 +252,31 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
+          envs: STAGING_DB_DATABASE,STAGING_DB_USERNAME,STAGING_DB_PASSWORD,STAGING_DB_HOST
           script: |
             cd domains/luckybobastores.com/staging
 
-            # Only update backend files, NOT the whole repo (which would wipe uploaded assets)
+            # Only update backend files, NOT the whole repo
             git fetch origin staging
             git checkout origin/staging -- backend
 
-            # Setup staging .env if it doesn't exist
+            # Setup staging .env
             if [ ! -f backend/.env ]; then
               cp backend/.env.example backend/.env
               cd backend && php artisan key:generate && cd ..
             fi
+
+            # Inject Staging Database Secrets if provided
+            if [ ! -z "$STAGING_DB_DATABASE" ]; then
+              sed -i "s/DB_DATABASE=.*/DB_DATABASE=$STAGING_DB_DATABASE/" backend/.env
+              sed -i "s/DB_USERNAME=.*/DB_USERNAME=$STAGING_DB_USERNAME/" backend/.env
+              sed -i "s/DB_PASSWORD=.*/DB_PASSWORD='$STAGING_DB_PASSWORD'/" backend/.env
+              [ ! -z "$STAGING_DB_HOST" ] && sed -i "s/DB_HOST=.*/DB_HOST=$STAGING_DB_HOST/" backend/.env
+            fi
+
+            # Force Environment to staging
+            sed -i "s/APP_ENV=.*/APP_ENV=staging/" backend/.env
+            sed -i "s|APP_URL=.*|APP_URL=https://staging.luckybobastores.com|" backend/.env
 
             cd backend
             composer install --no-dev --optimize-autoloader || composer2 install --no-dev --optimize-autoloader
