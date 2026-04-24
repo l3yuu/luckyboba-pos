@@ -21,23 +21,29 @@ class CashCountController extends Controller
         $validated = $request->validate([
             'amount'  => 'required|numeric|min:0',
             'remarks' => 'nullable|string',
+            'shift'   => 'required|string|in:AM,PM',
         ]);
 
         try {
             $user     = $request->user();
             $branchId = $user->branch_id;
             $today    = now()->toDateString();
+            $shift    = $validated['shift'];
 
-            // Prevent duplicate opening cash-in for the same branch on the same day
+            // Save shift to user profile for current session tracking
+            $user->update(['current_shift' => $shift]);
+
+            // Prevent duplicate opening cash-in for the same branch/shift on the same day
             $alreadyCashedIn = CashTransaction::where('branch_id', $branchId)
                 ->where('type', 'cash_in')
+                ->where('shift', $shift)
                 ->whereDate('created_at', $today)
                 ->exists();
 
             if ($alreadyCashedIn) {
                 return response()->json([
                     'success'       => true,
-                    'message'       => 'Branch has already cashed in today',
+                    'message'       => "Branch has already cashed in for {$shift} shift today",
                     'menuAvailable' => true,
                     'duplicate'     => true,
                 ]);
@@ -49,7 +55,8 @@ class CashCountController extends Controller
                 'branch_id' => $branchId,
                 'type'      => 'cash_in',
                 'amount'    => $validated['amount'],
-                'remarks'   => $validated['remarks'] ?? 'Opening float',
+                'note'      => $validated['remarks'] ?? "Opening float ({$shift})",
+                'shift'     => $shift,
             ]);
 
             // Confirm it was persisted before signalling the frontend
@@ -82,22 +89,27 @@ class CashCountController extends Controller
             'total'     => 'required|numeric|min:0',
             'breakdown' => 'required|array',
             'remarks'   => 'nullable|string',
+            'shift'     => 'nullable|string|in:AM,PM',
         ]);
 
         try {
             $userId   = Auth::id();
-            $branchId = Auth::user()->branch_id;
+            $user     = Auth::user();
+            $branchId = $user->branch_id;
             $today    = now()->toDateString();
+            $shift    = $request->input('shift', $user->current_shift ?? 'AM');
 
-            // 1. Get total cash_in for the day (all cash_in transactions)
-            $totalCashIn = CashTransaction::where('user_id', $userId)
+            // 1. Get total cash_in for the shift
+            $totalCashIn = CashTransaction::where('branch_id', $branchId)
                 ->where('type', 'cash_in')
+                ->where('shift', $shift)
                 ->whereDate('created_at', $today)
                 ->sum('amount');
 
-            // 2. Get just the first cash_in (opening float / initial cash)
-            $initialCash = CashTransaction::where('user_id', $userId)
+            // 2. Get just the first cash_in for the shift (opening float)
+            $initialCash = CashTransaction::where('branch_id', $branchId)
                 ->where('type', 'cash_in')
+                ->where('shift', $shift)
                 ->whereDate('created_at', $today)
                 ->orderBy('created_at')
                 ->value('amount') ?? 0;
@@ -107,13 +119,15 @@ class CashCountController extends Controller
 
             // 4. Total sales collected during the shift
             $totalSales = Sale::where('branch_id', $branchId)
+                ->where('shift', $shift)
                 ->whereDate('created_at', $today)
                 ->where('status', 'completed')
                 ->sum('total_amount');
 
-            // 5. All cash removed from the drawer (cash_out + cash_drop)
-            $cashOut = CashTransaction::where('user_id', $userId)
+            // 5. All cash removed from the drawer for this shift
+            $cashOut = CashTransaction::where('branch_id', $branchId)
                 ->whereIn('type', ['cash_out', 'cash_drop'])
+                ->where('shift', $shift)
                 ->whereDate('created_at', $today)
                 ->sum('amount');
 
@@ -135,6 +149,7 @@ class CashCountController extends Controller
                 'breakdown'       => $validated['breakdown'],
                 'remarks'         => $validated['remarks'],
                 'date'            => $today,
+                'shift'           => $shift,
             ]);
 
             return response()->json([
@@ -158,15 +173,30 @@ class CashCountController extends Controller
      */
     public function checkEodStatus(Request $request): JsonResponse
     {
-        if (!$request->user()) {
+        $user = $request->user();
+        if (!$user) {
             return response()->json(['isEodDone' => false], 401);
         }
 
-        $isEodDone = CashCount::where('user_id', $request->user()->id)
+        $shift = $request->query('shift', $user->current_shift);
+
+        // A cashier is locked out of THEIR shift once THEY submit an EOD for it.
+        $isEodDone = CashCount::where('user_id', $user->id)
+            ->when($shift, fn($q) => $q->where('shift', $shift))
             ->whereRaw('DATE(created_at) = ?', [now()->toDateString()])
             ->exists();
 
-        return response()->json(['isEodDone' => $isEodDone]);
+        // Terminal is only GLOBALLY locked if a PM shift has been completed.
+        $isTerminalLocked = CashCount::where('branch_id', $user->branch_id)
+            ->where('shift', 'PM')
+            ->whereRaw('DATE(created_at) = ?', [now()->toDateString()])
+            ->exists();
+
+        return response()->json([
+            'isEodDone'        => $isEodDone,
+            'isTerminalLocked' => $isTerminalLocked,
+            'currentShift'     => $user->current_shift,
+        ]);
     }
 
     /**
@@ -180,13 +210,36 @@ class CashCountController extends Controller
             $user     = $request->user();
             $branchId = $user->branch_id;
 
-            // ✅ Check by branch_id, not user_id — shared cash-in unlocks the whole branch
-            $hasCashedIn = CashTransaction::where('branch_id', $branchId)
+            // Shift-aware check: Terminal is "Open" if there is a Cash In for a shift 
+            // that hasn't been finalized (EOD) yet.
+            $today = now()->toDateString();
+            
+            // 1. Check AM Status
+            $amCashedIn = CashTransaction::where('branch_id', $branchId)
                 ->where('type', 'cash_in')
-                ->whereRaw('DATE(created_at) = ?', [now()->toDateString()])
+                ->where('shift', 'AM')
+                ->whereDate('created_at', $today)
+                ->exists();
+            $amClosed = CashCount::where('branch_id', $branchId)
+                ->where('shift', 'AM')
+                ->whereDate('date', $today)
                 ->exists();
 
-            return response()->json(['hasCashedIn' => $hasCashedIn]);
+            // 2. Check PM Status
+            $pmCashedIn = CashTransaction::where('branch_id', $branchId)
+                ->where('type', 'cash_in')
+                ->where('shift', 'PM')
+                ->whereDate('created_at', $today)
+                ->exists();
+            $pmClosed = CashCount::where('branch_id', $branchId)
+                ->where('shift', 'PM')
+                ->whereDate('date', $today)
+                ->exists();
+
+            // Menu is available if (AM is open and not closed) OR (PM is open and not closed)
+            $hasActiveShift = ($amCashedIn && !$amClosed) || ($pmCashedIn && !$pmClosed);
+
+            return response()->json(['hasCashedIn' => $hasActiveShift]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

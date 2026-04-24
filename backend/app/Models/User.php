@@ -36,6 +36,7 @@ class User extends Authenticatable
         'manager_pin',
         'referral_code',
         'referred_by_id',
+        'current_shift',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────

@@ -21,6 +21,9 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   const [prepLabel, setPrepLabel] = useState('');
   const [isEodLocked, setIsEodLocked] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
+  const [selectedShift, setSelectedShift] = useState<'AM' | 'PM'>('AM');
+  const [amDone, setAmDone] = useState(false);
+  const [pmDisabled, setPmDisabled] = useState(true);
   const { showToast, dismissToast } = useToast();
 
   const cashierName = useMemo(() => {
@@ -35,8 +38,28 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
     let cancelled = false;
     const fetchEodStatus = async () => {
       try {
-        const response = await api.get<{ isEodDone: boolean }>('/cash-counts/status');
-        if (!cancelled) setIsEodLocked(response.data.isEodDone);
+        const response = await api.get<{ isEodDone: boolean, isTerminalLocked: boolean, currentShift: string }>('/cash-counts/status');
+        if (!cancelled) {
+          setIsEodLocked(response.data.isEodDone);
+          // Check which shifts are available
+          await api.get('/cash-transactions/status');
+          // AM is done if there's already been a cash count for AM
+          const cashCountRes = await api.get(`/cash-counts/summary?date=${new Date().toISOString().split('T')[0]}`);
+          const cashCounts = cashCountRes.data?.denominations ? [cashCountRes.data] : (Array.isArray(cashCountRes.data) ? cashCountRes.data : []);
+          const amClosed = cashCounts.some((c: { shift: string }) => c.shift === 'AM');
+          const pmClosed = cashCounts.some((c: { shift: string }) => c.shift === 'PM');
+          
+          setAmDone(amClosed);
+          if (amClosed && !pmClosed) {
+            setSelectedShift('PM');
+            setPmDisabled(false);
+          } else if (!amClosed) {
+            setSelectedShift('AM');
+            setPmDisabled(true); // Can't do PM until AM is done
+          } else {
+            setPmDisabled(false);
+          }
+        }
       } catch { /* silently ignore */ }
     };
     fetchEodStatus();
@@ -58,7 +81,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       const response = await api.post('/cash-transactions', {
         type: 'cash_in',
         amount: parseFloat(amount),
-        note: 'Initial drawer cash-in'
+        note: `Initial drawer cash-in (${selectedShift})`,
+        shift: selectedShift
       });
 
       if (response.data.success) {
@@ -202,6 +226,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
               <div className="flex-between"><span>Date</span><span>{receiptData.date}</span></div>
               <div className="flex-between"><span>Time</span><span>{receiptData.time}</span></div>
               <div className="flex-between"><span>Terminal</span><span>POS-01</span></div>
+              <div className="flex-between"><span>Shift</span><span>{selectedShift}</span></div>
               <div className="flex-between"><span>Cashier</span><span>{cashierName}</span></div>
             </div>
           </div>
@@ -248,6 +273,41 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f5f0ff] border border-[#e9d5ff]">
                     <Monitor size={12} className="text-[#6a12b8]" />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-black">Terminal 01</span>
+                  </div>
+                </div>
+
+                {/* Shift Selector */}
+                <div className="mb-6 flex flex-col gap-2">
+                  <label className="text-[11px] font-bold text-black uppercase tracking-widest block">Select Work Shift</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedShift('AM')}
+                      disabled={isEodLocked || amDone}
+                      className={`py-3 flex items-center justify-center gap-2 font-bold text-[11px] uppercase tracking-widest transition-all rounded-[0.5rem] border ${
+                        selectedShift === 'AM'
+                          ? 'bg-[#6a12b8] text-white border-[#6a12b8]'
+                          : amDone
+                          ? 'bg-zinc-100 text-zinc-300 border-zinc-200 cursor-not-allowed'
+                          : 'bg-white text-zinc-500 border-[#e9d5ff] hover:border-[#6a12b8]'
+                      }`}
+                    >
+                      AM Shift {amDone && '✓'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => !pmDisabled && setSelectedShift('PM')}
+                      disabled={isEodLocked || pmDisabled}
+                      className={`py-3 flex items-center justify-center gap-2 font-bold text-[11px] uppercase tracking-widest transition-all rounded-[0.5rem] border ${
+                        selectedShift === 'PM'
+                          ? 'bg-[#6a12b8] text-white border-[#6a12b8]'
+                          : pmDisabled
+                          ? 'bg-zinc-100 text-zinc-300 border-zinc-200 cursor-not-allowed'
+                          : 'bg-white text-zinc-500 border-[#e9d5ff] hover:border-[#6a12b8]'
+                      }`}
+                    >
+                      PM Shift {pmDisabled && '🔒'}
+                    </button>
                   </div>
                 </div>
 
@@ -333,6 +393,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                   <ReceiptRow label="Date" value={receiptData.date} />
                   <ReceiptRow label="Time" value={receiptData.time} />
                   <ReceiptRow label="Mode" value="CASH IN · INIT" />
+                  <ReceiptRow label="Shift" value={selectedShift} />
                   <ReceiptRow label="Cashier" value={cashierName} />
                   <div className="pt-6 mt-2 border-t border-[#e9d5ff]">
                     <p className="text-[11px] font-bold text-black uppercase tracking-widest mb-2">Total Input</p>

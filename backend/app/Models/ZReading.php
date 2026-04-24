@@ -16,6 +16,7 @@ class ZReading extends Model
         'data',
         'is_closed',
         'closed_at',
+        'shift',
     ];
 
     protected $casts = [

@@ -5,7 +5,7 @@ import type { Transaction } from '../../../types/cash-count';
 import api from '../../../services/api';
 import TopNavbar from '../../Cashier/TopNavbar';
 import { useToast } from '../../../hooks/useToast';
-import { Calculator, Printer, CheckCircle2, Lock, AlertTriangle, MessageSquare, RefreshCw, Banknote } from 'lucide-react';
+import { Calculator, Printer, CheckCircle2, AlertTriangle, MessageSquare, RefreshCw, Banknote } from 'lucide-react';
 
 interface CashCountProps {
   onSuccess?: () => void;
@@ -21,18 +21,22 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   const [printData, setPrintData] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isEodLocked, setIsEodLocked] = useState(false);
+  const [isTerminalLocked, setIsTerminalLocked] = useState(false);
+  const activeShift = localStorage.getItem('pos_current_shift') || 'AM';
+  const [selectedShift, setSelectedShift] = useState<'AM' | 'PM'>(activeShift as 'AM' | 'PM');
   const branchName = useMemo(() => {
     return localStorage.getItem('lucky_boba_user_branch') || 'MAIN BRANCH – QC';
   }, []);
 
 
-  useEffect(() => { checkEodStatus(); }, []);
+  useEffect(() => { checkEodStatus(selectedShift); }, [selectedShift]);
 
-  const checkEodStatus = async () => {
+  const checkEodStatus = async (shift: string) => {
     try {
-      const response = await api.get<{ isEodDone: boolean }>('/cash-counts/status');
+      const response = await api.get<{ isEodDone: boolean, isTerminalLocked: boolean }>('/cash-counts/status?shift=' + shift);
       setIsEodLocked(response.data.isEodDone);
-      if (response.data.isEodDone) localStorage.setItem('terminal_eod_locked', 'true');
+      setIsTerminalLocked(response.data.isTerminalLocked);
+      if (response.data.isTerminalLocked) localStorage.setItem('terminal_eod_locked', 'true');
     } catch (error) { console.error("Failed to check EOD status:", error); }
   };
 
@@ -41,20 +45,22 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
 
 const handleSubmit = async () => {
     const total = getGrandTotal(counts);
-    if (total <= 0 || isEodLocked) {
-      showToast(isEodLocked ? "Terminal is already locked." : "Please enter a valid cash count.", "warning");
+    if (total <= 0 || isEodLocked || isTerminalLocked) {
+      showToast(isTerminalLocked ? "Terminal is closed for the day." : isEodLocked ? "Shift is already locked." : "Please enter a valid cash count.", "warning");
       return;
     }
     setIsLoading(true);
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const finalRemarks = `${days[new Date().getDay()]} EOD${remarks ? ' - ' + remarks : ''}`;
+    const finalRemarks = `${days[new Date().getDay()]} ${selectedShift} EOD${remarks ? ' - ' + remarks : ''}`;
     try {
-      const response = await api.post('/cash-counts', { total, breakdown: counts, remarks: finalRemarks });
+      const response = await api.post('/cash-counts', { total, breakdown: counts, remarks: finalRemarks, shift: selectedShift });
       if (response.status === 201 || response.status === 200) {
-        localStorage.setItem('terminal_eod_locked', 'true');
-        localStorage.setItem('cashier_menu_unlocked', 'false');
+        if (selectedShift === 'PM') {
+          localStorage.setItem('terminal_eod_locked', 'true');
+          localStorage.setItem('cashier_menu_unlocked', 'false');
+        }
         setIsEodLocked(true);
-        window.dispatchEvent(new CustomEvent('eod-completed'));
+        window.dispatchEvent(new CustomEvent('eod-completed', { detail: { shift: selectedShift } }));
         const now = new Date();
         const newTx: Transaction = {
           id: response.data.id,
@@ -129,7 +135,7 @@ const handleSubmit = async () => {
       </h1>
       <p className="text-[13px] uppercase font-bold">{branchName.toUpperCase()}</p>
       <div className="receipt-divider" />
-      <h2 className="font-black text-[14px] uppercase tracking-widest">EOD Cash Count</h2>
+      <h2 className="font-black text-[14px] uppercase tracking-widest">EOD Cash Count - {selectedShift}</h2>
     </div>
 
     <div className="text-left text-[13px] space-y-0.5 mt-2 uppercase">
@@ -182,7 +188,7 @@ const handleSubmit = async () => {
 )}
 
       <div className="flex flex-col h-full w-full bg-[#f4f2fb] relative overflow-hidden">
-        <TopNavbar isEodLocked={isEodLocked} />
+        <TopNavbar isEodLocked={isEodLocked} currentShift={activeShift} />
 
         <div className="flex-1 flex flex-row items-start justify-center p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300">
 
@@ -190,22 +196,57 @@ const handleSubmit = async () => {
           <div className="bg-white w-full flex-1 border border-zinc-200 flex flex-col relative shadow-sm rounded-[0.625rem]" style={{ minHeight: 0 }}>
 
             {/* Card Header */}
-            <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#6a12b8] flex items-center justify-center">
-                  <Calculator size={17} className="text-white" />
+            <div className="px-6 py-5">
+                <div className="flex items-center justify-between pb-5 border-b border-[#e9d5ff]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-[#6a12b8] flex items-center justify-center">
+                      <Calculator size={17} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-black">Terminal Closing</p>
+                      <h2 className="text-sm font-bold text-black uppercase tracking-widest">Cash Count EOD</h2>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f5f0ff] border border-[#e9d5ff]">
+                    <Banknote size={12} className="text-[#6a12b8]" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-black">Shift: {selectedShift}</span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">End of Day</p>
-                  <h2 className="text-sm font-bold text-black uppercase tracking-widest">Shift Reconciliation</h2>
+
+                {/* Shift Toggle */}
+                <div className="mt-6 flex flex-col gap-2">
+                  <label className="text-[11px] font-bold text-black uppercase tracking-widest block">Select Shift to Close</label>
+                  <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedShift('AM')}
+                  disabled={activeShift !== 'AM'}
+                  className={`py-3 flex items-center justify-center gap-2 font-bold text-[11px] uppercase tracking-widest transition-all rounded-[0.5rem] border ${
+                    selectedShift === 'AM'
+                      ? 'bg-[#6a12b8] text-white border-[#6a12b8]'
+                      : activeShift !== 'AM'
+                      ? 'bg-zinc-100 text-zinc-300 border-zinc-200 cursor-not-allowed'
+                      : 'bg-white text-zinc-500 border-[#e9d5ff] hover:border-[#6a12b8]'
+                  }`}
+                >
+                  AM Shift
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedShift('PM')}
+                  disabled={activeShift !== 'PM'}
+                  className={`py-3 flex items-center justify-center gap-2 font-bold text-[11px] uppercase tracking-widest transition-all rounded-[0.5rem] border ${
+                    selectedShift === 'PM'
+                      ? 'bg-[#6a12b8] text-white border-[#6a12b8]'
+                      : activeShift !== 'PM'
+                      ? 'bg-zinc-100 text-zinc-300 border-zinc-200 cursor-not-allowed'
+                      : 'bg-white text-zinc-500 border-[#e9d5ff] hover:border-[#6a12b8]'
+                  }`}
+                >
+                  PM Shift
+                </button>
+                  </div>
                 </div>
-              </div>
-              {isEodLocked && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 text-red-600">
-                  <Lock size={11} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Locked</span>
-                </div>
-              )}
             </div>
 
             {/* EOD Locked Overlay */}

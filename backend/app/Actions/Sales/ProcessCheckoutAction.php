@@ -12,6 +12,7 @@ use App\Actions\Inventory\DeductStockFromSaleAction;
 use App\Services\DashboardService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
 
 class ProcessCheckoutAction
 {
@@ -104,10 +105,13 @@ class ProcessCheckoutAction
             $branch = Branch::find($branchId);
             $isVat  = ($branch?->vat_type ?? 'vat') !== 'non_vat';
 
+            $user = User::find($userId);
+
             // 2. Create Sale header
             $sale = Sale::create([
                 'user_id'                  => $userId,
                 'branch_id'                => $branchId,
+                'shift'                    => $user?->current_shift ?? $this->resolveActiveShift($branchId),
                 'total_amount'             => 0, // Placeholder
                 'invoice_number'           => $officialOR,
                 'status'                   => $data['status'] ?? 'completed',
@@ -422,5 +426,43 @@ class ProcessCheckoutAction
         if ($uniqueIds->isNotEmpty()) {
             Discount::whereIn('id', $uniqueIds)->increment('used_count');
         }
+    }
+
+    private function resolveActiveShift(int $branchId): ?string
+    {
+        $today = now()->toDateString();
+        
+        // Priority 1: Check PM shift
+        $pmOpen = \Illuminate\Support\Facades\DB::table('cash_transactions')
+            ->where('branch_id', $branchId)
+            ->where('type', 'cash_in')
+            ->where('shift', 'PM')
+            ->whereDate('created_at', $today)
+            ->exists();
+        $pmClosed = \Illuminate\Support\Facades\DB::table('cash_counts')
+            ->where('branch_id', $branchId)
+            ->where('shift', 'PM')
+            ->whereDate('date', $today)
+            ->exists();
+            
+        if ($pmOpen && !$pmClosed) return 'PM';
+
+        // Priority 2: Check AM shift
+        $amOpen = \Illuminate\Support\Facades\DB::table('cash_transactions')
+            ->where('branch_id', $branchId)
+            ->where('type', 'cash_in')
+            ->where('shift', 'AM')
+            ->whereDate('created_at', $today)
+            ->exists();
+        $amClosed = \Illuminate\Support\Facades\DB::table('cash_counts')
+            ->where('branch_id', $branchId)
+            ->where('shift', 'AM')
+            ->whereDate('date', $today)
+            ->exists();
+
+        if ($amOpen && !$amClosed) return 'AM';
+
+        // Priority 3: Time-based fallback
+        return date('H') >= 13 ? 'PM' : 'AM';
     }
 }
