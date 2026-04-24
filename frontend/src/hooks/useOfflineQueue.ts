@@ -137,7 +137,14 @@ export function useOfflineQueue(): OfflineQueueState {
         try {
           // Use the specific endpoint for this item (default to /sales)
           const endpoint = item.endpoint || '/sales';
-          await api.post(endpoint, item.payload);
+          
+          // Sanitize payload: Map proxy ID -1 back to null for DB compatibility
+          const sanitizedPayload = JSON.parse(JSON.stringify(item.payload), (key, value) => {
+            if (key === 'discount_id' && value === -1) return null;
+            return value;
+          });
+
+          await api.post(endpoint, sanitizedPayload);
           updated = updated.filter(q => q.id !== item.id);
         } catch (err) {
           const status  = (err as { response?: { status?: number } })?.response?.status;

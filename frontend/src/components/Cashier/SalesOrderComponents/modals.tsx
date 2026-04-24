@@ -140,6 +140,7 @@ export const CartItemEditModal = ({
       id: d.id, label: d.name, type: 'percent' as const,
       value: Number(d.amount), badge: `${d.amount}% OFF`,
     })),
+    { id: -1, label: 'Custom Discount', type: itemDiscountType !== 'none' ? itemDiscountType : ('fixed' as const), value: itemDiscountValue || 0, badge: 'CUSTOM' },
   ];
   const discountOptions = buildDiscountOptions();
 
@@ -180,21 +181,35 @@ export const CartItemEditModal = ({
                 const isSelected = editingItemDiscountId === option.id;
                 const isNone = option.id === null;
                 return (
-                  <button key={String(option.id)}
-                    onClick={() => { onSetDiscountId(option.id); onSetDiscountType(option.type); onSetDiscountValue(option.value || ''); }}
-                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${isSelected ? isNone ? 'bg-red-500 text-white' : 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-white bg-white' : 'border-zinc-300'}`}>
-                        {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#6a12b8]'}`} />}
+                  <div key={String(option.id)} className="flex flex-col">
+                    <button
+                      onClick={() => { onSetDiscountId(option.id); onSetDiscountType(option.type); onSetDiscountValue(option.value || ''); }}
+                      className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${isSelected ? isNone ? 'bg-red-500 text-white' : 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-white bg-white' : 'border-zinc-300'}`}>
+                          {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#6a12b8]'}`} />}
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-wider">{option.label}</span>
                       </div>
-                      <span className="text-xs font-black uppercase tracking-wider">{option.label}</span>
-                    </div>
-                    {option.badge && (
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full tabular-nums shrink-0 ml-2 ${isSelected ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
-                        {option.badge}
-                      </span>
+                      {option.badge && (
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full tabular-nums shrink-0 ml-2 ${isSelected ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                          {option.badge}
+                        </span>
+                      )}
+                    </button>
+                    {isSelected && option.id === -1 && (
+                      <div className="p-4 bg-[#f5f0ff] border-t border-zinc-100 flex flex-col gap-3">
+                        <div className="flex gap-2">
+                          <button onClick={() => onSetDiscountType('percent')} className={`flex-1 py-2 rounded-[0.625rem] font-bold text-xs uppercase ${itemDiscountType === 'percent' ? 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-500 border border-[#e9d5ff]'}`}>% Percent</button>
+                          <button onClick={() => onSetDiscountType('fixed')} className={`flex-1 py-2 rounded-[0.625rem] font-bold text-xs uppercase ${itemDiscountType === 'fixed' ? 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-500 border border-[#e9d5ff]'}`}>₱ Fixed Amt</button>
+                        </div>
+                        <input type="number" placeholder="Enter amount..." value={itemDiscountValue} 
+                          onChange={e => onSetDiscountValue(e.target.value ? Number(e.target.value) : '')}
+                          className="w-full bg-white border border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-sm font-bold text-black outline-none focus:border-[#6a12b8] transition-colors"
+                        />
+                      </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -849,6 +864,8 @@ export const ConfirmOrderModal = ({
   const { showToast } = useToast();
   const isVat = vatType === 'vat';
   const [showPinOverlay, setShowPinOverlay] = React.useState(false);
+  const [customDiscountType, setCustomDiscountType] = React.useState<'Percent' | 'Fixed Amount'>('Fixed Amount');
+  const [customDiscountAmount, setCustomDiscountAmount] = React.useState<number | ''>('');
 
   // ── Derived pax counts from assignments ──────────────────────────────────
   const totalScUnits = Object.values(itemPaxAssignments).flat().filter(a => a === 'sc').length;
@@ -1177,7 +1194,30 @@ export const ConfirmOrderModal = ({
                             {d.name} ({d.amount}{d.type.includes('Percent') ? '%' : ' OFF'})
                           </button>
                         ))}
+                        <button onClick={() => onDiscountChange({ id: -1, name: 'Custom Discount', amount: Number(customDiscountAmount || 0), type: customDiscountType, status: 'ON' })}
+                          className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center ${selectedDiscount?.id === -1 ? 'bg-[#6a12b8] text-white border-[#6a12b8] shadow-md' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-[#6a12b8]'}`}>
+                          Custom Discount
+                        </button>
                       </div>
+                      {selectedDiscount?.id === -1 && (
+                        <div className="bg-[#f5f0ff] p-4 rounded-[0.625rem] border-2 border-[#e9d5ff] space-y-3 mt-2">
+                          <h4 className="font-black text-xs text-[#6a12b8] uppercase tracking-widest">Custom Discount Config</h4>
+                          <div className="flex gap-2">
+                            <button onClick={() => { setCustomDiscountType('Percent'); onDiscountChange({ id: -1, name: 'Custom Discount', amount: Number(customDiscountAmount || 0), type: 'Percent', status: 'ON' }); }} className={`flex-1 py-2 rounded-[0.625rem] font-bold text-xs uppercase transition-colors ${customDiscountType === 'Percent' ? 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-500 border border-[#e9d5ff]'}`}>% Percent</button>
+                            <button onClick={() => { setCustomDiscountType('Fixed Amount'); onDiscountChange({ id: -1, name: 'Custom Discount', amount: Number(customDiscountAmount || 0), type: 'Fixed Amount', status: 'ON' }); }} className={`flex-1 py-2 rounded-[0.625rem] font-bold text-xs uppercase transition-colors ${customDiscountType === 'Fixed Amount' ? 'bg-[#6a12b8] text-white' : 'bg-white text-zinc-500 border border-[#e9d5ff]'}`}>₱ Fixed Amt</button>
+                          </div>
+                          <div>
+                            <input type="number" placeholder="Enter amount..." value={customDiscountAmount} 
+                              onChange={e => {
+                                const val = e.target.value ? Number(e.target.value) : '';
+                                setCustomDiscountAmount(val);
+                                onDiscountChange({ id: -1, name: 'Custom Discount', amount: Number(val || 0), type: customDiscountType, status: 'ON' });
+                              }}
+                              className="w-full bg-white border border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-sm font-bold text-black outline-none focus:border-[#6a12b8] transition-colors"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Discount Remarks</h3>

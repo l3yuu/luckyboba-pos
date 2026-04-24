@@ -1296,10 +1296,12 @@ const SalesOrder = () => {
       totalDiscount = drinkUnitPrice * qty * (discountValNum / 100)
       const d = discounts.find(d => d.id === editingItemDiscountId)
       if (d) discountLabel = `${d.name} (${d.amount}%)`
+      else if (editingItemDiscountId === -1) discountLabel = `Custom Discount (${discountValNum}%)`
     } else if (itemDiscountType === 'fixed' && discountValNum > 0) {
       totalDiscount = Math.min(discountValNum, drinkUnitPrice * qty)
       const d = discounts.find(d => d.id === editingItemDiscountId)
       if (d) discountLabel = `${d.name} (-₱${d.amount})`
+      else if (editingItemDiscountId === -1) discountLabel = `Custom Discount (-₱${discountValNum})`
     }
     const newFinalPrice = Math.max(0, grossTotal - totalDiscount)
     const updated: CartItem = {
@@ -1435,7 +1437,7 @@ const SalesOrder = () => {
         add_ons: item.addOns || [],
         remarks: item.remarks || null,
         charges: { grab: item.charges.grab, panda: item.charges.panda },
-        discount_id: item.discountId ?? null,
+        discount_id: item.discountId === -1 ? null : (item.discountId ?? null),
         discount_label: item.discountLabel ?? null,
         discount_type: item.discountType ?? null,
         discount_value: item.discountValue !== '' ? item.discountValue : null,
@@ -1446,7 +1448,7 @@ const SalesOrder = () => {
       pwd_discount_amount: round(pwdDiscountAmount),
       diplomat_discount_amount: round(diplomatDiscountAmount),
       other_discount_amount: otherDiscountAmount,
-      discount_id: selectedDiscount?.id ?? null,
+      discount_id: selectedDiscount?.id === -1 ? null : (selectedDiscount?.id ?? null),
       pax_discount_ids: selectedDiscounts.map(d => d.id).join(',') || null,
       total: amtDue,
       cashier_name: cashierName ?? 'Admin',
