@@ -111,7 +111,7 @@ class ProcessCheckoutAction
             $sale = Sale::create([
                 'user_id'                  => $userId,
                 'branch_id'                => $branchId,
-                'shift'                    => $user?->current_shift ?? $this->resolveActiveShift($branchId),
+                'shift'                    => $data['shift'] ?? ($user?->current_shift ?? $this->resolveActiveShift($branchId)),
                 'total_amount'             => 0, // Placeholder
                 'invoice_number'           => $officialOR,
                 'status'                   => $data['status'] ?? 'completed',

@@ -16,11 +16,12 @@ interface HeaderProps {
   searchQuery: string;
   onSearchChange: (v: string) => void;
   onHomeClick: () => void;
+  currentShift?: string | null;
 }
 
 export const Header = ({
   branchName, formattedDate, formattedTime,
-  searchQuery, onSearchChange, onHomeClick,
+  searchQuery, onSearchChange, onHomeClick, currentShift,
 }: HeaderProps) => (
   <div className="flex gap-3 px-4 py-3 bg-white border-b border-[#e9d5ff] items-center h-20 shrink-0 shadow-sm z-20">
     <button
@@ -47,6 +48,20 @@ export const Header = ({
     </div>
 
     <div className="flex gap-2 h-full">
+      {currentShift && (
+        <div className={`bg-[#f5f0ff] border-2 rounded-[0.625rem] flex items-center justify-center px-4 ${
+          currentShift === 'AM' ? 'border-sky-200 bg-sky-50' : 'border-indigo-200 bg-indigo-50'
+        }`}>
+          <div className="text-center">
+            <div className={`text-[9px] font-black uppercase tracking-widest leading-none ${
+              currentShift === 'AM' ? 'text-sky-500/50' : 'text-indigo-500/50'
+            }`}>Shift</div>
+            <div className={`text-[11px] font-black uppercase leading-tight mt-0.5 ${
+              currentShift === 'AM' ? 'text-sky-700' : 'text-indigo-700'
+            }`}>{currentShift}</div>
+          </div>
+        </div>
+      )}
       <div className="bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] flex items-center justify-center px-4">
         <div className="text-center">
           <div className="text-[9px] font-black uppercase text-[#6a12b8]/50 tracking-widest leading-none">Branch</div>

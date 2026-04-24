@@ -183,13 +183,13 @@ class CashCountController extends Controller
         // A cashier is locked out of THEIR shift once THEY submit an EOD for it.
         $isEodDone = CashCount::where('user_id', $user->id)
             ->when($shift, fn($q) => $q->where('shift', $shift))
-            ->whereRaw('DATE(created_at) = ?', [now()->toDateString()])
+            ->whereDate('date', now()->toDateString())
             ->exists();
 
         // Terminal is only GLOBALLY locked if a PM shift has been completed.
         $isTerminalLocked = CashCount::where('branch_id', $user->branch_id)
             ->where('shift', 'PM')
-            ->whereRaw('DATE(created_at) = ?', [now()->toDateString()])
+            ->whereDate('date', now()->toDateString())
             ->exists();
 
         return response()->json([

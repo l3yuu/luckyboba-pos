@@ -110,6 +110,7 @@ class SalesDashboardController extends Controller
 
             $zRecord = ZReading::where('reading_date', $from)
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->when($shift,    fn($q) => $q->where('shift', $shift))
                 ->first();
 
             $branch = Branch::find($branchId);

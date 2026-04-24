@@ -67,32 +67,41 @@ class CashTransactionController extends Controller
         ]);
 
         // 2. SHIFT INITIALIZATION CHECK
+        $shift = $request->input('shift')
+              ?? $user?->current_shift
+              ?? (now()->hour < 14 ? 'AM' : 'PM');
+
         $hasCashedIn = CashTransaction::where('user_id', $userId)
             ->where('type', 'cash_in')
+            ->where('shift', $shift)
             ->whereDate('created_at', $today)
             ->exists();
 
         if (!$hasCashedIn && $validated['type'] !== 'cash_in') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Shift not initialized. Please perform Cash In first.'
-            ], 403);
+            // Check if ANYONE in the branch has cashed in for this shift (to allow shared terminals)
+            $branchCashedIn = CashTransaction::where('branch_id', $branchId)
+                ->where('type', 'cash_in')
+                ->where('shift', $shift)
+                ->whereDate('created_at', $today)
+                ->exists();
+
+            if (!$branchCashedIn) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Shift not initialized. Please perform Cash In first.'
+                ], 403);
+            }
         }
 
         // 3. PREVENT DOUBLE CASH-IN
         if ($validated['type'] === 'cash_in' && $hasCashedIn) {
             return response()->json([
                 'success' => false,
-                'message' => 'You have already performed a Cash In for today.'
+                'message' => "You have already performed a Cash In for the {$shift} shift today."
             ], 200);
         }
 
         try {
-            // Resolve shift from request, user model, or time-of-day fallback
-            $shift = $request->input('shift')
-                  ?? $user?->current_shift
-                  ?? (now()->hour < 14 ? 'AM' : 'PM');
-
             $transaction = CashTransaction::create([
                 'user_id'   => $userId,
                 'branch_id' => $branchId,
@@ -101,6 +110,11 @@ class CashTransactionController extends Controller
                 'amount'    => $validated['amount'],
                 'note'      => $validated['note'],
             ]);
+
+            // If this is a cash_in, update the user's current_shift for this session
+            if ($validated['type'] === 'cash_in') {
+                $user->update(['current_shift' => $shift]);
+            }
 
             return response()->json([
                 'success' => true,

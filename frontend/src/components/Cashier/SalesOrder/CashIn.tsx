@@ -40,12 +40,14 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       try {
         const response = await api.get<{ isEodDone: boolean, isTerminalLocked: boolean, currentShift: string }>('/cash-counts/status');
         if (!cancelled) {
-          setIsEodLocked(response.data.isEodDone);
+          setIsEodLocked(response.data.isTerminalLocked);
           // Check which shifts are available
-          await api.get('/cash-transactions/status');
+
           // AM is done if there's already been a cash count for AM
-          const cashCountRes = await api.get(`/cash-counts/summary?date=${new Date().toISOString().split('T')[0]}`);
-          const cashCounts = cashCountRes.data?.denominations ? [cashCountRes.data] : (Array.isArray(cashCountRes.data) ? cashCountRes.data : []);
+          const localDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+          const cashCountRes = await api.get(`/cash-counts/summary?date=${localDate}`);
+          const data = cashCountRes.data;
+          const cashCounts = data?.all_shifts || (data?.denominations ? [data] : []);
           const amClosed = cashCounts.some((c: { shift: string }) => c.shift === 'AM');
           const pmClosed = cashCounts.some((c: { shift: string }) => c.shift === 'PM');
           
@@ -86,6 +88,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       });
 
       if (response.data.success) {
+        localStorage.setItem('pos_current_shift', selectedShift);
         localStorage.setItem('cashier_menu_unlocked', 'true');
         localStorage.setItem('cashier_lock_date', new Date().toDateString());
         localStorage.removeItem('dashboard_stats_timestamp');

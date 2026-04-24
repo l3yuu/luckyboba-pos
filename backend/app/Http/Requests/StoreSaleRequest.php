@@ -68,6 +68,7 @@ class StoreSaleRequest extends FormRequest
             'status'                   => 'nullable|string',
             'source'                   => 'nullable|string',
             'order_type'               => 'nullable|string',
+            'shift'                    => 'nullable|string',
         ];
     }
 }

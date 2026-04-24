@@ -106,6 +106,7 @@ const SalesOrder = () => {
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
   );
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentShift, setCurrentShift] = useState<string | null>(() => localStorage.getItem('pos_current_shift'));
 
   //Receipt Footer
   const [posFooter, setPosFooter] = useState<Record<string, string>>({});
@@ -717,6 +718,7 @@ const SalesOrder = () => {
     const onCashIn = () => {
       setMenuAvailable(true)
       setCheckingCashIn(false)
+      setCurrentShift(localStorage.getItem('pos_current_shift'))
     }
     window.addEventListener('cash-in-completed', onCashIn)
     return () => window.removeEventListener('cash-in-completed', onCashIn)
@@ -1462,6 +1464,7 @@ const SalesOrder = () => {
       cash_tendered: typeof cashTendered === 'number' ? cashTendered : 0,
       pax_senior: paxSenior,
       pax_pwd: paxPwd,
+      shift: currentShift,
       // FIX #3 — join the arrays to strings to match the backend's expected scalar fields
       senior_id: seniorIds.length > 0 ? seniorIds.join(',') : null,
       pwd_id: pwdIds.length > 0 ? pwdIds.join(',') : null,
@@ -1938,6 +1941,7 @@ const SalesOrder = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onHomeClick={() => handleNavClick('Home')}
+          currentShift={currentShift}
         />
 
         <OfflineQueueBanner

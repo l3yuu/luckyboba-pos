@@ -273,9 +273,9 @@ class ReportRepository implements ReportRepositoryInterface
             $query->where('branch_id', $branchId);
         }
 
-        $cashCount = $query->latest()->first();
+        $cashCounts = $query->orderBy('created_at', 'asc')->get();
 
-        if (!$cashCount) {
+        if ($cashCounts->isEmpty()) {
             return [
                 'cash_count'    => null,
                 'denominations' => [],
@@ -287,47 +287,57 @@ class ReportRepository implements ReportRepositoryInterface
                 'remarks'         => '',
                 'message'       => 'No cash count recorded for this date.',
                 'prepared_by'   => $cashierName,
+                'all_shifts'    => []
             ];
         }
 
-        $breakdown = $cashCount->breakdown ?? $cashCount->denominations_data ?? '[]';
-        if (is_string($breakdown)) {
-            $breakdown = json_decode($breakdown, true) ?? [];
-        }
-
-        $allDenoms = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
-
-        $denominations = collect($allDenoms)->map(function ($denom) use ($breakdown) {
-            $qty = 0;
-            foreach ($breakdown as $key => $val) {
-                if ((float)$key === (float)$denom) {
-                    $qty = (int)$val;
-                    break;
-                }
+        $results = $cashCounts->map(function ($cashCount) use ($cashierName) {
+            $breakdown = $cashCount->breakdown ?? $cashCount->denominations_data ?? '[]';
+            if (is_string($breakdown)) {
+                $breakdown = json_decode($breakdown, true) ?? [];
             }
+
+            $allDenoms = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
+            $denominations = collect($allDenoms)->map(function ($denom) use ($breakdown) {
+                $qty = 0;
+                foreach ($breakdown as $key => $val) {
+                    if ((float)$key === (float)$denom) {
+                        $qty = (int)$val;
+                        break;
+                    }
+                }
+                return [
+                    'label' => $denom == 0.25 ? '0.25' : number_format((float)$denom, 0),
+                    'qty'   => $qty,
+                    'total' => (float)$denom * $qty,
+                ];
+            })->values()->toArray();
+
+            $actualAmount   = (float) ($cashCount->actual_amount  ?? $cashCount->total_amount  ?? 0);
+            $expectedAmount = (float) ($cashCount->expected_amount ?? $cashCount->expected_cash ?? 0);
+            $shortOver      = (float) ($cashCount->short_over      ?? ($actualAmount - $expectedAmount));
+
             return [
-                'label' => $denom == 0.25 ? '0.25' : number_format((float)$denom, 0),
-                'qty'   => $qty,
-                'total' => (float)$denom * $qty,
+                'id' => $cashCount->id,
+                'shift' => $cashCount->shift,
+                'cash_count' => [
+                    'denominations' => $denominations,
+                    'grand_total'   => $actualAmount,
+                ],
+                'expected_amount' => $expectedAmount,
+                'actual_amount'   => $actualAmount,
+                'short_over'      => $shortOver,
+                'date'            => $cashCount->date,
+                'remarks'         => $cashCount->remarks ?? '',
+                'prepared_by'     => $cashierName,
             ];
-        })->values()->toArray();
+        });
 
-        $actualAmount   = (float) ($cashCount->actual_amount  ?? $cashCount->total_amount  ?? 0);
-        $expectedAmount = (float) ($cashCount->expected_amount ?? $cashCount->expected_cash ?? 0);
-        $shortOver      = (float) ($cashCount->short_over      ?? ($actualAmount - $expectedAmount));
+        // For backward compatibility with single-object consumers, return the latest as the main object
+        $latest = $results->last();
+        $latest['all_shifts'] = $results->toArray();
 
-        return [
-            'cash_count' => [
-                'denominations' => $denominations,
-                'grand_total'   => $actualAmount,
-            ],
-            'expected_amount' => $expectedAmount,
-            'actual_amount'   => $actualAmount,
-            'short_over'      => $shortOver,
-            'date'            => $cashCount->date ?? $date,
-            'remarks'         => $cashCount->remarks ?? '',
-            'prepared_by'     => $cashierName,
-        ];
+        return $latest;
     }
 
     public function getVoidLogs(string $date, ?int $branchId): mixed
