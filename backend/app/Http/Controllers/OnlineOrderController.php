@@ -89,7 +89,7 @@ class OnlineOrderController extends Controller
         }
 
         $sale         = $query->firstOrFail();
-        $sale->status = $request->status;
+        $sale->status = $request->input('status');
 
         if ($request->filled('invoice_number'))      $sale->invoice_number   = $request->input('invoice_number');
         if ($request->filled('payment_method'))      $sale->payment_method   = $request->input('payment_method');
@@ -233,7 +233,7 @@ class OnlineOrderController extends Controller
             }
 
             if ($request->filled('voucher_id')) {
-                \App\Models\Voucher::where('id', $request->voucher_id)->increment('times_used');
+                \App\Models\Voucher::where('id', $request->input('voucher_id'))->increment('times_used');
             }
 
             $branch = \App\Models\Branch::whereRaw(
@@ -247,22 +247,22 @@ class OnlineOrderController extends Controller
             ]);
 
             $sale = Sale::create([
-                'invoice_number' => $request->si_number,
+                'invoice_number' => $request->input('si_number'),
                 'branch_id'      => $branch?->id,
                 'user_id'        => $request->user()->id,
                 'customer_name'  => $request->user()->name,
-                'total_amount'   => $request->total,
-                'subtotal'       => $request->subtotal,
+                'total_amount'   => $request->input('total'),
+                'subtotal'       => $request->input('subtotal'),
                 'vatable_sales'  => $request->input('vatable_sales', 0),
                 'vat_amount'     => $request->input('vat_amount', 0),
-                'payment_method' => $request->payment_method,
-                'order_type'     => $request->order_type,
+                'payment_method' => $request->input('payment_method'),
+                'order_type'     => $request->input('order_type'),
                 'cashier_name'   => 'Customer App',
                 'status'         => 'pending',
-                'cash_tendered'  => $request->input('cash_tendered', $request->total),
+                'cash_tendered'  => $request->input('cash_tendered', $request->input('total')),
             ]);
 
-            foreach ($request->items as $item) {
+            foreach ($request->input('items', []) as $item) {
                 $sale->items()->create([
                     'product_name' => $item['name'],
                     'quantity'     => $item['quantity'],
@@ -283,7 +283,7 @@ class OnlineOrderController extends Controller
             $pointsRatio = (float) (\App\Models\Setting::where('key', 'points_per_currency')->value('value') ?? 1.0);
             $cardMult   = (float) (\App\Models\Setting::where('key', 'card_point_multiplier')->value('value') ?? 2.0);
 
-            $pointsEarned = (int) floor($request->total * $pointsRatio);
+            $pointsEarned = (int) floor($request->input('total') * $pointsRatio);
             if ($request->input('card_id')) {
                 $pointsEarned = (int) ($pointsEarned * $cardMult);
             }
