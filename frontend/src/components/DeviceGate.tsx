@@ -30,6 +30,15 @@ export function DeviceGate({ children }: Props) {
   const { status, message, deviceId, posNumber } = useDeviceCheck(shouldCheck, user?.id);
   const [copied, setCopied] = useState(false);
 
+  // If device becomes unregistered while logged in as cashier, force logout.
+  useEffect(() => {
+    if (status === 'unregistered' && user && isCashier) {
+      showToast(message || 'Device not registered or deactivated.', 'error');
+      setBypass(false);
+      void logout();
+    }
+  }, [status, user, isCashier, logout, showToast, message]);
+
   // ── Loading State ────────────────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -41,16 +50,6 @@ export function DeviceGate({ children }: Props) {
       </div>
     );
   }
-
-  // If device becomes unregistered while logged in as cashier, force logout.
-  useEffect(() => {
-    if (status === 'unregistered' && user && isCashier) {
-      showToast(message || 'Device not registered or deactivated.', 'error');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBypass(false);
-      void logout();
-    }
-  }, [status, user, isCashier, logout, showToast, message]);
 
   // ── Error States (Priority Gating) ─────────────────────────────────────────
   // We check for hardware errors BEFORE checking the bypass status for cashiers.
