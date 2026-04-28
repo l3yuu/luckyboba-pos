@@ -22,12 +22,12 @@ export function DeviceGate({ children }: Props) {
   const isCashier = user?.role === 'cashier';
   const shouldCheck = !isPrivileged && !bypass;
 
-  const { status, message, deviceId } = useDeviceCheck(shouldCheck);
+  const { status, message, deviceId, posNumber } = useDeviceCheck(shouldCheck);
   const [copied, setCopied] = useState(false);
 
-  // If device becomes unregistered while logged in as cashier, force logout
+  // If device becomes unregistered or unauthorized while logged in as cashier, force logout
   useEffect(() => {
-    if (status === 'unregistered' && user && isCashier) {
+    if ((status === 'unregistered' || status === 'unauthorized') && user && isCashier) {
       showToast(message || 'Device not registered or deactivated.', 'error');
       void logout();
     }
@@ -44,6 +44,54 @@ export function DeviceGate({ children }: Props) {
         <div className="text-center space-y-2">
           <div className="w-8 h-8 border-4 border-[#6a12b8] border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-gray-400">Verifying device...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Unauthorized (Registered but not assigned) ───────────────────────────
+  if (status === 'unauthorized') {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center space-y-5">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                d="M12 15v2m0 0v2m0-2h2m-2 0H10m4-6a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </div>
+
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">Device Authorized</h1>
+            <p className="text-sm text-gray-500 mt-2">
+              This device is registered as <span className="font-bold text-gray-700">{posNumber || 'a known terminal'}</span> but your account is not assigned to it.
+            </p>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-left">
+            <p className="text-xs text-amber-800 font-medium leading-relaxed">
+              {message || "You don't have permission to use this specific terminal. Please contact your manager to assign your account to this POS."}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+             <button
+              onClick={() => window.location.reload()}
+              className="w-full py-3 px-4 bg-[#6a12b8] text-white text-sm font-bold rounded-xl hover:bg-[#2d1850] transition-all flex items-center justify-center gap-2"
+            >
+              Retry Login
+            </button>
+            <button
+              onClick={() => setBypass(true)}
+              className="w-full py-3 px-4 bg-white border border-gray-200 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-50 transition-all"
+            >
+              Administrator Login
+            </button>
+          </div>
+          
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold pt-2">
+            Terminal ID: {deviceId?.slice(0, 8)}...
+          </p>
         </div>
       </div>
     );

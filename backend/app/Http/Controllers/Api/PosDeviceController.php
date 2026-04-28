@@ -36,10 +36,22 @@ class PosDeviceController extends Controller
                     return response()->json(['success' => false, 'registered' => false, 'message' => 'This device belongs to a different branch. Access denied.'], 403);
                 }
                 if ($device->users->isEmpty()) {
-                    return response()->json(['success' => false, 'registered' => false, 'message' => 'This device has no cashier assigned. Contact your administrator.'], 403);
+                    return response()->json([
+                        'success' => false, 
+                        'registered' => true, 
+                        'assigned' => false,
+                        'pos_number' => $device->pos_number,
+                        'message' => 'This device has no cashier assigned. Contact your administrator.'
+                    ], 403);
                 }
                 if (!$device->users->contains($user->id)) {
-                    return response()->json(['success' => false, 'registered' => false, 'message' => 'You are not assigned to this device.'], 403);
+                    return response()->json([
+                        'success' => false, 
+                        'registered' => true, 
+                        'assigned' => false,
+                        'pos_number' => $device->pos_number,
+                        'message' => 'You are not assigned to this device.'
+                    ], 403);
                 }
             }
         }

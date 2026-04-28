@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getDeviceIdAsync } from '../utils/deviceId';
 import api from '../services/api';
 
-type DeviceStatus = 'checking' | 'registered' | 'unregistered';
+type DeviceStatus = 'checking' | 'registered' | 'unregistered' | 'unauthorized';
 
 interface DeviceBranch {
   id:       number;
@@ -13,7 +13,12 @@ interface DeviceBranch {
 interface ApiError {
   response?: {
     status?: number;
-    data?: { message?: string };
+    data?: { 
+      message?: string;
+      registered?: boolean;
+      assigned?: boolean;
+      pos_number?: string;
+    };
   };
 }
 
@@ -67,13 +72,20 @@ export function useDeviceCheck(enabled: boolean = true) {
         }
       } catch (err: unknown) {
         const error = err as ApiError;
-        // If it's a 403 Forbidden, it means the device is inactive or unauthorized
+        const data = error.response?.data;
+        
+        // If it's a 403 Forbidden
         if (error.response?.status === 403) {
-          setMessage(error.response?.data?.message ?? 'Device deactivated.');
-          setStatus('unregistered');
+          setMessage(data?.message ?? 'Device deactivated.');
+          
+          if (data?.registered === true && data?.assigned === false) {
+            if (data.pos_number) setPosNumber(data.pos_number);
+            setStatus('unauthorized'); // Registered but user not assigned
+          } else {
+            setStatus('unregistered'); // Not registered at all
+          }
         } else if (status !== 'registered') {
-          // Only show error message for non-403 if we're not already registered
-          setMessage(error.response?.data?.message ?? 'Device check failed.');
+          setMessage(data?.message ?? 'Device check failed.');
           setStatus('unregistered');
         }
       } finally {
