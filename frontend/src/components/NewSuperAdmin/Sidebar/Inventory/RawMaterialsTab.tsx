@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../../services/api';
+import { useToast } from '../../../../context/ToastContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,7 @@ interface FormState {
   reorder_level: number | '';
   is_intermediate: boolean;
   notes: string;
+  branch_id: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -81,6 +83,7 @@ const blankForm = (): FormState => ({
   name: '', unit: 'PC', purchase_unit: '', purchase_to_base_factor: 1, last_purchase_price: '',
   category: 'Ingredients',
   current_stock: '', reorder_level: '', is_intermediate: false, notes: '',
+  branch_id: '',
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -493,7 +496,8 @@ const MaterialFormModal: React.FC<{
   onClose: () => void;
   onSaved: (m: RawMaterial) => void;
   editing?: RawMaterial | null;
-}> = ({ onClose, onSaved, editing }) => {
+  branches: Array<{id: number; name: string}>;
+}> = ({ onClose, onSaved, editing, branches }) => {
   const [form, setForm] = useState<FormState>(
     editing
       ? {
@@ -502,7 +506,8 @@ const MaterialFormModal: React.FC<{
         purchase_to_base_factor: editing.purchase_to_base_factor,
         last_purchase_price: editing.last_purchase_price || '',
         current_stock: editing.current_stock, reorder_level: editing.reorder_level,
-        is_intermediate: editing.is_intermediate, notes: editing.notes ?? ''
+        is_intermediate: editing.is_intermediate, notes: editing.notes ?? '',
+        branch_id: editing.branch_id ? String(editing.branch_id) : ''
       }
       : blankForm()
   );
@@ -513,7 +518,6 @@ const MaterialFormModal: React.FC<{
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = 'Name is required.';
-    if (form.current_stock === '') e.current_stock = 'Stock is required.';
     if (form.reorder_level === '') e.reorder_level = 'Reorder level is required.';
     return e;
   };
@@ -528,7 +532,8 @@ const MaterialFormModal: React.FC<{
         current_stock: Number(form.current_stock), 
         reorder_level: Number(form.reorder_level),
         purchase_to_base_factor: Number(form.purchase_to_base_factor || 1),
-        last_purchase_price: form.last_purchase_price === '' ? null : Number(form.last_purchase_price)
+        last_purchase_price: form.last_purchase_price === '' ? null : Number(form.last_purchase_price),
+        branch_id: form.branch_id === '' ? null : Number(form.branch_id)
       };
       const res = editing
         ? await api.put(`/raw-materials/${editing.id}`, payload)
@@ -572,6 +577,13 @@ const MaterialFormModal: React.FC<{
               className={inputCls(errors.name)} placeholder="e.g. Brown Sugar Syrup" />
           </Field>
 
+          <Field label="Branch Assignment" required>
+            <select value={form.branch_id} disabled={!!editing} onChange={e => setForm(p => ({ ...p, branch_id: e.target.value }))} className={inputCls() + (editing ? ' opacity-60 cursor-not-allowed bg-zinc-100' : '')}>
+              <option value="">All Branches</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </Field>
+
           <div className="grid grid-cols-2 gap-3">
             <Field label="Base Unit (Inv)" required>
               <select value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value as Unit }))} className={inputCls()}>
@@ -607,18 +619,11 @@ const MaterialFormModal: React.FC<{
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Current Stock" required error={errors.current_stock}>
-              <input type="number" min="0" value={form.current_stock}
-                onChange={e => { setForm(p => ({ ...p, current_stock: e.target.value === '' ? '' : Number(e.target.value) })); setErrors(p => { const n = { ...p }; delete n.current_stock; return n; }); }}
-                className={inputCls(errors.current_stock)} placeholder="0" />
-            </Field>
-            <Field label="Reorder Level" required error={errors.reorder_level}>
-              <input type="number" min="0" value={form.reorder_level}
-                onChange={e => { setForm(p => ({ ...p, reorder_level: e.target.value === '' ? '' : Number(e.target.value) })); setErrors(p => { const n = { ...p }; delete n.reorder_level; return n; }); }}
-                className={inputCls(errors.reorder_level)} placeholder="0" />
-            </Field>
-          </div>
+          <Field label="Reorder Level" required error={errors.reorder_level}>
+            <input type="number" min="0" value={form.reorder_level}
+              onChange={e => { setForm(p => ({ ...p, reorder_level: e.target.value === '' ? '' : Number(e.target.value) })); setErrors(p => { const n = { ...p }; delete n.reorder_level; return n; }); }}
+              className={inputCls(errors.reorder_level)} placeholder="0" />
+          </Field>
 
           <Field label="Notes">
             <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
@@ -714,6 +719,7 @@ const DeleteModal: React.FC<{
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const RawMaterialsTab: React.FC = () => {
+  const { showToast } = useToast();
   const [materials, setMaterials] = useState<RawMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -1013,14 +1019,23 @@ const RawMaterialsTab: React.FC = () => {
       {addOpen && (
         <MaterialFormModal
           onClose={() => setAddOpen(false)}
-          onSaved={m => setMaterials(p => [m, ...p])}
+          onSaved={m => {
+            setMaterials(p => [m, ...p]);
+            showToast('Material added successfully', 'success');
+          }}
+          branches={branches}
         />
       )}
       {editTarget && (
         <MaterialFormModal
           onClose={() => setEditTarget(null)}
-          onSaved={m => { setMaterials(p => p.map(x => x.id === m.id ? m : x)); setEditTarget(null); }}
+          onSaved={m => { 
+            setMaterials(p => p.map(x => x.id === m.id ? m : x)); 
+            setEditTarget(null); 
+            showToast('Material updated successfully', 'success');
+          }}
           editing={editTarget}
+          branches={branches}
         />
       )}
       {delTarget && (
