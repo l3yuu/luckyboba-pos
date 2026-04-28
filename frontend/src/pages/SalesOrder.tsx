@@ -291,7 +291,7 @@ const SalesOrder = () => {
   const isDrink = selectedCategory?.type === 'drink' || selectedCategory?.category_type === 'bundle'
   const isWings = selectedCategory?.category_type === 'wings'
   const isOz = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE'
-  const isCombo = selectedCategory?.category_type === 'combo'
+  const isCombo = selectedCategory?.category_type === 'combo' || selectedCategory?.category_type === 'bundle' || (selectedCategory?.name || '').toLowerCase().includes('bundle');
   const isWaffleCategory = selectedCategory?.category_type === 'waffle'
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1
 
@@ -875,8 +875,34 @@ const SalesOrder = () => {
       return
     }
 
-    if (catType === 'bundle') {
-      const bundle = bundlesData.find(b => b.barcode === item.barcode)
+    const catTypeLower = (catType || '').toLowerCase().trim();
+    const catNameLower = (actualCategory?.name || '').toLowerCase().trim();
+    const isBundleLike = catTypeLower.includes('bundle') || catNameLower.includes('bundle') || catTypeLower === 'combo';
+
+    if (isBundleLike) {
+      const bCode = (item.barcode || '').trim().toUpperCase();
+      const bName = (item.name || '').trim().toLowerCase();
+      let bundle = bundlesData.find(b => (b.barcode || '').trim().toUpperCase() === bCode) || 
+                     bundlesData.find(b => (b.name || '').trim().toLowerCase() === bName) ||
+                     bundlesData.find(b => String(b.id) === String(item.id));
+      
+      if (!bundle && bCode) {
+        try {
+          const res = await api.get(`/bundles?barcode=${bCode}`);
+          const fetchedBundles = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+          if (fetchedBundles.length > 0) {
+            bundle = fetchedBundles[0];
+            setBundlesData(prev => {
+              const next = [...prev, bundle!];
+              localStorage.setItem('pos_bundles_cache', JSON.stringify(next));
+              return next;
+            });
+          }
+        } catch (err) {
+          console.error("Dynamic bundle fetch failed:", err);
+        }
+      }
+      
       if (bundle) {
         // Flatten items: if quantity is 2, create 2 separate slots for customization
         const allMenuItems = categories.flatMap(c => c.menu_items)
@@ -898,12 +924,15 @@ const SalesOrder = () => {
           quantity: 1,
           sugarLevel: '',
           options: [],
-          addOns: []
+          addOns: [],
+          size: item.size || 'L'
         })))
         setBundleComponentIndex(0)
         setOrderCharge(null)
         setIsBundleModalOpen(true)
         return
+      } else {
+        showToast(`Warning: "${item.name}" is in a Bundle category but has no linked components. Opening standard modal.`, "warning")
       }
     }
 
@@ -1087,12 +1116,7 @@ const SalesOrder = () => {
     // Validation for current step
     const item = flattenedBundleItems[bundleComponentIndex] as BundleComponent & { menuItem?: MenuItem }
     const sel = bundleComponentSelections[bundleComponentIndex]
-    const itemName = (sel.name || '').toLowerCase()
-    const hasSugarLevels = (item.menuItem?.sugar_levels?.length ?? 0) > 0 || 
-                           item.menuItem?.category_id != null ||
-                           itemName.includes('tea') || itemName.includes('drink') || 
-                           itemName.includes('coffee') || itemName.includes('boba') ||
-                           itemName.includes('milk') || itemName.includes('latte')
+    const hasSugarLevels = (item.menuItem?.sugar_levels?.length ?? 0) > 0;
     
     if (hasSugarLevels && sel.sugarLevel === '') {
         showToast(`Please select sugar level for ${sel.name}`, 'warning')
@@ -1194,8 +1218,9 @@ const SalesOrder = () => {
       ...comboDrinkOptions,
       ...comboDrinkAddOns.map(a => `+${a}`),
     ].join(' | ')
-    const drinkLabel =
-      isPizzaCombo && !isClassicPearl ? pendingComboCart.name.replace(/^PIZZA \+ /i, '') : 'Classic Pearl'
+    const drinkLabel = pendingComboCart.name.includes(' + ') 
+      ? pendingComboCart.name.split(' + ').pop()?.trim() || 'Second Item'
+      : (pendingComboCart.name.includes('+') ? pendingComboCart.name.split('+').pop()?.trim() : 'Classic Pearl');
     const finalItem: CartItem = {
       ...pendingComboCart,
       remarks: `${drinkLabel} [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,

@@ -1436,13 +1436,13 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         if (options.pearl) optList.push("pearl");
         if (options.ice) optList.push("ice");
         await fetch(`/api/menu-item-options/${savedItem.id}`, {
-          method: "PUT", headers: authHeaders(),
-          body: JSON.stringify({ options: optList }),
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({ _method: "PUT", options: optList }),
         }).catch(() => { });
 
         await fetch(`/api/menu-item-sugar-levels/${savedItem.id}`, {
-          method: "PUT", headers: authHeaders(),
-          body: JSON.stringify({ sugar_level_ids: selectedSugarLevelIds }),
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({ _method: "PUT", sugar_level_ids: selectedSugarLevelIds }),
         }).catch(() => { });
       }
 
@@ -1587,8 +1587,9 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         if (bundles.length > 0) {
           const bundleId = bundles[0].id;
           await fetch(`/api/bundles/${bundleId}`, {
-            method: 'PUT', headers: authHeaders(),
+            method: 'POST', headers: authHeaders(),
             body: JSON.stringify({
+              _method: 'PUT',
               name: form.name,
               price: Number(form.price),
               barcode: form.barcode,
@@ -1611,8 +1612,8 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
       );
       if (isFoodItem) {
         await fetch(`/api/menu-item-addons/${savedItem.id}`, {
-          method: "PUT", headers: authHeaders(),
-          body: JSON.stringify({ addon_ids: selectedFoodAddOnIds }),
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({ _method: "PUT", addon_ids: selectedFoodAddOnIds }),
         }).catch(() => { });
       }
 
@@ -2940,7 +2941,7 @@ const MenuItemsTab: React.FC = () => {
           onClose={() => startTransition(() => setAddOpen(false))}
           onSaved={item => { 
             setItems(p => [item, ...p]); 
-            setBundleInfo((prev: Record<number, any>) => {
+            setBundleInfo(prev => {
               const next = { ...prev };
               delete next[item.id];
               return next;
@@ -2953,7 +2954,7 @@ const MenuItemsTab: React.FC = () => {
           onClose={() => startTransition(() => setEditTarget(null))}
           onSaved={updated => { 
             setItems(p => p.map(i => i.id === updated.id ? updated : i)); 
-            setBundleInfo((prev: Record<number, any>) => {
+            setBundleInfo(prev => {
               const next = { ...prev };
               delete next[updated.id];
               return next;

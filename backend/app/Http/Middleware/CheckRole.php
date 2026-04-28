@@ -40,6 +40,7 @@ class CheckRole
 
         // 2. Account must be ACTIVE
         if (strtoupper($user->status) !== 'ACTIVE') {
+            \Log::warning("Inactive User Access Blocked: User {$user->id} ({$user->status}) tried to access {$request->path()}");
             return $this->respond($request, 403, 'Your account is inactive. Contact an administrator.');
         }
 
@@ -53,6 +54,7 @@ class CheckRole
 
         // 4. Check if the user's role is in the allowed roles for this route
         if (! in_array($user->role, $roles, true)) {
+            \Log::warning("Role Access Denied: User {$user->id} ({$user->role}) tried to access {$request->path()} [Required: " . implode(' or ', $roles) . "]");
             return $this->respond(
                 $request,
                 403,
