@@ -1473,8 +1473,8 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
           if (bundles.length > 0) {
             const bundleId = bundles[0].id;
             const existingItems = bundles[0].items ?? bundles[0].bundle_items ?? [];
-            const existingFood = existingItems.find((bi: any) => bi.size === 'none');
-            const existingDrink = existingItems.find((bi: any) => bi.size !== 'none');
+            const existingFood = existingItems.find((bi: BundleItemRaw) => bi.size === 'none');
+            const existingDrink = existingItems.find((bi: BundleItemRaw) => bi.size !== 'none');
 
             await fetch(`/api/bundles/${bundleId}`, {
               method: 'PUT', headers: authHeaders(),
