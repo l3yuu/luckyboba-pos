@@ -382,12 +382,35 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::get('/bundles',         [BundleController::class,       'index']);
         Route::get('/category-drinks', [CategoryDrinkController::class,'index']);
 
+        // ── Bundles Management ────────────────────────────────────────────────
+        Route::prefix('bundles')->group(function () {
+            Route::get   ('/all',         [BundleController::class, 'all']);
+            Route::get   ('/{id}',        [BundleController::class, 'show']);
+            Route::post  ('/',            [BundleController::class, 'store']);
+            Route::put   ('/{id}',        [BundleController::class, 'update']);
+            Route::delete('/{id}',        [BundleController::class, 'destroy']);
+            Route::patch ('/{id}/toggle', [BundleController::class, 'toggle']);
+        });
+
+        // ── Category Drinks (Pool) ────────────────────────────────────────────
+        Route::prefix('category-drinks')->group(function () {
+            Route::post('/', [CategoryDrinkController::class, 'store']);
+        });
+
+        // ── Add-Ons Management ────────────────────────────────────────────────
+        Route::prefix('add-ons')->group(function () {
+            Route::post  ('/',        [AddOnController::class, 'store']);
+            Route::put   ('/{addOn}', [AddOnController::class, 'update']);
+            Route::delete('/{addOn}', [AddOnController::class, 'destroy']);
+        });
+
         Route::apiResource('categories',     CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
 
-        Route::get('/cups',                                      [CupController::class,       'index']);
+        Route::get('/cup-sizes',                                 [CupController::class,       'index']);
         Route::get('/sugar-levels/by-item/{menuItemId}',         [SugarLevelController::class,'byMenuItem']);
+        Route::get('/menu-item-sugar-levels/bulk',               [SugarLevelController::class,'bulk']);
         Route::get('/menu-item-sugar-levels',                    [SugarLevelController::class,'byMenuItemViaQuery']); // Added to match frontend
         Route::put('/menu-item-sugar-levels/{id}',               [SugarLevelController::class,'updateAssignment']);   // Added to match frontend
 
@@ -604,18 +627,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
             Route::delete('/{id}',                [BranchController::class, 'destroy']);
         });
 
-        Route::prefix('bundles')->group(function () {
-            Route::get   ('/all',         [BundleController::class, 'all']);
-            Route::get   ('/{id}',        [BundleController::class, 'show']);
-            Route::post  ('/',            [BundleController::class, 'store']);
-            Route::put   ('/{id}',        [BundleController::class, 'update']);
-            Route::delete('/{id}',        [BundleController::class, 'destroy']);
-            Route::patch ('/{id}/toggle', [BundleController::class, 'toggle']);
-        });
 
-        Route::prefix('category-drinks')->group(function () {
-            Route::post('/', [CategoryDrinkController::class, 'store']);
-        });
 
         Route::prefix('sugar-levels')->group(function () {
             Route::get   ('/all',     [SugarLevelController::class, 'adminIndex']);
@@ -625,11 +637,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
             Route::patch ('/reorder', [SugarLevelController::class, 'reorder']);
         });
 
-        Route::prefix('add-ons')->group(function () {
-            Route::post  ('/',        [AddOnController::class, 'store']);
-            Route::put   ('/{addOn}', [AddOnController::class, 'update']);
-            Route::delete('/{addOn}', [AddOnController::class, 'destroy']);
-        });
+
 
         Route::prefix('admin/cards')->group(function () {
             Route::get ('/',                          [CardController::class, 'adminIndex']);

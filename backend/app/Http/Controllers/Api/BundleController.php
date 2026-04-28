@@ -18,7 +18,7 @@ class BundleController extends Controller
      */
 public function index(Request $request)
 {
-    $query = Bundle::with('items')->where('is_active', true);
+    $query = Bundle::with('items.menuItem')->where('is_active', true);
 
     if ($request->has('category_id')) {
         $query->where('category_id', $request->category_id);

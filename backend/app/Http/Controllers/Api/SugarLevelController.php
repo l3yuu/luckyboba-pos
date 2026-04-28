@@ -185,4 +185,25 @@ class SugarLevelController extends Controller
     {
         return $this->byMenuItemViaQuery(new Request(['menu_item_id' => $menuItemId]));
     }
+
+    /**
+     * GET /api/menu-item-sugar-levels/bulk?ids[]=1&ids[]=2
+     */
+    public function bulk(Request $request)
+    {
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $data = DB::table('menu_item_sugar_levels')
+            ->whereIn('menu_item_id', $ids)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+        ]);
+    }
 }

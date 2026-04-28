@@ -164,8 +164,8 @@ export const CartItemEditModal = ({
                 {editingCartItem.sugarLevel != null && <span className="inline-flex items-center bg-[#6a12b8]/10 text-black border border-[#6a12b8]/20 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>}
                 {editingCartItem.options?.map(opt => <span key={opt} className="inline-flex items-center bg-sky-50 text-sky-700 border border-sky-200 text-[10px] px-2 py-1 rounded-md font-semibold">{opt}</span>)}
                 {editingCartItem.addOns?.map(a => <span key={a} className="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-1 rounded-md font-semibold">+{a}</span>)}
-                {editingCartItem.charges?.grab && <span className="inline-flex items-center bg-green-50 text-green-700 border border-green-200 text-[10px] px-2 py-1 rounded-md font-semibold">🛵 Grab</span>}
-                {editingCartItem.charges?.panda && <span className="inline-flex items-center bg-pink-50 text-pink-700 border border-pink-200 text-[10px] px-2 py-1 rounded-md font-semibold">🐼 Panda</span>}
+                {editingCartItem.charges?.grab && <span className="inline-flex items-center bg-green-50 text-green-700 border border-green-200 text-[10px] px-2 py-1 rounded-md font-semibold">Grab</span>}
+                {editingCartItem.charges?.panda && <span className="inline-flex items-center bg-pink-50 text-pink-700 border border-pink-200 text-[10px] px-2 py-1 rounded-md font-semibold">Panda</span>}
                 {editingCartItem.remarks && <span className="inline-flex items-center bg-zinc-100 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-1 rounded-md font-semibold italic">📝 {editingCartItem.remarks}</span>}
               </div>
             )}
@@ -435,16 +435,13 @@ export const BundleModal = ({
 
   const itemDetail = component.menuItem;
   const itemName = (selection.name || '').toLowerCase();
-  const hasSugar = (itemDetail?.sugar_levels?.length ?? 0) > 0 ||
-    itemDetail?.category_id != null ||
-    itemName.includes('tea') ||
-    itemName.includes('drink') ||
-    itemName.includes('coffee') ||
-    itemName.includes('boba') ||
-    itemName.includes('milk') ||
-    itemName.includes('latte') ||
-    itemName.includes('cooler') ||
-    itemName.includes('punch');
+  
+  // Use backend flag if available, otherwise fall back to category/name detection
+  const hasSugar = component.has_sugar ?? (
+    (itemDetail?.sugar_levels?.length ?? 0) > 0 ||
+    (['tea', 'drink', 'coffee', 'boba', 'milk', 'latte', 'cooler', 'punch'].some(w => itemName.includes(w)) && 
+     !itemName.includes('food') && !itemName.includes('snack'))
+  );
 
   const itemOpts = itemDetail?.options ?? [];
   const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
@@ -459,25 +456,39 @@ export const BundleModal = ({
     <>
       <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
-          <div className="bg-[#6a12b8] p-5 text-white relative shrink-0">
-            <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Bundle Configuration — {activeBundleItem.display_name ?? activeBundleItem.name}</div>
-            <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
-              Drink {currentStep + 1} of {totalSteps}: {selection.name}
+          <div className="bg-[#6a12b8] p-5 text-white text-center relative shrink-0">
+            <h2 className="text-base font-black uppercase tracking-wide leading-tight">
+              {selection.name}
             </h2>
-            <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
-              <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }} />
-            </div>
-            <div className="mt-2 flex items-center gap-3 text-[11px]">
-              <span className="text-white font-black">₱{Number(activeBundleItem.price).toFixed(2)}</span>
-              {orderCharge === 'grab' && bundleGrabPrice > 0 && <span className="text-green-300 font-black">+₱{(bundleGrabPrice - Number(activeBundleItem.price)).toFixed(2)} Grab</span>}
-              {orderCharge === 'panda' && bundlePandaPrice > 0 && <span className="text-pink-300 font-black">+₱{(bundlePandaPrice - Number(activeBundleItem.price)).toFixed(2)} Panda</span>}
-            </div>
             <button onClick={onClose} className="absolute top-5 right-5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
               <CloseIcon size={4} />
             </button>
           </div>
 
           <div className="p-6 space-y-6 overflow-y-auto bg-white flex-1 custom-scrollbar">
+            <div className="flex gap-4 mb-6">
+              <div className="flex-1 bg-white border border-zinc-200 rounded-xl p-4 shadow-sm">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Barcode</span>
+                  <span className="text-sm font-black text-[#6a12b8] block mt-1 truncate">{activeBundleItem.barcode || 'N/A'}</span>
+                </div>
+              </div>
+              <div className="flex-1 bg-white border border-zinc-200 rounded-xl p-4 shadow-sm">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
+                    {orderCharge === 'grab' ? 'Grab Price' : orderCharge === 'panda' ? 'Panda Price' : 'Bundle Price'}
+                  </span>
+                  <span className="text-sm font-black text-black block mt-1">
+                    ₱ {Number(
+                      orderCharge === 'grab' ? bundleGrabPrice : 
+                      orderCharge === 'panda' ? bundlePandaPrice : 
+                      activeBundleItem.price
+                    ).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               {hasSugar && sugarLevels && sugarLevels.length > 0 && (
                 <div>
@@ -524,7 +535,7 @@ export const BundleModal = ({
                       return (
                         <button key={type} type="button" onClick={() => !isDisabled && onToggleOrderCharge(type)} disabled={isDisabled}
                           className={`p-3 rounded-xl border-2 transition-all flex items-center justify-center ${isDisabled ? 'border-zinc-100 bg-zinc-50 text-zinc-300 opacity-40' : isActive ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700' : 'border-zinc-200 bg-white text-zinc-500 hover:border-[#6a12b8] hover:text-[#6a12b8]'}`}>
-                          <span className="font-bold text-[10px] uppercase">{type === 'grab' ? '🛵 Grab Food' : '🐼 Food Panda'}</span>
+                          <span className="font-bold text-[10px] uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
                         </button>
                       );
                     })}

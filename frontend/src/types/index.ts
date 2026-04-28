@@ -65,6 +65,9 @@ export interface BundleComponent {
     quantity: number;
     size: string;
     display_name: string;
+    has_sugar?: boolean;
+    has_ice?: boolean;
+    has_pearl?: boolean;
 }
 
 export interface Bundle {
@@ -88,6 +91,7 @@ export interface BundleComponentCustomization {
     sugarLevel: string;
     options: string[];
     addOns: string[];
+    size?: string;
 }
 
 // ─── CART ─────────────────────────────────────────────────────────────────────

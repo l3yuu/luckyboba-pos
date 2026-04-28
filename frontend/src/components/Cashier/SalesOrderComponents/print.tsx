@@ -1050,11 +1050,12 @@ export const StickerPrint = ({
               >
                 <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
                 <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-                  <div className="text-[9px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">{item.name}</div>
-                  <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>{component.name}</div>
+                  <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
+                    {component.name} {component.size && component.size !== 'none' && `(${component.size})`}
+                  </div>
                   <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
                     {component.sugarLevel && component.sugarLevel.trim() !== '' && (
-                      <div>Sugar: {component.sugarLevel}</div>
+                      <div className="text-[#6a12b8]">Sugar: {component.sugarLevel}</div>
                     )}
                     {component.options.map(opt => <div key={opt}>{opt}</div>)}
                     {component.addOns.map(a => <div key={a}>+ {a}</div>)}
@@ -1120,7 +1121,7 @@ export const StickerPrint = ({
             <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
             <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
               <div className="text-[9px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
-                Mix & Match — {item.name}
+                {item.name}
               </div>
               <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
                 {drinkName}
