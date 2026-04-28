@@ -100,6 +100,7 @@ class ReceiptController extends Controller
     $query = strtolower($request->input('query', ''));
     $date  = $request->input('date');
     $branchId = $request->input('branch_id');
+    $status = $request->input('status');
 
     $dbQuery = Sale::query()
         ->leftJoin('receipts', 'sales.id', '=', 'receipts.sale_id')
@@ -185,8 +186,13 @@ class ReceiptController extends Controller
         });
     }
 
-    // Filter by status - Only completed and cancelled (for audit)
-    $dbQuery->whereIn('sales.status', ['completed', 'cancelled']);
+    // Filter by status
+    if ($status && $status !== 'all') {
+        $dbQuery->where('sales.status', $status);
+    } else {
+        // Only completed and cancelled (for audit)
+        $dbQuery->whereIn('sales.status', ['completed', 'cancelled']);
+    }
 
     $results = $dbQuery
         ->latest('sales.created_at')

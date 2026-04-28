@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useOfflineQueue } from '../hooks/useOfflineQueue'
+import { useOfflineQueue } from '../context/OfflineQueueContext'
 import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner'
 
 import {
