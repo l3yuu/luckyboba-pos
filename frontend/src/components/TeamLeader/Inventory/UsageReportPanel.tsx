@@ -86,7 +86,7 @@ const MovementDrawer: React.FC<{
 
   useEffect(() => {
     api.get('/raw-materials/movements', { params: { raw_material_id: row.id, period } })
-      .then((r: any) => setMovements(Array.isArray(r.data) ? r.data : []))
+      .then((r: { data: unknown }) => setMovements(Array.isArray(r.data) ? (r.data as Movement[]) : []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [row.id, period]);
@@ -423,7 +423,7 @@ const UsageBreakdownDrawer: React.FC<{
     api.get(`/inventory/usage-report/breakdown/${row.id}`, {
       params: { period, branch_id: branch || undefined }
     })
-      .then((r: any) => setItems(r.data ?? []))
+      .then((r: { data: UsageBreakdown[] | undefined }) => setItems(r.data ?? []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [row.id, period, branch]);

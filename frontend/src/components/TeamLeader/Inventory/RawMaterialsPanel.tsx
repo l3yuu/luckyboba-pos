@@ -402,7 +402,7 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
                      {adjModal.purchase_unit && adjModal.purchase_to_base_factor ? (
                        <select 
                          value={inputUnit} 
-                         onChange={e => setInputUnit(e.target.value as any)}
+                         onChange={e => setInputUnit(e.target.value as 'base' | 'purchase')}
                          className="text-[10px] font-bold text-[#6a12b8] bg-[#6a12b810] border-none rounded px-2 py-0.5 outline-none cursor-pointer"
                        >
                          <option value="base">{adjModal.unit}</option>

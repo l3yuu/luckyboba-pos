@@ -451,7 +451,7 @@ const AdjustModal: React.FC<{
                     {item.purchase_unit && item.purchase_to_base_factor ? (
                       <select 
                         value={inputUnit} 
-                        onChange={e => setInputUnit(e.target.value as any)}
+                        onChange={e => setInputUnit(e.target.value as 'base' | 'purchase')}
                         className="h-full px-2 text-[10px] font-bold text-[#6a12b8] bg-[#f5f0ff] border-none rounded-md outline-none cursor-pointer uppercase"
                       >
                         <option value="base">{item.unit}</option>
