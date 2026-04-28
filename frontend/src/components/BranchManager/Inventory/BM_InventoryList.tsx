@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, Edit2, Trash2, X, AlertCircle,
   ChevronDown, History, TrendingUp, TrendingDown, Minus,
-  Package, CheckCircle, FlaskConical,
+  Package, CheckCircle, FlaskConical, Download
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
@@ -606,6 +606,27 @@ const BM_InventoryList: React.FC = () => {
     return matchSearch && matchCat && matchStock;
   });
 
+  const exportCSV = () => {
+    const headers = ['Name', 'Category', 'Current Stock', 'Base Unit', 'Reorder Level', 'Status'];
+    const rows = filtered.map(m => [
+      `"${m.name.replace(/"/g, '""')}"`,
+      m.category,
+      m.current_stock,
+      m.unit,
+      m.reorder_level,
+      stockStatus(m).label
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Inventory_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const totalItems   = materials.length;
   const lowStockCnt  = materials.filter(m => m.current_stock > 0 && m.current_stock <= m.reorder_level).length;
   const outOfStockCnt = materials.filter(m => m.current_stock === 0).length;
@@ -642,7 +663,15 @@ const BM_InventoryList: React.FC = () => {
             </select>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto" />
+          <div className="flex items-center gap-2 shrink-0 ml-auto w-full md:w-auto">
+            <button 
+              onClick={exportCSV}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-zinc-600 hover:text-[#6a12b8] hover:border-[#6a12b8] hover:bg-[#faf9ff] transition-all text-xs font-bold uppercase tracking-widest"
+            >
+              <Download size={14} />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
+          </div>
         </div>
       </div>
 
