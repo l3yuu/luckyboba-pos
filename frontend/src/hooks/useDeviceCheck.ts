@@ -11,7 +11,10 @@ interface DeviceBranch {
 }
 
 interface ApiError {
-  response?: { data?: { message?: string } };
+  response?: {
+    status?: number;
+    data?: { message?: string };
+  };
 }
 
 export function useDeviceCheck(enabled: boolean = true) {
@@ -37,11 +40,9 @@ export function useDeviceCheck(enabled: boolean = true) {
   const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (!enabled || hasFetched.current) return;
-    if (status === 'registered') return; // ← already hydrated from sessionStorage
-    hasFetched.current = true;
+    if (!enabled) return;
 
-    void (async () => {
+    const checkDevice = async () => {
       try {
         const id = await getDeviceIdAsync();
         setDeviceId(id);
@@ -66,10 +67,29 @@ export function useDeviceCheck(enabled: boolean = true) {
         }
       } catch (err: unknown) {
         const error = err as ApiError;
-        setMessage(error.response?.data?.message ?? 'Device check failed.');
-        setStatus('unregistered');
+        // If it's a 403 Forbidden, it means the device is inactive or unauthorized
+        if (error.response?.status === 403) {
+          setMessage(error.response?.data?.message ?? 'Device deactivated.');
+          setStatus('unregistered');
+        } else if (status !== 'registered') {
+          // Only show error message for non-403 if we're not already registered
+          setMessage(error.response?.data?.message ?? 'Device check failed.');
+          setStatus('unregistered');
+        }
+      } finally {
+        hasFetched.current = true;
       }
-    })();
+    };
+
+    // Initial check if not already fetched
+    if (!hasFetched.current) {
+      checkDevice();
+    }
+
+    // Periodic check every 15 seconds
+    const interval = setInterval(checkDevice, 15000);
+    return () => clearInterval(interval);
+
   }, [enabled, status]);
 
   return { status, posNumber, branchId, branch, message, deviceId };

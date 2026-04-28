@@ -1,7 +1,7 @@
- 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDeviceCheck } from '../hooks/useDeviceCheck';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 import { Outlet } from 'react-router-dom';
 
 
@@ -10,10 +10,21 @@ type Props = {
 };
 
 export function DeviceGate({ children }: Props) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const isCashier = user?.role === 'cashier';
   const { status, message, deviceId } = useDeviceCheck(isCashier);
   const [copied, setCopied] = useState(false);
+
+  // If device becomes unregistered while logged in as cashier, force logout
+  useEffect(() => {
+    if (status === 'unregistered' && user && isCashier) {
+      showToast(message || 'Device not registered or deactivated.', 'error');
+      void logout();
+    }
+  }, [status, user, isCashier, logout, showToast, message]);
+
+
 
   // Non-cashier roles — pass through immediately
   if (!isCashier) return <>{children ?? <Outlet />}</>;
