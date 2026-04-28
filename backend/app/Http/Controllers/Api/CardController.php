@@ -177,7 +177,7 @@ class CardController extends Controller
         // 🛡️ SECURITY: Verify Manager PIN before allowing perk claim
         // We only allow managers/admins from the SAME branch to authorize.
         $authUser = auth()->user();
-        $admins = \App\Models\User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin'])
+        $admins = \App\Models\User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin', 'supervisor'])
             ->where('status', 'ACTIVE')
             ->whereNotNull('manager_pin')
             ->when($authUser->role !== 'superadmin', function($q) use ($authUser) {

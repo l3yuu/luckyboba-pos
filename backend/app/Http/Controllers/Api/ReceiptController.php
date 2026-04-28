@@ -273,19 +273,17 @@ public function voidRequest(Request $request, $id)
             return response()->json(['message' => 'Already voided.'], 422);
         }
 
-        $manager = User::where('role', 'branch_manager')
+        $manager = User::whereIn('role', ['superadmin', 'branch_manager', 'supervisor', 'team_leader'])
             ->where('branch_id', $sale->branch_id)
+            ->whereNotNull('manager_pin')
+            ->where('status', 'ACTIVE')
+            ->get()
+            ->filter(fn($u) => Hash::check($request->manager_pin, $u->manager_pin))
             ->first();
 
-        if (!$manager || !$manager->manager_pin) {
+        if (!$manager) {
             return response()->json([
-                'message' => 'Branch manager PIN not configured.'
-            ], 422);
-        }
-
-        if (!Hash::check($request->manager_pin, $manager->manager_pin)) {
-            return response()->json([
-                'message' => 'Incorrect PIN. Please try again.'
+                'message' => 'Incorrect PIN or no authorized manager found.'
             ], 422);
         }
 

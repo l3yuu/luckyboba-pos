@@ -43,7 +43,7 @@ class StoreUserRequest extends FormRequest
             'role'        => 'required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin,supervisor',
             'branch_id'   => 'nullable|integer|exists:branches,id',
             'status'      => 'required|in:ACTIVE,INACTIVE',
-            'manager_pin' => 'nullable|digits_between:4,8',
+            'manager_pin' => 'nullable|digits:6',
         ];
     }
 }

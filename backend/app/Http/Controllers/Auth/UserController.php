@@ -285,7 +285,7 @@ class UserController extends Controller
             }
 
             $request->validate([
-                'pin'              => ['required', 'digits_between:4,8', 'confirmed'],
+                'pin'              => ['required', 'digits:6', 'confirmed'],
                 'pin_confirmation' => ['required'],
             ]);
 
@@ -308,7 +308,7 @@ class UserController extends Controller
         $authUser = Auth::user();
 
         // 🛡️ SECURITY: Scope check to the requester's branch unless they are SuperAdmin.
-        $query = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin'])
+        $query = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin', 'supervisor'])
             ->where('status', 'ACTIVE')
             ->whereNotNull('manager_pin');
 
