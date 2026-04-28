@@ -242,6 +242,8 @@ const ZReading = () => {
   const [gaps, setGaps] = useState<string[]>([]);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const branchId = localStorage.getItem('lucky_boba_user_branch_id') || '';
+  const [selectedShift, setSelectedShift] = useState<string>('');
+  const [terminalShift, setTerminalShift] = useState<number | null>(null);
 
   // ── PIN overlay state ──────────────────────────────────────────────────────
   const [showPinOverlay, setShowPinOverlay]         = useState(false);
@@ -272,6 +274,19 @@ const ZReading = () => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) { const user = JSON.parse(storedUser); setCashierName(user.name || "ADMIN USER"); }
     fetchGaps();
+
+    const getShift = async () => {
+      try {
+        const res = await api.get('/cash-counts/status');
+        if (res.data.shift) {
+          setTerminalShift(res.data.shift);
+          setSelectedShift(String(res.data.shift));
+        }
+      } catch (e) {
+        console.error("Failed to fetch shift status", e);
+      }
+    };
+    getShift();
   }, [fetchGaps]);
 
   useEffect(() => {
@@ -304,6 +319,11 @@ const ZReading = () => {
           ...commonParams 
         };
 
+        if (selectedShift) {
+          (sParams as any).shift = selectedShift;
+          (qParams as any).shift = selectedShift;
+        }
+
         const [summaryRes, qtyRes] = await Promise.all([
           api.get('/reports/sales-summary',   { params: sParams }),
           api.get('/reports/item-quantities', { params: qParams }),
@@ -326,11 +346,22 @@ const ZReading = () => {
           ...commonParams
         };
 
+        const ccParams: any = { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams };
+        const qtyParams: any = { ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }), ...commonParams };
+        const voidParams: any = { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams };
+
+        if (selectedShift) {
+          (zParams as any).shift = selectedShift;
+          ccParams.shift = selectedShift;
+          qtyParams.shift = selectedShift;
+          voidParams.shift = selectedShift;
+        }
+
         const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
           api.get('/reports/z-reading',       { params: zParams }),
-          api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams } }),
-          api.get('/reports/item-quantities', { params: { ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }), ...commonParams } }),
-          api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams } }),
+          api.get('/cash-counts/summary',     { params: ccParams }),
+          api.get('/reports/item-quantities', { params: qtyParams }),
+          api.get('/reports/void-logs',       { params: voidParams }),
         ]);
 
 
@@ -1275,6 +1306,19 @@ const ZReading = () => {
                 <span className="text-[10px] font-black uppercase text-zinc-600">Show Breakdown</span>
               </label>
             )}
+
+            <div className="flex items-center bg-[#f5f0ff] rounded-[0.625rem] px-2 border border-zinc-200">
+              <span className="text-[9px] font-black text-[#6a12b8] uppercase pl-2 pr-1 opacity-60">Shift:</span>
+              <select
+                value={selectedShift}
+                onChange={(e) => setSelectedShift(e.target.value)}
+                className="bg-transparent border-none focus:ring-0 text-xs font-black text-[#6a12b8] uppercase tracking-wider h-11 pr-8"
+              >
+                <option value="">Whole Day</option>
+                <option value="1">AM Shift {terminalShift === 1 ? '(Active)' : ''}</option>
+                <option value="2">PM Shift {terminalShift === 2 ? '(Active)' : ''}</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex gap-2">

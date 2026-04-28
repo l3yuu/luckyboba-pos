@@ -75,7 +75,8 @@ class SalesDashboardController extends Controller
             $user     = auth('sanctum')->user() ?? $request->user();
             $branchId = $user?->branch_id;
 
-            $report                = $this->salesService->getXReading($request->date, null, $branchId);
+            $shift  = $request->query('shift');
+            $report = $this->salesService->getXReading($request->date, null, $branchId, $shift);
             $report['prepared_by'] = $user?->name ?? 'System Admin';
 
             return response()->json($report);
@@ -104,8 +105,9 @@ class SalesDashboardController extends Controller
             $branchId = $request->input('branch_id')
                 ? (int) $request->input('branch_id')
                 : $user?->branch_id;
+            $shift = $request->input('shift');
 
-            $report                = $this->salesService->generateZReading($from, $to, $branchId);
+            $report                = $this->salesService->generateZReading($from, $to, $branchId, $shift);
             $report['prepared_by'] = $user?->name ?? 'System Admin';
 
             $zRecord = ZReading::where('reading_date', $from)

@@ -169,7 +169,7 @@ const XReadingTab: React.FC = () => {
 
   const [branchId, setBranchId] = useState(localStorage.getItem('superadmin_selected_branch') || '');
   const [date, setDate] = useState(today);
-  const [shift, setShift] = useState("all");
+  const [shift, setShift] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<XReading | null>(null);
@@ -278,7 +278,7 @@ const XReadingTab: React.FC = () => {
     setError("");
     try {
       const params = new URLSearchParams({ branch_id: branchId, date });
-      if (shift !== "all") params.set("shift", shift);
+      if (shift) params.set("shift", shift);
 
       // ── Determine URL ──────────────────────────────────────────────────────
       let url = "";
@@ -306,7 +306,7 @@ const XReadingTab: React.FC = () => {
 
         const [mainRes, qtyRes] = await Promise.all([
           fetch(mainUrl, { headers: authHeaders() }).then(r => r.json()),
-          fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}${shift !== "all" ? `&shift=${shift}` : ""}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}${shift ? `&shift=${shift}` : ""}`, { headers: authHeaders() }).then(r => r.json()),
         ]);
         const merged = {
           ...mainRes,
@@ -743,7 +743,7 @@ const XReadingTab: React.FC = () => {
         <ReceiptDivider />
         <ReceiptRow label="Report Date" value={date} />
         <ReceiptRow label="Branch" value={selectedBranchName} />
-        <ReceiptRow label="Shift" value={shift === "all" ? "All Shifts" : shift.toUpperCase() + " Shift"} />
+        <ReceiptRow label="Shift" value={!shift ? "All Shifts" : shift === "1" ? "AM Shift" : "PM Shift"} />
         <ReceiptRow label="Beg. SI #" value={reportData?.beg_si || "0000000000"} />
         <ReceiptRow label="End. SI #" value={reportData?.end_si || "0000000000"} />
         <ReceiptDivider />
@@ -891,9 +891,9 @@ const XReadingTab: React.FC = () => {
           <div className="relative">
             <select value={shift} onChange={e => setShift(e.target.value)}
               className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-              <option value="all">All Shifts</option>
-              <option value="am">AM Shift</option>
-              <option value="pm">PM Shift</option>
+              <option value="">All Shifts</option>
+              <option value="1">AM Shift</option>
+              <option value="2">PM Shift</option>
             </select>
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
@@ -965,7 +965,7 @@ const XReadingTab: React.FC = () => {
               </div>
               <div>
                 <p className="text-xs font-black text-[#6a12b8] uppercase tracking-widest">X Reading Report</p>
-                <p className="text-[10px] text-violet-500 font-medium">{selectedBranchName} · {date} · {shift === "all" ? "All Shifts" : shift.toUpperCase() + " Shift"}</p>
+                <p className="text-[10px] text-violet-500 font-medium">{selectedBranchName} · {date} · {!shift ? "All Shifts" : shift === "1" ? "AM Shift" : "PM Shift"}</p>
               </div>
             </div>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-widest rounded-full border border-emerald-200">
@@ -1083,7 +1083,7 @@ const XReadingTab: React.FC = () => {
               <p className="uppercase text-[12px] font-bold tracking-widest">
                 [{reportType === "x_reading" ? "X" : reportType.replace(/_/g, " ").toUpperCase()}]
               </p>
-              <p className="text-[10px] text-zinc-500">{date} · {shift === "all" ? "All Shifts" : shift.toUpperCase()}</p>
+              <p className="text-[10px] text-zinc-500">{date} · {!shift ? "All Shifts" : shift === "1" ? "AM" : "PM"}</p>
             </div>
             {renderReceiptContent()}
             {!HIDE_FOOTER.includes(reportData.report_type ?? "") && (

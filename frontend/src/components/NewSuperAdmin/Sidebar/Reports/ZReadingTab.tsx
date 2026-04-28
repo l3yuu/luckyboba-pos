@@ -238,6 +238,7 @@ const ZReadingTab: React.FC = () => {
   const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
+  const [selectedShift, setSelectedShift] = useState<string>('');
 
   const handleBranchChange = (id: string) => {
     setBranchId(id);
@@ -367,7 +368,8 @@ const ZReadingTab: React.FC = () => {
         date_from: dateFrom,
         date_to: dateTo,
         from: dateFrom,
-        to: dateTo
+        to: dateTo,
+        shift: selectedShift
       });
 
       if (reportType === "summary") {
@@ -438,8 +440,8 @@ const ZReadingTab: React.FC = () => {
     setError("");
     setReportData(null);
     try {
-      const p = new URLSearchParams({ branch_id: branchId, date: dateFrom, date_from: dateFrom, date_to: dateTo, from: dateFrom, to: dateTo });
-      const extraParams = new URLSearchParams({ branch_id: branchId, date: dateTo });
+      const p = new URLSearchParams({ branch_id: branchId, date: dateFrom, date_from: dateFrom, date_to: dateTo, from: dateFrom, to: dateTo, shift: selectedShift });
+      const extraParams = new URLSearchParams({ branch_id: branchId, date: dateTo, shift: selectedShift });
 
       const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
         fetch(`/api/reports/z-reading?${p}`, { headers: authHeaders() }).then(r => r.json()),
@@ -537,7 +539,7 @@ const ZReadingTab: React.FC = () => {
       }
       fetchHistory();
     }
-  }, [fetchFullZReading, fetchXReport, fetchHistory, branchId, reportType]);
+  }, [fetchFullZReading, fetchXReport, fetchHistory, branchId, reportType, selectedShift]);
 
   const handleCloseShift = async () => {
     if (!branchId || !data) return;
@@ -1348,7 +1350,6 @@ const handlePrint = () => window.print();
                         setReportType(card.type);
                         setActiveView("receipt");
                         setIsMenuOpen(false);
-                        // fetchXReport will fire via useEffect when reportType changes
                       }}
                       className={`border-l-4 ${card.color} p-3 h-16 flex flex-col justify-center text-left hover:bg-violet-50 transition-all rounded-[0.625rem] w-full ${
                         reportType === card.type && activeView === "receipt" ? "bg-violet-50" : "bg-white"
@@ -1425,6 +1426,20 @@ const handlePrint = () => window.print();
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
+
+        {/* Shift selector */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Shift</p>
+          <div className="relative">
+            <select value={selectedShift} onChange={e => setSelectedShift(e.target.value)}
+              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-32">
+              <option value="">Whole Day</option>
+              <option value="1">AM Shift</option>
+              <option value="2">PM Shift</option>
+            </select>
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
         </div>
         <Btn onClick={() => reportType === "z_reading" ? fetchFullZReading() : fetchXReport()} disabled={loading || !branchId}>
           {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Load Reading"}

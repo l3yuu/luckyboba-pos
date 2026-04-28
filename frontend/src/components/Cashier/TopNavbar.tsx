@@ -67,16 +67,18 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
     name: (typeof window !== 'undefined' ? (localStorage.getItem('lucky_boba_user_name') ?? 'SYSTEM ADMIN') : 'SYSTEM ADMIN').toUpperCase(),
     role: (typeof window !== 'undefined' ? (localStorage.getItem('lucky_boba_user_role') ?? '') : '').toUpperCase(),
     branch: (typeof window !== 'undefined' ? (localStorage.getItem('lucky_boba_user_branch') ?? 'MAIN BRANCH') : 'MAIN BRANCH').toUpperCase(),
+    shift: '',
   });
 
   // Sync cashierInfo when localStorage changes (e.g., after a POS sync)
   useEffect(() => {
     const syncInfo = () => {
-      setCashierInfo({
+      setCashierInfo(prev => ({
+        ...prev,
         name: (localStorage.getItem('lucky_boba_user_name') ?? 'SYSTEM ADMIN').toUpperCase(),
         role: (localStorage.getItem('lucky_boba_user_role') ?? '').toUpperCase(),
         branch: (localStorage.getItem('lucky_boba_user_branch') ?? 'MAIN BRANCH').toUpperCase(),
-      });
+      }));
     };
 
     window.addEventListener('storage', (e) => {
@@ -89,7 +91,25 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
     // for local-tab changes, we can use a custom event if needed, but storage event 
     // handles cross-tab, and local state handles local tab if we trigger it.
     
-    return () => window.removeEventListener('storage', syncInfo);
+    const fetchShiftInfo = async () => {
+      try {
+        const response = await api.get<{ hasCashedIn: boolean; shiftName?: string }>('/cash-counts/initial-cash');
+        if (response.data.shiftName) {
+          setCashierInfo(prev => ({ ...prev, shift: response.data.shiftName || '' }));
+        }
+      } catch { /* ignore */ }
+    };
+
+    fetchShiftInfo();
+    const shiftInterval = setInterval(fetchShiftInfo, 60_000); // Check shift every minute
+
+    window.addEventListener('cash-in-completed', fetchShiftInfo);
+    
+    return () => {
+      window.removeEventListener('storage', syncInfo);
+      window.removeEventListener('cash-in-completed', fetchShiftInfo);
+      clearInterval(shiftInterval);
+    };
   }, []);
 
   // ── Fetch notifications ───────────────────────────────────────────────────
@@ -180,6 +200,19 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
             <div className="text-[11px] font-black text-[#c2410c] uppercase leading-tight mt-0.5">{cashierInfo.name}</div>
           </div>
         </div>
+
+        {/* Shift */}
+        {cashierInfo.shift && (
+          <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 px-4 py-2.5 rounded-[0.625rem]">
+            <div className="w-7 h-7 bg-blue-600 flex items-center justify-center shrink-0 rounded-[0.625rem]">
+              <RefreshCw size={13} className="text-white" strokeWidth={2.5} />
+            </div>
+            <div>
+              <div className="text-[9px] font-bold text-blue-600/50 uppercase tracking-widest leading-none">Shift</div>
+              <div className="text-[11px] font-black text-blue-600 uppercase leading-tight mt-0.5">{cashierInfo.shift}</div>
+            </div>
+          </div>
+        )}
 
         {/* EOD Locked Badge */}
         {isEodLocked && (

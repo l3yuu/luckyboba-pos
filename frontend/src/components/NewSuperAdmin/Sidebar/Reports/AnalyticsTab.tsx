@@ -107,6 +107,7 @@ const HOUR_COLORS = (hour: number) => {
 const AnalyticsTab: React.FC = () => {
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
   const [branchId, setBranchId] = useState<string>(localStorage.getItem('superadmin_selected_branch') || '');
+  const [shift, setShift] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [branches, setBranches] = useState<BranchOption[]>([]);
@@ -146,6 +147,7 @@ const AnalyticsTab: React.FC = () => {
     try {
       const params = new URLSearchParams({ period });
       if (branchId) params.set("branch_id", branchId);
+      if (shift) params.set("shift", shift);
 
       // Use existing endpoints — analytics endpoints fall back to admin-sales-summary
       const [summaryRes, compRes] = await Promise.all([
@@ -175,7 +177,9 @@ const AnalyticsTab: React.FC = () => {
       const branchTarget = branchId || (comp.comparison?.[0]?.branch_id);
       if (branchTarget) {
         try {
-          const hrRes = await fetch(`/api/branches/${branchTarget}/analytics`, { headers: authHeaders() });
+          const hrParams = new URLSearchParams();
+          if (shift) hrParams.set("shift", shift);
+          const hrRes = await fetch(`/api/branches/${branchTarget}/analytics?${hrParams}`, { headers: authHeaders() });
           const hrData = await hrRes.json();
           if (hrData.success && hrData.data?.today_hourly) {
             setPeakHours(hrData.data.today_hourly as PeakHour[]);
@@ -217,9 +221,21 @@ const AnalyticsTab: React.FC = () => {
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
           <div className="relative">
             <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
-              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-48">
               <option value="">All Branches</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+            </select>
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Shift</p>
+          <div className="relative">
+            <select value={shift} onChange={e => setShift(e.target.value)}
+              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+              <option value="">All Shifts</option>
+              <option value="1">AM Shift</option>
+              <option value="2">PM Shift</option>
             </select>
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>

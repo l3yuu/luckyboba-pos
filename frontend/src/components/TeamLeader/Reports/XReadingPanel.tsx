@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   AlertCircle, TrendingUp, ShoppingCart,
-  XCircle, CreditCard, Calendar, Info, Eye,
+  XCircle, CreditCard, Calendar, Info, Eye, Clock
 } from 'lucide-react';
 import api from '../../../services/api';
 import { SkeletonBar, SkeletonBox } from '../SharedSkeletons';
@@ -40,11 +40,15 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedShift, setSelectedShift] = useState<string>('');
+  const [terminalShift, setTerminalShift] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true); setFetchError('');
     try {
-      const res = await api.get('/reports/x-reading', { params: { branch_id: branchId, date: selectedDate } });
+      const params: any = { branch_id: branchId, date: selectedDate };
+      if (selectedShift) params.shift = selectedShift;
+      const res = await api.get('/reports/x-reading', { params });
       const raw = res.data?.data ?? res.data;
       setData({
         date: raw.date ?? selectedDate,
@@ -65,7 +69,22 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setFetchError(msg ?? 'Failed to load X-reading.');
     } finally { setLoading(false); }
-  }, [branchId, selectedDate]);
+  }, [branchId, selectedDate, selectedShift]);
+
+  useEffect(() => {
+    const getShift = async () => {
+      try {
+        const res = await api.get('/cash-counts/status');
+        if (res.data.shift) {
+          setTerminalShift(res.data.shift);
+          setSelectedShift(String(res.data.shift));
+        }
+      } catch (e) {
+        console.error("Failed to fetch shift status", e);
+      }
+    };
+    getShift();
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -83,6 +102,19 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
             <Calendar size={13} className="text-zinc-400 shrink-0" />
             <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
               className="text-xs font-medium text-zinc-700 bg-transparent outline-none cursor-pointer" />
+          </div>
+
+          <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-3 py-2">
+            <Clock size={13} className="text-zinc-400 shrink-0" />
+            <select
+              value={selectedShift}
+              onChange={(e) => setSelectedShift(e.target.value)}
+              className="text-xs font-medium text-zinc-700 bg-transparent outline-none cursor-pointer appearance-none pr-6 uppercase"
+            >
+              <option value="">Whole Day</option>
+              <option value="1">AM Shift {terminalShift === 1 ? '(Active)' : ''}</option>
+              <option value="2">PM Shift {terminalShift === 2 ? '(Active)' : ''}</option>
+            </select>
           </div>
         </div>
         <div>
