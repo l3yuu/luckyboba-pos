@@ -1,17 +1,5 @@
-/**
- * useOfflineQueue.ts
- * ─────────────────────────────────────────────────────────────────────────────
- * Manages a localStorage-backed queue of failed sales.
- * On reconnect, automatically retries all queued orders against the API.
- *
- * Usage:
- *   const { enqueue, queueCount, isSyncing } = useOfflineQueue();
- *
- *   // In your submit handler, on API failure:
- *   enqueue(orderData);
- */
-
-import { useState, useEffect, useCallback, useRef } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import api from '../services/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -26,20 +14,13 @@ export interface QueuedSale {
 }
 
 export interface OfflineQueueState {
-  /** Add a failed sale to the queue */
   enqueue:    (payload: unknown, endpoint?: string) => void;
-  /** Current number of queued (unsynced) sales */
   queueCount: number;
-  /** True while a sync attempt is in progress */
   isSyncing:  boolean;
-  /** All queued items (for display in UI) */
   queue:      QueuedSale[];
-  /** Manually trigger a sync attempt */
   syncNow:    () => void;
-  /** Remove a specific item from the queue (e.g. after manual resolution) */
-  remove:          (id: string) => void;
-  /** Reset attempts on a dead item so it can be retried */
-  resetAttempts:   (id: string) => void;
+  remove:     (id: string) => void;
+  resetAttempts: (id: string) => void;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -70,9 +51,11 @@ function uuid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-// ── Hook ──────────────────────────────────────────────────────────────────────
+// ── Context ───────────────────────────────────────────────────────────────────
 
-export function useOfflineQueue(): OfflineQueueState {
+const OfflineQueueContext = createContext<OfflineQueueState | undefined>(undefined);
+
+export const OfflineQueueProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [queue,     setQueue]     = useState<QueuedSale[]>(loadQueue);
   const [isSyncing, setIsSyncing] = useState(false);
   const isSyncingRef              = useRef(false);
@@ -135,21 +118,20 @@ export function useOfflineQueue(): OfflineQueueState {
         if (item.attempts >= MAX_ATTEMPTS) continue;
 
         try {
-          // Use the specific endpoint for this item (default to /sales)
           const endpoint = item.endpoint || '/sales';
           await api.post(endpoint, item.payload);
           updated = updated.filter(q => q.id !== item.id);
         } catch (err) {
           const status  = (err as { response?: { status?: number } })?.response?.status;
-          const message = err instanceof Error ? err.message : 'Unknown error';
+          const responseData = (err as { response?: { data?: { message?: string } } })?.response?.data;
+          const message = responseData?.message || (err instanceof Error ? err.message : 'Unknown error');
 
           if (status === 422) {
+            console.error('Dropped invalid queued order (422):', item.id, responseData);
             updated = updated.filter(q => q.id !== item.id);
-            console.warn('Dropped invalid queued order (422):', item.id);
             continue;
           }
 
-          const responseData = (err as { response?: { data?: { message?: string } } })?.response?.data;
           const isDuplicateInvoice =
             status === 500 &&
             typeof responseData?.message === 'string' &&
@@ -169,7 +151,6 @@ export function useOfflineQueue(): OfflineQueueState {
         }
       }
     } finally {
-      // ── Always reset — even if something above throws unexpectedly ──────
       saveQueue(updated);
       setQueue(updated);
       isSyncingRef.current = false;
@@ -180,7 +161,6 @@ export function useOfflineQueue(): OfflineQueueState {
   // ── Auto-sync on reconnect ──────────────────────────────────────────────────
   useEffect(() => {
     const handleOnline = () => {
-      // Small delay — let the connection stabilise before hitting the API
       setTimeout(syncNow, 2000);
     };
     window.addEventListener('online', handleOnline);
@@ -195,7 +175,7 @@ export function useOfflineQueue(): OfflineQueueState {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return {
+  const value = {
     enqueue,
     queueCount: queue.length,
     isSyncing,
@@ -204,4 +184,14 @@ export function useOfflineQueue(): OfflineQueueState {
     remove,
     resetAttempts,
   };
+
+  return <OfflineQueueContext.Provider value={value}>{children}</OfflineQueueContext.Provider>;
+};
+
+export function useOfflineQueue(): OfflineQueueState {
+  const context = useContext(OfflineQueueContext);
+  if (context === undefined) {
+    throw new Error('useOfflineQueue must be used within an OfflineQueueProvider');
+  }
+  return context;
 }

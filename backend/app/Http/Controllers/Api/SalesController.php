@@ -36,7 +36,13 @@ class SalesController extends Controller
         $user        = auth('sanctum')->user();
         
         // Use verified user branch or fallback to validated branch_id (for Kiosk)
-        $branchId    = $user?->getAttribute('branch_id') ?? ($validated['branch_id'] ?? null);
+        // Prioritize the validated branch_id for kiosk requests to prevent orders 
+        // from routing to a logged-in user's branch if the device has an active session.
+        if (isset($validated['source']) && $validated['source'] === 'kiosk' && isset($validated['branch_id'])) {
+            $branchId = $validated['branch_id'];
+        } else {
+            $branchId = $user?->getAttribute('branch_id') ?? ($validated['branch_id'] ?? null);
+        }
         $userId      = $user?->getAttribute('id');
         $cashierName = $request->input('cashier_name') ?? ($user?->getAttribute('name') ?? 'Kiosk System');
 

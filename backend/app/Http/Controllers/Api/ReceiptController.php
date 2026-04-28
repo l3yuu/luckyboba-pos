@@ -100,6 +100,7 @@ class ReceiptController extends Controller
     $query = strtolower($request->input('query', ''));
     $date  = $request->input('date');
     $branchId = $request->input('branch_id');
+    $status = $request->input('status');
 
     $dbQuery = Sale::query()
         ->leftJoin('receipts', 'sales.id', '=', 'receipts.sale_id')
@@ -178,12 +179,20 @@ class ReceiptController extends Controller
 
     // Search filter
     if ($query) {
-    $dbQuery->where(function ($q) use ($query) {
-        $q->whereRaw('LOWER(sales.invoice_number) LIKE ?', ["%{$query}%"])
-          ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$query}%"])
-          ->orWhereRaw('LOWER(sales.customer_name) LIKE ?', ["%{$query}%"]);
-    });
-}
+        $dbQuery->where(function ($q) use ($query) {
+            $q->whereRaw('LOWER(sales.invoice_number) LIKE ?', ["%{$query}%"])
+              ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$query}%"])
+              ->orWhereRaw('LOWER(sales.customer_name) LIKE ?', ["%{$query}%"]);
+        });
+    }
+
+    // Filter by status
+    if ($status && $status !== 'all') {
+        $dbQuery->where('sales.status', $status);
+    } else {
+        // Only completed and cancelled (for audit)
+        $dbQuery->whereIn('sales.status', ['completed', 'cancelled']);
+    }
 
     $results = $dbQuery
         ->latest('sales.created_at')
@@ -191,7 +200,7 @@ class ReceiptController extends Controller
         ->get()
         ->map(fn($row) => $this->appendVatFields($row));
 
-    $completed = $results->where('status', '!=', 'cancelled');
+    $completed = $results->where('status', 'completed');
     $voided    = $results->where('status', 'cancelled');
 
     return response()->json([
@@ -200,7 +209,7 @@ class ReceiptController extends Controller
             'gross'  => round($completed->sum('total_amount'), 2),
             'voided' => round($voided->sum('total_amount'), 2),
             'net'    => round(
-                $completed->sum('total_amount') - $voided->sum('total_amount'),
+                $completed->sum('total_amount'), // Net is just completed sales (voids are already excluded)
                 2
             ),
         ],

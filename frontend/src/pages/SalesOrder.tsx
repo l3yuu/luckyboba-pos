@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useOfflineQueue } from '../hooks/useOfflineQueue'
+import { useOfflineQueue } from '../context/OfflineQueueContext'
 import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner'
 
 import {
@@ -1021,9 +1021,8 @@ const SalesOrder = () => {
     const cupSizeLabel = (isDrink || isOz) && categorySize ? categorySize : undefined
     
     // Select base price based on platform
-    let basePrice = Number(selectedItem.price)
-    if (orderCharge === 'grab' && Number(selectedItem.grab_price ?? 0) > 0) basePrice = Number(selectedItem.grab_price)
-    else if (orderCharge === 'panda' && Number(selectedItem.panda_price ?? 0) > 0) basePrice = Number(selectedItem.panda_price)
+    const basePrice = Number(selectedItem.price)
+
 
     const unitPrice = basePrice + extraCost
     const newCartItem: CartItem = {
@@ -1140,9 +1139,8 @@ const SalesOrder = () => {
     const grabPriceVal = Number(activeBundleItem.grab_price || matchingMenuItem?.grab_price || 0)
     const pandaPriceVal = Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0)
     
-    let basePrice = Number(activeBundleItem.price)
-    if (orderCharge === 'grab' && grabPriceVal > 0) basePrice = grabPriceVal
-    else if (orderCharge === 'panda' && pandaPriceVal > 0) basePrice = pandaPriceVal
+    const basePrice = Number(activeBundleItem.price)
+
 
     const cartItem: CartItem = {
       id: activeBundleItem.id,
@@ -1420,26 +1418,35 @@ const SalesOrder = () => {
       si_number: finalOrNumber,
       branch_id: branchId,
       order_type: (paymentMethod === 'grab' || paymentMethod === 'food_panda') ? 'delivery' : (orderType ?? 'take-out'),
-      items: cart.map(item => ({
-        menu_item_id: item.isBundle ? null : item.id,
-        bundle_id: item.isBundle ? Number(item.bundleId) : null,
-        bundle_components: item.isBundle ? (item.bundleComponents ?? []) : null,
-        name: item.name,
-        quantity: item.qty,
-        unit_price: Number(item.price),
-        total_price: item.finalPrice + getItemSurcharge(item),
-        size: item.size !== 'none' ? item.size : null,
-        cup_size_label: item.cupSizeLabel ?? null,
-        sugar_level: item.sugarLevel || null,
-        options: item.options || [],
-        add_ons: item.addOns || [],
-        remarks: item.remarks || null,
-        charges: { grab: item.charges.grab, panda: item.charges.panda },
-        discount_id: item.discountId ?? null,
-        discount_label: item.discountLabel ?? null,
-        discount_type: item.discountType ?? null,
-        discount_value: item.discountValue !== '' ? item.discountValue : null,
-      })),
+      items: cart.map(item => {
+        const addonBaseTotal = (item.addOns ?? []).reduce((sum, name) => {
+          const a = addOnsData.find(x => x.name === name);
+          return sum + (a ? Number(a.price) : 0);
+        }, 0);
+        const totalBasePrice = Number(item.price) + addonBaseTotal;
+
+        return {
+          menu_item_id: item.isBundle ? null : item.id,
+          bundle_id: item.isBundle ? Number(item.bundleId) : null,
+          bundle_components: item.isBundle ? (item.bundleComponents ?? []) : null,
+          name: item.name,
+          quantity: item.qty,
+          unit_price: totalBasePrice,
+          total_price: item.finalPrice + getItemSurcharge(item),
+          size: item.size !== 'none' ? item.size : null,
+          cup_size_label: item.cupSizeLabel ?? null,
+          sugar_level: item.sugarLevel || null,
+          options: item.options || [],
+          add_ons: item.addOns || [],
+          remarks: item.remarks || null,
+          charges: { grab: item.charges.grab, panda: item.charges.panda },
+          discount_id: item.discountId ?? null,
+          discount_label: item.discountLabel ?? null,
+          discount_type: item.discountType ?? null,
+          discount_value: item.discountValue !== '' ? item.discountValue : null,
+        };
+      }),
+
       subtotal,
       discount_amount: orderLevelDiscount,
       sc_discount_amount: round(scDiscountAmount),

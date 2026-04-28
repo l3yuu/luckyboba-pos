@@ -102,18 +102,7 @@ const handleSubmit = async () => {
         </div>
       )}
     <style>{`
-      .printable-receipt { display: none; }
       @media print {
-        @page { size: 80mm auto; margin: 0; }
-        body * { visibility: hidden; }
-        .printable-receipt, .printable-receipt * { visibility: visible; }
-        .printable-receipt {
-          display: block !important;
-          position: absolute !important; left: 0 !important; top: 0 !important;
-          width: 80mm !important; padding: 5mm !important;
-          background: white !important; color: black !important;
-          font-family: 'Courier New', monospace;
-        }
         .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
         .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
       }
@@ -122,7 +111,7 @@ const handleSubmit = async () => {
     `}</style>
 
 {printData && (
-  <div className="printable-receipt text-slate-800">
+  <div className="printable-receipt-container hidden print:block text-slate-800" style={{ fontFamily: "'Courier New', monospace", padding: "5mm" }}>
     <div className="text-center space-y-1">
       <h1 className="font-black text-[17px] uppercase leading-tight">
         Lucky Boba Milktea<br />Food and Beverage Trading

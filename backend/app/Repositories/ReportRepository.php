@@ -70,6 +70,7 @@ class ReportRepository implements ReportRepositoryInterface
             default:
                 return Sale::whereBetween('created_at', [$from, $to])
                     ->select('invoice_number as Invoice', 'total_amount as Amount', 'status as Status', 'created_at as Date_Time')
+                    ->whereIn('status', ['completed', 'cancelled'])
                     ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                     ->orderBy('created_at', 'desc')
                     ->get();
@@ -125,7 +126,7 @@ class ReportRepository implements ReportRepositoryInterface
                 ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
                 ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
                 ->leftJoin('cups', 'categories.cup_id', '=', 'cups.id')
-                ->where('sales.status', '!=', 'cancelled');
+                ->where('sales.status', 'completed');
 
             if ($from && $to) {
                 $query->whereBetween('sales.created_at', [$from . ' 00:00:00', $to . ' 23:59:59']);
@@ -253,7 +254,7 @@ class ReportRepository implements ReportRepositoryInterface
     public function getHourlySales(string $date, ?int $branchId): mixed
     {
         return Sale::whereDate('created_at', $date)
-            ->where('status', '!=', 'cancelled')
+            ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->selectRaw('HOUR(created_at) as hour, SUM(total_amount) as total, COUNT(*) as count')
             ->groupBy('hour')
@@ -446,7 +447,7 @@ class ReportRepository implements ReportRepositoryInterface
     {
         return SaleItem::join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->whereDate('sales.created_at', $date)
-            ->where('sales.status', '!=', 'cancelled')
+            ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->select(
                 'sale_items.product_name',

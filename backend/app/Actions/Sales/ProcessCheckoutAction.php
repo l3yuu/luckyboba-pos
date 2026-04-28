@@ -142,15 +142,16 @@ class ProcessCheckoutAction
                 $hasCharge  = !empty($item['charges']['grab']) || !empty($item['charges']['panda']);
                 $basePrice  = (float) $item['unit_price'];
                 $totalPrice = (float) $item['total_price'];
-                $surcharge  = $hasCharge ? round($totalPrice - ($basePrice * $item['quantity']), 2) : 0;
-                $totalQty  += $item['quantity'];
-
                 $itemDiscountAmount = 0;
                 if (!empty($item['discount_type']) && isset($item['discount_value'])) {
                     $itemDiscountAmount = $item['discount_type'] === 'percent'
                         ? round($basePrice * $item['quantity'] * ($item['discount_value'] / 100), 2)
                         : round((float) $item['discount_value'] * $item['quantity'], 2);
                 }
+
+                $surcharge  = $hasCharge ? round(($totalPrice + $itemDiscountAmount) - ($basePrice * $item['quantity']), 2) : 0;
+                $totalQty  += $item['quantity'];
+
 
                 SaleItem::create([
                     'sale_id'            => $sale->id,

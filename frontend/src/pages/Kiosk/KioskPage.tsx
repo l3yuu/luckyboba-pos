@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { KioskTicketPrint } from '../../components/Cashier/SalesOrderComponents/print';
 import { getImageUrl } from '../../utils/imageUtils';
-import { useOfflineQueue } from '../../hooks/useOfflineQueue';
+import { useOfflineQueue } from '../../context/OfflineQueueContext';
 
 
 // --- Types ---
