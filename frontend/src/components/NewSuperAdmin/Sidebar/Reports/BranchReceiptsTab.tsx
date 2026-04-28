@@ -183,6 +183,7 @@ const BranchReceiptsTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); 
   const [branchId, setBranchId] = useState(localStorage.getItem('superadmin_selected_branch') || '');
+  const [status, setStatus] = useState("all");
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [searchResults, setSearchResults] = useState<SaleItem[]>([]);
   const [stats, setStats] = useState<Stats>({ gross: 0, voided: 0, net: 0 });
@@ -222,11 +223,11 @@ const BranchReceiptsTab: React.FC = () => {
     }).catch(() => { });
   }, [branchId]);
 
-  const handleSearch = useCallback(async (query = searchQuery, date = selectedDate, bId = branchId) => {
+  const handleSearch = useCallback(async (query = searchQuery, date = selectedDate, bId = branchId, stat = status) => {
     setIsLoading(true);
     setHasSearched(true);
     try {
-      const { data } = await api.get('/receipts/search', { params: { query, date, branch_id: bId } });
+      const { data } = await api.get('/receipts/search', { params: { query, date, branch_id: bId, status: stat } });
       const results = (data.results ?? []) as SaleItem[];
 
       // Sort and process results
@@ -238,7 +239,7 @@ const BranchReceiptsTab: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, selectedDate, branchId]);
+  }, [searchQuery, selectedDate, branchId, status]);
 
   useEffect(() => {
     handleSearch();
@@ -529,6 +530,23 @@ const BranchReceiptsTab: React.FC = () => {
             >
               <option value="">All Branches</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+        </div>
+
+        <div className="w-full sm:w-auto">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Status</p>
+          <div className="relative">
+            <select
+              value={status}
+              onChange={e => setStatus(e.target.value)}
+              className="appearance-none w-full sm:w-40 bg-zinc-50 border border-zinc-200 rounded-lg pl-4 pr-10 py-2.5 text-sm font-semibold text-[#1a0f2e] outline-none focus:ring-2 focus:ring-violet-400/20 transition-all cursor-pointer"
+            >
+              <option value="all">All</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="cancelled">Cancelled</option>
             </select>
             <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
