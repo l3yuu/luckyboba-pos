@@ -3,6 +3,27 @@ const SESSION_KEY   = 'pos_device_id_backup';
 const COOKIE_NAME   = 'pos_device_id';
 const COOKIE_MAXAGE = 60 * 60 * 24 * 365; // 1 year
 
+// ── WebGL Fingerprint (GPU Information) ────────────────────────────────────────
+function getWebglRenderer(): string {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null);
+    if (!gl) return 'no-webgl';
+    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+    if (!debugInfo) return 'no-webgl-debug';
+    return String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
+  } catch {
+    return 'webgl-err';
+  }
+}
+
+// ── Stable User Agent (Strips versions) ────────────────────────────────────────
+function getStableUserAgent(): string {
+  // Removes version numbers (e.g. Chrome/124.0.0.0 -> Chrome/)
+  // This ensures the ID survives browser updates.
+  return navigator.userAgent.replace(/\d+[\d.]+/g, '');
+}
+
 // ── Canvas fingerprint (GPU/driver-derived) ───────────────────────────────────
 function canvasFingerprint(): string {
   try {
@@ -26,7 +47,7 @@ function canvasFingerprint(): string {
 // ── Hardware signal collection ────────────────────────────────────────────────
 function collectSignals(): string {
   return [
-    navigator.userAgent,
+    getStableUserAgent(),
     navigator.language,
     navigator.languages?.join(',') ?? '',
     String(navigator.hardwareConcurrency ?? ''),
@@ -37,8 +58,10 @@ function collectSignals(): string {
     String(screen.pixelDepth),
     Intl.DateTimeFormat().resolvedOptions().timeZone,
     canvasFingerprint(),
+    getWebglRenderer(), // Added GPU identification
   ].join('||');
 }
+
 
 // ── SHA-256 → deterministic hex ID ───────────────────────────────────────────
 async function deriveId(): Promise<string> {

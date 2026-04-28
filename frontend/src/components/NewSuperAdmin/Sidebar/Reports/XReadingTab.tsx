@@ -367,7 +367,7 @@ const XReadingTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, date, shift, branches, reportType, invoiceQuery]);
+  }, [branchId, date, shift, branches, reportType, invoiceQuery, showBreakdown]);
 
   useEffect(() => {
     if (branchId) fetchReading();
