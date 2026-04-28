@@ -38,6 +38,7 @@ function validateImageFile(file: File): string | null {
 }
 
 interface BundleItemRaw {
+  menu_item_id?: number;
   custom_name?: string;
   name?: string;
   quantity?: number;
@@ -111,6 +112,7 @@ export const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = 
   );
 };
 
+
 const SkeletonBar: React.FC<{ h?: string; w?: string }> = ({ h = "h-4", w = "w-full" }) => (
   <div className={`${w} ${h} bg-zinc-100 rounded animate-pulse`} />
 );
@@ -169,7 +171,9 @@ export const OptionsToggle: React.FC<{
           : <ToggleLeft size={18} className="text-zinc-300" />}
       </button>
     </div>
-    <p className="text-[9px] text-zinc-400">These options will appear as add-on choices at the cashier.</p>
+    <p className="text-[9px] text-zinc-400 leading-tight mt-1">
+      These options will appear at the cashier. For bundles, customization will automatically apply to the items that support them.
+    </p>
   </div>
 );
 
@@ -220,6 +224,12 @@ export interface ComboBuilderProps {
   drinkItemId: string;
   onFoodChange: (id: string) => void;
   onDrinkChange: (id: string) => void;
+  options: { pearl: boolean; ice: boolean };
+  setOptions: (val: { pearl: boolean; ice: boolean }) => void;
+  selectedSugarIds: number[];
+  setSelectedSugarIds: (ids: number[]) => void;
+  allSugarLevels: SugarLevel[];
+  itemCustomizations: Record<string, { pearl: boolean; ice: boolean; sugar: boolean }>;
   errors: Record<string, string>;
 }
 
@@ -227,8 +237,11 @@ const FOOD_TYPES = ["food", "wings", "waffle"];
 const DRINK_TYPES = ["drink"];
 
 export const ComboBuilder: React.FC<ComboBuilderProps> = ({
-  allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, errors,
+  allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, 
+  options, setOptions, selectedSugarIds, setSelectedSugarIds, allSugarLevels, itemCustomizations, errors,
 }) => {
+  const foodCustoms = itemCustomizations[foodItemId];
+  const drinkCustoms = itemCustomizations[drinkItemId];
 
   const foodOptions = useMemo(() =>
     allItems
@@ -278,13 +291,73 @@ export const ComboBuilder: React.FC<ComboBuilderProps> = ({
           error={!!errors.food_item_id}
           accentColor="purple"
         />
+        
+        {foodCustoms && (foodCustoms.pearl || foodCustoms.ice || foodCustoms.sugar) && (
+          <div className="mt-3 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              {foodCustoms.pearl && (
+                <div className={`p-2 rounded-lg border transition-all ${options.pearl ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                  <p className={`text-[9px] font-bold uppercase mb-1 ${options.pearl ? 'text-rose-500' : 'text-zinc-400'}`}>Pearl</p>
+                  <button 
+                    type="button"
+                    onClick={() => setOptions({ ...options, pearl: !options.pearl })}
+                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.pearl ? 'bg-white text-rose-600 border-rose-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                  >
+                    <span>🧋 Option</span>
+                    <span className={options.pearl ? 'text-rose-600' : 'text-zinc-300'}>{options.pearl ? 'ON' : 'OFF'}</span>
+                  </button>
+                </div>
+              )}
+
+              {foodCustoms.ice && (
+                <div className={`p-2 rounded-lg border transition-all ${options.ice ? 'bg-sky-50 border-sky-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                  <p className={`text-[9px] font-bold uppercase mb-1 ${options.ice ? 'text-sky-500' : 'text-zinc-400'}`}>Ice</p>
+                  <button 
+                    type="button"
+                    onClick={() => setOptions({ ...options, ice: !options.ice })}
+                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.ice ? 'bg-white text-sky-600 border-sky-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                  >
+                    <span>🧊 Option</span>
+                    <span className={options.ice ? 'text-sky-600' : 'text-zinc-300'}>{options.ice ? 'ON' : 'OFF'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {foodCustoms.sugar && (
+              <div className={`p-2 rounded-lg border transition-all ${selectedSugarIds.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                <p className={`text-[9px] font-bold uppercase mb-1.5 ${selectedSugarIds.length > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>Available Sugar Levels</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {allSugarLevels.map(sl => {
+                    const isSelected = selectedSugarIds.includes(sl.id);
+                    return (
+                      <button
+                        key={sl.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) setSelectedSugarIds(selectedSugarIds.filter(id => id !== sl.id));
+                          else setSelectedSugarIds([...selectedSugarIds, sl.id]);
+                        }}
+                        className={`px-2 py-1 rounded text-[10px] font-bold border transition-all ${isSelected ? 'bg-white text-amber-600 border-amber-300 ring-1 ring-amber-300/20' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                      >
+                        {sl.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
       </div>
+
       <div className="flex items-center gap-2">
         <div className="flex-1 h-px bg-purple-200" />
         <span className="text-[10px] font-bold text-purple-400">+</span>
         <div className="flex-1 h-px bg-purple-200" />
       </div>
+
       <div>
         <label className="text-[10px] font-bold uppercase tracking-wider text-purple-600 mb-1.5 flex items-center gap-1.5">
           <Coffee size={10} /> Drink Item <span className="text-red-400">*</span>
@@ -297,6 +370,66 @@ export const ComboBuilder: React.FC<ComboBuilderProps> = ({
           error={!!errors.drink_item_id}
           accentColor="purple"
         />
+        
+        {drinkCustoms && (drinkCustoms.pearl || drinkCustoms.ice || drinkCustoms.sugar) && (
+          <div className="mt-3 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              {drinkCustoms.pearl && (
+                <div className={`p-2 rounded-lg border transition-all ${options.pearl ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                  <p className={`text-[9px] font-bold uppercase mb-1 ${options.pearl ? 'text-rose-500' : 'text-zinc-400'}`}>Pearl</p>
+                  <button 
+                    type="button"
+                    onClick={() => setOptions({ ...options, pearl: !options.pearl })}
+                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.pearl ? 'bg-white text-rose-600 border-rose-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                  >
+                    <span>🧋 Option</span>
+                    <span className={options.pearl ? 'text-rose-600' : 'text-zinc-300'}>{options.pearl ? 'ON' : 'OFF'}</span>
+                  </button>
+                </div>
+              )}
+
+              {drinkCustoms.ice && (
+                <div className={`p-2 rounded-lg border transition-all ${options.ice ? 'bg-sky-50 border-sky-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                  <p className={`text-[9px] font-bold uppercase mb-1 ${options.ice ? 'text-sky-500' : 'text-zinc-400'}`}>Ice</p>
+                  <button 
+                    type="button"
+                    onClick={() => setOptions({ ...options, ice: !options.ice })}
+                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.ice ? 'bg-white text-sky-600 border-sky-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                  >
+                    <span>🧊 Option</span>
+                    <span className={options.ice ? 'text-sky-600' : 'text-zinc-300'}>{options.ice ? 'ON' : 'OFF'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {drinkCustoms.sugar && (
+              <div className={`p-2 rounded-lg border transition-all ${selectedSugarIds.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                <p className={`text-[9px] font-bold uppercase mb-1.5 ${selectedSugarIds.length > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>Available Sugar Levels</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {allSugarLevels.map(sl => {
+                    const isSelected = selectedSugarIds.includes(sl.id);
+                    return (
+                      <button
+                        key={sl.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) setSelectedSugarIds(selectedSugarIds.filter(id => id !== sl.id));
+                          else setSelectedSugarIds([...selectedSugarIds, sl.id]);
+                        }}
+                        className={`px-2 py-1 rounded text-[10px] font-bold border transition-all ${isSelected ? 'bg-white text-amber-600 border-amber-300 ring-1 ring-amber-300/20' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                      >
+                        {sl.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <p className="text-[8px] text-zinc-400 italic leading-none px-1">These settings apply to the drink in this combo</p>
+          </div>
+        )}
+
         {errors.drink_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.drink_item_id}</p>}
       </div>
       <p className="text-[10px] text-purple-500 font-medium leading-tight">
@@ -312,11 +445,18 @@ export interface BundleBuilderProps {
   allItems: MenuItem[];
   bundleItemIds: string[];
   onItemsChange: (ids: string[]) => void;
+  options: { pearl: boolean; ice: boolean };
+  setOptions: (val: { pearl: boolean; ice: boolean }) => void;
+  selectedSugarIds: number[];
+  setSelectedSugarIds: (ids: number[]) => void;
+  allSugarLevels: SugarLevel[];
+  itemCustomizations: Record<string, { pearl: boolean; ice: boolean; sugar: boolean }>;
   errors: Record<string, string>;
 }
 
 export const BundleBuilder: React.FC<BundleBuilderProps> = ({
-  allItems, bundleItemIds, onItemsChange, errors,
+  allItems, bundleItemIds, onItemsChange, 
+  options, setOptions, selectedSugarIds, setSelectedSugarIds, allSugarLevels, itemCustomizations, errors,
 }) => {
   const drinkOptions = useMemo(() => {
     const drinks = allItems
@@ -393,6 +533,66 @@ export const BundleBuilder: React.FC<BundleBuilderProps> = ({
               error={!!errors[`bundle_item_${idx}`]}
               accentColor="indigo"
             />
+            
+            {/* Contextual Customization Row for each bundle item */}
+            {itemCustomizations[itemId] && (itemCustomizations[itemId].pearl || itemCustomizations[itemId].ice || itemCustomizations[itemId].sugar) && (
+              <div className="mt-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {itemCustomizations[itemId].pearl && (
+                    <div className={`p-2 rounded-lg border transition-all ${options.pearl ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                      <p className={`text-[9px] font-bold uppercase mb-1 ${options.pearl ? 'text-rose-500' : 'text-zinc-400'}`}>Pearl</p>
+                      <button 
+                        type="button"
+                        onClick={() => setOptions({ ...options, pearl: !options.pearl })}
+                        className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.pearl ? 'bg-white text-rose-600 border-rose-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                      >
+                        <span>🧋 Option</span>
+                        <span className={options.pearl ? 'text-rose-600' : 'text-zinc-300'}>{options.pearl ? 'ON' : 'OFF'}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {itemCustomizations[itemId].ice && (
+                    <div className={`p-2 rounded-lg border transition-all ${options.ice ? 'bg-sky-50 border-sky-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                      <p className={`text-[9px] font-bold uppercase mb-1 ${options.ice ? 'text-sky-500' : 'text-zinc-400'}`}>Ice</p>
+                      <button 
+                        type="button"
+                        onClick={() => setOptions({ ...options, ice: !options.ice })}
+                        className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.ice ? 'bg-white text-sky-600 border-sky-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                      >
+                        <span>🧊 Option</span>
+                        <span className={options.ice ? 'text-sky-600' : 'text-zinc-300'}>{options.ice ? 'ON' : 'OFF'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {itemCustomizations[itemId].sugar && (
+                  <div className={`p-2 rounded-lg border transition-all ${selectedSugarIds.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                    <p className={`text-[9px] font-bold uppercase mb-1.5 ${selectedSugarIds.length > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>Available Sugar Levels</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allSugarLevels.map(sl => {
+                        const isSelected = selectedSugarIds.includes(sl.id);
+                        return (
+                          <button
+                            key={sl.id}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) setSelectedSugarIds(selectedSugarIds.filter(id => id !== sl.id));
+                              else setSelectedSugarIds([...selectedSugarIds, sl.id]);
+                            }}
+                            className={`px-2 py-1 rounded text-[10px] font-bold border transition-all ${isSelected ? 'bg-white text-amber-600 border-amber-300 ring-1 ring-amber-300/20' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                          >
+                            {sl.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {errors[`bundle_item_${idx}`] && (
               <p className="text-[10px] text-red-500 mt-1 font-medium">{errors[`bundle_item_${idx}`]}</p>
             )}
@@ -587,7 +787,10 @@ export const SugarLevelToggle: React.FC<{
   if (allLevels.length === 0) return null;
   return (
     <div className="flex flex-col gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Sugar Levels</p>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Sugar Levels</p>
+        <span className="text-[8px] font-bold text-zinc-300 uppercase tracking-tighter">Applies to drinks in bundle</span>
+      </div>
       <div className="flex flex-wrap gap-1.5">
         {allLevels.map(lvl => {
           const isOn = selected.includes(lvl.id);
@@ -912,6 +1115,8 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
   const [mmBundleItems, setMmBundleItems] = useState<{ name: string; quantity: number; size: string }[] | null>(null);
   const [mmBundleLoading, setMmBundleLoading] = useState(false);
   const [selectedSugarLevelIds, setSelectedSugarLevelIds] = useState<number[]>([]);
+  const initialIdsRef = useRef<string[] | null>(null);
+  const [itemCustomizations, setItemCustomizations] = useState<Record<string, { pearl: boolean, ice: boolean, sugar: boolean }>>({});
   const [selectedFoodAddOnIds, setSelectedFoodAddOnIds] = useState<number[]>([]);
 
   // Pre-load existing options when editing a drink
@@ -946,7 +1151,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
 
   useEffect(() => {
     if (!isEdit || !item) return;
-    const isDrink = ["drink"].includes(item.category_type ?? "");
+    const isDrink = ["drink", "combo", "bundle", "mix_and_match"].includes(item.category_type ?? "");
     if (!isDrink) return;
     fetch(`/api/menu-item-sugar-levels?menu_item_id=${item.id}`, { headers: authHeaders() })
       .then(r => r.json())
@@ -989,6 +1194,107 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
       .catch(() => setMmBundleItems([]))
       .finally(() => setMmBundleLoading(false));
   }, [isEdit, item, isMixAndMatchCategory]);
+
+  // Pre-load existing bundle items for Combo/Bundle
+  useEffect(() => {
+    if (!isEdit || !item || (!isComboCategory && !isBundleCategory)) return;
+    if (!item.barcode) return;
+
+    fetch(`/api/bundles?barcode=${encodeURIComponent(item.barcode)}`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(bundleData => {
+        const bundles = Array.isArray(bundleData) ? bundleData : (bundleData.data ?? []);
+        if (bundles.length > 0) {
+          const bundleItems: BundleItemRaw[] = bundles[0].items ?? bundles[0].bundle_items ?? [];
+          
+          if (isComboCategory) {
+            const food = bundleItems.find((bi: BundleItemRaw) => bi.size === 'none');
+            const drink = bundleItems.find((bi: BundleItemRaw) => bi.size !== 'none');
+            
+            if (food) {
+              const id = food.menu_item_id || allItems.find(i => i.name === food.custom_name)?.id;
+              if (id) setFoodItemId(String(id));
+            }
+            if (drink) {
+              const id = drink.menu_item_id || allItems.find(i => i.name === drink.custom_name)?.id;
+              if (id) setDrinkItemId(String(id));
+            }
+          } else if (isBundleCategory) {
+            const ids = bundleItems.map((bi: BundleItemRaw) => {
+              const id = bi.menu_item_id || allItems.find(i => i.name === (bi.custom_name || bi.name))?.id;
+              return id ? String(id) : '';
+            }).filter(id => id !== '');
+            setBundleItemIds(ids);
+          }
+        }
+      })
+      .catch(() => { });
+  }, [isEdit, item, isComboCategory, isBundleCategory, allItems]);
+
+  // Auto-sync options and sugar levels from selected bundle components
+  useEffect(() => {
+    const idsToSync = isComboCategory 
+      ? (drinkItemId ? [drinkItemId] : [])
+      : isBundleCategory 
+        ? bundleItemIds.filter(id => id !== "")
+        : [];
+
+    if (idsToSync.length === 0) return;
+
+    // In edit mode, we only want to auto-sync if the selection has CHANGED from the initial load.
+    // This prevents overwriting manually saved options immediately upon opening the modal.
+    if (isEdit && item) {
+      if (initialIdsRef.current === null) {
+        initialIdsRef.current = idsToSync;
+        return; // Skip first run in edit mode
+      }
+      
+      const isSame = idsToSync.length === initialIdsRef.current.length && 
+                     idsToSync.every((id, idx) => id === initialIdsRef.current![idx]);
+      if (isSame) return;
+    }
+
+    const fetchAll = async () => {
+      try {
+        const results = await Promise.all(idsToSync.map(async (id) => {
+          const [optRes, sugarRes] = await Promise.all([
+            fetch(`/api/menu-item-options?menu_item_id=${id}`, { headers: authHeaders() }).then(r => r.json()),
+            fetch(`/api/menu-item-sugar-levels?menu_item_id=${id}`, { headers: authHeaders() }).then(r => r.json())
+          ]);
+          return {
+            id,
+            options: (optRes.data ?? []) as { option_type: string }[],
+            sugarLevels: (sugarRes.data ?? []) as { sugar_level_id: number }[]
+          };
+        }));
+
+        const newDetails: Record<string, { pearl: boolean, ice: boolean, sugar: boolean }> = {};
+        results.forEach(r => {
+          newDetails[r.id] = {
+            pearl: r.options.some(o => o.option_type === "pearl"),
+            ice: r.options.some(o => o.option_type === "ice"),
+            sugar: r.sugarLevels.length > 0
+          };
+        });
+        setItemCustomizations(prev => ({ ...prev, ...newDetails }));
+
+        // Aggregate Pearl/Ice (Union)
+        const hasPearl = results.some(r => r.options.some(o => o.option_type === "pearl"));
+        const hasIce = results.some(r => r.options.some(o => o.option_type === "ice"));
+        setOptions({ pearl: hasPearl, ice: hasIce });
+
+        // Aggregate Sugar Levels (Union)
+        const sugarIds = new Set<number>();
+        results.forEach(r => r.sugarLevels.forEach(s => sugarIds.add(s.sugar_level_id)));
+        setSelectedSugarLevelIds(Array.from(sugarIds));
+
+      } catch (err) {
+        console.error("Failed to auto-sync options:", err);
+      }
+    };
+
+    fetchAll();
+  }, [drinkItemId, bundleItemIds, isComboCategory, isBundleCategory, isEdit, item]);
 
   const mmDrinkCount = mmBundleItems !== null
     ? mmBundleItems.filter(i => i.size !== 'none').length
@@ -1115,7 +1421,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
       const savedItem: MenuItem = data.data;
 
       // Save drink options if applicable
-      const isDrinkItem = ["drink"].includes(
+      const isDrinkItem = ["drink", "combo", "bundle", "mix_and_match"].includes(
         categories.find(c => String(c.id) === form.category_id)?.category_type ?? ""
       );
       if (isDrinkItem) {
@@ -1144,8 +1450,8 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
             bundle_type: "combo", price: Number(form.price),
             barcode: form.barcode || `COMBO-${savedItem.id}`,
             items: [
-              { custom_name: foodItem?.name ?? "Food", quantity: 1, size: "none", display_name: "Food" },
-              { custom_name: drinkItem?.name ?? "Drink", quantity: 1, size: "M", display_name: "Drink" },
+              { menu_item_id: Number(foodItemId), custom_name: foodItem?.name ?? "Food", quantity: 1, size: "none", display_name: "Food" },
+              { menu_item_id: Number(drinkItemId), custom_name: drinkItem?.name ?? "Drink", quantity: 1, size: "M", display_name: "Drink" },
             ],
           }),
         });
@@ -1153,6 +1459,44 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
           setApiError("Item saved but combo bundle creation failed. Please create the bundle manually.");
           onSaved(savedItem);
           return;
+        }
+      }
+
+      // Step 2d: If Combo edit, update the bundle
+      if (isComboCategory && isEdit && item?.barcode) {
+        const foodItem = allItems.find(i => String(i.id) === foodItemId);
+        const drinkItem = allItems.find(i => String(i.id) === drinkItemId);
+
+        if (foodItem || drinkItem) {
+          const bundleData = await fetch(`/api/bundles?barcode=${encodeURIComponent(item.barcode)}`, { headers: authHeaders() }).then(r => r.json());
+          const bundles = Array.isArray(bundleData) ? bundleData : (bundleData.data ?? []);
+          if (bundles.length > 0) {
+            const bundleId = bundles[0].id;
+            const existingItems = bundles[0].items ?? bundles[0].bundle_items ?? [];
+            const existingFood = existingItems.find((bi: any) => bi.size === 'none');
+            const existingDrink = existingItems.find((bi: any) => bi.size !== 'none');
+
+            await fetch(`/api/bundles/${bundleId}`, {
+              method: 'PUT', headers: authHeaders(),
+              body: JSON.stringify({
+                name: form.name,
+                price: Number(form.price),
+                barcode: form.barcode,
+                items: [
+                  {
+                    menu_item_id: foodItem ? foodItem.id : existingFood?.menu_item_id,
+                    custom_name: foodItem ? foodItem.name : existingFood?.custom_name,
+                    quantity: 1, size: "none", display_name: "Food"
+                  },
+                  {
+                    menu_item_id: drinkItem ? drinkItem.id : existingDrink?.menu_item_id,
+                    custom_name: drinkItem ? drinkItem.name : existingDrink?.custom_name,
+                    quantity: 1, size: "M", display_name: "Drink"
+                  },
+                ],
+              }),
+            }).catch(() => { });
+          }
         }
       }
 
@@ -1218,7 +1562,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
             barcode: form.barcode || `BUNDLE-${savedItem.id}`,
             items: bundleItemIds.filter(id => id !== "").map(id => {
               const found = allItems.find(i => String(i.id) === id);
-              return { custom_name: found?.name ?? "Item", quantity: 1, size: "L", display_name: found?.name ?? "Item" };
+              return { menu_item_id: found?.id, custom_name: found?.name ?? "Item", quantity: 1, size: "L", display_name: found?.name ?? "Item" };
             }),
           }),
         });
@@ -1226,6 +1570,31 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
           setApiError("Item saved but bundle creation failed. Please create the bundle manually.");
           onSaved(savedItem);
           return;
+        }
+      }
+
+      // Step 2e: If Bundle edit, update the bundle
+      if (isBundleCategory && isEdit && item?.barcode) {
+        const bundleData = await fetch(`/api/bundles?barcode=${encodeURIComponent(item.barcode)}`, { headers: authHeaders() }).then(r => r.json());
+        const bundles = Array.isArray(bundleData) ? bundleData : (bundleData.data ?? []);
+        if (bundles.length > 0) {
+          const bundleId = bundles[0].id;
+          await fetch(`/api/bundles/${bundleId}`, {
+            method: 'PUT', headers: authHeaders(),
+            body: JSON.stringify({
+              name: form.name,
+              price: Number(form.price),
+              barcode: form.barcode,
+              items: bundleItemIds.filter(id => id !== "").map(id => {
+                const found = allItems.find(i => String(i.id) === id);
+                return {
+                  menu_item_id: found?.id,
+                  custom_name: found?.name ?? "Item",
+                  quantity: 1, size: "L", display_name: found?.name ?? "Item"
+                };
+              }),
+            }),
+          }).catch(() => { });
         }
       }
 
@@ -1414,25 +1783,37 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
       </div>
 
       {/* Combo Builder */}
-      {isComboCategory && !isEdit && (
-        <ComboBuilder allItems={allItems} foodItemId={foodItemId} drinkItemId={drinkItemId} onFoodChange={setFoodItemId} onDrinkChange={setDrinkItemId} errors={errors} />
-      )}
-      {isComboCategory && isEdit && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-xs font-bold text-amber-700 mb-0.5">Editing a combo item</p>
-          <p className="text-[10px] text-amber-600">To change the food or drink components, edit the bundle directly from the Bundles tab.</p>
-        </div>
+      {(isComboCategory) && (
+        <ComboBuilder 
+          allItems={allItems} 
+          foodItemId={foodItemId} 
+          drinkItemId={drinkItemId} 
+          onFoodChange={setFoodItemId} 
+          onDrinkChange={setDrinkItemId} 
+          options={options}
+          setOptions={setOptions}
+          selectedSugarIds={selectedSugarLevelIds}
+          setSelectedSugarIds={setSelectedSugarLevelIds}
+          allSugarLevels={sugarLevels}
+          itemCustomizations={itemCustomizations}
+          errors={errors} 
+        />
       )}
 
       {/* Bundle Builder */}
-      {isBundleCategory && !isEdit && (
-        <BundleBuilder allItems={allItems} bundleItemIds={bundleItemIds} onItemsChange={setBundleItemIds} errors={errors} />
-      )}
-      {isBundleCategory && isEdit && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-xs font-bold text-amber-700 mb-0.5">Editing a bundle item</p>
-          <p className="text-[10px] text-amber-600">To change the bundle components, edit the bundle directly from the Bundles tab.</p>
-        </div>
+      {(isBundleCategory) && (
+        <BundleBuilder 
+          allItems={allItems} 
+          bundleItemIds={bundleItemIds} 
+          onItemsChange={setBundleItemIds} 
+          options={options}
+          setOptions={setOptions}
+          selectedSugarIds={selectedSugarLevelIds}
+          setSelectedSugarIds={setSelectedSugarLevelIds}
+          allSugarLevels={sugarLevels}
+          itemCustomizations={itemCustomizations}
+          errors={errors} 
+        />
       )}
 
       {/* Mix & Match */}
@@ -1543,8 +1924,8 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         </div>
       )}
 
-      {/* Drink Options + Sugar Levels */}
-      {["drink"].includes(selectedCategory?.category_type ?? "") && (
+      {/* Drink Options + Sugar Levels - Moved to builders for combos/bundles */}
+      {["drink", "mix_and_match"].includes(selectedCategory?.category_type ?? "") && (
         <>
           <OptionsToggle value={options} onChange={setOptions} />
           <SugarLevelToggle allLevels={sugarLevels} selected={selectedSugarLevelIds} onChange={setSelectedSugarLevelIds} />

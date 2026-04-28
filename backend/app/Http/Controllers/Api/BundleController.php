@@ -91,6 +91,7 @@ public function index(Request $request)
             'cup_id'        => 'nullable|exists:cups,id',
             'is_active'     => 'nullable|boolean',
             'items'         => 'required|array|min:1',
+            'items.*.menu_item_id' => 'nullable|exists:menu_items,id',
             'items.*.custom_name'  => 'required|string|max:255',
             'items.*.quantity'     => 'required|integer|min:1',
             'items.*.size'         => 'nullable|string',
@@ -118,6 +119,7 @@ public function index(Request $request)
 
             foreach ($validated['items'] as $item) {
                 $bundle->items()->create([
+                    'menu_item_id' => $item['menu_item_id'] ?? null,
                     'custom_name'  => $item['custom_name'],
                     'quantity'     => $item['quantity'],
                     'size'         => $item['size'] ?? 'none',
@@ -166,6 +168,7 @@ public function index(Request $request)
             'cup_id'        => 'sometimes|nullable|exists:cups,id',
             'is_active'     => 'sometimes|boolean',
             'items'         => 'sometimes|array|min:1',
+            'items.*.menu_item_id' => 'nullable|exists:menu_items,id',
             'items.*.custom_name'  => 'required_with:items|string|max:255',
             'items.*.quantity'     => 'required_with:items|integer|min:1',
             'items.*.size'         => 'nullable|string',
@@ -190,6 +193,7 @@ public function index(Request $request)
                 $bundle->items()->delete();
                 foreach ($validated['items'] as $item) {
                     $bundle->items()->create([
+                        'menu_item_id' => $item['menu_item_id'] ?? null,
                         'custom_name'  => $item['custom_name'],
                         'quantity'     => $item['quantity'],
                         'size'         => $item['size'] ?? 'none',
