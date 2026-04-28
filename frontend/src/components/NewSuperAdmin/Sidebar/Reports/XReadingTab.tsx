@@ -178,6 +178,7 @@ const XReadingTab: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const [reportType, setReportType] = useState("x_reading");
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
@@ -295,21 +296,33 @@ const XReadingTab: React.FC = () => {
         default: url = `/api/reports/x-reading?${params}`; break;
       }
 
-      // ── Special case: summary needs two endpoints merged ──────────────────
-      if (reportType === "summary") {
-        const [summaryRes, qtyRes] = await Promise.all([
-          fetch(`/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-          fetch(`/api/reports/item-quantities?${params}`, { headers: authHeaders() }).then(r => r.json()),
+      // ── Special case: summary or x_reading with breakdown needs two endpoints merged ──
+      const isXWithBreakdown = reportType === "x_reading" && showBreakdown;
+
+      if (reportType === "summary" || isXWithBreakdown) {
+        const mainUrl = reportType === "summary" 
+          ? `/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`
+          : `/api/reports/x-reading?${params}`;
+
+        const [mainRes, qtyRes] = await Promise.all([
+          fetch(mainUrl, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}${shift !== "all" ? `&shift=${shift}` : ""}`, { headers: authHeaders() }).then(r => r.json()),
         ]);
         const merged = {
-          ...summaryRes,
+          ...mainRes,
           categories: qtyRes.categories ?? [],
           all_addons_summary: qtyRes.all_addons_summary ?? [],
         };
-        const normalized = normalizeResponse("summary", merged as Record<string, unknown>);
-        setReportData({ ...normalized, report_type: "summary" });
-        // also set the XReading stat cards from summary data
-        setData(null);
+        const normalized = normalizeResponse(reportType, merged as Record<string, unknown>);
+        setReportData({ ...normalized, report_type: reportType });
+        
+        if (reportType === "x_reading") {
+           if (mainRes.success && mainRes.data) {
+             setData(mainRes.data as XReading);
+           }
+        } else {
+           setData(null);
+        }
         return;
       }
 
@@ -434,65 +447,30 @@ const XReadingTab: React.FC = () => {
   const renderQtyItems = () => {
     if (!reportData?.categories)
       return <p className="text-[11px] mt-4 text-center">No category data.</p>;
-    const SIZE_ORDER = ["SM", "UM", "PCM", "JR", "SL", "UL", "PCL"];
-    const totalItems = reportData.categories.reduce((acc, cat) => acc + cat.products.reduce((p, pr) => p + pr.total_qty, 0), 0);
+
     return (
       <div className="my-2">
         <ReceiptDivider />
-        <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
-          <span className="w-[75%] uppercase">Description</span>
-          <span className="w-[25%] text-right uppercase">Qty</span>
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
+        <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5 uppercase">
+          <span className="w-[50%]">Item</span>
+          <span className="w-[15%] text-center">Size</span>
+          <span className="w-[15%] text-center">Qty</span>
+          <span className="w-[20%] text-right">Total</span>
         </div>
-        {reportData.categories.map((cat, catIdx) => {
-          const hasSizes = cat.products.some(p => p.size !== null);
-          const sizeGroups = new Map<string | null, typeof cat.products>();
-          for (const product of cat.products) {
-            const key = product.size ?? null;
-            if (!sizeGroups.has(key)) sizeGroups.set(key, []);
-            sizeGroups.get(key)!.push(product);
-          }
-          const orderedKeys: (string | null)[] = [...SIZE_ORDER.filter(s => sizeGroups.has(s)), ...(sizeGroups.has(null) ? [null] : [])];
-          const catTotal = cat.products.reduce((a, p) => a + p.total_qty, 0);
-          return (
-            <div key={catIdx} className="mb-1">
-              <p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>
-              {orderedKeys.map((sizeKey, si) => (
-                <div key={si}>
-                  {hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}
-                  {(sizeGroups.get(sizeKey) ?? []).map((item, i) => (
-                    <div key={i} className="flex text-[11px] leading-snug">
-                      <span className={`w-[75%] uppercase leading-tight ${hasSizes && sizeKey !== null ? "pl-4" : "pl-2"}`}>
-                        {item.product_name}{item.size ? ` (${item.size})` : ""}
-                      </span>
-                      <span className="w-[25%] text-right">{item.total_qty}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-              <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
-                <span className="uppercase">T. Per: {cat.category_name}</span>
-                <span>Qty: {catTotal}</span>
-              </div>
-              <ReceiptDivider />
-            </div>
-          );
-        })}
-        {(reportData.all_addons_summary ?? []).length > 0 && (
-          <div className="mt-1">
-            <p className="text-[11px] uppercase">Add Ons</p>
-            {reportData.all_addons_summary!.map((addon, idx) => (
-              <div key={idx} className="flex text-[11px] leading-snug">
-                <span className="w-[75%] uppercase pl-2">{addon.name}</span>
-                <span className="w-[25%] text-right">{addon.qty}</span>
+        {reportData.categories.map((cat, catIdx) => (
+          <React.Fragment key={catIdx}>
+            <p className="text-[15px] font-bold uppercase mt-0.5">{cat.category_name}</p>
+            {cat.products.map((item, i) => (
+              <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-200 font-bold">
+                <span className="w-[50%] uppercase leading-tight pl-1">{item.product_name}</span>
+                <span className="w-[15%] text-center">{item.size ?? '—'}</span>
+                <span className="w-[15%] text-center">{item.total_qty}</span>
+                <span className="w-[20%] text-right">{phCurrency.format(item.total_sales)}</span>
               </div>
             ))}
-          </div>
-        )}
-        <ReceiptDivider />
-        <div className="flex justify-between text-[11px]">
-          <span className="uppercase">All Day Total</span>
-          <span>Qty: {totalItems}</span>
-        </div>
+          </React.Fragment>
+        ))}
       </div>
     );
   };
@@ -813,6 +791,16 @@ const XReadingTab: React.FC = () => {
         <ReceiptRow label="Previous Accumulated" value={phCurrency.format(reportData?.previous_accumulated || 0)} />
         <ReceiptRow label="Present Accumulated" value={phCurrency.format(reportData?.present_accumulated || 0)} />
         <ReceiptRow label="Z-Counter" value={String(reportData?.z_counter || 1).padStart(4, "0")} />
+        {showBreakdown && renderQtyItems()}
+        <ReceiptDivider />
+        <div className="flex text-[11px] font-bold justify-between">
+          <span className="uppercase">Gross Total</span>
+          <span>{phCurrency.format(gross)}</span>
+        </div>
+        <div className="flex text-[11px] font-bold justify-between">
+          <span className="uppercase">Net Total</span>
+          <span>{phCurrency.format(netSales)}</span>
+        </div>
       </div>
     );
   };
@@ -908,6 +896,21 @@ const XReadingTab: React.FC = () => {
               <option value="pm">PM Shift</option>
             </select>
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Breakdown</p>
+          <div 
+            className="flex items-center gap-2 h-9 px-3 border border-zinc-200 rounded-lg bg-zinc-50 cursor-pointer select-none hover:border-violet-400 transition-colors"
+            onClick={() => setShowBreakdown(!showBreakdown)}
+          >
+            <input
+              type="checkbox"
+              checked={showBreakdown}
+              onChange={() => {}} 
+              className="w-3.5 h-3.5 rounded border-zinc-300 text-violet-600 focus:ring-violet-400 cursor-pointer"
+            />
+            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-tight">Show Items</span>
           </div>
         </div>
         {/* Search input for search receipt type */}

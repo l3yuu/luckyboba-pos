@@ -128,6 +128,7 @@ const XReading = () => {
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const vatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = vatType === 'vat';
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const branchId = localStorage.getItem('lucky_boba_user_branch_id') || '';
 
   useEffect(() => {
@@ -153,24 +154,27 @@ const XReading = () => {
     setError(null);
     setRawApiResponse(null);
     try {
-      if (type === 'summary') {
+      if (type === 'summary' || (type === 'x_reading' && showBreakdown)) {
         const sParams: Record<string, string | number> = { from: selectedDate, to: selectedDate };
         const qParams: Record<string, string | number> = { date: selectedDate };
         if (branchId) {
           sParams.branch_id = branchId;
           qParams.branch_id = branchId;
         }
-        const [summaryRes, qtyRes] = await Promise.all([
-          api.get('/reports/sales-summary',   { params: sParams }),
-          api.get('/reports/item-quantities', { params: qParams }),
-        ]);
+
+        const endpoints = type === 'summary' 
+          ? [api.get('/reports/sales-summary', { params: sParams }), api.get('/reports/item-quantities', { params: qParams })]
+          : [api.get('/reports/x-reading', { params: qParams }), api.get('/reports/item-quantities', { params: qParams })];
+
+        const [mainRes, qtyRes] = await Promise.all(endpoints);
+        
         const merged = {
-          ...summaryRes.data,
+          ...mainRes.data,
           categories:         qtyRes.data.categories         ?? [],
           all_addons_summary: qtyRes.data.all_addons_summary ?? [],
         };
         setRawApiResponse(merged as Record<string, unknown>);
-        const normalized = normalizeResponse(type, merged);
+        const normalized = normalizeResponse(type === 'summary' ? 'summary' : 'x_reading', merged);
         setReportData({ ...normalized, report_type: type });
         return;
       }
@@ -354,75 +358,30 @@ const XReading = () => {
   const renderQtyItems = () => {
     if (!reportData?.categories)
       return <p className="text-[11px] mt-4 text-center">No category data returned by API.</p>;
-    const SIZE_ORDER = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
-    const totalItems = reportData.categories.reduce((acc, cat) => acc + cat.products.reduce((p, pr) => p + pr.total_qty, 0), 0);
+
     return (
       <div className="my-2">
         <Divider />
-        <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
-          <span className="w-[75%] uppercase">DESCRIPTION</span>
-          <span className="w-[25%] text-right uppercase">QTY</span>
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
+        <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5 uppercase">
+          <span className="w-[50%]">Item</span>
+          <span className="w-[15%] text-center">Size</span>
+          <span className="w-[15%] text-center">Qty</span>
+          <span className="w-[20%] text-right">Total</span>
         </div>
-        {reportData.categories.map((cat, catIdx) => {
-          const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined);
-          const sizeGroups = new Map<string | null, typeof cat.products>();
-          for (const product of cat.products) {
-            const key = product.size ?? null;
-            if (!sizeGroups.has(key)) sizeGroups.set(key, []);
-            sizeGroups.get(key)!.push(product);
-          }
-          const orderedKeys: (string | null)[] = [
-            ...SIZE_ORDER.filter(s => sizeGroups.has(s)),
-            ...(sizeGroups.has(null) ? [null] : []),
-          ];
-          const catTotal = cat.products.reduce((a, p) => a + p.total_qty, 0);
-          return (
-            <div key={catIdx} className="mb-1">
-              <p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>
-              {orderedKeys.map((sizeKey, si) => {
-                const products = sizeGroups.get(sizeKey) ?? [];
-                return (
-                  <div key={si}>
-                    {hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}
-                    {products.map((item, i) => (
-                      <div key={i} className="flex text-[11px] font-bold leading-snug">
-                        <span className={`w-[75%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>
-                          {item.product_name}{item.size ? ` (${item.size})` : ''}
-                        </span>
-                        <span className="w-[25%] text-right">{item.total_qty}</span>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-              <div className="flex justify-between text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
-                <span className="uppercase">T. PER: {cat.category_name}</span>
-                <span>QTY: {catTotal}</span>
-              </div>
-              <Divider />
-            </div>
-          );
-        })}
-        {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (
-          <div className="mt-1">
-            <p className="text-[11px] uppercase">ADD ONS</p>
-            {reportData.all_addons_summary.map((addon, idx) => (
-              <div key={idx} className="flex text-[11px] leading-snug">
-                <span className="w-[75%] uppercase pl-2">{addon.name}</span>
-                <span className="w-[25%] text-right">{addon.qty}</span>
+        {reportData.categories.map((cat, catIdx) => (
+          <React.Fragment key={catIdx}>
+            <p className="text-[15px] font-bold uppercase mt-0.5">{cat.category_name}</p>
+            {cat.products.map((item, i) => (
+              <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-200 font-bold">
+                <span className="w-[50%] uppercase leading-tight pl-1">{item.product_name}</span>
+                <span className="w-[15%] text-center">{item.size ?? '—'}</span>
+                <span className="w-[15%] text-center">{item.total_qty}</span>
+                <span className="w-[20%] text-right">{phCurrency.format(item.total_sales)}</span>
               </div>
             ))}
-            <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
-              <span className="uppercase">T. PER: ADD ONS</span>
-              <span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span>
-            </div>
-          </div>
-        )}
-        <Divider />
-        <div className="flex justify-between text-[11px] font-bold">
-          <span className="uppercase">ALL DAY MEAL</span>
-          <span>QTY: {totalItems}</span>
-        </div>
+          </React.Fragment>
+        ))}
       </div>
     );
   };
@@ -813,6 +772,16 @@ const XReading = () => {
         <Row label="PREVIOUS ACCUMULATED" value={phCurrency.format(reportData?.previous_accumulated || 0)} />
         <Row label="PRESENT ACCUMULATED"  value={phCurrency.format(reportData?.present_accumulated  || 0)} />
         <Row label="Z-COUNTER"            value={String(reportData?.z_counter || 1).padStart(4, '0')} />
+        {showBreakdown && renderQtyItems()}
+        <Divider />
+        <div className="flex text-[11px] font-bold justify-between">
+          <span className="uppercase">GROSS TOTAL</span>
+          <span>{phCurrency.format(gross)}</span>
+        </div>
+        <div className="flex text-[11px] font-bold justify-between">
+          <span className="uppercase">NET TOTAL</span>
+          <span>{phCurrency.format(netInclusive)}</span>
+        </div>
       </div>
     );
   };
@@ -921,6 +890,19 @@ const XReading = () => {
               onChange={(e) => setSelectedDate(e.target.value)}
               className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#6a12b8]"
             />
+            
+            <div 
+              className="flex items-center gap-2 h-11 px-4 border border-zinc-300 rounded-[0.625rem] bg-white cursor-pointer select-none hover:border-[#6a12b8] transition-colors"
+              onClick={() => setShowBreakdown(!showBreakdown)}
+            >
+              <input
+                type="checkbox"
+                checked={showBreakdown}
+                onChange={() => {}} // Handled by div click
+                className="w-4 h-4 rounded border-zinc-300 text-[#6a12b8] focus:ring-[#6a12b8] cursor-pointer"
+              />
+              <span className="text-[10px] font-black text-zinc-600 uppercase tracking-tight">Show Breakdown</span>
+            </div>
             {reportData?.report_type === 'search' && (
               <div className="flex gap-2 flex-1">
                 <input
