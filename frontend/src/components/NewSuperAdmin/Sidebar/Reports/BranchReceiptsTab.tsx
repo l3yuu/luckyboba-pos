@@ -619,7 +619,7 @@ const BranchReceiptsTab: React.FC = () => {
               {!isLoading && searchResults.map(item => (
                 <tr key={item.sale_id} className="hover:bg-zinc-50/80 transition-colors group">
                   <td className="px-6 py-4">
-                    <div className="text-sm font-black text-[#1a0f2e]">SI-{item.si_number}</div>
+                    <div className="text-sm font-black text-[#1a0f2e]">{item.si_number}</div>
                     <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
                       {new Date(item.created_at).toLocaleString([], { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
