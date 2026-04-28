@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
   Search, Plus, Eye, Edit2, Trash2, Store,
   CheckCircle, XCircle, PhilippinePeso, ArrowUpRight, ArrowDownRight,
-  X, AlertCircle, MapPin, Trash, Monitor,
+  X, AlertCircle, MapPin, Trash, Monitor, RotateCcw
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -33,6 +33,7 @@ interface Branch {
   franchise_id?: number | null;
   latitude?: number | null;
   longitude?: number | null;
+  is_deleted?: boolean;
 }
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
@@ -71,6 +72,7 @@ interface RawBranch {
   manager_name?: string;
   manager?: { id: number; name: string };
   users?: { id: number; name: string; role: string }[];
+  is_deleted?: boolean | number;
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -103,6 +105,7 @@ const mapBranch = (b: RawBranch): Branch => ({
   owner_name: b.owner_name ?? '',
   latitude: b.latitude ? parseFloat(String(b.latitude)) : null,
   longitude: b.longitude ? parseFloat(String(b.longitude)) : null,
+  is_deleted: !!b.is_deleted,
 });
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -111,6 +114,7 @@ const Badge: React.FC<{ status: string }> = ({ status }) => {
     active: "badge-active", ACTIVE: "badge-active",
     inactive: "badge-inactive", INACTIVE: "badge-inactive",
     pending: "badge-pending", void: "badge-danger",
+    deleted: "bg-red-500 text-white shadow-[0_2px_10px_-3px_rgba(239,68,68,0.5)]",
   };
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${map[status] ?? "badge-inactive"}`}>
@@ -796,7 +800,94 @@ const ToggleStatusModal: React.FC<ToggleStatusProps> = ({ onClose, onToggled, br
   );
 };
 
-// ── Main Tab ──────────────────────────────────────────────────────────────────
+// ── Reset Sales Modal ────────────────────────────────────────────────────────
+interface ResetSalesProps { onClose: () => void; onReset: () => void; branch: Branch; }
+
+const ResetSalesModal: React.FC<ResetSalesProps> = ({ onClose, onReset, branch }) => {
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+
+  const handleReset = async () => {
+    if (confirmText !== "RESET") return;
+    setLoading(true);
+    setApiError("");
+    try {
+      const res = await fetch(`/api/branches/${branch.id}/reset-sales`, {
+        method: "POST", headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setApiError(data.message ?? "Failed to reset sales.");
+        return;
+      }
+      onReset();
+      onClose();
+    } catch {
+      setApiError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}
+    >
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
+        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
+          <div className="w-14 h-14 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mb-4">
+            <RotateCcw size={22} className="text-red-500" />
+          </div>
+          <p className="text-base font-bold text-[#1a0f2e]">Reset Branch Sales?</p>
+          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+            This will permanently delete ALL sales, receipts, and cash counts for <span className="font-bold text-zinc-700">{branch.name}</span>.
+            <br /><span className="text-red-500 font-bold uppercase mt-2 block">This cannot be undone!</span>
+          </p>
+
+          <div className="mt-4 w-full text-left">
+            <p className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5">Type "RESET" to confirm</p>
+            <input 
+              type="text" 
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+              placeholder='Type RESET here'
+              className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm font-bold text-center uppercase tracking-widest outline-none focus:ring-2 focus:ring-red-400 transition-all"
+            />
+          </div>
+
+          {apiError && (
+            <div className="flex items-center gap-2 mt-4 p-3 w-full bg-red-50 border border-red-200 rounded-lg text-left">
+              <AlertCircle size={14} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-600 font-medium">{apiError}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 px-6 pb-6">
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>Cancel</Btn>
+          <Btn 
+            variant="danger" 
+            className="flex-1 justify-center" 
+            onClick={handleReset} 
+            disabled={loading || confirmText !== "RESET"}
+          >
+            {loading ? (
+              <span className="flex items-center gap-1.5">
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Resetting...
+              </span>
+            ) : (
+              <><RotateCcw size={13} /> Reset Sales</>
+            )}
+          </Btn>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
 const BranchesTab: React.FC = () => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -811,6 +902,7 @@ const BranchesTab: React.FC = () => {
   const [viewTarget, setViewTarget] = useState<Branch | null>(null);
   const [editTarget, setEditTarget] = useState<Branch | null>(null);
   const [delTarget, setDelTarget] = useState<Branch | null>(null);
+  const [resetTarget, setResetTarget] = useState<Branch | null>(null);
 
   const fetchBranches = async () => {
     setLoading(true);
@@ -835,7 +927,11 @@ const BranchesTab: React.FC = () => {
     const matchSearch = b.name.toLowerCase().includes(search.toLowerCase()) ||
       b.location.toLowerCase().includes(search.toLowerCase()) ||
       b.manager.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === "all" || b.status === filterStatus;
+    const matchStatus = filterStatus === "all"
+      ? true
+      : filterStatus === "deleted"
+        ? b.is_deleted
+        : b.status === filterStatus && !b.is_deleted;
     const matchOwnership = filterOwnership === "all" || b.ownership_type === filterOwnership;
     return matchSearch && matchStatus && matchOwnership;
   });
@@ -879,6 +975,7 @@ const BranchesTab: React.FC = () => {
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
+            <option value="deleted">Deleted</option>
           </select>
           <select
             value={filterOwnership}
@@ -945,8 +1042,8 @@ const BranchesTab: React.FC = () => {
               )}
 
               {!loading && !fetchError && filtered.map(b => (
-                <tr key={b.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  <td className="px-5 py-3.5 font-semibold text-[#1a0f2e]">{b.name}</td>
+                <tr key={b.id} className={`border-b border-zinc-50 hover:bg-zinc-50 transition-colors ${b.is_deleted ? 'opacity-60 grayscale-[0.5] bg-zinc-50/50' : ''}`}>
+                  <td className={`px-5 py-3.5 font-semibold ${b.is_deleted ? 'text-zinc-400 line-through decoration-zinc-300' : 'text-[#1a0f2e]'}`}>{b.name}</td>
                   <td className="px-5 py-3.5 text-zinc-500">{b.location}</td>
                   <td className="px-5 py-3.5 text-zinc-600">{b.manager}</td>
                   <td className="px-5 py-3.5"><OwnershipBadge type={b.ownership_type} /></td>
@@ -956,30 +1053,38 @@ const BranchesTab: React.FC = () => {
                   <td className="px-5 py-3.5 font-bold text-emerald-600">{b.status === "active" ? fmt(b.today) : "—"}</td>
                   <td className="px-5 py-3.5 font-bold text-[#6a12b8]">{fmt(b.total)}</td>
                   <td className="px-5 py-3.5 text-zinc-600">{b.staff || "—"}</td>
-                  <td className="px-5 py-3.5"><Badge status={b.status} /></td>
+                  <td className="px-5 py-3.5"><Badge status={b.is_deleted ? "deleted" : b.status} /></td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1">
                       <button onClick={() => setViewTarget(b)}
                         className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="View">
                         <Eye size={13} />
                       </button>
-                      <button onClick={() => setEditTarget(b)}
-                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
-                        <Edit2 size={13} />
-                      </button>
-                      <button onClick={() => setToggleTarget(b)}
-                        className={`p-1.5 rounded-[0.4rem] transition-colors ${b.status === "active" ? "hover:bg-amber-50 text-zinc-400 hover:text-amber-500" : "hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600"}`}
-                        title={b.status === "active" ? "Deactivate" : "Activate"}>
-                        {b.status === "active" ? <XCircle size={13} /> : <CheckCircle size={13} />}
-                      </button>
-                      <button onClick={() => window.open(`/kiosk?branch_id=${b.id}`, '_blank')}
-                        className="p-1.5 hover:bg-emerald-50 rounded-[0.4rem] text-zinc-400 hover:text-emerald-600 transition-colors" title="Launch Kiosk">
-                        <Monitor size={13} />
-                      </button>
-                      <button onClick={() => setDelTarget(b)}
-                        className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
-                        <Trash2 size={13} />
-                      </button>
+                      {!b.is_deleted && (
+                        <>
+                          <button onClick={() => setEditTarget(b)}
+                            className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
+                            <Edit2 size={13} />
+                          </button>
+                          <button onClick={() => setToggleTarget(b)}
+                            className={`p-1.5 rounded-[0.4rem] transition-colors ${b.status === "active" ? "hover:bg-amber-50 text-zinc-400 hover:text-amber-500" : "hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600"}`}
+                            title={b.status === "active" ? "Deactivate" : "Activate"}>
+                            {b.status === "active" ? <XCircle size={13} /> : <CheckCircle size={13} />}
+                          </button>
+                          <button onClick={() => window.open(`/kiosk?branch_id=${b.id}`, '_blank')}
+                            className="p-1.5 hover:bg-emerald-50 rounded-[0.4rem] text-zinc-400 hover:text-emerald-600 transition-colors" title="Launch Kiosk">
+                            <Monitor size={13} />
+                          </button>
+                          <button onClick={() => setResetTarget(b)}
+                            className="p-1.5 hover:bg-amber-50 rounded-[0.4rem] text-zinc-400 hover:text-amber-600 transition-colors" title="Reset Sales">
+                            <RotateCcw size={13} />
+                          </button>
+                          <button onClick={() => setDelTarget(b)}
+                            className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
+                            <Trash2 size={13} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1009,7 +1114,10 @@ const BranchesTab: React.FC = () => {
         <DeleteConfirmModal
           branch={delTarget}
           onClose={() => setDelTarget(null)}
-          onDeleted={id => { setBranches(prev => prev.filter(b => b.id !== id)); setDelTarget(null); }}
+          onDeleted={id => {
+            setBranches(prev => prev.map(b => b.id === id ? { ...b, is_deleted: true } : b));
+            setDelTarget(null);
+          }}
         />
       )}
       {toggleTarget && (
@@ -1017,6 +1125,16 @@ const BranchesTab: React.FC = () => {
           branch={toggleTarget}
           onClose={() => setToggleTarget(null)}
           onToggled={updated => { setBranches(prev => prev.map(b => b.id === updated.id ? updated : b)); setToggleTarget(null); }}
+        />
+      )}
+      {resetTarget && (
+        <ResetSalesModal
+          branch={resetTarget}
+          onClose={() => setResetTarget(null)}
+          onReset={() => {
+            setBranches(prev => prev.map(b => b.id === resetTarget.id ? { ...b, today: 0, total: 0 } : b));
+            setResetTarget(null);
+          }}
         />
       )}
     </div>
