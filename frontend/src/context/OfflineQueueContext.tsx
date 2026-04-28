@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import api from '../services/api';
 

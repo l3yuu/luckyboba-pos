@@ -1021,7 +1021,7 @@ const SalesOrder = () => {
     const cupSizeLabel = (isDrink || isOz) && categorySize ? categorySize : undefined
     
     // Select base price based on platform
-    let basePrice = Number(selectedItem.price)
+    const basePrice = Number(selectedItem.price)
 
 
     const unitPrice = basePrice + extraCost
@@ -1139,7 +1139,7 @@ const SalesOrder = () => {
     const grabPriceVal = Number(activeBundleItem.grab_price || matchingMenuItem?.grab_price || 0)
     const pandaPriceVal = Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0)
     
-    let basePrice = Number(activeBundleItem.price)
+    const basePrice = Number(activeBundleItem.price)
 
 
     const cartItem: CartItem = {
