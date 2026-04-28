@@ -57,6 +57,14 @@ class StoreSaleRequest extends FormRequest
             'pax_pwd'                => 'nullable|integer|min:0',
             'senior_id'              => 'nullable|string',
             'pwd_id'                 => 'nullable|string',
+            'branch_id'              => 'nullable|integer',
+            'source'                 => 'nullable|string',
+            'order_type'             => 'nullable|string',
+            'vat_exempt_sales'       => 'nullable|numeric|min:0',
+            'items.*.bundle_components' => 'nullable|array',
+            'items.*.bundle_components.*.category' => 'nullable|string',
+            'items.*.bundle_components.*.item_id' => 'nullable|integer',
+            'items.*.bundle_components.*.name' => 'nullable|string',
         ];
     }
 }

@@ -11,6 +11,7 @@ import { prefetchAll } from './utils/prefetch';
 import { useAuth } from './hooks/useAuth';
 import { useServiceWorker } from './hooks/useServiceWorker';
 import PWAUpdateBanner from './components/PWAUpdateBanner';
+import { OfflineQueueProvider } from './context/OfflineQueueContext';
 
 function App() {
   const { user, isLoading } = useAuth();
@@ -36,13 +37,15 @@ function App() {
         </div>
       }
     >
-      <ToastProvider>
-        {/* DeviceGate checks if this device is registered before rendering anything */}
-        <DeviceGate>
-          <RouterProvider router={router} />
-          <PWAUpdateBanner needsUpdate={needsUpdate} onUpdate={applyUpdate} />
-        </DeviceGate>
-      </ToastProvider>
+      <OfflineQueueProvider>
+        <ToastProvider>
+          {/* DeviceGate checks if this device is registered before rendering anything */}
+          <DeviceGate>
+            <RouterProvider router={router} />
+            <PWAUpdateBanner needsUpdate={needsUpdate} onUpdate={applyUpdate} />
+          </DeviceGate>
+        </ToastProvider>
+      </OfflineQueueProvider>
     </ErrorBoundary>
   );
 }

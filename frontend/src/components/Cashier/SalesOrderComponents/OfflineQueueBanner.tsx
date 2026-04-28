@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { WifiOff, RefreshCw, RefreshCcw, AlertTriangle, CheckCircle2, X } from 'lucide-react';
-import { type OfflineQueueState } from '../../../hooks/useOfflineQueue';
+import { type OfflineQueueState } from '../../../context/OfflineQueueContext';
 
 interface Props extends Pick<OfflineQueueState, 'queue' | 'queueCount' | 'isSyncing' | 'syncNow' | 'remove' | 'resetAttempts'> {
   isOnline: boolean;
