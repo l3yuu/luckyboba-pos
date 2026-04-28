@@ -625,6 +625,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::prefix('branches')->group(function () {
             Route::post  ('/',                    [BranchController::class, 'store']);
             Route::delete('/{id}',                [BranchController::class, 'destroy']);
+            Route::post  ('/{id}/reset-sales',     [BranchController::class, 'resetSales']);
         });
 
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\RawMaterialLog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class RawMaterial extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'name',
         'unit',

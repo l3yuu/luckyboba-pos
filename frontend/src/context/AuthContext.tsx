@@ -233,12 +233,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const logout = useCallback(async (): Promise<void> => {
+    // Clear local state first for immediate UI response
+    clearSession();
     try {
       await api.post('/logout');
     } catch {
-      // continue regardless
-    } finally {
-      clearSession();
+      // ignore
     }
   }, [clearSession]);
 
