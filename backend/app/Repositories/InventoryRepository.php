@@ -257,12 +257,7 @@ class InventoryRepository implements InventoryRepositoryInterface
                 str_contains(strtolower($m->reason), 'waste')
             )->sum('quantity');
 
-            // 2. Sales (Subtract type AND Reason has 'sale')
-            $soldQty = $movements->filter(fn($m) => 
-                $m->type === 'subtract' && str_contains(strtolower($m->reason), 'sale')
-            )->sum('quantity');
-
-            // 3. Other Out (Subtract type AND NOT Spoil AND NOT Sale)
+            // 2. Other Out (Subtract type AND NOT Spoil AND NOT Sale)
             $out = $movements->filter(fn($m) => 
                 $m->type === 'subtract' && 
                 !str_contains(strtolower($m->reason), 'sale') && 
@@ -270,9 +265,10 @@ class InventoryRepository implements InventoryRepositoryInterface
                 !str_contains(strtolower($m->reason), 'waste')
             )->sum('quantity');
 
-            // 4. Sold Count (for the column)
+            // 3. Sold Count & Qty (Completed only, from soldSummary)
             $soldSummaryData = $soldSummary->firstWhere('raw_material_id', $mat->id);
             $soldItemsCount = $soldSummaryData?->units_sold ?? 0;
+            $soldQty = (float) ($soldSummaryData?->total_qty_deducted ?? 0);
 
             $end = $mat->current_stock;
             // Back-calculate BEG: End - Additions + All Subtractions
@@ -291,7 +287,7 @@ class InventoryRepository implements InventoryRepositoryInterface
                 'del'      => round($del, 2),
                 'in'       => round($in, 2),
                 'cooked'   => round($cooked, 2),
-                'out'      => round($out, 2),
+                'out'      => round($soldQty, 2),
                 'spoil'    => round($spoil, 2),
                 'end'      => round($end, 2),
                 'ending'   => round($end, 2),
@@ -335,6 +331,7 @@ class InventoryRepository implements InventoryRepositoryInterface
                   ->orWhere('raw_materials.parent_id', $rawMaterialId);
             })
             ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy('sale_items.product_name', 'sale_items.cup_size_label', 'recipe_items.quantity')
             ->orderBy('total_deducted', 'desc')
@@ -430,6 +427,7 @@ class InventoryRepository implements InventoryRepositoryInterface
                 DB::raw('SUM(sale_items.quantity) as total_sold')
             )
             ->whereBetween('sale_items.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy('categories.name', 'sale_items.product_name', 'sale_items.cup_size_label')
             ->orderBy('categories.name')
@@ -449,6 +447,7 @@ class InventoryRepository implements InventoryRepositoryInterface
                 DB::raw('SUM(stock_deductions.quantity_deducted) as total_usage')
             )
             ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy('sale_items.product_name', 'sale_items.cup_size_label', 'raw_materials.name', 'raw_materials.unit')
             ->get()
@@ -493,6 +492,7 @@ class InventoryRepository implements InventoryRepositoryInterface
                 DB::raw('SUM(stock_deductions.quantity_deducted) as total_qty_deducted')
             )
             ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy(DB::raw('COALESCE(raw_materials.parent_id, stock_deductions.raw_material_id)'))
             ->get();
