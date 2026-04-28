@@ -88,12 +88,13 @@ if ($branchId) {
             'categories.id as category_id',
             'menu_items.price as sellingPrice',
             'menu_items.image',
+            'menu_items.size',
             DB::raw("CASE 
                 WHEN menu_items.size = 'L' THEN COALESCE(cups.size_l, 'L')
                 WHEN menu_items.size = 'M' THEN COALESCE(cups.size_m, 'M')
                 WHEN menu_items.size = 'none' THEN COALESCE(cups.size_m, '')
                 ELSE menu_items.size
-            END as size")
+            END as cup_size_label")
         )
         ->where('menu_items.status', 'active') // globally inactive = always hidden
         ->get()

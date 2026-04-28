@@ -266,7 +266,8 @@ class InventoryRepository implements InventoryRepositoryInterface
             )->sum('quantity');
 
             // 3. Sold Count & Qty (Completed only, from soldSummary)
-            $soldSummaryData = $soldSummary->firstWhere('raw_material_id', $mat->id);
+            $globalId = $mat->parent_id ?? $mat->id;
+            $soldSummaryData = $soldSummary->firstWhere('raw_material_id', $globalId);
             $soldItemsCount = $soldSummaryData?->units_sold ?? 0;
             $soldQty = (float) ($soldSummaryData?->total_qty_deducted ?? 0);
 
