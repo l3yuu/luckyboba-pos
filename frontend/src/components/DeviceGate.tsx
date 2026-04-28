@@ -12,8 +12,17 @@ type Props = {
 export function DeviceGate({ children }: Props) {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
+  const [bypass, setBypass] = useState(false);
+
+  // We should check the device if:
+  // 1. We are logged in as a cashier (ongoing session protection)
+  // 2. OR we are NOT logged in yet (to prevent unauthorized logins on POS terminals)
+  // 3. AND we are not a SuperAdmin (who needs to access the dashboard from anywhere)
+  const isPrivileged = user?.role === 'superadmin' || user?.role === 'system_admin' || user?.role === 'it_admin';
   const isCashier = user?.role === 'cashier';
-  const { status, message, deviceId } = useDeviceCheck(isCashier);
+  const shouldCheck = !isPrivileged && !bypass;
+
+  const { status, message, deviceId } = useDeviceCheck(shouldCheck);
   const [copied, setCopied] = useState(false);
 
   // If device becomes unregistered while logged in as cashier, force logout
@@ -24,10 +33,9 @@ export function DeviceGate({ children }: Props) {
     }
   }, [status, user, isCashier, logout, showToast, message]);
 
+  // Privileged roles or explicit bypass — pass through to children
+  if (isPrivileged || bypass) return <>{children ?? <Outlet />}</>;
 
-
-  // Non-cashier roles — pass through immediately
-  if (!isCashier) return <>{children ?? <Outlet />}</>;
 
   // ── Checking ──────────────────────────────────────────────────────────────
   if (status === 'checking') {
@@ -83,7 +91,7 @@ export function DeviceGate({ children }: Props) {
           <button
             onClick={handleCopy}
             disabled={!deviceId}
-            className="w-full py-2 px-4 bg-[#6a12b8] text-white text-sm font-semibold rounded-lg hover:bg-[#2d1850] transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 bg-[#6a12b8] text-white text-sm font-bold rounded-xl hover:bg-[#2d1850] transition-all active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-2 shadow-sm"
           >
             {copied ? (
               <>
@@ -102,6 +110,16 @@ export function DeviceGate({ children }: Props) {
               </>
             )}
           </button>
+
+          <div className="pt-2">
+            <button
+              onClick={() => setBypass(true)}
+              className="text-[10px] font-bold text-gray-400 hover:text-[#6a12b8] transition-colors uppercase tracking-widest"
+            >
+              Administrator Login
+            </button>
+          </div>
+
 
         </div>
       </div>

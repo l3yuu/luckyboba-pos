@@ -21,7 +21,7 @@ function getWebglRenderer(): string {
 function getStableUserAgent(): string {
   // Removes version numbers (e.g. Chrome/124.0.0.0 -> Chrome/)
   // This ensures the ID survives browser updates.
-  return navigator.userAgent.replace(/\d+\.[\d\.]+/g, '');
+  return navigator.userAgent.replace(/\d+[\d.]+/g, '');
 }
 
 // ── Canvas fingerprint (GPU/driver-derived) ───────────────────────────────────
