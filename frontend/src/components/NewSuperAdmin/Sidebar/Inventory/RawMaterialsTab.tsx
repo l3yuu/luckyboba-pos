@@ -8,10 +8,11 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../../services/api';
+import { useToast } from '../../../../context/ToastContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Unit = 'PC' | 'PK' | 'BAG' | 'BTL' | 'BX' | 'ML' | 'G' | 'KG' | 'L';
+type Unit = string;
 type Category = 'Packaging' | 'Ingredients' | 'Intermediate' | 'Equipment';
 type AdjType = 'add' | 'subtract' | 'set' | 'waste';
 
@@ -63,6 +64,7 @@ interface FormState {
   reorder_level: number | '';
   is_intermediate: boolean;
   notes: string;
+  branch_id: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -81,6 +83,7 @@ const blankForm = (): FormState => ({
   name: '', unit: 'PC', purchase_unit: '', purchase_to_base_factor: 1, last_purchase_price: '',
   category: 'Ingredients',
   current_stock: '', reorder_level: '', is_intermediate: false, notes: '',
+  branch_id: '',
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -334,6 +337,7 @@ const AdjustModal: React.FC<{
   onDone: (updated: RawMaterial) => void;
 }> = ({ item, onClose, onDone }) => {
   const [adjType, setAdjType] = useState<AdjType>('add');
+  const [inputUnit, setInputUnit] = useState<'base' | 'purchase'>('base');
   const [qty, setQty] = useState<number | ''>('');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
@@ -341,18 +345,29 @@ const AdjustModal: React.FC<{
   const [success, setSuccess] = useState(false);
 
   const preview = () => {
+    const rawQty = qty === '' ? 0 : Number(qty);
+    const finalQty = inputUnit === 'purchase' && item.purchase_to_base_factor 
+        ? rawQty * item.purchase_to_base_factor 
+        : rawQty;
+
     if (qty === '') return item.current_stock;
-    if (adjType === 'add') return Number(item.current_stock) + Number(qty);
-    if (adjType === 'subtract' || adjType === 'waste') return Math.max(0, Number(item.current_stock) - Number(qty));
-    return Number(qty);
+    if (adjType === 'add') return Number(item.current_stock) + finalQty;
+    if (adjType === 'subtract' || adjType === 'waste') return Math.max(0, Number(item.current_stock) - finalQty);
+    return finalQty;
   };
 
   const handleSubmit = async () => {
     if (qty === '' || !reason.trim()) { setError('Quantity and reason are required.'); return; }
+    
+    const rawQty = Number(qty);
+    const finalQty = inputUnit === 'purchase' && item.purchase_to_base_factor 
+        ? rawQty * item.purchase_to_base_factor 
+        : rawQty;
+
     setSaving(true); setError('');
     try {
       const res = await api.post(`/raw-materials/${item.id}/adjust`, {
-        type: adjType, quantity: Number(qty), reason,
+        type: adjType, quantity: finalQty, reason,
       });
       onDone(res.data?.data ?? res.data);
       setSuccess(true);
@@ -428,12 +443,30 @@ const AdjustModal: React.FC<{
               </div>
 
               <Field label="Quantity" required>
-                <div className="relative">
+                <div className="relative flex items-center">
                   <input type="number" min="0" value={qty}
                     onChange={e => setQty(e.target.value === '' ? '' : Number(e.target.value))}
-                    className={`${inputCls()} pr-10`} placeholder="0" />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-400 uppercase">{item.unit}</span>
+                    className={`${inputCls()} pr-24`} placeholder="0" />
+                  <div className="absolute right-1.5 flex items-center h-[calc(100%-8px)]">
+                    {item.purchase_unit && item.purchase_to_base_factor ? (
+                      <select 
+                        value={inputUnit} 
+                        onChange={e => setInputUnit(e.target.value as 'base' | 'purchase')}
+                        className="h-full px-2 text-[10px] font-bold text-[#6a12b8] bg-[#f5f0ff] border-none rounded-md outline-none cursor-pointer uppercase"
+                      >
+                        <option value="base">{item.unit}</option>
+                        <option value="purchase">{item.purchase_unit}</option>
+                      </select>
+                    ) : (
+                      <span className="px-3 text-[10px] font-bold text-zinc-400 uppercase flex items-center justify-center bg-zinc-50 rounded-md h-full">{item.unit}</span>
+                    )}
+                  </div>
                 </div>
+                {inputUnit === 'purchase' && item.purchase_to_base_factor && qty !== '' && (
+                  <p className="text-[10px] font-bold text-emerald-500 uppercase mt-1">
+                    = {(Number(qty) * item.purchase_to_base_factor).toLocaleString()} {item.unit} total
+                  </p>
+                )}
               </Field>
 
               <Field label="Reason" required>
@@ -493,7 +526,8 @@ const MaterialFormModal: React.FC<{
   onClose: () => void;
   onSaved: (m: RawMaterial) => void;
   editing?: RawMaterial | null;
-}> = ({ onClose, onSaved, editing }) => {
+  branches: Array<{id: number; name: string}>;
+}> = ({ onClose, onSaved, editing, branches }) => {
   const [form, setForm] = useState<FormState>(
     editing
       ? {
@@ -502,18 +536,42 @@ const MaterialFormModal: React.FC<{
         purchase_to_base_factor: editing.purchase_to_base_factor,
         last_purchase_price: editing.last_purchase_price || '',
         current_stock: editing.current_stock, reorder_level: editing.reorder_level,
-        is_intermediate: editing.is_intermediate, notes: editing.notes ?? ''
+        is_intermediate: editing.is_intermediate, notes: editing.notes ?? '',
+        branch_id: editing.branch_id ? String(editing.branch_id) : ''
       }
       : blankForm()
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [apiErr, setApiErr] = useState('');
+  const [customUnits, setCustomUnits] = useState<string[]>([]);
+  const [showNewUnitPrompt, setShowNewUnitPrompt] = useState(false);
+  const [newUnitText, setNewUnitText] = useState('');
+
+  const handleUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === '__NEW__') {
+      setNewUnitText('');
+      setShowNewUnitPrompt(true);
+    } else {
+      setForm(p => ({ ...p, unit: val }));
+    }
+  };
+
+  const confirmNewUnit = () => {
+    if (newUnitText.trim()) {
+      const upper = newUnitText.trim().toUpperCase();
+      if (!customUnits.includes(upper) && !UNITS.includes(upper)) {
+        setCustomUnits(prev => [...prev, upper]);
+      }
+      setForm(p => ({ ...p, unit: upper }));
+    }
+    setShowNewUnitPrompt(false);
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = 'Name is required.';
-    if (form.current_stock === '') e.current_stock = 'Stock is required.';
     if (form.reorder_level === '') e.reorder_level = 'Reorder level is required.';
     return e;
   };
@@ -528,7 +586,8 @@ const MaterialFormModal: React.FC<{
         current_stock: Number(form.current_stock), 
         reorder_level: Number(form.reorder_level),
         purchase_to_base_factor: Number(form.purchase_to_base_factor || 1),
-        last_purchase_price: form.last_purchase_price === '' ? null : Number(form.last_purchase_price)
+        last_purchase_price: form.last_purchase_price === '' ? null : Number(form.last_purchase_price),
+        branch_id: form.branch_id === '' ? null : Number(form.branch_id)
       };
       const res = editing
         ? await api.put(`/raw-materials/${editing.id}`, payload)
@@ -572,10 +631,23 @@ const MaterialFormModal: React.FC<{
               className={inputCls(errors.name)} placeholder="e.g. Brown Sugar Syrup" />
           </Field>
 
+          <Field label="Branch Assignment" required>
+            <select value={form.branch_id} disabled={!!editing} onChange={e => setForm(p => ({ ...p, branch_id: e.target.value }))} className={inputCls() + (editing ? ' opacity-60 cursor-not-allowed bg-zinc-100' : '')}>
+              <option value="">All Branches</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </Field>
+
           <div className="grid grid-cols-2 gap-3">
             <Field label="Base Unit (Inv)" required>
-              <select value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value as Unit }))} className={inputCls()}>
+              <select value={form.unit} onChange={handleUnitChange} className={inputCls()}>
                 {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                {customUnits.map(u => <option key={u} value={u}>{u}</option>)}
+                {!UNITS.includes(form.unit) && !customUnits.includes(form.unit) && form.unit !== '' && (
+                  <option value={form.unit}>{form.unit}</option>
+                )}
+                <option disabled>──────────</option>
+                <option value="__NEW__" className="font-bold text-[#6a12b8]">+ Add new base unit...</option>
               </select>
             </Field>
             <Field label="Category" required>
@@ -607,18 +679,11 @@ const MaterialFormModal: React.FC<{
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Current Stock" required error={errors.current_stock}>
-              <input type="number" min="0" value={form.current_stock}
-                onChange={e => { setForm(p => ({ ...p, current_stock: e.target.value === '' ? '' : Number(e.target.value) })); setErrors(p => { const n = { ...p }; delete n.current_stock; return n; }); }}
-                className={inputCls(errors.current_stock)} placeholder="0" />
-            </Field>
-            <Field label="Reorder Level" required error={errors.reorder_level}>
-              <input type="number" min="0" value={form.reorder_level}
-                onChange={e => { setForm(p => ({ ...p, reorder_level: e.target.value === '' ? '' : Number(e.target.value) })); setErrors(p => { const n = { ...p }; delete n.reorder_level; return n; }); }}
-                className={inputCls(errors.reorder_level)} placeholder="0" />
-            </Field>
-          </div>
+          <Field label="Reorder Level" required error={errors.reorder_level}>
+            <input type="number" min="0" value={form.reorder_level}
+              onChange={e => { setForm(p => ({ ...p, reorder_level: e.target.value === '' ? '' : Number(e.target.value) })); setErrors(p => { const n = { ...p }; delete n.reorder_level; return n; }); }}
+              className={inputCls(errors.reorder_level)} placeholder="0" />
+          </Field>
 
           <Field label="Notes">
             <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2}
@@ -648,6 +713,36 @@ const MaterialFormModal: React.FC<{
           </button>
         </div>
       </div>
+
+      {showNewUnitPrompt && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6"
+          style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <div className="absolute inset-0" onClick={() => setShowNewUnitPrompt(false)} />
+          <div className="relative bg-white w-full max-w-xs border border-zinc-200 rounded-xl shadow-2xl p-5">
+            <p className="text-sm font-bold text-[#1a0f2e] mb-1">Add New Base Unit</p>
+            <p className="text-[10px] text-zinc-500 mb-4">Enter a custom unit (e.g. GAL, CAN)</p>
+            <input 
+              type="text" 
+              autoFocus
+              value={newUnitText} 
+              onChange={e => setNewUnitText(e.target.value)} 
+              onKeyDown={e => e.key === 'Enter' && confirmNewUnit()}
+              className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm font-medium uppercase outline-none focus:border-[#6a12b8] focus:ring-2 focus:ring-[#6a12b820] mb-4"
+              placeholder="e.g. GAL"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => setShowNewUnitPrompt(false)}
+                className="flex-1 py-2 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50">
+                Cancel
+              </button>
+              <button onClick={confirmNewUnit} disabled={!newUnitText.trim()}
+                className="flex-1 py-2 bg-[#6a12b8] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest disabled:opacity-50">
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   );
@@ -714,6 +809,7 @@ const DeleteModal: React.FC<{
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const RawMaterialsTab: React.FC = () => {
+  const { showToast } = useToast();
   const [materials, setMaterials] = useState<RawMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -1013,14 +1109,23 @@ const RawMaterialsTab: React.FC = () => {
       {addOpen && (
         <MaterialFormModal
           onClose={() => setAddOpen(false)}
-          onSaved={m => setMaterials(p => [m, ...p])}
+          onSaved={m => {
+            setMaterials(p => [m, ...p]);
+            showToast('Material added successfully', 'success');
+          }}
+          branches={branches}
         />
       )}
       {editTarget && (
         <MaterialFormModal
           onClose={() => setEditTarget(null)}
-          onSaved={m => { setMaterials(p => p.map(x => x.id === m.id ? m : x)); setEditTarget(null); }}
+          onSaved={m => { 
+            setMaterials(p => p.map(x => x.id === m.id ? m : x)); 
+            setEditTarget(null); 
+            showToast('Material updated successfully', 'success');
+          }}
           editing={editTarget}
+          branches={branches}
         />
       )}
       {delTarget && (

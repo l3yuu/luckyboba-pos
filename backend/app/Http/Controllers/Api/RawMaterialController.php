@@ -122,7 +122,17 @@ class RawMaterialController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'            => 'required|string|unique:raw_materials,name',
+            'name'            => [
+                'required',
+                'string',
+                \Illuminate\Validation\Rule::unique('raw_materials', 'name')->where(function ($query) use ($request) {
+                    $branchId = $request->input('branch_id');
+                    if (empty($branchId)) {
+                        return $query->whereNull('branch_id');
+                    }
+                    return $query->where('branch_id', $branchId);
+                })
+            ],
             'unit'            => 'required|string',
             'category'        => 'required|string',
             'current_stock'   => 'nullable|numeric|min:0',
@@ -169,7 +179,16 @@ class RawMaterialController extends Controller
     public function update(Request $request, RawMaterial $rawMaterial)
     {
         $validated = $request->validate([
-            'name'            => 'sometimes|string|unique:raw_materials,name,' . $rawMaterial->id,
+            'name'            => [
+                'sometimes',
+                'string',
+                \Illuminate\Validation\Rule::unique('raw_materials', 'name')->ignore($rawMaterial->id)->where(function ($query) use ($rawMaterial) {
+                    if (empty($rawMaterial->branch_id)) {
+                        return $query->whereNull('branch_id');
+                    }
+                    return $query->where('branch_id', $rawMaterial->branch_id);
+                })
+            ],
             'unit'            => 'sometimes|string',
             'category'        => 'sometimes|string',
             'reorder_level'   => 'sometimes|numeric|min:0',
