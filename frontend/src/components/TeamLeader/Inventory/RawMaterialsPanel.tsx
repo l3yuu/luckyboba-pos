@@ -16,6 +16,8 @@ interface RawMaterial {
   current_stock: number;
   reorder_level: number;
   stock_history?: number[];
+  purchase_unit?: string | null;
+  purchase_to_base_factor?: number | null;
 }
 
 const STYLES = `
@@ -90,6 +92,12 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
   const [statusMsg, setStatusMsg] = useState('');
   const [customReason, setCustomReason] = useState(false);
   const [adjType, setAdjType] = useState<keyof typeof REASONS>('add');
+  const [inputUnit, setInputUnit] = useState<'base' | 'purchase'>('base');
+  const [qtyInput, setQtyInput] = useState('');
+
+  useEffect(() => {
+    if (adjModal) { setInputUnit('base'); setQtyInput(''); }
+  }, [adjModal]);
 
   const REASONS = {
     add: ['Delivery', 'Production', 'Cooked', 'Correction', 'Other'],
@@ -149,9 +157,14 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
     const selectedReason = formData.get('reason_select') as string;
     const finalReason = selectedReason === 'Other' ? (formData.get('reason') as string) : selectedReason;
 
+    const rawQty = Number(qtyInput);
+    const finalQty = inputUnit === 'purchase' && adjModal.purchase_to_base_factor
+      ? rawQty * adjModal.purchase_to_base_factor
+      : rawQty;
+
     const payload = {
       type: formData.get('type') as string,
-      quantity: Number(formData.get('quantity')),
+      quantity: finalQty,
       reason: finalReason
     };
 
@@ -355,9 +368,37 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
                     <option value="set">Physical Set (=)</option>
                   </select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="tl-label-caps">Quantity ({adjModal.unit})</label>
-                  <input name="quantity" type="number" step="0.01" className="tl-input" required placeholder="0.00" />
+                <div className="space-y-1.5 relative">
+                  <div className="flex justify-between items-end mb-1">
+                     <label className="tl-label-caps">Quantity</label>
+                     {adjModal.purchase_unit && adjModal.purchase_to_base_factor ? (
+                       <select 
+                         value={inputUnit} 
+                         onChange={e => setInputUnit(e.target.value as any)}
+                         className="text-[10px] font-bold text-[#6a12b8] bg-[#6a12b810] border-none rounded px-2 py-0.5 outline-none cursor-pointer"
+                       >
+                         <option value="base">{adjModal.unit}</option>
+                         <option value="purchase">{adjModal.purchase_unit}</option>
+                       </select>
+                     ) : (
+                       <span className="text-[10px] font-bold text-[#6a12b8] bg-[#6a12b810] rounded px-2 py-0.5 uppercase">{adjModal.unit}</span>
+                     )}
+                  </div>
+                  <input 
+                    name="quantity" 
+                    type="number" 
+                    step="0.01" 
+                    className="tl-input" 
+                    required 
+                    placeholder="0.00" 
+                    value={qtyInput}
+                    onChange={e => setQtyInput(e.target.value)}
+                  />
+                  {inputUnit === 'purchase' && adjModal.purchase_to_base_factor && (
+                    <p className="text-[10px] font-bold text-emerald-500 uppercase mt-1">
+                      = {(Number(qtyInput) * adjModal.purchase_to_base_factor).toLocaleString()} {adjModal.unit} total
+                    </p>
+                  )}
                 </div>
               </div>
 
