@@ -22,11 +22,16 @@ interface ApiError {
   };
 }
 
-export function useDeviceCheck(enabled: boolean = true) {
+/**
+ * useDeviceCheck Hook
+ * 
+ * Verifies if the current physical device is registered in the backend
+ * and (optionally) if the provided userId is assigned to it.
+ */
+export function useDeviceCheck(enabled: boolean = true, userId?: number | null) {
   const [status, setStatus] = useState<DeviceStatus>(() => {
     if (!enabled) return 'registered';
-    const has = sessionStorage.getItem('pos_number') && sessionStorage.getItem('branch_id');
-    return has ? 'registered' : 'checking';
+    return 'checking';
   });
 
   const [posNumber, setPosNumber] = useState<string>(() =>
@@ -52,11 +57,9 @@ export function useDeviceCheck(enabled: boolean = true) {
         const id = await getDeviceIdAsync();
         setDeviceId(id);
 
-        const storedUserId = localStorage.getItem('lucky_boba_user_id');
-
         const res = await api.post('/devices/check', {
           device_name: id,
-          user_id: storedUserId ? parseInt(storedUserId) : undefined,
+          user_id: userId ?? undefined,
         });
 
         if (res.data.success) {
@@ -74,17 +77,16 @@ export function useDeviceCheck(enabled: boolean = true) {
         const error = err as ApiError;
         const data = error.response?.data;
         
-        // If it's a 403 Forbidden
         if (error.response?.status === 403) {
           setMessage(data?.message ?? 'Device deactivated.');
           
           if (data?.registered === true && data?.assigned === false) {
             if (data.pos_number) setPosNumber(data.pos_number);
-            setStatus('unauthorized'); // Registered but user not assigned
+            setStatus('unauthorized');
           } else {
-            setStatus('unregistered'); // Not registered at all
+            setStatus('unregistered');
           }
-        } else if (status !== 'registered') {
+        } else {
           setMessage(data?.message ?? 'Device check failed.');
           setStatus('unregistered');
         }
@@ -93,16 +95,14 @@ export function useDeviceCheck(enabled: boolean = true) {
       }
     };
 
-    // Initial check if not already fetched
-    if (!hasFetched.current) {
-      checkDevice();
-    }
+    // Immediate check on mount or when userId changes
+    checkDevice();
 
     // Periodic check every 15 seconds
     const interval = setInterval(checkDevice, 15000);
     return () => clearInterval(interval);
 
-  }, [enabled, status]);
+  }, [enabled, userId]); // Re-run when user logs in/out
 
   return { status, posNumber, branchId, branch, message, deviceId };
 }
