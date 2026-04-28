@@ -16,7 +16,7 @@ type Props = {
  * Admins can bypass for maintenance/setup.
  */
 export function DeviceGate({ children }: Props) {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const { showToast } = useToast();
   const [bypass, setBypass] = useState(false);
 
@@ -24,10 +24,23 @@ export function DeviceGate({ children }: Props) {
   const isCashier = user?.role === 'cashier';
 
   // Cashiers are ALWAYS checked. Admins are checked unless they explicitly bypass.
-  const shouldCheck = !isPrivileged && (isCashier || !bypass);
+  // We ALSO wait for auth to finish loading so we know if the user is privileged.
+  const shouldCheck = !isLoading && !isPrivileged && (isCashier || !bypass);
 
   const { status, message, deviceId, posNumber } = useDeviceCheck(shouldCheck, user?.id);
   const [copied, setCopied] = useState(false);
+
+  // ── Loading State ────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center space-y-2">
+          <div className="w-8 h-8 border-4 border-[#6a12b8] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-zinc-400">Initializing session...</p>
+        </div>
+      </div>
+    );
+  }
 
   // If device becomes unregistered while logged in as cashier, force logout.
   useEffect(() => {

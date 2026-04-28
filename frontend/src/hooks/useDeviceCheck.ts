@@ -50,7 +50,10 @@ export function useDeviceCheck(enabled: boolean = true, userId?: number | null) 
   const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setStatus('registered');
+      return;
+    }
 
     const checkDevice = async () => {
       try {
