@@ -179,6 +179,7 @@ class SaleRepository implements SaleRepositoryInterface
         return DB::table('sales')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->where('invoice_number', 'LIKE', 'SI-%')
+            ->whereIn('status', ['completed', 'cancelled'])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) ASC')
             ->value('invoice_number') ?? '—';
@@ -189,6 +190,7 @@ class SaleRepository implements SaleRepositoryInterface
         return DB::table('sales')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->where('invoice_number', 'LIKE', 'SI-%')
+            ->whereIn('status', ['completed', 'cancelled'])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
             ->value('invoice_number') ?? '—';
