@@ -24,7 +24,7 @@ import BM_SubCategories      from '../components/BranchManager/MenuItems/BM_Sub-
 
 import BM_InventoryDashboard     from '../components/BranchManager/Inventory/BM_InventoryDashboard';
 import BM_InventoryList          from '../components/BranchManager/Inventory/BM_InventoryList';
-import BM_InventoryReports       from '../components/BranchManager/Inventory/BM_InventoryReports';
+import UsageReportPanel          from '../components/TeamLeader/Inventory/UsageReportPanel';
 import BM_InventoryAlertCenter   from '../components/BranchManager/Inventory/BM_InventoryAlertCenter';
 import BM_InventoryRecipes       from '../components/BranchManager/Inventory/BM_InventoryRecipes';
 import BM_InventoryPurchaseOrder from '../components/BranchManager/Inventory/BM_InventoryPurchaseOrder';
@@ -209,7 +209,7 @@ const BranchManagerDashboard = () => {
       case 'inventory-recipes':  return <BM_InventoryRecipes />;
       case 'purchase-order':     return <BM_InventoryPurchaseOrder />;
       case 'stock-transfer':     return <BM_InventoryStockTransfer branchId={authUser?.branch_id ?? null} />;
-      case 'inventory-report':   return <BM_InventoryReports />;
+      case 'inventory-report':   return <UsageReportPanel branchId={authUser?.branch_id ?? null} />;
       case 'audit-logs':         return <BranchManagerAuditLogsTab />;
       case 'online-orders':      return <BM_OnlineOrders />;
       case 'void-logs':          return <BMVoidLogsPanel branchId={authUser?.branch_id ?? null} />;

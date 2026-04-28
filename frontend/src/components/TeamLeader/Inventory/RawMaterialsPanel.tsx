@@ -5,7 +5,7 @@ import { SkeletonBox } from '../SharedSkeletons';
 import { 
   Search, Package, 
   Filter, Sliders, X, CheckCircle2,
-  Info, AlertCircle
+  Info, AlertCircle, Download
 } from 'lucide-react';
 
 interface RawMaterial {
@@ -149,6 +149,27 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
     return { label: 'In Stock', color: '#10b981', bg: '#f0fdf4' };
   };
 
+  const exportCSV = () => {
+    const headers = ['Name', 'Category', 'Current Stock', 'Base Unit', 'Reorder Level', 'Status'];
+    const rows = filtered.map(m => [
+      `"${m.name.replace(/"/g, '""')}"`,
+      m.category,
+      m.current_stock,
+      m.unit,
+      m.reorder_level,
+      getStatus(m).label
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Inventory_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleAdjust = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!adjModal) return;
@@ -212,8 +233,8 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
       )}
 
       {/* Header */}
-      <div className="mb-8">
-        <div className="relative group">
+      <div className="mb-8 flex items-center gap-4">
+        <div className="relative group flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#6a12b8] transition-colors" size={14} />
           <input 
             type="text" 
@@ -223,6 +244,13 @@ const RawMaterialsPanel = ({ branchId }: { branchId: number | null }) => {
             className="tl-search-input pl-9 pr-4 py-2.5 rounded-xl text-xs font-bold w-full outline-none"
           />
         </div>
+        <button 
+          onClick={exportCSV}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-zinc-600 hover:text-[#6a12b8] hover:border-[#6a12b8] hover:bg-[#faf9ff] transition-all text-xs font-bold uppercase tracking-widest"
+        >
+          <Download size={14} />
+          <span className="hidden sm:inline">Export CSV</span>
+        </button>
       </div>
 
       {/* Filter Bar */}
