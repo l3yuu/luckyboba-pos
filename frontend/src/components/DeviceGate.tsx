@@ -34,6 +34,7 @@ export function DeviceGate({ children }: Props) {
   useEffect(() => {
     if (status === 'unregistered' && user && isCashier) {
       showToast(message || 'Device not registered or deactivated.', 'error');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBypass(false);
       void logout();
     }

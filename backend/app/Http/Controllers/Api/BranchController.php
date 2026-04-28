@@ -326,7 +326,7 @@ public function store(Request $request)
     public function resetSales($id)
     {
         try {
-            $branch = Branch::findOrFail($id);
+            $branch = Branch::withTrashed()->findOrFail($id);
 
             DB::transaction(function() use ($branch) {
                 $saleIds = Sale::where('branch_id', $branch->id)->pluck('id');
