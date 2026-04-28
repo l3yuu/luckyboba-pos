@@ -296,14 +296,35 @@ const AddUserModal: React.FC<{
     name: "", username: "", password: "", role: "cashier",
     branch_id: "", status: "ACTIVE",
     manager_pin: "", manager_pin_confirmation: "",
+    pos_device_id: "", // ← ADDED
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [devices, setDevices] = useState<PosDevice[]>([]); // ← ADDED
+  const [loadingDevices, setLoadingDevices] = useState(false); // ← ADDED
 
   const PIN_ROLES = ["branch_manager", "team_leader"];
   const showPin = PIN_ROLES.includes(form.role);
   const showBranch = ["cashier", "branch_manager", "team_leader", "supervisor"].includes(form.role);
+
+  // Fetch devices when branch changes for cashiers
+  useEffect(() => {
+    if (form.role === "cashier" && form.branch_id) {
+      (async () => {
+        setLoadingDevices(true);
+        try {
+          const res = await fetch(`/api/pos-devices?branch_id=${form.branch_id}`, { headers: authHeaders() });
+          const data = await res.json();
+          setDevices(data.data ?? []);
+        } catch { setDevices([]); }
+        finally { setLoadingDevices(false); }
+      })();
+    } else {
+      setDevices([]);
+      setForm(p => ({ ...p, pos_device_id: "" }));
+    }
+  }, [form.role, form.branch_id]);
 
 
   const validate = () => {
@@ -357,7 +378,23 @@ const AddUserModal: React.FC<{
         } else { setApiError(data.message ?? "Something went wrong."); }
         return;
       }
-      onSaved(mapUser(data.data));
+
+      const newUser = mapUser(data.data);
+
+      // If a POS device was selected, assign it now
+      if (form.role === "cashier" && form.pos_device_id) {
+        try {
+          await fetch(`/api/pos-devices/${form.pos_device_id}/assign`, {
+            method: "PATCH",
+            headers: authHeaders(),
+            body: JSON.stringify({ user_id: newUser.id }),
+          });
+        } catch (err) {
+          console.error("Failed to auto-assign device:", err);
+        }
+      }
+
+      onSaved(newUser);
       onClose();
     } catch { setApiError("Network error. Please try again."); }
     finally { setLoading(false); }
@@ -429,10 +466,32 @@ const AddUserModal: React.FC<{
         </Field>
       )}
 
-      {form.role === "cashier" && (
+      {form.role === "cashier" && form.branch_id && (
+        <Field label="POS Device" hint="Optionally assign this cashier to a device now.">
+          {loadingDevices ? (
+            <div className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
+          ) : devices.length === 0 ? (
+            <div className="flex items-center gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+              <Laptop size={13} className="text-zinc-400 shrink-0" />
+              <p className="text-[10px] text-zinc-500 font-medium">No devices registered for this branch yet.</p>
+            </div>
+          ) : (
+            <select {...f("pos_device_id")} className={inputCls()}>
+              <option value="">— Skip for now —</option>
+              {devices.map(d => (
+                <option key={d.id} value={String(d.id)}>
+                  {d.pos_number} ({d.device_name.slice(0, 8)}...)
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      )}
+
+      {form.role === "cashier" && !form.branch_id && (
         <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg">
           <Laptop size={13} className="text-violet-500 shrink-0" />
-          <p className="text-[10px] text-violet-700 font-medium">You can assign a POS device to this cashier after saving.</p>
+          <p className="text-[10px] text-violet-700 font-medium">Select a branch to see available POS devices.</p>
         </div>
       )}
 
@@ -472,14 +531,45 @@ const EditUserModal: React.FC<{
     branch_id: String(user.branch_id ?? ""),
     status: user.status,
     manager_pin: "", manager_pin_confirmation: "",
+    pos_device_id: "", // ← ADDED
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [devices, setDevices] = useState<PosDevice[]>([]); // ← ADDED
+  const [loadingDevices, setLoadingDevices] = useState(false); // ← ADDED
 
   const PIN_ROLES = ["branch_manager", "team_leader"];
   const showPin = PIN_ROLES.includes(form.role) && !user.has_pin;
   const showBranch = ["cashier", "branch_manager", "team_leader", "supervisor"].includes(form.role);
+
+  // Fetch devices when branch changes for cashiers
+  useEffect(() => {
+    if (form.role === "cashier" && form.branch_id) {
+      (async () => {
+        setLoadingDevices(true);
+        try {
+          const res = await fetch(`/api/pos-devices?branch_id=${form.branch_id}`, { headers: authHeaders() });
+          const data = await res.json();
+          const devList: PosDevice[] = data.data ?? [];
+          setDevices(devList);
+          
+          // Try to find if user is already assigned to a device in this list
+          const currentDev = devList.find(d => 
+            d.user_id === user.id || 
+            (d.assigned_users && d.assigned_users.some(u => u.id === user.id))
+          );
+          if (currentDev) {
+            setForm(p => ({ ...p, pos_device_id: String(currentDev.id) }));
+          }
+        } catch { setDevices([]); }
+        finally { setLoadingDevices(false); }
+      })();
+    } else {
+      setDevices([]);
+      setForm(p => ({ ...p, pos_device_id: "" }));
+    }
+  }, [form.role, form.branch_id, user.id]);
 
 
   const validate = () => {
@@ -530,7 +620,38 @@ const EditUserModal: React.FC<{
         } else { setApiError(data.message ?? "Something went wrong."); }
         return;
       }
-      onUpdated(mapUser(data.data));
+
+      const updatedUser = mapUser(data.data);
+
+      // Handle Device Assignment
+      if (form.role === "cashier") {
+        const currentDev = devices.find(d => 
+          d.user_id === user.id || 
+          (d.assigned_users && d.assigned_users.some(u => u.id === user.id))
+        );
+        
+        // If device changed or was newly selected
+        if (form.pos_device_id !== (currentDev ? String(currentDev.id) : "")) {
+          // Unassign from old device if exists
+          if (currentDev) {
+            await fetch(`/api/pos-devices/${currentDev.id}/unassign`, {
+              method: "PATCH",
+              headers: authHeaders(),
+              body: JSON.stringify({ user_id: user.id }),
+            });
+          }
+          // Assign to new device if selected
+          if (form.pos_device_id) {
+            await fetch(`/api/pos-devices/${form.pos_device_id}/assign`, {
+              method: "PATCH",
+              headers: authHeaders(),
+              body: JSON.stringify({ user_id: user.id }),
+            });
+          }
+        }
+      }
+
+      onUpdated(updatedUser);
       onClose();
     } catch { setApiError("Network error. Please try again."); }
     finally { setLoading(false); }
@@ -597,6 +718,28 @@ const EditUserModal: React.FC<{
             <select {...f("branch_id")} className={inputCls(errors.branch_id)}>
               <option value="">— Select a branch —</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+            </select>
+          )}
+        </Field>
+      )}
+
+      {form.role === "cashier" && form.branch_id && (
+        <Field label="POS Device" hint="Assign this cashier to a specific terminal.">
+          {loadingDevices ? (
+            <div className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
+          ) : devices.length === 0 ? (
+            <div className="flex items-center gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+              <Laptop size={13} className="text-zinc-400 shrink-0" />
+              <p className="text-[10px] text-zinc-500 font-medium">No devices registered for this branch.</p>
+            </div>
+          ) : (
+            <select {...f("pos_device_id")} className={inputCls()}>
+              <option value="">— No device assigned —</option>
+              {devices.map(d => (
+                <option key={d.id} value={String(d.id)}>
+                  {d.pos_number} ({d.device_name.slice(0, 8)}...)
+                </option>
+              ))}
             </select>
           )}
         </Field>
