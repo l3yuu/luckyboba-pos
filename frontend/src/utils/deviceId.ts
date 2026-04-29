@@ -109,7 +109,7 @@ async function readFromStorageAsync(): Promise<string | null> {
       if (id) writeToStorage(id);
       return id;
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
 
@@ -126,7 +126,7 @@ async function writeToStorage(id: string): Promise<void> {
   try {
     const cache = await caches.open('pos-metadata');
     await cache.put('/device-id', new Response(id));
-  } catch (e) {
+  } catch {
     // ignore
   }
 

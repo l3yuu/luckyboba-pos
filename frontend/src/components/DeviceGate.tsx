@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDeviceCheck } from '../hooks/useDeviceCheck';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
@@ -32,12 +32,23 @@ export function DeviceGate({ children }: Props) {
 
   // If device becomes unregistered while logged in, we let the gate handle the UI.
   // We don't auto-logout here anymore to prevent bypassing the registration screen.
+  const lastStatusToast = useRef<string | null>(null);
+
   useEffect(() => {
     if (status === 'unregistered' && user && !isPrivileged) {
-      showToast(message || 'Device not registered or deactivated.', 'error');
-      setBypass(false);
+      if (lastStatusToast.current !== status) {
+        showToast(message || 'Device not registered or deactivated.', 'error');
+        lastStatusToast.current = status;
+      }
+      
+      // Use microtask to avoid synchronous setState warning and cascading renders
+      if (bypass) {
+        Promise.resolve().then(() => setBypass(false));
+      }
+    } else {
+      lastStatusToast.current = null;
     }
-  }, [status, user, isPrivileged, showToast, message]);
+  }, [status, user, isPrivileged, showToast, message, bypass]);
 
   // ── Loading State ────────────────────────────────────────────────────────
   if (isLoading) {
