@@ -131,14 +131,12 @@ const XReading = () => {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const branchId = localStorage.getItem('lucky_boba_user_branch_id') || '';
   const [selectedShift, setSelectedShift] = useState<string>('');
-  const [terminalShift, setTerminalShift] = useState<number | null>(null);
 
   useEffect(() => {
     const getShift = async () => {
       try {
         const res = await api.get('/cash-counts/status');
         if (res.data.shift) {
-          setTerminalShift(res.data.shift);
           setSelectedShift(String(res.data.shift));
         }
       } catch (e) {

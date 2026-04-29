@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import React from "react";
 import {
   RefreshCw, AlertCircle, Printer, Lock, CheckCircle,
-  X, Menu,
+  X, Menu, ChevronDown,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -575,7 +575,7 @@ const BM_ZReading: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, dateFrom, dateTo, branchName]);
+  }, [branchId, dateFrom, dateTo, branchName, shift]);
 
   const fetchHistory = useCallback(async () => {
     if (!branchId) return;

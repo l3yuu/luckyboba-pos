@@ -31,6 +31,15 @@ interface SalesDashboardProps {
   branchId?: number | null;
 }
 
+interface ReportParams {
+  from?: string;
+  to?: string;
+  type?: string;
+  branch_id?: number | null;
+  shift?: string;
+  [key: string]: string | number | null | undefined;
+}
+
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
   
@@ -122,7 +131,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
       const from = fromDate.toISOString().split('T')[0];
       const to   = today.toISOString().split('T')[0];
 
-      const params: any = { from, to, type: 'SUMMARY', branch_id: branchId };
+      const params: ReportParams = { from, to, type: 'SUMMARY', branch_id: branchId };
       if (shift) params.shift = shift;
 
       const response = await api.get('/reports/sales', { params });

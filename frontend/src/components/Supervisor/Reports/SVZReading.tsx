@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import {
   Calendar, Printer, RefreshCw, Menu, Search,
@@ -63,6 +63,19 @@ interface ZReadingReport {
   is_vat?: boolean;
   total_discounts?: number;
   rounding_adjustment?: number;
+}
+
+interface ReportParams {
+  branch_id?: string | number;
+  date?: string;
+  from?: string;
+  to?: string;
+  date_from?: string;
+  date_to?: string;
+  shift?: string;
+  query?: string;
+  type?: string;
+  [key: string]: string | number | undefined;
 }
 
 interface SVZReadingProps {
@@ -185,16 +198,16 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
   };
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
-  const fetchReportData = async (type: string) => {
+  const fetchReportData = useCallback(async (type: string) => {
     setLoading(true); setError(null);
     try {
       const branchParam = branchId ? { branch_id: String(branchId) } : {};
 
       // ── Summary — merge sales-summary + item-quantities ──────────────────
       if (type === 'summary') {
-        const params: any = { from: selectedDate, to: selectedDate, ...branchParam };
+        const params: ReportParams = { from: selectedDate, to: selectedDate, ...branchParam };
         if (selectedShift) params.shift = selectedShift;
-        const qParams: any = { date: selectedDate, ...branchParam };
+        const qParams: ReportParams = { date: selectedDate, ...branchParam };
         if (selectedShift) qParams.shift = selectedShift;
 
         const [sRes, qRes] = await Promise.all([
@@ -208,7 +221,7 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
 
       // ── Z-Reading — merge z-reading + cash-counts + item-quantities + void-logs ──
       if (type === 'z_reading') {
-        const zParams: any = dateMode === 'range'
+        const zParams: ReportParams = dateMode === 'range'
           ? { from: fromDate, to: toDate, ...branchParam }
           : { from: selectedDate, to: selectedDate, ...branchParam };
         const ccDate = dateMode === 'range' ? toDate : selectedDate;
@@ -217,9 +230,9 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
           zParams.shift = selectedShift;
         }
 
-        const ccParams: any = { date: ccDate, ...branchParam };
-        const qtyParams: any = { date: ccDate, ...branchParam };
-        const voidParams: any = { date: ccDate, ...branchParam };
+        const ccParams: ReportParams = { date: ccDate, ...branchParam };
+        const qtyParams: ReportParams = { date: ccDate, ...branchParam };
+        const voidParams: ReportParams = { date: ccDate, ...branchParam };
 
         if (selectedShift) {
           ccParams.shift = selectedShift;
@@ -235,7 +248,7 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
         ]);
 
         const zData    = (zRes.data?.data ?? zRes.data)   as Record<string, unknown>;
-const ccData   = ccRes.data as Record<string, unknown>;
+        const ccData   = ccRes.data as Record<string, unknown>;
         const ccNested = ccData.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
 
         const ALL_DENOMS = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
@@ -305,7 +318,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
         detailed: { url: '/reports/sales-detailed', params: { ...baseParams } },
       };
       const { url, params } = map[type];
-      const finalParams: any = { ...params };
+      const finalParams: ReportParams = { ...params };
       if (selectedShift) finalParams.shift = selectedShift;
       const cleanParams = Object.fromEntries(Object.entries(finalParams).filter(([, v]) => v !== ''));
       const r = await api.get(url, { params: cleanParams });
@@ -313,7 +326,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
     } catch (err: unknown) {
       setError(`Failed to load "${type.replace(/_/g, ' ')}": ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally { setLoading(false); }
-  };
+  }, [branchId, dateMode, fromDate, selectedDate, toDate, selectedShift, invoiceQuery, branchFilter, teamLeaderFilter]);
 
   // ── Receipt render helpers ─────────────────────────────────────────────────
 

@@ -236,7 +236,7 @@ const SalesReportTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [mode, period, dateFrom, dateTo, branchId]);
+  }, [mode, period, dateFrom, dateTo, branchId, shift]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 

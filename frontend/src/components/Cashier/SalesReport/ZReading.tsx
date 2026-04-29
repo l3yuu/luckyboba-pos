@@ -202,6 +202,19 @@ interface ZReadingReport {
   rounding_adjustment?: number;
 }
 
+interface ReportParams {
+  branch_id?: string | number;
+  date?: string;
+  from?: string;
+  to?: string;
+  date_from?: string;
+  date_to?: string;
+  shift?: string;
+  query?: string;
+  type?: string;
+  [key: string]: string | number | undefined;
+}
+
 const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
   <div className={`flex justify-between text-[12px] leading-snug font-bold ${indent ? 'pl-3' : ''}`}>
     <span className="uppercase w-[60%] leading-tight text-black">{label}</span>
@@ -310,18 +323,18 @@ const ZReading = () => {
         const commonParams: Record<string, string | number> = {};
         if (branchId) commonParams.branch_id = branchId;
 
-        const sParams = { 
+        const sParams: ReportParams = { 
           ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { from: selectedDate, to: selectedDate }),
           ...commonParams 
         };
-        const qParams = { 
+        const qParams: ReportParams = { 
           ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }),
           ...commonParams 
         };
 
         if (selectedShift) {
-          (sParams as any).shift = selectedShift;
-          (qParams as any).shift = selectedShift;
+          sParams.shift = selectedShift;
+          qParams.shift = selectedShift;
         }
 
         const [summaryRes, qtyRes] = await Promise.all([
@@ -341,17 +354,17 @@ const ZReading = () => {
         const commonParams: Record<string, string | number> = {};
         if (branchId) commonParams.branch_id = branchId;
 
-        const zParams = {
+        const zParams: ReportParams = {
           ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { from: selectedDate, to: selectedDate }),
           ...commonParams
         };
 
-        const ccParams: any = { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams };
-        const qtyParams: any = { ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }), ...commonParams };
-        const voidParams: any = { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams };
+        const ccParams: ReportParams = { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams };
+        const qtyParams: ReportParams = { ...(dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate }), ...commonParams };
+        const voidParams: ReportParams = { date: dateMode === 'range' ? toDate : selectedDate, ...commonParams };
 
         if (selectedShift) {
-          (zParams as any).shift = selectedShift;
+          zParams.shift = selectedShift;
           ccParams.shift = selectedShift;
           qtyParams.shift = selectedShift;
           voidParams.shift = selectedShift;

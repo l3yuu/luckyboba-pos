@@ -194,7 +194,7 @@ const ItemsReportTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, branchId, categoryId]);
+  }, [dateFrom, dateTo, branchId, categoryId, shift]);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 

@@ -24,6 +24,13 @@ interface XReadingData {
   present_accumulated: number;
 }
 
+interface ReportParams {
+  branch_id?: number | null;
+  date?: string;
+  shift?: string;
+  [key: string]: string | number | null | undefined;
+}
+
 // ─── Row helper ───────────────────────────────────────────────────────────────
 
 const Row: React.FC<{ label: string; value: React.ReactNode; accent?: string }> = ({ label, value, accent }) => (
@@ -46,7 +53,7 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
   const fetchData = useCallback(async () => {
     setLoading(true); setFetchError('');
     try {
-      const params: any = { branch_id: branchId, date: selectedDate };
+      const params: ReportParams = { branch_id: branchId, date: selectedDate };
       if (selectedShift) params.shift = selectedShift;
       const res = await api.get('/reports/x-reading', { params });
       const raw = res.data?.data ?? res.data;

@@ -192,7 +192,7 @@ const AnalyticsTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [period, branchId]);
+  }, [period, branchId, shift]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 

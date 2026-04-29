@@ -404,7 +404,7 @@ const ZReadingTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, dateFrom, dateTo, reportType, invoiceQuery]);
+  }, [branchId, dateFrom, dateTo, reportType, invoiceQuery, selectedShift]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -510,7 +510,7 @@ const ZReadingTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, dateFrom, dateTo, branches]);
+  }, [branchId, dateFrom, dateTo, branches, selectedShift]);
 
   const fetchHistory = useCallback(async () => {
     if (!branchId) return;

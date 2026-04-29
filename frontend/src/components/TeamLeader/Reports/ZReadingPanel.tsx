@@ -63,6 +63,18 @@ interface ZReadingReport {
   rounding_adjustment?: number;
 }
 
+interface ReportParams {
+  branch_id?: number | null;
+  date?: string;
+  from?: string;
+  to?: string;
+  shift?: string;
+  query?: string;
+  branch?: string;
+  team_leader?: string;
+  [key: string]: string | number | null | undefined;
+}
+
 // ─── Receipt primitives ───────────────────────────────────────────────────────
 const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
   <div className={`flex justify-between text-[11px] leading-snug ${indent ? 'pl-3' : ''}`}>
@@ -185,9 +197,9 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
     setLoading(true); setError(null);
     try {
       if (type === 'summary') {
-        const params: any = { from: selectedDate, to: selectedDate, branch_id: branchId };
+        const params: ReportParams = { from: selectedDate, to: selectedDate, branch_id: branchId };
         if (selectedShift) params.shift = selectedShift;
-        const qParams: any = { date: selectedDate, branch_id: branchId };
+        const qParams: ReportParams = { date: selectedDate, branch_id: branchId };
         if (selectedShift) qParams.shift = selectedShift;
 
         const [sRes, qRes] = await Promise.all([
@@ -200,7 +212,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
       }
 
       if (type === 'z_reading') {
-        const zParams: any = dateMode === 'range'
+        const zParams: ReportParams = dateMode === 'range'
           ? { from: fromDate, to: toDate, branch_id: branchId }
           : { from: selectedDate, to: selectedDate, branch_id: branchId };
         const ccDate = dateMode === 'range' ? toDate : selectedDate;
@@ -209,9 +221,9 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
           zParams.shift = selectedShift;
         }
 
-        const ccParams: any = { date: ccDate, branch_id: branchId };
-        const qtyParams: any = { date: ccDate, branch_id: branchId };
-        const voidParams: any = { date: ccDate, branch_id: branchId };
+        const ccParams: ReportParams = { date: ccDate, branch_id: branchId };
+        const qtyParams: ReportParams = { date: ccDate, branch_id: branchId };
+        const voidParams: ReportParams = { date: ccDate, branch_id: branchId };
 
         if (selectedShift) {
           ccParams.shift = selectedShift;
@@ -292,7 +304,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
         detailed: { url: '/reports/sales-detailed', params: { date: selectedDate } },
       };
       const { url, params } = map[type];
-      const finalParams: any = { ...params };
+      const finalParams: ReportParams = { ...params };
       if (selectedShift) finalParams.shift = selectedShift;
       const cleanParams = Object.fromEntries(Object.entries(finalParams).filter(([, v]) => v !== ''));
       const r = await api.get(url, { params: cleanParams });
@@ -300,7 +312,6 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
     } catch (err: unknown) {
       setError(`Failed to load "${type.replace(/_/g, ' ')}": ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally { setLoading(false); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branchId, selectedDate, fromDate, toDate, dateMode, invoiceQuery, branchFilter, teamLeaderFilter, selectedShift]);
 
   // ── Receipt render helpers ─────────────────────────────────────────────────
