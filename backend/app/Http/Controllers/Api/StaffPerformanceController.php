@@ -61,34 +61,37 @@ class StaffPerformanceController extends Controller
 
     private function getSalesSummary($startDate, $endDate, $branchId)
     {
-        $query = Sale::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-            ->where('status', '!=', 'cancelled');
+        $query = Sale::join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->where('sales.status', '!=', 'cancelled');
         
         if ($branchId) {
-            $query->where('branch_id', $branchId);
+            $query->where('sales.branch_id', $branchId);
         }
 
         return $query->select(
-                'user_id',
-                DB::raw('SUM(total_amount) as total_revenue'),
-                DB::raw('COUNT(*) as transaction_count'),
-                DB::raw('MIN(created_at) as first_sale'),
-                DB::raw('MAX(created_at) as last_sale')
+                'sales.user_id',
+                DB::raw('SUM(sales.total_amount) as total_revenue'),
+                DB::raw('COUNT(sales.id) as transaction_count'),
+                DB::raw('MIN(sales.created_at) as first_sale'),
+                DB::raw('MAX(sales.created_at) as last_sale')
             )
-            ->groupBy('user_id')
+            ->groupBy('sales.user_id')
             ->get()
             ->keyBy('user_id');
     }
 
     private function getVoidSummary($startDate, $endDate, $branchId)
     {
-        $query = VoidRequest::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-            ->where('status', 'approved');
+        $query = VoidRequest::join('sales', 'void_requests.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('void_requests.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->where('void_requests.status', 'approved');
         
         if ($branchId) {
-            $query->whereHas('sale', function($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
-            });
+            $query->where('sales.branch_id', $branchId);
         }
 
         return $query->select(

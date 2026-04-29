@@ -60,7 +60,8 @@ class PulseController extends Controller
         $todayTotal = $todayTotalQuery->sum('total_amount');
 
         // 3. Active Users (last 5 mins)
-        $activeUsersQuery = User::with('branch')
+        $activeUsersQuery = User::whereHas('branch')
+            ->with('branch')
             ->where('last_activity_at', '>=', $activeThreshold);
         
         if ($branchId) {

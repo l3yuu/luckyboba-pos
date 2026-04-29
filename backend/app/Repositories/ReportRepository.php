@@ -67,22 +67,36 @@ class ReportRepository implements ReportRepositoryInterface
                     ->get();
 
             case 'PAYMENTS':
-                return Sale::whereHas('branch')
-                    ->whereBetween('created_at', [$from, $to])
-                    ->select('invoice_number as Invoice', 'payment_method as Method', 'total_amount as Amount', 'created_at as Date')
-                    ->where('status', 'completed')
-                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                    ->when($shift,    fn($q) => $q->where('shift', $shift))
+                return Sale::query()
+                    ->leftJoin('receipts', 'sales.id', '=', 'receipts.sale_id')
+                    ->whereHas('branch')
+                    ->whereBetween('sales.created_at', [$from, $to])
+                    ->select(
+                        DB::raw('COALESCE(receipts.si_number, sales.invoice_number) as Invoice'),
+                        'sales.payment_method as Method',
+                        'sales.total_amount as Amount',
+                        'sales.created_at as Date'
+                    )
+                    ->where('sales.status', 'completed')
+                    ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                    ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
                     ->get();
 
             default:
-                return Sale::whereHas('branch')
-                    ->whereBetween('created_at', [$from, $to])
-                    ->select('invoice_number as Invoice', 'total_amount as Amount', 'status as Status', 'created_at as Date_Time')
-                    ->whereIn('status', ['completed', 'cancelled'])
-                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                    ->when($shift,    fn($q) => $q->where('shift', $shift))
-                    ->orderBy('created_at', 'desc')
+                return Sale::query()
+                    ->leftJoin('receipts', 'sales.id', '=', 'receipts.sale_id')
+                    ->whereHas('branch')
+                    ->whereBetween('sales.created_at', [$from, $to])
+                    ->select(
+                        DB::raw('COALESCE(receipts.si_number, sales.invoice_number) as Invoice'),
+                        'sales.total_amount as Amount',
+                        'sales.status as Status',
+                        'sales.created_at as Date_Time'
+                    )
+                    ->whereIn('sales.status', ['completed', 'cancelled'])
+                    ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                    ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
+                    ->orderBy('sales.created_at', 'desc')
                     ->get();
         }
     }

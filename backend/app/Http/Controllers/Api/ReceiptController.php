@@ -109,9 +109,9 @@ class ReceiptController extends Controller
         ->select([
             'sales.id as sale_id',
             DB::raw('CASE 
-                WHEN (sales.invoice_number LIKE "SI-%" OR sales.invoice_number LIKE "OR-%") THEN sales.invoice_number 
-                WHEN (receipts.si_number LIKE "SI-%" OR receipts.si_number LIKE "OR-%") THEN receipts.si_number 
-                ELSE COALESCE(sales.invoice_number, receipts.si_number) 
+                WHEN (receipts.si_number IS NOT NULL AND receipts.si_number != "") THEN receipts.si_number 
+                WHEN (sales.invoice_number IS NOT NULL AND sales.invoice_number != "") THEN sales.invoice_number 
+                ELSE "N/A" 
             END as si_number'),
             'sales.total_amount',
             'sales.payment_method',
