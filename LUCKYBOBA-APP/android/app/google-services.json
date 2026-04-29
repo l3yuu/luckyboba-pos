@@ -7,6 +7,50 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:822257671635:android:fad5024d696a0f29d5e326",
+        "android_client_info": {
+          "package_name": "app.luckyboba.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "822257671635-8135jp9lmn3pu2s2k3mv15m75nao7f02.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.luckyboba.app",
+            "certificate_hash": "eb5d7a2df0107494c1a36b8dc95d8ffd335163d7"
+          }
+        },
+        {
+          "client_id": "822257671635-af9ao2uvia4crk7rm9tlr3ubujkso5vk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDthqZboz-V159d9cd0x65Aq862Qej4hvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "822257671635-af9ao2uvia4crk7rm9tlr3ubujkso5vk.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "822257671635-nvrqjdonvf3sqoi66a0ldc47jbbdrlub.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.luckybobaApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:822257671635:android:0777c0f8c09b273dd5e326",
         "android_client_info": {
           "package_name": "com.example.luckyboba_app"
@@ -57,6 +101,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "822257671635-d5s8bi8qhk8770bubqplcs0qge3i1fs5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.luckyboba.app",
+            "certificate_hash": "0e0f3e5815da895f7f98d4e10d7183b34b5d176f"
+          }
+        },
         {
           "client_id": "822257671635-svr3d0ikkcmqh8eqd6j36i4lo2f0bc2v.apps.googleusercontent.com",
           "client_type": 1,

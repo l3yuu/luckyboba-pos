@@ -2,7 +2,7 @@ name: luckyboba_app
 description: "A new Flutter project for Lucky Boba."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+5
 
 environment:
   sdk: ^3.11.0
@@ -45,6 +45,7 @@ flutter:
     - assets/images/
     - assets/videos/landingvideo.mp4
     - assets/cards/
+    - assets/adi-registration.properties
 
 
 flutter_launcher_icons:

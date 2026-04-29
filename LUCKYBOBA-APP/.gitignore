@@ -46,3 +46,5 @@ app.*.map.json
 
 # Android signing (never commit secrets)
 /android/key.properties
+
+android/key.properties
