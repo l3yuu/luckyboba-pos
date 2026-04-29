@@ -269,6 +269,7 @@ const StaffFormModal: React.FC<{
         const res = await api.put(`/users/${editingUser.id}`, payload);
         onSaved(mapStaff(res.data?.data ?? res.data));
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const payload: Record<string, any> = {
           name: form.name, email: form.email,
           password: form.password, password_confirmation: form.passwordConfirm,
