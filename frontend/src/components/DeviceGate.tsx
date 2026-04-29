@@ -19,13 +19,13 @@ export function DeviceGate({ children }: Props) {
   const { user, logout, isLoading } = useAuth();
   const { showToast } = useToast();
   const [bypass, setBypass] = useState(false);
-
+  const isKiosk = window.location.pathname.startsWith('/kiosk');
   const isPrivileged = user?.role === 'superadmin' || user?.role === 'super_admin' || user?.role === 'system_admin' || user?.role === 'it_admin';
   const isCashier = user?.role === 'cashier';
-
-  // Cashiers are ALWAYS checked. Admins are checked unless they explicitly bypass.
-  // We ALSO wait for auth to finish loading so we know if the user is privileged.
-  const shouldCheck = !isLoading && !isPrivileged && (isCashier || !bypass);
+  
+  // The gate only activates for logged-in cashiers.
+  // Guests (on login page), Admins, and Kiosk users are NOT gated.
+  const shouldCheck = !isLoading && !isKiosk && !!user && isCashier;
 
   const { status, message, deviceId, posNumber } = useDeviceCheck(shouldCheck, user?.id);
   const [copied, setCopied] = useState(false);
