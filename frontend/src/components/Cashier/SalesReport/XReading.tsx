@@ -130,6 +130,21 @@ const XReading = () => {
   const isVat = vatType === 'vat';
   const [showBreakdown, setShowBreakdown] = useState(false);
   const branchId = localStorage.getItem('lucky_boba_user_branch_id') || '';
+  const [selectedShift, setSelectedShift] = useState<string>('');
+
+  useEffect(() => {
+    const getShift = async () => {
+      try {
+        const res = await api.get('/cash-counts/status');
+        if (res.data.shift) {
+          setSelectedShift(String(res.data.shift));
+        }
+      } catch (e) {
+        console.error("Failed to fetch shift status", e);
+      }
+    };
+    getShift();
+  }, []);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -160,6 +175,10 @@ const XReading = () => {
         if (branchId) {
           sParams.branch_id = branchId;
           qParams.branch_id = branchId;
+        }
+        if (selectedShift) {
+          sParams.shift = selectedShift;
+          qParams.shift = selectedShift;
         }
 
         const endpoints = type === 'summary' 
@@ -192,6 +211,7 @@ const XReading = () => {
       const { url, params } = endpointMap[type];
       const finalParams: Record<string, string | number> = { ...params };
       if (branchId) finalParams.branch_id = branchId;
+      if (selectedShift) finalParams.shift = selectedShift;
 
       const response = await api.get(url, { params: finalParams });
       setRawApiResponse(response.data as Record<string, unknown>);
@@ -924,7 +944,19 @@ const XReading = () => {
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <div className="flex items-center bg-[#f5f0ff] rounded-[0.625rem] px-2 border border-zinc-200">
+              <span className="text-[9px] font-black text-[#6a12b8] uppercase pl-2 pr-1 opacity-60">Shift:</span>
+              <select
+                value={selectedShift}
+                onChange={(e) => setSelectedShift(e.target.value)}
+                className="h-11 bg-transparent border-none text-zinc-700 font-bold text-xs uppercase focus:ring-0 cursor-pointer"
+              >
+                <option value="">Whole Day</option>
+                <option value="1">AM Shift</option>
+                <option value="2">PM Shift</option>
+              </select>
+            </div>
             <button
               onClick={handleGenerate}
               disabled={loading}

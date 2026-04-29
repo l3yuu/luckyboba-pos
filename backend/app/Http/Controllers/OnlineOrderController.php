@@ -91,7 +91,12 @@ class OnlineOrderController extends Controller
         $sale         = $query->firstOrFail();
         $sale->status = $request->status;
 
-        if ($request->filled('invoice_number'))      $sale->invoice_number   = $request->input('invoice_number');
+        if ($request->filled('invoice_number')) {
+            $newInvoice = $request->input('invoice_number');
+            $sale->invoice_number = $newInvoice;
+            // Also update the linked Receipt si_number if it exists
+            \DB::table('receipts')->where('sale_id', $sale->id)->update(['si_number' => $newInvoice]);
+        }
         if ($request->filled('payment_method'))      $sale->payment_method   = $request->input('payment_method');
         if ($request->filled('cash_tendered'))       $sale->cash_tendered    = $request->input('cash_tendered');
         if ($request->filled('reference_number'))    $sale->reference_number = $request->input('reference_number');

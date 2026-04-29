@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDeviceCheck } from '../hooks/useDeviceCheck';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
@@ -23,22 +23,32 @@ export function DeviceGate({ children }: Props) {
   const isPrivileged = user?.role === 'superadmin' || user?.role === 'super_admin' || user?.role === 'system_admin' || user?.role === 'it_admin';
   const isCashier = user?.role === 'cashier';
   
-  // The gate only activates for logged-in cashiers.
-  // Guests (on login page), Admins, and Kiosk users are NOT gated.
-  const shouldCheck = !isLoading && !isKiosk && !!user && isCashier;
+  // The gate only activates for logged-in staff (non-superadmins).
+  // Guests (on login page), Super Admins, and Kiosk users are NOT gated.
+  const shouldCheck = !isLoading && !isKiosk && !!user && !isPrivileged;
 
   const { status, message, deviceId, posNumber } = useDeviceCheck(shouldCheck, user?.id);
   const [copied, setCopied] = useState(false);
 
-  // If device becomes unregistered while logged in as cashier, force logout.
+  // If device becomes unregistered while logged in, we let the gate handle the UI.
+  // We don't auto-logout here anymore to prevent bypassing the registration screen.
+  const lastStatusToast = useRef<string | null>(null);
+
   useEffect(() => {
-    if (status === 'unregistered' && user && isCashier) {
-      showToast(message || 'Device not registered or deactivated.', 'error');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBypass(false);
-      void logout();
+    if (status === 'unregistered' && user && !isPrivileged) {
+      if (lastStatusToast.current !== status) {
+        showToast(message || 'Device not registered or deactivated.', 'error');
+        lastStatusToast.current = status;
+      }
+      
+      // Use microtask to avoid synchronous setState warning and cascading renders
+      if (bypass) {
+        Promise.resolve().then(() => setBypass(false));
+      }
+    } else {
+      lastStatusToast.current = null;
     }
-  }, [status, user, isCashier, logout, showToast, message]);
+  }, [status, user, isPrivileged, showToast, message, bypass]);
 
   // ── Loading State ────────────────────────────────────────────────────────
   if (isLoading) {
@@ -96,7 +106,13 @@ export function DeviceGate({ children }: Props) {
             >
               {copied ? 'Copied!' : 'Copy Device ID'}
             </button>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col gap-3">
+              <button
+                onClick={() => logout()}
+                className="w-full py-2.5 px-4 bg-white border border-gray-200 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-50 transition-all"
+              >
+                Switch Account / Logout
+              </button>
               <button
                 onClick={() => setBypass(true)}
                 className="text-[10px] font-bold text-gray-400 hover:text-[#6a12b8] transition-colors uppercase tracking-widest"

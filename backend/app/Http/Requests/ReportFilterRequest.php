@@ -28,6 +28,7 @@ class ReportFilterRequest extends FormRequest
             'type'      => 'nullable|string',
             'period'    => 'nullable|string|in:daily,weekly,monthly',
             'branch_id' => 'nullable|integer|exists:branches,id',
+            'shift'     => 'nullable|integer|in:1,2',
         ];
     }
 

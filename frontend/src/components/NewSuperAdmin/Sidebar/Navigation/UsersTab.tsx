@@ -304,7 +304,7 @@ const AddUserModal: React.FC<{
   const [devices, setDevices] = useState<PosDevice[]>([]); // ← ADDED
   const [loadingDevices, setLoadingDevices] = useState(false); // ← ADDED
 
-  const PIN_ROLES = ["branch_manager", "team_leader"];
+  const PIN_ROLES = ["branch_manager", "team_leader", "supervisor", "superadmin"];
   const showPin = PIN_ROLES.includes(form.role);
   const showBranch = ["cashier", "branch_manager", "team_leader", "supervisor"].includes(form.role);
 
@@ -336,7 +336,7 @@ const AddUserModal: React.FC<{
     if (showBranch && !form.branch_id) e.branch_id = "Branch is required for this role.";
     if (showPin) {
       if (!form.manager_pin.trim()) e.manager_pin = "PIN is required for this role.";
-      else if (form.manager_pin.length < 4) e.manager_pin = "PIN must be at least 4 digits.";
+      else if (form.manager_pin.length !== 6) e.manager_pin = "PIN must be exactly 6 digits.";
       else if (form.manager_pin !== form.manager_pin_confirmation)
         e.manager_pin_confirmation = "PINs do not match.";
     }
@@ -503,10 +503,10 @@ const AddUserModal: React.FC<{
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="PIN" required error={errors.manager_pin}>
-              <input {...f("manager_pin")} type="password" placeholder="Min. 4 digits" maxLength={8} className={inputCls(errors.manager_pin)} />
+              <input {...f("manager_pin")} type="password" placeholder="6 digits" maxLength={6} className={inputCls(errors.manager_pin)} />
             </Field>
             <Field label="Confirm PIN" required error={errors.manager_pin_confirmation}>
-              <input {...f("manager_pin_confirmation")} type="password" placeholder="Re-enter PIN" maxLength={8} className={inputCls(errors.manager_pin_confirmation)} />
+              <input {...f("manager_pin_confirmation")} type="password" placeholder="6 digits" maxLength={6} className={inputCls(errors.manager_pin_confirmation)} />
             </Field>
           </div>
           <p className="text-[10px] text-violet-500 font-medium">Used to authorize sensitive actions at the POS.</p>
@@ -539,7 +539,7 @@ const EditUserModal: React.FC<{
   const [devices, setDevices] = useState<PosDevice[]>([]); // ← ADDED
   const [loadingDevices, setLoadingDevices] = useState(false); // ← ADDED
 
-  const PIN_ROLES = ["branch_manager", "team_leader"];
+  const PIN_ROLES = ["branch_manager", "team_leader", "supervisor", "superadmin"];
   const showPin = PIN_ROLES.includes(form.role) && !user.has_pin;
   const showBranch = ["cashier", "branch_manager", "team_leader", "supervisor"].includes(form.role);
 
@@ -580,7 +580,7 @@ const EditUserModal: React.FC<{
     if (showBranch && !form.branch_id) e.branch_id = "Branch is required for this role.";
     if (showPin) {
       if (!form.manager_pin.trim()) e.manager_pin = "PIN is required for this role.";
-      else if (form.manager_pin.length < 4) e.manager_pin = "PIN must be at least 4 digits.";
+      else if (form.manager_pin.length !== 6) e.manager_pin = "PIN must be exactly 6 digits.";
       else if (form.manager_pin !== form.manager_pin_confirmation)
         e.manager_pin_confirmation = "PINs do not match.";
     }
@@ -753,10 +753,10 @@ const EditUserModal: React.FC<{
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="PIN" required error={errors.manager_pin}>
-              <input {...f("manager_pin")} type="password" placeholder="Min. 4 digits" maxLength={8} className={inputCls(errors.manager_pin)} />
+              <input {...f("manager_pin")} type="password" placeholder="6 digits" maxLength={6} className={inputCls(errors.manager_pin)} />
             </Field>
             <Field label="Confirm PIN" required error={errors.manager_pin_confirmation}>
-              <input {...f("manager_pin_confirmation")} type="password" placeholder="Re-enter PIN" maxLength={8} className={inputCls(errors.manager_pin_confirmation)} />
+              <input {...f("manager_pin_confirmation")} type="password" placeholder="6 digits" maxLength={6} className={inputCls(errors.manager_pin_confirmation)} />
             </Field>
           </div>
           <p className="text-[10px] text-violet-500 font-medium">Used to authorize sensitive actions at the POS.</p>
@@ -914,7 +914,7 @@ const ResetPinModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose,
   const validate = () => {
     const e: { pin?: string; pinConfirm?: string } = {};
     if (!pin.trim()) e.pin = "PIN is required.";
-    else if (!/^\d{4,8}$/.test(pin)) e.pin = "PIN must be 4–8 digits.";
+    else if (!/^\d{6}$/.test(pin)) e.pin = "PIN must be exactly 6 digits.";
     if (pin !== pinConfirm) e.pinConfirm = "PINs do not match.";
     return e;
   };
@@ -976,12 +976,12 @@ const ResetPinModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose,
           <Field label="New PIN" required error={errors.pin}>
             <input type="password" value={pin}
               onChange={e => { setPin(e.target.value); setErrors(p => ({ ...p, pin: undefined })); }}
-              placeholder="Enter 4–8 digit PIN" className={inputCls(errors.pin)} maxLength={8} />
+              placeholder="Enter 6 digit PIN" className={inputCls(errors.pin)} maxLength={6} />
           </Field>
           <Field label="Confirm PIN" required error={errors.pinConfirm}>
             <input type="password" value={pinConfirm}
               onChange={e => { setPinConfirm(e.target.value); setErrors(p => ({ ...p, pinConfirm: undefined })); }}
-              placeholder="Re-enter PIN" className={inputCls(errors.pinConfirm)} maxLength={8} />
+              placeholder="Re-enter PIN" className={inputCls(errors.pinConfirm)} maxLength={6} />
           </Field>
         </>
       )}
@@ -1380,7 +1380,7 @@ const UsersTab: React.FC = () => {
                         className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
                         <Trash2 size={13} />
                       </button>
-                      {["branch_manager", "team_leader", "supervisor"].includes(u.role) && (
+                      {["branch_manager", "team_leader", "supervisor", "superadmin"].includes(u.role) && (
                         <button onClick={() => setPinTarget(u)}
                           className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Change PIN">
                           <ShieldCheck size={13} />

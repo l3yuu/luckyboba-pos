@@ -11,6 +11,7 @@ use App\Models\VoidRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class ReceiptController extends Controller
 {
@@ -107,7 +108,11 @@ class ReceiptController extends Controller
         ->leftJoin('branches', 'sales.branch_id', '=', 'branches.id')
         ->select([
             'sales.id as sale_id',
-            'sales.invoice_number as si_number',
+            DB::raw('CASE 
+                WHEN (receipts.si_number LIKE "SI-%" OR receipts.si_number LIKE "OR-%") THEN receipts.si_number 
+                WHEN (sales.invoice_number LIKE "SI-%" OR sales.invoice_number LIKE "OR-%") THEN sales.invoice_number 
+                ELSE COALESCE(receipts.si_number, sales.invoice_number) 
+            END as si_number'),
             'sales.total_amount',
             'sales.payment_method',
             'sales.cash_tendered',
@@ -181,6 +186,7 @@ class ReceiptController extends Controller
     if ($query) {
         $dbQuery->where(function ($q) use ($query) {
             $q->whereRaw('LOWER(sales.invoice_number) LIKE ?', ["%{$query}%"])
+              ->orWhereRaw('LOWER(receipts.si_number) LIKE ?', ["%{$query}%"])
               ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$query}%"])
               ->orWhereRaw('LOWER(sales.customer_name) LIKE ?', ["%{$query}%"]);
         });
@@ -273,19 +279,17 @@ public function voidRequest(Request $request, $id)
             return response()->json(['message' => 'Already voided.'], 422);
         }
 
-        $manager = User::where('role', 'branch_manager')
+        $manager = User::whereIn('role', ['superadmin', 'branch_manager', 'supervisor', 'team_leader'])
             ->where('branch_id', $sale->branch_id)
+            ->whereNotNull('manager_pin')
+            ->where('status', 'ACTIVE')
+            ->get()
+            ->filter(fn($u) => Hash::check($request->manager_pin, $u->manager_pin))
             ->first();
 
-        if (!$manager || !$manager->manager_pin) {
+        if (!$manager) {
             return response()->json([
-                'message' => 'Branch manager PIN not configured.'
-            ], 422);
-        }
-
-        if (!Hash::check($request->manager_pin, $manager->manager_pin)) {
-            return response()->json([
-                'message' => 'Incorrect PIN. Please try again.'
+                'message' => 'Incorrect PIN or no authorized manager found.'
             ], 422);
         }
 

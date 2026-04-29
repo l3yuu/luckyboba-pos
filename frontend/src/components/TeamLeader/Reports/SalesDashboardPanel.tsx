@@ -31,6 +31,15 @@ interface SalesDashboardProps {
   branchId?: number | null;
 }
 
+interface ReportParams {
+  from?: string;
+  to?: string;
+  type?: string;
+  branch_id?: number | null;
+  shift?: string;
+  [key: string]: string | number | null | undefined;
+}
+
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
   
@@ -107,6 +116,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
   const [loading,    setLoading]    = useState(true);
   const [, setRefreshing] = useState(false);
   const [period,     setPeriod]     = useState<'7days' | '30days' | '3months'>('7days');
+  const [shift,      setShift]      = useState("");
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -121,7 +131,10 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
       const from = fromDate.toISOString().split('T')[0];
       const to   = today.toISOString().split('T')[0];
 
-      const response = await api.get('/reports/sales', { params: { from, to, type: 'SUMMARY', branch_id: branchId } });
+      const params: ReportParams = { from, to, type: 'SUMMARY', branch_id: branchId };
+      if (shift) params.shift = shift;
+
+      const response = await api.get('/reports/sales', { params });
       const raw = Array.isArray(response.data) ? response.data : Object.values(response.data);
       
       const transformed: SalesData[] = raw.map((r: { 
@@ -142,7 +155,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [period, branchId]);
+  }, [period, branchId, shift]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -183,25 +196,36 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
             <h3 className="font-black text-slate-800 tracking-tight uppercase text-xs">Revenue Trend Distribution</h3>
             <p className="sdb-label mt-1">Real-time daily aggregate values</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="sdb-filter-group">
-              {(['7days', '30days', '3months'] as const).map(p => (
-                <button key={p} onClick={() => setPeriod(p)} className={`sdb-filter-btn ${period === p ? 'active' : ''}`}>
-                  {p === '7days' ? '7D' : p === '30days' ? '30D' : '3M'}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-6 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#6a12b8]" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Gross Sales</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center bg-[#f1f5f9] p-1 rounded-lg">
+                <select 
+                  value={shift} 
+                  onChange={(e) => setShift(e.target.value)}
+                  className="bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-500 outline-none px-2 cursor-pointer"
+                >
+                  <option value="">Whole Day</option>
+                  <option value="1">AM Shift</option>
+                  <option value="2">PM Shift</option>
+                </select>
               </div>
-              <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Audit Avg</span>
+              <div className="sdb-filter-group">
+                {(['7days', '30days', '3months'] as const).map(p => (
+                  <button key={p} onClick={() => setPeriod(p)} className={`sdb-filter-btn ${period === p ? 'active' : ''}`}>
+                    {p === '7days' ? '7D' : p === '30days' ? '30D' : '3M'}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-6 px-4 py-2 bg-slate-50 border border-slate-100 rounded-full">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#6a12b8]" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Gross Sales</span>
+                </div>
+                <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Audit Avg</span>
+                </div>
               </div>
             </div>
-          </div>
         </div>
 
         <div className="h-[420px] -ml-6">

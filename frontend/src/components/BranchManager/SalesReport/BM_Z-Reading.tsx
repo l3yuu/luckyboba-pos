@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import React from "react";
 import {
   RefreshCw, AlertCircle, Printer, Lock, CheckCircle,
-  X, Menu,
+  X, Menu, ChevronDown,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -274,7 +274,7 @@ const BM_ZReading: React.FC = () => {
   const menuRef    = useRef<HTMLDivElement>(null);
   const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
   const [invoiceQuery, setInvoiceQuery] = useState("");
-  const [shift, _setShift] = useState("all");
+  const [shift, setShift] = useState("all");
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
   const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
@@ -462,6 +462,16 @@ const BM_ZReading: React.FC = () => {
         }
       })
       .catch(() => {});
+
+    // Fetch active shift status
+    fetch("/api/cash-counts/status", { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.active_shift) {
+          setShift(String(d.active_shift));
+        }
+      })
+      .catch(() => {});
   }, [branchName, branchId]);
 
   const fetchReading = useCallback(async () => {
@@ -478,10 +488,13 @@ const BM_ZReading: React.FC = () => {
         from: dateFrom,
         to: dateTo
       });
+      if (shift !== "all") zParams.set("shift", shift);
+
       const extraParams = new URLSearchParams({
         branch_id: branchId,
         date: dateTo
       });
+      if (shift !== "all") extraParams.set("shift", shift);
 
       const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
         fetch(`/api/reports/z-reading?${zParams}`, { headers: authHeaders() }).then(r => r.json()),
@@ -562,7 +575,7 @@ const BM_ZReading: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, dateFrom, dateTo, branchName]);
+  }, [branchId, dateFrom, dateTo, branchName, shift]);
 
   const fetchHistory = useCallback(async () => {
     if (!branchId) return;
@@ -1532,10 +1545,22 @@ const handlePrint = async () => {
             </div>
           </div>
         </div>
-        <div>
+         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Shift</p>
+          <div className="relative">
+            <select value={shift} onChange={e => setShift(e.target.value)}
+              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-32">
+              <option value="all">Whole Day</option>
+              <option value="1">AM Shift</option>
+              <option value="2">PM Shift</option>
+            </select>
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
         </div>
         <Btn onClick={() => reportType === "z_reading" ? fetchReading() : fetchXReport()} disabled={loading || !branchId}>
           {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Load Reading"}

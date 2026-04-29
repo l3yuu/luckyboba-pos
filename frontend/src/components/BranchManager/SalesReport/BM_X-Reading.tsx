@@ -140,6 +140,16 @@ const BM_XReading: React.FC = () => {
         }
       })
       .catch(() => {});
+
+    // Fetch active shift status
+    fetch("/api/cash-counts/status", { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.active_shift) {
+          setShift(String(d.active_shift));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -811,10 +821,10 @@ const fetchReading = useCallback(async () => {
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Shift</p>
           <div className="relative">
             <select value={shift} onChange={e => setShift(e.target.value)}
-              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-              <option value="all">All Shifts</option>
-              <option value="am">AM Shift</option>
-              <option value="pm">PM Shift</option>
+              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-32">
+              <option value="all">Whole Day</option>
+              <option value="1">AM Shift</option>
+              <option value="2">PM Shift</option>
             </select>
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>

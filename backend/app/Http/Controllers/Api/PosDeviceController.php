@@ -31,7 +31,8 @@ class PosDeviceController extends Controller
 
         if ($request->filled('user_id')) {
             $user = User::find($request->user_id);
-            if ($user && $user->role === 'cashier') {
+            $posRoles = ['cashier', 'team_leader', 'supervisor'];
+            if ($user && in_array($user->role, $posRoles)) {
                 if ($device->branch_id && $user->branch_id && $device->branch_id !== $user->branch_id) {
                     return response()->json(['success' => false, 'registered' => false, 'message' => 'This device belongs to a different branch. Access denied.'], 403);
                 }

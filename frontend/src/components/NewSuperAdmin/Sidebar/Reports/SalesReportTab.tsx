@@ -144,6 +144,7 @@ const SalesReportTab: React.FC = () => {
   const [dateFrom,   setDateFrom]   = useState(firstOfMonth);
   const [dateTo,     setDateTo]     = useState(today);
   const [branchId,   setBranchId]   = useState<string>(localStorage.getItem('superadmin_selected_branch') || '');
+  const [shift,      setShift]      = useState("");
   const [search,     setSearch]     = useState("");
 
   // Data
@@ -204,6 +205,10 @@ const SalesReportTab: React.FC = () => {
         summaryParams.set("branch_id", branchId);
         compParams.set("branch_id",    branchId);
       }
+      if (shift) {
+        summaryParams.set("shift", shift);
+        compParams.set("shift",    shift);
+      }
 
       const [summaryRes, compRes] = await Promise.all([
         fetch(`/api/reports/admin-sales-summary?${summaryParams}`, { headers: authHeaders() }),
@@ -231,7 +236,7 @@ const SalesReportTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [mode, period, dateFrom, dateTo, branchId]);
+  }, [mode, period, dateFrom, dateTo, branchId, shift]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -268,6 +273,7 @@ const SalesReportTab: React.FC = () => {
       params.set("date_to",   dateTo);
     }
     if (branchId) params.set("branch_id", branchId);
+    if (shift) params.set("shift", shift);
 
     try {
       const res = await fetch(`/api/reports/export-sales?${params}`, { headers: authHeaders() });
@@ -340,14 +346,27 @@ const SalesReportTab: React.FC = () => {
           </>
         )}
 
-        {/* Branch filter */}
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
           <div className="relative">
             <select value={branchId} onChange={e => handleBranchChange(e.target.value)}
-              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-48">
               <option value="">All Branches</option>
               {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+            </select>
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Shift filter */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Shift</p>
+          <div className="relative">
+            <select value={shift} onChange={e => setShift(e.target.value)}
+              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+              <option value="">All Shifts</option>
+              <option value="1">AM Shift</option>
+              <option value="2">PM Shift</option>
             </select>
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
@@ -363,8 +382,8 @@ const SalesReportTab: React.FC = () => {
         </div>
 
         {/* Clear */}
-        {(branchId || mode === "range") && (
-          <button onClick={() => { setBranchId(""); setMode("period"); setPeriod("monthly"); }}
+        {(branchId || shift || mode === "range") && (
+          <button onClick={() => { setBranchId(""); setShift(""); setMode("period"); setPeriod("monthly"); }}
             className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
             <X size={11} /> Clear
           </button>

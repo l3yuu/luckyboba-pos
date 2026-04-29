@@ -104,14 +104,31 @@ class UserRepository implements UserRepositoryInterface
                 ->delete();
 
             $tablesWithUserId = [
-                'sales', 'cash_counts', 'cash_transactions',
-                'expenses', 'purchase_orders', 'audit_logs', 'sessions',
+                'sales' => ['user_id'],
+                'cash_counts' => ['user_id'],
+                'cash_transactions' => ['user_id'],
+                'expenses' => ['recorded_by', 'approved_by'],
+                'purchase_orders' => ['created_by_id', 'approved_by_id', 'received_by_id'],
+                'audit_logs' => ['user_id'],
+                'sessions' => ['user_id'],
             ];
 
             $schema = DB::getSchemaBuilder();
-            foreach ($tablesWithUserId as $table) {
-                if ($schema->hasTable($table) && $schema->hasColumn($table, 'user_id')) {
-                    DB::table($table)->where('user_id', $user->id)->update(['user_id' => null]);
+            foreach ($tablesWithUserId as $table => $columns) {
+                if ($schema->hasTable($table)) {
+                    $updateData = [];
+                    foreach ($columns as $column) {
+                        if ($schema->hasColumn($table, $column)) {
+                            $updateData[$column] = null;
+                        }
+                    }
+                    if (!empty($updateData)) {
+                        DB::table($table)->where(function($q) use ($columns, $user) {
+                            foreach ($columns as $col) {
+                                $q->orWhere($col, $user->id);
+                            }
+                        })->update($updateData);
+                    }
                 }
             }
 

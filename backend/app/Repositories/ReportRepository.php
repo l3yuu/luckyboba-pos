@@ -29,7 +29,7 @@ class ReportRepository implements ReportRepositoryInterface
             ->get();
     }
 
-    public function getSalesReport(string $from, string $to, string $type, ?int $branchId): mixed
+    public function getSalesReport(string $from, string $to, string $type, ?int $branchId, ?int $shift = null): mixed
     {
         switch ($type) {
             case 'SUMMARY':
@@ -42,6 +42,7 @@ class ReportRepository implements ReportRepositoryInterface
                     ->whereBetween('created_at', [$from, $to])
                     ->where('status', 'completed')
                     ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->when($shift,    fn($q) => $q->where('shift', $shift))
                     ->groupBy('Sales_Date')
                     ->orderBy('Sales_Date', 'desc')
                     ->get();
@@ -57,6 +58,7 @@ class ReportRepository implements ReportRepositoryInterface
                     ->whereBetween('sales.created_at', [$from, $to])
                     ->where('sales.status', 'completed')
                     ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                    ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
                     ->groupBy('sale_items.product_name')
                     ->get();
 
@@ -65,6 +67,7 @@ class ReportRepository implements ReportRepositoryInterface
                     ->select('invoice_number as Invoice', 'payment_method as Method', 'total_amount as Amount', 'created_at as Date')
                     ->where('status', 'completed')
                     ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->when($shift,    fn($q) => $q->where('shift', $shift))
                     ->get();
 
             default:
@@ -72,16 +75,18 @@ class ReportRepository implements ReportRepositoryInterface
                     ->select('invoice_number as Invoice', 'total_amount as Amount', 'status as Status', 'created_at as Date_Time')
                     ->whereIn('status', ['completed', 'cancelled'])
                     ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->when($shift,    fn($q) => $q->where('shift', $shift))
                     ->orderBy('created_at', 'desc')
                     ->get();
         }
     }
 
-    public function getSummaryData(string $from, string $to, ?int $branchId): array
+    public function getSummaryData(string $from, string $to, ?int $branchId, ?int $shift = null): array
     {
         $summary = Sale::whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('shift', $shift))
             ->select(
                 DB::raw('DATE(created_at) as Sales_Date'),
                 DB::raw('COUNT(id) as Total_Orders'),
@@ -97,6 +102,7 @@ class ReportRepository implements ReportRepositoryInterface
         $totals = DB::table('sales')
             ->whereBetween('created_at', [$from, $to])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('shift', $shift))
             ->select(
                 DB::raw("SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END) as gross_sales"),
                 DB::raw("SUM(CASE WHEN status = 'completed' THEN {$discountCol} ELSE 0 END) as total_discounts"),
@@ -117,7 +123,7 @@ class ReportRepository implements ReportRepositoryInterface
         ];
     }
 
-    public function getItemQuantities(?string $from = null, ?string $to = null, ?int $branchId = null, ?string $cashierName = null): array
+    public function getItemQuantities(?string $from = null, ?string $to = null, ?int $branchId = null, ?string $cashierName = null, ?int $shift = null): array
     {
         try {
             $query = DB::table('sale_items')
@@ -136,6 +142,10 @@ class ReportRepository implements ReportRepositoryInterface
 
             if ($branchId) {
                 $query->where('sales.branch_id', $branchId);
+            }
+
+            if ($shift) {
+                $query->where('sales.shift', $shift);
             }
 
             if ($cashierName) {
@@ -251,18 +261,19 @@ class ReportRepository implements ReportRepositoryInterface
         }
     }
 
-    public function getHourlySales(string $date, ?int $branchId): mixed
+    public function getHourlySales(string $date, ?int $branchId, ?int $shift = null): mixed
     {
         return Sale::whereDate('created_at', $date)
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('shift', $shift))
             ->selectRaw('HOUR(created_at) as hour, SUM(total_amount) as total, COUNT(*) as count')
             ->groupBy('hour')
             ->orderBy('hour')
             ->get();
     }
 
-    public function getCashCountSummary(string $date, ?int $branchId, string $cashierName): array
+    public function getCashCountSummary(string $date, ?int $branchId, string $cashierName, ?int $shift = null): array
     {
         $query = DB::table('cash_counts')
             ->where(function ($q) use ($date) {
@@ -272,6 +283,10 @@ class ReportRepository implements ReportRepositoryInterface
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
+        }
+
+        if ($shift) {
+            $query->where('shift', $shift);
         }
 
         $cashCount = $query->latest()->first();
@@ -331,7 +346,7 @@ class ReportRepository implements ReportRepositoryInterface
         ];
     }
 
-    public function getVoidLogs(string $date, ?int $branchId): mixed
+    public function getVoidLogs(string $date, ?int $branchId, ?int $shift = null): mixed
     {
         $hasVoidReason = \Schema::hasColumn('sales', 'void_reason');
         $hasRemarks    = \Schema::hasColumn('sales', 'remarks');
@@ -348,6 +363,7 @@ class ReportRepository implements ReportRepositoryInterface
             ->whereDate('sales.created_at', $date)
             ->whereIn('sales.status', ['cancelled', 'voided', 'pending'])
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
             ->select([
                 'sales.id',
                 'sales.invoice_number as invoice',
@@ -458,9 +474,9 @@ class ReportRepository implements ReportRepositoryInterface
             ->get();
     }
 
-    public function getSalesSummary(string $from, string $to, ?int $branchId): array
+    public function getSalesSummary(string $from, string $to, ?int $branchId, ?int $shift = null): array
     {
-        $data = $this->getSummaryData($from, $to, $branchId);
+        $data = $this->getSummaryData($from, $to, $branchId, $shift);
         $gross = $data['gross_sales'];
 
         $isVat = true;

@@ -684,7 +684,7 @@ const BranchReceiptsTab: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-tight">Void Transaction</h3>
-                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">SI-{voidSale.si_number} • {fmt(voidSale.total_amount)}</p>
+                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{voidSale.si_number} • {fmt(voidSale.total_amount)}</p>
                 </div>
               </div>
               <button onClick={closeVoidModal} disabled={isVoiding} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400 transition-colors">
@@ -734,7 +734,7 @@ const BranchReceiptsTab: React.FC = () => {
                     <CheckCircle2 size={40} />
                   </div>
                   <h4 className="text-xl font-black text-[#1a0f2e]">Transaction Voided</h4>
-                  <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mt-2">Receipt SI-{voidSale.si_number} is now cancelled.</p>
+                  <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mt-2">Receipt {voidSale.si_number} is now cancelled.</p>
                 </div>
               )}
             </div>
@@ -756,7 +756,7 @@ const BranchReceiptsTab: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-tight">Reprint Receipt</h3>
-                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">SI-{reprintSale.si_number}</p>
+                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{reprintSale.si_number}</p>
                 </div>
               </div>
               <button onClick={closeReprintModal} disabled={reprinting !== null} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400 transition-colors">

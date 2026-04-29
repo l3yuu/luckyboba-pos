@@ -8,6 +8,7 @@ use App\Models\MenuItem;
 use App\Models\Receipt;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\CashCount;
 use App\Actions\Inventory\DeductStockFromSaleAction;
 use App\Services\DashboardService;
 use Illuminate\Support\Facades\DB;
@@ -134,6 +135,7 @@ class ProcessCheckoutAction
                 'pax_discount_ids'         => $data['pax_discount_ids'] ?? null,
                 'source'                   => $data['source'] ?? 'pos',
                 'order_type'               => $data['order_type'] ?? 'dine_in',
+                'shift'                    => $this->getCurrentShiftNumber((int)$branchId),
             ]);
 
             // 3. Create Sale Items
@@ -423,5 +425,14 @@ class ProcessCheckoutAction
         if ($uniqueIds->isNotEmpty()) {
             Discount::whereIn('id', $uniqueIds)->increment('used_count');
         }
+    }
+
+    private function getCurrentShiftNumber(int $branchId): int
+    {
+        $today = now()->toDateString();
+        // Count how many EODs (CashCount) exist for today in this branch
+        return CashCount::where('branch_id', $branchId)
+            ->where('date', $today)
+            ->count() + 1;
     }
 }

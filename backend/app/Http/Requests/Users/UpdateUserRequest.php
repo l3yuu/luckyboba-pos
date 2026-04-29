@@ -51,7 +51,7 @@ class UpdateUserRequest extends FormRequest
             'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin,supervisor',
             'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
             'branch_id'   => 'nullable|integer|exists:branches,id',
-            'manager_pin' => 'nullable|digits_between:4,8',
+            'manager_pin' => 'nullable|digits:6',
         ];
     }
 }
