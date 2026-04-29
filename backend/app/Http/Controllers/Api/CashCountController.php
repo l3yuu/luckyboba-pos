@@ -144,6 +144,10 @@ class CashCountController extends Controller
                 ->where('status', 'completed')
                 ->where('shift', $currentShift)
                 ->whereDate('created_at', $today)
+                ->where(function($q) {
+                    $q->whereRaw('LOWER(TRIM(payment_method)) = ?', ['cash'])
+                      ->orWhereNull('payment_method');
+                })
                 ->sum('total_amount');
 
             // 5. All cash removed from the drawer for this shift
