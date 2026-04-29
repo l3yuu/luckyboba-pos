@@ -1320,7 +1320,7 @@ export const ConfirmOrderModal = ({
                                 <span className="font-black text-xs text-black uppercase">
                                   {item.name}{item.cupSizeLabel ? ` (${item.cupSizeLabel})` : ''}
                                 </span>
-                                <span className="text-[10px] text-zinc-400 font-bold">₱{Number(item.price).toFixed(2)}/unit</span>
+                                <span className="text-[10px] text-zinc-400 font-bold">₱{(Number(item.price) + (item.charges?.grab ? Number(item.grab_price ?? 0) : item.charges?.panda ? Number(item.panda_price ?? 0) : 0)).toFixed(2)}/unit</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 {assignments.map((a, ai) => a !== 'none' ? <React.Fragment key={`${cartIndex}-${ai}`}>{typeBadge(a)}</React.Fragment> : null)}
@@ -1331,7 +1331,9 @@ export const ConfirmOrderModal = ({
                             <div className="divide-y divide-zinc-100">
                               {Array.from({ length: item.qty }, (_, unitIndex) => {
                                 const assignment = assignments[unitIndex] ?? 'none';
-                                const unitVatExcl = Number(item.price) / 1.12;
+                                const unitSurcharge = item.charges?.grab ? Number(item.grab_price ?? 0) : item.charges?.panda ? Number(item.panda_price ?? 0) : 0;
+                                const unitPriceWithSurcharge = Number(item.price) + unitSurcharge;
+                                const unitVatExcl = unitPriceWithSurcharge / 1.12;
                                 const discountAmt = unitVatExcl * 0.20;
                                 const netPrice = unitVatExcl - discountAmt;
 
@@ -1343,7 +1345,7 @@ export const ConfirmOrderModal = ({
                                         {unitIndex + 1}
                                       </span>
                                       <span className="text-xs font-bold text-zinc-600 truncate">
-                                        ₱{Number(item.price).toFixed(2)}
+                                        ₱{unitPriceWithSurcharge.toFixed(2)}
                                         {assignment !== 'none' && (
                                           <span className="ml-1 text-emerald-600">→ ₱{netPrice.toFixed(2)}</span>
                                         )}

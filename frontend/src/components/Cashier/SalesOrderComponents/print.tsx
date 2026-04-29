@@ -294,7 +294,12 @@ export const ReceiptPrint = ({
               if (showAddOns) shownAddOns.add(cartIndex);
 
 
-              const unitGross = Number(item.price);
+              const perUnitSurcharge = item.charges?.grab
+                ? Number(item.grab_price ?? 0)
+                : item.charges?.panda
+                  ? Number(item.panda_price ?? 0)
+                  : 0;
+              const unitGross = Number(item.price) + perUnitSurcharge;
               return (
                 <div key={gi} className="mb-3">
                   {/* Item name + badge */}
@@ -310,7 +315,7 @@ export const ReceiptPrint = ({
                   {/* Qty × unit price row */}
                   <div className="flex justify-between w-full mt-0.5">
                     <span>
-                      {count} X {Number(item.price).toFixed(2)}
+                      {count} X {unitGross.toFixed(2)}
                     </span>
                     <span>
                       {(unitGross * count).toFixed(2)}
