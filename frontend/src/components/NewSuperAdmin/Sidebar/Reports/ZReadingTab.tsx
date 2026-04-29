@@ -1073,6 +1073,7 @@ const handlePrint = () => window.print();
         <ReceiptRow label="Transaction Count" value={txCount} />
         {showBreakdown && (
           <>
+            {renderQtyItems()}
             <ReceiptDivider />
             <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
             {reportData?.cup_size_totals && Object.entries(reportData.cup_size_totals).map(([size, qty]) => (
