@@ -434,13 +434,10 @@ export const BundleModal = ({
   if (!selection || !component) return null;
 
   const itemDetail = component.menuItem;
-  const itemName = (selection.name || '').toLowerCase();
   
   // Use backend flag if available, otherwise fall back to category/name detection
-  const hasSugar = component.has_sugar ?? (
-    (itemDetail?.sugar_levels?.length ?? 0) > 0 ||
-    (['tea', 'drink', 'coffee', 'boba', 'milk', 'latte', 'cooler', 'punch'].some(w => itemName.includes(w)) && 
-     !itemName.includes('food') && !itemName.includes('snack'))
+  const hasSugar = component.has_sugar === true || (
+    (itemDetail?.sugar_levels?.length ?? 0) > 0
   );
 
   const itemOpts = itemDetail?.options ?? [];
@@ -673,19 +670,19 @@ interface MixAndMatchDrinkModalProps {
   onConfirm: () => void;
   onClose: () => void;
   onToggleOrderCharge: (type: 'grab' | 'panda') => void;
-  drinkSugarLevels?: { id: number; label: string; value: string }[];
 }
 
 export const MixAndMatchDrinkModal = ({
   pendingMixMatchCart, drinkItems, selectedDrink, drinkSugar, drinkOptions, drinkAddOns,
   filteredAddOns, drinkAddOnModalOpen, orderCharge, onSelectDrink, onSugarChange,
   onToggleOption, onOpenAddOns, onCloseAddOns, onToggleAddOn, onToggleOrderCharge,
-  onConfirm, onClose, drinkSugarLevels, orderType = 'take-out',
+  onConfirm, onClose, orderType = 'take-out',
 }: MixAndMatchDrinkModalProps) => {
   const drinkOpts = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
   const hasPearlOption = drinkOpts.includes('pearl');
   const hasPearlSelected = drinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
-  const hasDrinkSugarLevels = drinkSugarLevels && drinkSugarLevels.length > 0;
+  const itemSugarLevels = selectedDrink?.sugar_levels ?? [];
+  const hasDrinkSugarLevels = itemSugarLevels.length > 0;
   const canConfirm = selectedDrink !== null && (!hasDrinkSugarLevels || drinkSugar !== '') && (!hasPearlOption || hasPearlSelected);
 
   return (
@@ -722,11 +719,11 @@ export const MixAndMatchDrinkModal = ({
                   </div>
                   <button onClick={() => onSelectDrink(null as unknown as MenuItem)} className="text-[10px] font-black uppercase text-[#6a12b8] hover:text-red-500 transition-colors">Change</button>
                 </div>
-                {drinkSugarLevels && drinkSugarLevels.length > 0 && (
+                {hasDrinkSugarLevels && (
                   <div>
                     <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
                     <div className="flex gap-2">
-                      {drinkSugarLevels.map((lvl: { id: number; label: string; value: string }) => (
+                      {itemSugarLevels.map((lvl: { id: number; label: string; value: string }) => (
                         <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
                           className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === lvl.value ? 'bg-[#6a12b8] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                           {lvl.label}

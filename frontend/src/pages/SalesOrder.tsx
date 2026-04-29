@@ -148,12 +148,11 @@ const SalesOrder = () => {
   const [remarks, setRemarks] = useState('')
   const [sugarLevel, setSugarLevel] = useState('')
   const [sugarLevels, setSugarLevels] = useState<{ id: number; label: string; value: string }[]>(() => {
-    // REVERT to standard 0, 25, 50, 75, 100 as per user request
-    return SUGAR_LEVELS.map((label, i) => ({
-      id: i + 1,
-      label,
-      value: label
-    }));
+    try {
+      const cached = localStorage.getItem('pos_sugar_levels_cache')
+      if (cached) return JSON.parse(cached)
+    } catch { /* ignore */ }
+    return SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label }));
   })
   const [size, setSize] = useState<'M' | 'L' | 'none'>('M')
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
@@ -478,11 +477,12 @@ const SalesOrder = () => {
     const t = Date.now(); // Cache busting timestamp
 
     try {
-      const [menuRes, addonsRes, bundlesRes, discountsRes, branchRes, paymentRes] = await Promise.allSettled([
+      const [menuRes, addonsRes, bundlesRes, discountsRes, sugarLevelsRes, branchRes, paymentRes] = await Promise.allSettled([
         api.get(`/menu?t=${t}`),
         api.get(`/add-ons?t=${t}`),
         api.get(`/bundles?t=${t}`),
         api.get(`/discounts?t=${t}`),
+        api.get(`/sugar-levels?t=${t}`),
         branchId ? api.get(`/branches/${branchId}?t=${t}`) : Promise.reject('no_branch'),
         api.get(`/payment-settings?t=${t}`)
       ]);
@@ -520,9 +520,15 @@ const SalesOrder = () => {
         setAddOnsData(data);
       }
 
-      // 3. Sugar Levels (Maintain standard levels even after sync)
-      // We ignore server sugar levels to stick to standard 0-100% per user request
-      setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })));
+      // 3. Sugar Levels
+      if (sugarLevelsRes.status === 'fulfilled') {
+        const data = sugarLevelsRes.value.data.data;
+        const mapped = data.map((s: any) => ({ id: s.id, label: s.label, value: s.value }));
+        localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(mapped));
+        setSugarLevels(mapped);
+      } else {
+        setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })));
+      }
 
       // 4. Bundles
       if (bundlesRes.status === 'fulfilled') {
@@ -929,6 +935,14 @@ const SalesOrder = () => {
         })))
         setBundleComponentIndex(0)
         setOrderCharge(null)
+        // Ensure sugar levels are set to active ones
+        try {
+          const cached = localStorage.getItem('pos_sugar_levels_cache')
+          if (cached) setSugarLevels(JSON.parse(cached))
+          else setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })))
+        } catch {
+          setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })))
+        }
         setIsBundleModalOpen(true)
         return
       } else {
@@ -953,8 +967,7 @@ const SalesOrder = () => {
 
     const isDrinkItem = catType === 'drink' || catType === 'combo'
     if (isDrinkItem) {
-      // REVERT: Use standard sugar levels instead of fetching per-item
-      setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })))
+      setSugarLevels(item.sugar_levels || [])
       setSugarLevel('')
     } else {
       setSugarLevels([])
@@ -1850,7 +1863,6 @@ const SalesOrder = () => {
             pendingMixMatchCart={pendingMixMatchCart}
             drinkItems={mixMatchDrinkItems}
             selectedDrink={selectedMixMatchDrink}
-            drinkSugarLevels={sugarLevels}
             drinkSugar={mixMatchDrinkSugar}
             drinkOptions={mixMatchDrinkOptions}
             drinkAddOns={mixMatchDrinkAddOns}
