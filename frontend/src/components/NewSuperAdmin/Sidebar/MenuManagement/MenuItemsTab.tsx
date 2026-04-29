@@ -2541,6 +2541,7 @@ const MenuItemsTab: React.FC = () => {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("");
+  const [filterSub, setFilterSub] = useState("");
   const [filterAvail, setFilterAvail] = useState("");
   const [filterType, setFilterType] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -2683,10 +2684,11 @@ const MenuItemsTab: React.FC = () => {
   const filtered = useMemo(() => items.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) || (i.barcode ?? "").toLowerCase().includes(search.toLowerCase());
     const matchCat = !filterCat || String(i.category_id) === filterCat;
+    const matchSub = !filterSub || String(i.subcategory_id) === filterSub;
     const matchAvail = !filterAvail || String(i.is_available) === filterAvail;
     const matchType = !filterType || i.category_type === filterType;
-    return matchSearch && matchCat && matchAvail && matchType;
-  }), [items, search, filterCat, filterAvail, filterType]);
+    return matchSearch && matchCat && matchSub && matchAvail && matchType;
+  }), [items, search, filterCat, filterSub, filterAvail, filterType]);
 
   const fmt = useCallback((v: number) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, []);
 
@@ -2737,10 +2739,21 @@ const MenuItemsTab: React.FC = () => {
             {search && <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500"><X size={12} /></button>}
           </div>
           <div className="relative">
-            <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+            <select value={filterCat} onChange={e => { setFilterCat(e.target.value); setFilterSub(""); }}
               className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
               <option value="">All Categories</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select value={filterSub} onChange={e => setFilterSub(e.target.value)}
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer disabled:opacity-50"
+              disabled={!filterCat}>
+              <option value="">All Sub-Categories</option>
+              {subcategories
+                .filter(s => !filterCat || String(s.category_id) === filterCat)
+                .map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
@@ -2768,8 +2781,8 @@ const MenuItemsTab: React.FC = () => {
             </select>
             <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
-          {(filterCat || filterAvail || filterType) && (
-            <button onClick={() => { setFilterCat(""); setFilterAvail(""); setFilterType(""); }}
+          {(filterCat || filterSub || filterAvail || filterType) && (
+            <button onClick={() => { setFilterCat(""); setFilterSub(""); setFilterAvail(""); setFilterType(""); }}
               className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors pl-1">
               <X size={11} /> Clear
             </button>

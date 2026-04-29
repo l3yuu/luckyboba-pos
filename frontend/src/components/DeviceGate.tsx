@@ -23,9 +23,9 @@ export function DeviceGate({ children }: Props) {
   const isPrivileged = user?.role === 'superadmin' || user?.role === 'super_admin' || user?.role === 'system_admin' || user?.role === 'it_admin';
   const isCashier = user?.role === 'cashier';
   
-  // The gate only activates for logged-in staff (non-superadmins).
-  // Guests (on login page), Super Admins, and Kiosk users are NOT gated.
-  const shouldCheck = !isLoading && !isKiosk && !!user && !isPrivileged;
+  // The gate only activates for cashiers.
+  // Guests (on login page), Super Admins, Team Leaders, Branch Managers, and Kiosk users are NOT gated.
+  const shouldCheck = !isLoading && !isKiosk && !!user && isCashier;
 
   const { status, message, deviceId, posNumber } = useDeviceCheck(shouldCheck, user?.id);
   const [copied, setCopied] = useState(false);
@@ -65,7 +65,7 @@ export function DeviceGate({ children }: Props) {
   // ── Error States (Priority Gating) ─────────────────────────────────────────
   // We check for hardware errors BEFORE checking the bypass status for cashiers.
   // This ensures that even with a 'bypass' flag, a cashier is blocked if their assignment is missing.
-  if (!isPrivileged) {
+  if (isCashier) {
     // 1. Unregistered / Deactivated
     if (status === 'unregistered') {
       const handleCopy = () => {
