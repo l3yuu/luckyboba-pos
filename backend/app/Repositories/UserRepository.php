@@ -19,7 +19,7 @@ class UserRepository implements UserRepositoryInterface
         $authUser = Auth::user();
         $query = User::query();
 
-        if ($authUser->role === 'branch_manager') {
+        if (in_array($authUser->role, ['branch_manager', 'supervisor', 'team_leader'])) {
             $query->whereIn('role', ['cashier', 'team_leader', 'supervisor'])
                   ->where('branch_id', $authUser->branch_id);
         }
@@ -61,7 +61,7 @@ class UserRepository implements UserRepositoryInterface
         $authUser = Auth::user();
 
         // Security check
-        if ($authUser->role === 'branch_manager') {
+        if (in_array($authUser->role, ['branch_manager', 'supervisor', 'team_leader'])) {
             if (!in_array($user->role, ['cashier', 'team_leader', 'supervisor']) || $user->branch_id !== $authUser->branch_id) {
                 throw new AccessDeniedHttpException('Access denied. You can only view staff in your branch.');
             }

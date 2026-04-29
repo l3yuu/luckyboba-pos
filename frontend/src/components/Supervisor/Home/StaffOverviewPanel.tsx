@@ -11,70 +11,71 @@ import api from '../../../services/api';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type VariantKey = 'primary' | 'secondary' | 'danger' | 'ghost';
-type SizeKey    = 'sm' | 'md' | 'lg';
+type SizeKey = 'sm' | 'md' | 'lg';
 
 interface Staff {
-  id:            number;
-  name:          string;
-  email:         string;
-  role:          string;
-  branch:        string;
-  branch_id:     number | null;
-  status:        string;
-  lastLogin?:    string;
-  login_count:   number;
-  created_at:    string;
-  has_pin:       boolean;
-  device_id?:    number | null;
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  branch: string;
+  branch_id: number | null;
+  status: string;
+  lastLogin?: string;
+  login_count: number;
+  created_at: string;
+  has_pin: boolean;
+  device_id?: number | null;
   device_number?: string | null;
 }
 
 interface FormState {
-  name:            string;
-  email:           string;
-  password:        string;
+  name: string;
+  email: string;
+  password: string;
   passwordConfirm: string;
-  status:          string;
-  role:            string;
+  status: string;
+  role: string;
+  manager_pin: string;
 }
 
 interface PosDevice {
-  id:          number;
+  id: number;
   device_name: string;
-  pos_number:  string;
-  branch_id:   number;
-  status:      string;
-  user_id:     number | null;
-  user?:       { id: number; name: string } | null;
-  branch?:     { id: number; name: string } | null;
+  pos_number: string;
+  branch_id: number;
+  status: string;
+  user_id: number | null;
+  user?: { id: number; name: string } | null;
+  branch?: { id: number; name: string } | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapStaff = (u: any): Staff => ({
-  id:            u.id,
-  name:          u.name,
-  email:         u.email,
-  role:          u.role,
-  branch:        u.branch ?? u.branch_name ?? '—',
-  branch_id:     u.branch_id ?? null,
-  status:        u.status,
-  lastLogin:     u.last_login_at
+  id: u.id,
+  name: u.name,
+  email: u.email,
+  role: u.role,
+  branch: u.branch ?? u.branch_name ?? '—',
+  branch_id: u.branch_id ?? null,
+  status: u.status,
+  lastLogin: u.last_login_at
     ? new Date(u.last_login_at).toLocaleString('en-PH', {
-        month: 'short', day: 'numeric', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      })
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
     : undefined,
-  login_count:   u.login_count ?? 0,
-  created_at:    u.created_at,
-  has_pin:       u.has_pin ?? false,
-  device_id:     u.device_id ?? null,
+  login_count: u.login_count ?? 0,
+  created_at: u.created_at,
+  has_pin: u.has_pin ?? false,
+  device_id: u.device_id ?? null,
   device_number: u.device_number ?? u.pos_number ?? null,
 });
 
 const blankForm = (): FormState => ({
-  name: '', email: '', password: '', passwordConfirm: '', status: 'ACTIVE', role: 'cashier',
+  name: '', email: '', password: '', passwordConfirm: '', status: 'ACTIVE', role: 'cashier', manager_pin: '',
 });
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -132,12 +133,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = 'primary', size = 'sm',
   onClick, className = '', disabled = false, type = 'button',
 }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: 'px-4 py-2.5 text-[11px]', md: 'px-5 py-3 text-sm', lg: 'px-6 py-4 text-sm' };
+  const sizes: Record<SizeKey, string> = { sm: 'px-4 py-2.5 text-[11px]', md: 'px-5 py-3 text-sm', lg: 'px-6 py-4 text-sm' };
   const variants: Record<VariantKey, string> = {
-    primary:   'bg-[#6a12b8] hover:bg-[#6a12b8] text-white shadow-lg shadow-[#6a12b8]/20',
+    primary: 'bg-[#6a12b8] hover:bg-[#6a12b8] text-white shadow-lg shadow-[#6a12b8]/20',
     secondary: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm',
-    danger:    'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20',
-    ghost:     'bg-transparent text-slate-500 hover:bg-slate-100',
+    danger: 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20',
+    ghost: 'bg-transparent text-slate-500 hover:bg-slate-100',
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -153,29 +154,29 @@ const ModalShell: React.FC<{
   onClose: () => void; icon: React.ReactNode; title: string; sub: string;
   children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
 }> = ({ onClose, icon, title, sub, children, footer, maxWidth = 'max-w-md' }) =>
-  createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
-      style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', backgroundColor: 'rgba(15, 23, 42, 0.6)' }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className={`relative bg-white w-full ${maxWidth} border border-slate-200 rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}>
-        <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 bg-white shadow-md border border-slate-100 rounded-2xl flex items-center justify-center text-[#6a12b8]">{icon}</div>
-            <div>
-              <p className="text-base font-black text-slate-900 tracking-tight leading-tight">{title}</p>
-              <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">{sub}</p>
+    createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+        style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', backgroundColor: 'rgba(15, 23, 42, 0.6)' }}>
+        <div className="absolute inset-0" onClick={onClose} />
+        <div className={`relative bg-white w-full ${maxWidth} border border-slate-200 rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}>
+          <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 bg-white shadow-md border border-slate-100 rounded-2xl flex items-center justify-center text-[#6a12b8]">{icon}</div>
+              <div>
+                <p className="text-base font-black text-slate-900 tracking-tight leading-tight">{title}</p>
+                <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">{sub}</p>
+              </div>
             </div>
+            <button onClick={onClose} className="w-9 h-9 flex items-center justify-center hover:bg-white hover:shadow-md rounded-xl transition-all text-slate-400 hover:text-slate-900 border border-transparent hover:border-slate-100">
+              <X size={18} strokeWidth={2.5} />
+            </button>
           </div>
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center hover:bg-white hover:shadow-md rounded-xl transition-all text-slate-400 hover:text-slate-900 border border-transparent hover:border-slate-100">
-            <X size={18} strokeWidth={2.5} />
-          </button>
+          <div className="px-8 py-6 flex flex-col gap-5 max-h-[65vh] overflow-y-auto">{children}</div>
+          <div className="flex items-center justify-end gap-3 px-8 py-5 border-t border-slate-100 bg-slate-50/30">{footer}</div>
         </div>
-        <div className="px-8 py-6 flex flex-col gap-5 max-h-[65vh] overflow-y-auto">{children}</div>
-        <div className="flex items-center justify-end gap-3 px-8 py-5 border-t border-slate-100 bg-slate-50/30">{footer}</div>
-      </div>
-    </div>,
-    document.body
-  );
+      </div>,
+      document.body
+    );
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
 
@@ -196,14 +197,14 @@ const inputCls = (err?: string) =>
 
 const ViewStaffModal: React.FC<{ onClose: () => void; user: Staff }> = ({ onClose, user }) => {
   const rows: [string, React.ReactNode][] = [
-    ['Staff Entity ID',   <span className="font-mono text-[#6a12b8]">#{user.id}</span>],
-    ['Full Legal Name',   <div className="flex items-center gap-3"><Avatar name={user.name} />{user.name}</div>],
-    ['Primary Email',      <span className="flex items-center gap-1.5"><Mail size={12} className="text-slate-400" />{user.email}</span>],
-    ['Assign Branch',     <span className="flex items-center gap-1.5"><MapPin size={12} className="text-slate-400" />{user.branch}</span>],
-    ['System Access',       <RoleBadge role={user.role} />],
-    ['Current Status',     <Badge status={user.status} />],
+    ['Staff Entity ID', <span className="font-mono text-[#6a12b8]">#{user.id}</span>],
+    ['Full Legal Name', <div className="flex items-center gap-3"><Avatar name={user.name} />{user.name}</div>],
+    ['Primary Email', <span className="flex items-center gap-1.5"><Mail size={12} className="text-slate-400" />{user.email}</span>],
+    ['Assign Branch', <span className="flex items-center gap-1.5"><MapPin size={12} className="text-slate-400" />{user.branch}</span>],
+    ['System Access', <RoleBadge role={user.role} />],
+    ['Current Status', <Badge status={user.status} />],
     ['Last Active', user.lastLogin ?? 'NO ACTIVITY DATA'],
-    ['PIN Protection',     user.has_pin ? <span className="flex items-center gap-1.5 text-emerald-600"><Fingerprint size={12} /> SECURED</span> : <span className="flex items-center gap-1.5 text-slate-400"><Fingerprint size={12} /> NOT SET</span>],
+    ['PIN Protection', user.has_pin ? <span className="flex items-center gap-1.5 text-emerald-600"><Fingerprint size={12} /> SECURED</span> : <span className="flex items-center gap-1.5 text-slate-400"><Fingerprint size={12} /> NOT SET</span>],
   ];
   return (
     <ModalShell onClose={onClose} icon={<Eye size={18} strokeWidth={2.5} />}
@@ -224,27 +225,29 @@ const ViewStaffModal: React.FC<{ onClose: () => void; user: Staff }> = ({ onClos
 // ─── Staff Form Modal (Add / Edit) ────────────────────────────────────────────
 
 const StaffFormModal: React.FC<{
-  onClose:      () => void;
-  onSaved:      (u: Staff) => void;
+  onClose: () => void;
+  onSaved: (u: Staff) => void;
   editingUser?: Staff | null;
-  branchId:     number | null;
+  branchId: number | null;
 }> = ({ onClose, onSaved, editingUser, branchId }) => {
   const [form, setForm] = useState<FormState>(
     editingUser
-      ? { name: editingUser.name, email: editingUser.email, password: '', passwordConfirm: '', status: editingUser.status, role: editingUser.role }
+      ? { name: editingUser.name, email: editingUser.email, password: '', passwordConfirm: '', status: editingUser.status, role: editingUser.role, manager_pin: '' }
       : blankForm()
   );
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [saving,   setSaving]   = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())  e.name  = 'Name is required.';
+    if (!form.name.trim()) e.name = 'Name is required.';
     if (!form.email.trim()) e.email = 'Email is required.';
     if (!editingUser && !form.password) e.password = 'Password is required.';
     if (form.password && form.password.length < 6) e.password = 'Password must be at least 6 characters.';
     if (form.password && form.password !== form.passwordConfirm) e.passwordConfirm = 'Passwords do not match.';
+    if (form.role === 'team_leader' && !editingUser && !form.manager_pin) e.manager_pin = 'PIN is required for Team Leaders.';
+    if (form.manager_pin && form.manager_pin.length !== 6) e.manager_pin = 'PIN must be exactly 6 digits.';
     return e;
   };
 
@@ -260,17 +263,21 @@ const StaffFormModal: React.FC<{
           status: form.status, branch_id: branchId,
         };
         if (form.password) {
-          payload.password              = form.password;
+          payload.password = form.password;
           payload.password_confirmation = form.passwordConfirm;
         }
         const res = await api.put(`/users/${editingUser.id}`, payload);
         onSaved(mapStaff(res.data?.data ?? res.data));
       } else {
-        const res = await api.post('/users', {
+        const payload: Record<string, any> = {
           name: form.name, email: form.email,
           password: form.password, password_confirmation: form.passwordConfirm,
           role: form.role, status: form.status, branch_id: branchId,
-        });
+        };
+        if (form.role === 'team_leader' && form.manager_pin) {
+          payload.manager_pin = form.manager_pin;
+        }
+        const res = await api.post('/users', payload);
         onSaved(mapStaff(res.data?.data ?? res.data));
       }
       onClose();
@@ -296,54 +303,81 @@ const StaffFormModal: React.FC<{
   return (
     <ModalShell
       onClose={onClose}
-      icon={editingUser ? <Edit2 size={18} strokeWidth={2.5} /> : <Users size={18} strokeWidth={2.5} />}
-      title={editingUser ? 'Sync Entity' : 'New System Entry'}
-      sub={editingUser ? `Modifying profile: ${editingUser.name}` : 'Provisioning new system access'}
+      icon={editingUser ? <Edit2 size={15} className="text-violet-600" /> : <Users size={15} className="text-violet-600" />}
+      title={editingUser ? 'Update System Access' : 'New System Entry'}
+      sub={editingUser ? `Provisioning updates for ${editingUser.name}` : 'Provisioning new system access'}
       footer={
         <>
           <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
           <Btn onClick={handleSubmit} disabled={saving}>
-            {saving
-              ? <div className="flex items-center gap-2 font-black uppercase tracking-widest"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processing...</div>
-              : editingUser ? 'Apply Updates' : <><Plus size={14} strokeWidth={3} /> Create Access</>}
+            {saving ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : editingUser ? (
+              'Sync Profile'
+            ) : (
+              <>
+                <Plus size={14} strokeWidth={3} /> Create Access
+              </>
+            )}
           </Btn>
         </>
-      }>
+      }
+    >
       {apiError && (
-        <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-2xl">
+        <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-2xl mb-5">
           <AlertCircle size={16} className="text-rose-500 shrink-0" />
           <p className="text-[11px] text-rose-700 font-bold uppercase tracking-wide">{apiError}</p>
         </div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="md:col-span-2">
-          <Field label="Staff Legal Name" required error={errors.name}>
-            <input {...f('name')} placeholder="e.g. Juan Dela Cruz" className={inputCls(errors.name)} />
+      <div className="flex flex-col gap-5">
+        <Field label="Staff Legal Name" required error={errors.name}>
+          <input {...f('name')} placeholder="e.g. Juan Dela Cruz" className={inputCls(errors.name)} />
+        </Field>
+        <Field label="Corporate Email Address" required error={errors.email}>
+          <input {...f('email')} type="email" placeholder="staff@luckyboba.com" className={inputCls(errors.email)} />
+        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label={editingUser ? 'Rotate Password' : 'Access Password'} required={!editingUser} error={errors.password}>
+            <input {...f('password')} type="password" placeholder={editingUser ? '••••••••' : 'Min. 6 chars'} className={inputCls(errors.password)} />
+          </Field>
+          <Field label="Confirm Password" error={errors.passwordConfirm}>
+            <input {...f('passwordConfirm')} type="password" placeholder="Verify entry" className={inputCls(errors.passwordConfirm)} />
           </Field>
         </div>
-        <div className="md:col-span-2">
-          <Field label="Corporate Email Address" required error={errors.email}>
-            <input {...f('email')} type="email" placeholder="e.g. j.cruz@luckyboba.agency" className={inputCls(errors.email)} />
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Deployment Status" required>
+            <select {...f('status')} className={inputCls()}>
+              <option value="ACTIVE">System Active</option>
+              <option value="INACTIVE">Deactivated</option>
+            </select>
+          </Field>
+          <Field label="Access Tier" required>
+            <select {...f('role')} className={inputCls()}>
+              <option value="cashier">Cashier</option>
+              <option value="team_leader">Team Leader</option>
+            </select>
           </Field>
         </div>
-        <Field label={editingUser ? 'Rotate Password' : 'Access Password'} required={!editingUser} error={errors.password}>
-          <input {...f('password')} type="password" placeholder={editingUser ? '••••••••' : 'Min. 6 chars'} className={inputCls(errors.password)} />
-        </Field>
-        <Field label="Confirm Secret" error={errors.passwordConfirm}>
-          <input {...f('passwordConfirm')} type="password" placeholder="Verify entry" className={inputCls(errors.passwordConfirm)} />
-        </Field>
-        <Field label="Deployment Status" required>
-          <select {...f('status')} className={inputCls()}>
-            <option value="ACTIVE">System Active</option>
-            <option value="INACTIVE">Deactivated</option>
-          </select>
-        </Field>
-        <Field label="Access Tier" required>
-          <select {...f('role')} className={inputCls()}>
-            <option value="cashier">Standard Cashier</option>
-            <option value="team_leader">Team Operations Lead</option>
-          </select>
-        </Field>
+
+        {form.role === 'team_leader' && (
+          <div className="animate-in slide-in-from-top-2 duration-300">
+            <Field label="Operational PIN" required={!editingUser} error={errors.manager_pin}>
+              <div className="relative">
+                <input
+                  {...f('manager_pin')}
+                  type="text"
+                  maxLength={6}
+                  placeholder="6-digit PIN"
+                  className={inputCls(errors.manager_pin)}
+                />
+                <Fingerprint size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+              <p className="text-[9px] text-slate-400 mt-1.5 font-bold uppercase tracking-wider">
+                Required for POS authorization & sensitive overrides.
+              </p>
+            </Field>
+          </div>
+        )}
       </div>
       {!editingUser && (
         <div className="p-4 bg-[#6a12b8]/10 border border-[#6a12b8]/20 rounded-2xl flex items-start gap-3">
@@ -360,11 +394,11 @@ const StaffFormModal: React.FC<{
 // ─── Toggle Status Modal ──────────────────────────────────────────────────────
 
 const ToggleStatusModal: React.FC<{
-  onClose:   () => void;
+  onClose: () => void;
   onToggled: (u: Staff) => void;
-  user:      Staff;
+  user: Staff;
 }> = ({ onClose, onToggled, user }) => {
-  const [saving,   setSaving]   = useState(false);
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
   const isActive = user.status === 'ACTIVE';
 
@@ -410,7 +444,7 @@ const ToggleStatusModal: React.FC<{
             <p className="text-[10px] font-bold text-slate-400 truncate uppercase tracking-wider italic">{user.role}</p>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
-             <Badge status={isActive ? 'INACTIVE' : 'ACTIVE'} />
+            <Badge status={isActive ? 'INACTIVE' : 'ACTIVE'} />
           </div>
         </div>
         <div className="flex items-center gap-3 px-10 pb-10">
@@ -431,11 +465,11 @@ const ToggleStatusModal: React.FC<{
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 
 const DeleteStaffModal: React.FC<{
-  onClose:   () => void;
+  onClose: () => void;
   onDeleted: (id: number) => void;
-  user:      Staff;
+  user: Staff;
 }> = ({ onClose, onDeleted, user }) => {
-  const [saving,   setSaving]   = useState(false);
+  const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
 
   const handleDelete = async () => {
@@ -498,16 +532,16 @@ const DeleteStaffModal: React.FC<{
 // ─── Assign Device Modal ──────────────────────────────────────────────────────
 
 const AssignDeviceModal: React.FC<{
-  onClose:     () => void;
+  onClose: () => void;
   onAssigned?: (userId: number, deviceId: number | null, deviceNumber: string | null) => void;
-  user:        Staff;
+  user: Staff;
 }> = ({ onClose, onAssigned, user }) => {
-  const [devices,    setDevices]    = useState<PosDevice[]>([]);
+  const [devices, setDevices] = useState<PosDevice[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
-  const [loading,    setLoading]    = useState(true);
-  const [saving,     setSaving]     = useState(false);
-  const [apiError,   setApiError]   = useState('');
-  const [success,    setSuccess]    = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const currentDevice = devices.find(d => d.user_id === user.id);
 
@@ -515,7 +549,7 @@ const AssignDeviceModal: React.FC<{
     (async () => {
       setLoading(true);
       try {
-        const res  = await api.get('/pos-devices');
+        const res = await api.get('/pos-devices');
         const list: PosDevice[] = res.data?.data ?? res.data?.devices ?? [];
         setDevices(list.filter(d => d.status === 'ACTIVE'));
         const assigned = list.find(d => d.user_id === user.id);
@@ -563,13 +597,13 @@ const AssignDeviceModal: React.FC<{
               <Btn variant="danger" onClick={handleUnassign} disabled={saving || loading}>
                 {saving
                   ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : <><MonitorOff size={14} strokeWidth={2.5}/> Wipe Mapping</>}
+                  : <><MonitorOff size={14} strokeWidth={2.5} /> Wipe Mapping</>}
               </Btn>
             )}
             <Btn onClick={handleAssign} disabled={saving || loading || !selectedId}>
               {saving
                 ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><MonitorCheck size={14} strokeWidth={3}/> Execute Sync</>}
+                : <><MonitorCheck size={14} strokeWidth={3} /> Execute Sync</>}
             </Btn>
           </>
         )
@@ -597,11 +631,11 @@ const AssignDeviceModal: React.FC<{
             </div>
             {currentDevice
               ? <span className="text-[10px] font-black bg-white text-slate-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg">
-                  <MonitorCheck size={12} className="text-emerald-500" />{currentDevice.pos_number}
-                </span>
+                <MonitorCheck size={12} className="text-emerald-500" />{currentDevice.pos_number}
+              </span>
               : <span className="text-[10px] font-black bg-white/10 text-slate-400 px-3 py-1.5 rounded-lg flex items-center gap-1.5 backdrop-blur-sm">
-                  <MonitorOff size={12} />LINK REQUIRED
-                </span>}
+                <MonitorOff size={12} />LINK REQUIRED
+              </span>}
           </div>
           {currentDevice ? (
             <div className="p-4 bg-[#6a12b8]/10 border border-[#6a12b8]/20 rounded-2xl flex items-start gap-4">
@@ -649,16 +683,16 @@ const AssignDeviceModal: React.FC<{
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
-  const [staff,      setStaff]      = useState<Staff[]>([]);
-  const [loading,    setLoading]    = useState(true);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
-  const [search,     setSearch]     = useState('');
+  const [search, setSearch] = useState('');
 
-  const [addOpen,      setAddOpen]      = useState(false);
-  const [viewTarget,   setViewTarget]   = useState<Staff | null>(null);
-  const [editTarget,   setEditTarget]   = useState<Staff | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewTarget, setViewTarget] = useState<Staff | null>(null);
+  const [editTarget, setEditTarget] = useState<Staff | null>(null);
   const [toggleTarget, setToggleTarget] = useState<Staff | null>(null);
-  const [delTarget,    setDelTarget]    = useState<Staff | null>(null);
+  const [delTarget, setDelTarget] = useState<Staff | null>(null);
   const [deviceTarget, setDeviceTarget] = useState<Staff | null>(null);
 
   const fetchStaff = useCallback(async () => {
@@ -694,7 +728,7 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.email.toLowerCase().includes(search.toLowerCase())
   );
-  const activeCount   = staff.filter(u => u.status === 'ACTIVE').length;
+  const activeCount = staff.filter(u => u.status === 'ACTIVE').length;
   const inactiveCount = staff.filter(u => u.status !== 'ACTIVE').length;
 
   return (
@@ -703,18 +737,18 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
       {/* ── COMMAND HEADER ── */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-10 pb-10 border-b border-slate-100">
         <div>
-           <div className="flex items-center gap-3 mb-3">
-             <div className="w-2.5 h-2.5 rounded-full bg-[#6a12b8]" />
-             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6a12b8]">Operations Control</p>
-           </div>
-           <h1 className="text-[2.2rem] font-black text-slate-900 tracking-tight leading-none">Personnel Directory</h1>
-           <p className="text-[0.75rem] font-bold text-slate-400 mt-4 uppercase tracking-[0.1em]">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#6a12b8]" />
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6a12b8]">Operations Control</p>
+          </div>
+          <h1 className="text-[2.2rem] font-black text-slate-900 tracking-tight leading-none">Personnel Directory</h1>
+          <p className="text-[0.75rem] font-bold text-slate-400 mt-4 uppercase tracking-[0.1em]">
             {loading ? 'Initializing network...' : `Monitoring ${staff.length} Active System Entities`}
-           </p>
+          </p>
         </div>
         <div className="flex items-center gap-4">
-          <button 
-            onClick={fetchStaff} 
+          <button
+            onClick={fetchStaff}
             disabled={loading}
             style={{ backgroundColor: '#6a12b8' }}
             className="inline-flex items-center justify-center gap-2 font-black uppercase tracking-widest rounded-2xl transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 px-4 py-3.5 text-[11px] text-white hover:opacity-90 shadow-xl shadow-[#6a12b8]/20"
@@ -787,7 +821,7 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
             <tbody className="divide-y divide-slate-50">
               {loading && [...Array(4)].map((_, i) => (
                 <tr key={i} className="animate-pulse">
-                   <td colSpan={7} className="px-8 py-6"><div className="h-10 bg-slate-100 rounded-xl w-full" /></td>
+                  <td colSpan={7} className="px-8 py-6"><div className="h-10 bg-slate-100 rounded-xl w-full" /></td>
                 </tr>
               ))}
 
@@ -838,9 +872,9 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
                     <div className="flex flex-col gap-2">
                       <DevicePill deviceNumber={u.device_number} />
                       {u.role === 'cashier' && (
-                         <button onClick={() => setDeviceTarget(u)} className="text-left text-[9px] font-black text-[#6a12b8] hover:text-indigo-800 uppercase tracking-widest underline decoration-indigo-200 underline-offset-4 transition-all">
-                           {u.device_number ? 'Update Mapping' : 'Provision Sync'}
-                         </button>
+                        <button onClick={() => setDeviceTarget(u)} className="text-left text-[9px] font-black text-[#6a12b8] hover:text-indigo-800 uppercase tracking-widest underline decoration-indigo-200 underline-offset-4 transition-all">
+                          {u.device_number ? 'Update Mapping' : 'Provision Sync'}
+                        </button>
                       )}
                     </div>
                   </td>
@@ -856,16 +890,16 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
                   <td className="px-8 py-5">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-4 group-hover:translate-x-0">
                       <button onClick={() => setViewTarget(u)} title="Deep View" className="p-2.5 bg-white border border-slate-100 text-slate-500 hover:text-[#6a12b8] hover:border-[#6a12b8]/30 rounded-xl shadow-lg shadow-[#6a12b8]/5 transition-all">
-                        <Eye size={15} strokeWidth={2.5}/>
+                        <Eye size={15} strokeWidth={2.5} />
                       </button>
                       <button onClick={() => setEditTarget(u)} title="Sync Profile" className="p-2.5 bg-white border border-slate-100 text-slate-500 hover:text-[#6a12b8] hover:border-[#6a12b8]/30 rounded-xl shadow-lg shadow-[#6a12b8]/5 transition-all">
-                        <Edit2 size={15} strokeWidth={2.5}/>
+                        <Edit2 size={15} strokeWidth={2.5} />
                       </button>
                       <button onClick={() => setToggleTarget(u)} title={u.status === 'ACTIVE' ? 'Suspend Access' : 'Reactivate'} className={`p-2.5 bg-white border border-slate-100 rounded-xl shadow-lg shadow-[#6a12b8]/5 transition-all ${u.status === 'ACTIVE' ? 'text-amber-500 hover:text-amber-600 hover:border-amber-100' : 'text-emerald-500 hover:text-emerald-600'}`}>
-                        {u.status === 'ACTIVE' ? <Lock size={15} strokeWidth={2.5}/> : <UserCheck size={15} strokeWidth={2.5}/>}
+                        {u.status === 'ACTIVE' ? <Lock size={15} strokeWidth={2.5} /> : <UserCheck size={15} strokeWidth={2.5} />}
                       </button>
                       <button onClick={() => setDelTarget(u)} title="Wipe Record" className="p-2.5 bg-white border border-slate-100 text-slate-500 hover:text-rose-500 hover:border-rose-100 rounded-xl shadow-lg shadow-[#6a12b8]/5 transition-all">
-                        <Trash2 size={15} strokeWidth={2.5}/>
+                        <Trash2 size={15} strokeWidth={2.5} />
                       </button>
                     </div>
                   </td>
@@ -885,9 +919,9 @@ const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId })
       {deviceTarget && <AssignDeviceModal onClose={() => setDeviceTarget(null)} onAssigned={handleDeviceAssigned} user={deviceTarget} />}
 
       <div className="mt-20 flex items-center justify-center gap-1.5 opacity-20 cursor-default grayscale hover:grayscale-0 transition-all duration-500">
-         <span className="w-12 h-px bg-slate-400" />
-         <p className="text-[0.65rem] font-black tracking-[0.5em] uppercase">Security Clearance Level 2</p>
-         <span className="w-12 h-px bg-slate-400" />
+        <span className="w-12 h-px bg-slate-400" />
+        <p className="text-[0.65rem] font-black tracking-[0.5em] uppercase">Security Clearance Level 2</p>
+        <span className="w-12 h-px bg-slate-400" />
       </div>
     </div>
   );
