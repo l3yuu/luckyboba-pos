@@ -62,8 +62,16 @@ class DeductStockFromSaleAction
                     ->lockForUpdate()
                     ->first();
 
+                // FALLBACK: If no branch-specific material found, use the global material but attribute to the branch
                 if (!$material) {
-                    Log::warning("[Inventory Action] No branch-specific material found for deduction.", [
+                    $material = RawMaterial::whereNull('branch_id')
+                        ->where('id', $recipeItem->raw_material_id)
+                        ->lockForUpdate()
+                        ->first();
+                }
+
+                if (!$material) {
+                    Log::warning("[Inventory Action] No branch or global material found for deduction.", [
                         'branch_id'       => $sale->branch_id,
                         'recipe_item_id'  => $recipeItem->raw_material_id,
                         'product'         => $saleItem->product_name,
@@ -74,7 +82,9 @@ class DeductStockFromSaleAction
                 $material->recordMovement(
                     $totalQty,
                     'subtract',
-                    "Sale #{$sale->invoice_number} · {$saleItem->product_name}"
+                    "Sale #{$sale->invoice_number} · {$saleItem->product_name}",
+                    null,
+                    $sale->branch_id // Pass the branch ID to ensure movement is recorded for this branch
                 );
 
                 StockDeduction::create([

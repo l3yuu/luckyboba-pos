@@ -11,6 +11,7 @@ use App\Models\VoidRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class ReceiptController extends Controller
 {
@@ -107,7 +108,11 @@ class ReceiptController extends Controller
         ->leftJoin('branches', 'sales.branch_id', '=', 'branches.id')
         ->select([
             'sales.id as sale_id',
-            'sales.invoice_number as si_number',
+            DB::raw('CASE 
+                WHEN (receipts.si_number LIKE "SI-%" OR receipts.si_number LIKE "OR-%") THEN receipts.si_number 
+                WHEN (sales.invoice_number LIKE "SI-%" OR sales.invoice_number LIKE "OR-%") THEN sales.invoice_number 
+                ELSE COALESCE(receipts.si_number, sales.invoice_number) 
+            END as si_number'),
             'sales.total_amount',
             'sales.payment_method',
             'sales.cash_tendered',
@@ -181,6 +186,7 @@ class ReceiptController extends Controller
     if ($query) {
         $dbQuery->where(function ($q) use ($query) {
             $q->whereRaw('LOWER(sales.invoice_number) LIKE ?', ["%{$query}%"])
+              ->orWhereRaw('LOWER(receipts.si_number) LIKE ?', ["%{$query}%"])
               ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$query}%"])
               ->orWhereRaw('LOWER(sales.customer_name) LIKE ?', ["%{$query}%"]);
         });

@@ -155,7 +155,7 @@ class RawMaterial extends Model
     /**
      * Centralized method to record stock movements with point-in-time snapshots.
      */
-    public function recordMovement(float $qtyChange, string $type, string $reason, ?int $userId = null): void
+    public function recordMovement(float $qtyChange, string $type, string $reason, ?int $userId = null, ?int $branchIdOverride = null): void
     {
         $before = (float) $this->current_stock;
 
@@ -170,7 +170,7 @@ class RawMaterial extends Model
 
         StockMovement::create([
             'raw_material_id' => $this->id,
-            'branch_id'       => $this->branch_id,
+            'branch_id'       => $branchIdOverride ?? $this->branch_id,
             'user_id'         => $userId ?? auth()->id(),
             'before_stock'    => $before,
             'after_stock'     => $after,
