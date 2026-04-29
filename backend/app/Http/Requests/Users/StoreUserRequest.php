@@ -22,10 +22,18 @@ class StoreUserRequest extends FormRequest
     {
         $user = $this->user();
 
-        // Branch managers force their own branch and role
-        if ($user->role === 'branch_manager') {
+        // Branch managers, supervisors, and team leaders force their own branch and role
+        if (in_array($user->role, ['branch_manager', 'supervisor', 'team_leader'])) {
             $inputRole = $this->input('role');
-            $role = in_array($inputRole, ['cashier', 'team_leader', 'supervisor']) ? $inputRole : 'cashier';
+            
+            $allowedRoles = ['cashier'];
+            if ($user->role === 'branch_manager') {
+                $allowedRoles = ['cashier', 'team_leader', 'supervisor'];
+            } elseif ($user->role === 'supervisor') {
+                $allowedRoles = ['cashier', 'team_leader'];
+            }
+
+            $role = in_array($inputRole, $allowedRoles) ? $inputRole : 'cashier';
 
             $this->merge([
                 'role'        => $role,

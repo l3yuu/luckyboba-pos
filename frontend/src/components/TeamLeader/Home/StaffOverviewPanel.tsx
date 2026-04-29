@@ -322,53 +322,68 @@ const StaffFormModal: React.FC<{
     <ModalShell
       onClose={onClose}
       icon={editingUser ? <Edit2 size={15} className="text-violet-600" /> : <Users size={15} className="text-violet-600" />}
-      title={editingUser ? 'Edit Staff' : 'Add Staff'}
-      sub={editingUser ? `Updating ${editingUser.name}` : 'Create a new cashier or team leader account'}
+      title={editingUser ? 'Update System Access' : 'New System Entry'}
+      sub={editingUser ? `Provisioning updates for ${editingUser.name}` : 'Provisioning new system access'}
       footer={
         <>
           <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
           <Btn onClick={handleSubmit} disabled={saving}>
-            {saving
-              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
-              : editingUser ? 'Save Changes' : <><Plus size={13} /> Add Staff</>}
+            {saving ? (
+              <span className="flex items-center gap-1.5">
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Saving...
+              </span>
+            ) : editingUser ? (
+              'Sync Profile'
+            ) : (
+              <>
+                <Plus size={13} /> Create Access
+              </>
+            )}
           </Btn>
         </>
-      }>
+      }
+    >
       {apiError && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
           <AlertCircle size={14} className="text-red-500 shrink-0" />
           <p className="text-xs text-red-600 font-medium">{apiError}</p>
         </div>
       )}
-      <Field label="Full Name" required error={errors.name}>
-        <input {...f('name')} placeholder="e.g. Juan Dela Cruz" className={inputCls(errors.name)} />
-      </Field>
-      <Field label="Email" required error={errors.email}>
-        <input {...f('email')} type="email" placeholder="e.g. juan@luckyboba.com" className={inputCls(errors.email)} />
-      </Field>
-      <Field label={editingUser ? 'New Password' : 'Password'} required={!editingUser} error={errors.password}>
-        <input {...f('password')} type="password" placeholder={editingUser ? 'Leave blank to keep current' : 'Min. 6 characters'} className={inputCls(errors.password)} />
-      </Field>
-      <Field label="Confirm Password" error={errors.passwordConfirm}>
-        <input {...f('passwordConfirm')} type="password" placeholder="Re-enter password" className={inputCls(errors.passwordConfirm)} />
-      </Field>
-      <Field label="Status" required>
-        <select {...f('status')} className={inputCls()}>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-        </select>
-      </Field>
-      <Field label="Role" required>
-        <select {...f('role')} className={inputCls()}>
-          <option value="cashier">Cashier</option>
-          <option value="team_leader">Team Leader</option>
-        </select>
-      </Field>
+      <div className="flex flex-col gap-4">
+        <Field label="Staff Legal Name" required error={errors.name}>
+          <input {...f('name')} placeholder="e.g. Juan Dela Cruz" className={inputCls(errors.name)} />
+        </Field>
+        <Field label="Corporate Email Address" required error={errors.email}>
+          <input {...f('email')} type="email" placeholder="e.g. juan@luckyboba.com" className={inputCls(errors.email)} />
+        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label={editingUser ? 'Rotate Password' : 'Access Password'} required={!editingUser} error={errors.password}>
+            <input {...f('password')} type="password" placeholder={editingUser ? '••••••••' : 'Min. 6 chars'} className={inputCls(errors.password)} />
+          </Field>
+          <Field label="Confirm Password" error={errors.passwordConfirm}>
+            <input {...f('passwordConfirm')} type="password" placeholder="Verify entry" className={inputCls(errors.passwordConfirm)} />
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Deployment Status" required>
+            <select {...f('status')} className={inputCls()}>
+              <option value="ACTIVE">System Active</option>
+              <option value="INACTIVE">Deactivated</option>
+            </select>
+          </Field>
+          <Field label="Access Tier" required>
+            <select {...f('role')} className={inputCls()}>
+              <option value="cashier">Cashier</option>
+            </select>
+          </Field>
+        </div>
+      </div>
       {!editingUser && (
-        <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg">
-          <Laptop size={13} className="text-violet-500 shrink-0" />
-          <p className="text-[10px] text-violet-700 font-medium">
-            You can assign a POS device to cashiers after saving.
+        <div className="flex items-start gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg mt-4">
+          <Laptop size={13} className="text-violet-500 shrink-0 mt-0.5" />
+          <p className="text-[10px] text-violet-700 font-bold uppercase tracking-wider">
+            Operational Note: Device terminal mapping remains restricted until the entity is confirmed in the global database.
           </p>
         </div>
       )}
