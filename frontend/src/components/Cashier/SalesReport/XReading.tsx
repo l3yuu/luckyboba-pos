@@ -96,6 +96,8 @@ interface XReadingReport {
   z_counter?: number;
   previous_accumulated?: number;
   present_accumulated?: number;
+  cup_size_totals?: Record<string, number>;
+  total_cups_sold?: number;
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
@@ -787,6 +789,15 @@ const XReading = () => {
         <Divider />
         <Row label="TOTAL QTY SOLD" value={reportData?.total_qty_sold ?? 0} />
         <Row label="TRANSACTION COUNT" value={txCount} />
+        <Divider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
+        {reportData?.cup_size_totals && Object.entries(reportData.cup_size_totals).map(([size, qty]) => (
+          <Row key={size} label={size} value={`${qty} CUPS`} />
+        ))}
+        <div className="flex text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+          <span className="w-[65%] uppercase font-bold text-black">TOTAL CUPS SOLD</span>
+          <span className="w-[35%] text-right font-bold text-black">{reportData?.total_cups_sold ?? 0}</span>
+        </div>
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">ACCUMULATED TOTALS</p>
         <Row label="PREVIOUS ACCUMULATED" value={phCurrency.format(reportData?.previous_accumulated || 0)} />

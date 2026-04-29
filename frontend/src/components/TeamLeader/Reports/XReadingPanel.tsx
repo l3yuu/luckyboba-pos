@@ -22,6 +22,8 @@ interface XReadingData {
   z_counter: number;
   previous_accumulated: number;
   present_accumulated: number;
+  cup_size_totals?: Record<string, number>;
+  total_cups_sold?: number;
 }
 
 interface ReportParams {
@@ -71,6 +73,8 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
         z_counter: Number(raw.z_counter ?? 1),
         previous_accumulated: Number(raw.previous_accumulated ?? 0),
         present_accumulated: Number(raw.present_accumulated ?? 0),
+        cup_size_totals: raw.cup_size_totals,
+        total_cups_sold: raw.total_cups_sold,
       });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -217,6 +221,27 @@ const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
               <div className="flex items-center justify-between py-2.5 mt-1 border-t border-zinc-200">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Net Orders</span>
                 <span className="text-sm font-bold text-emerald-600">{netOrders}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Cup Size Analysis */}
+          <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden lg:col-span-2">
+            <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
+              <TrendingUp size={13} className="text-zinc-400" />
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Cup Size Analysis</p>
+            </div>
+            <div className="px-5 py-3 grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-2">
+              {data.cup_size_totals && Object.keys(data.cup_size_totals).length > 0 ? (
+                Object.entries(data.cup_size_totals).map(([size, qty]) => (
+                  <Row key={size} label={size} value={`${qty} Cups`} />
+                ))
+              ) : (
+                <div className="col-span-full py-2 text-center text-zinc-400 text-[10px] font-bold uppercase tracking-widest">No cup size data available</div>
+              )}
+              <div className="col-span-full flex items-center justify-between py-3 mt-1 border-t border-zinc-200">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Cups Sold</span>
+                <span className="text-sm font-bold text-violet-600">{data.total_cups_sold ?? 0}</span>
               </div>
             </div>
           </div>

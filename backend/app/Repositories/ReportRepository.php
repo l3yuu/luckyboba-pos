@@ -310,14 +310,14 @@ class ReportRepository implements ReportRepositoryInterface
             });
 
         if ($branchId) {
-            $query->where('branch_id', $branchId);
+            $query->where('cash_counts.branch_id', $branchId);
         }
 
         if ($shift) {
-            $query->where('shift', $shift);
+            $query->where('cash_counts.shift', $shift);
         }
 
-        $cashCount = $query->latest()->first();
+        $cashCount = $query->latest('cash_counts.created_at')->first();
 
         if (!$cashCount) {
             return [

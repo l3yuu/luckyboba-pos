@@ -63,6 +63,8 @@ interface ZReadingReport {
   is_vat?: boolean;
   total_discounts?: number;
   rounding_adjustment?: number;
+  cup_size_totals?: Record<string, number>;
+  total_cups_sold?: number;
 }
 
 interface ReportParams {
@@ -126,6 +128,7 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
   const menuRef    = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
   const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const localVatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = reportData?.is_vat !== undefined ? reportData.is_vat : localVatType === 'vat';
@@ -741,7 +744,7 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
         )}
 
         {/* Item breakdown from item-quantities */}
-        {reportData?.categories && reportData.categories.length > 0 && (
+        {showBreakdown && reportData?.categories && reportData.categories.length > 0 && (
           <>
             <Divider />
             <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
@@ -763,10 +766,19 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
               </React.Fragment>
             ))}
             <Divider />
-            <div className="flex text-[11px] font-bold justify-between"><span className="uppercase">GROSS TOTAL</span><span>{phCurrency.format(gross)}</span></div>
-            <div className="flex text-[11px] font-bold justify-between"><span className="uppercase">NET TOTAL</span><span>{phCurrency.format(netTotal)}</span></div>
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
+            {reportData?.cup_size_totals && Object.entries(reportData.cup_size_totals).map(([size, qty]) => (
+              <Row key={size} label={size} value={`${qty} CUPS`} />
+            ))}
+            <div className="flex text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+              <span className="w-[65%] uppercase font-bold text-black">TOTAL CUPS SOLD</span>
+              <span className="w-[35%] text-right font-bold text-black">{reportData?.total_cups_sold ?? 0}</span>
+            </div>
           </>
         )}
+        <Divider />
+        <div className="flex text-[11px] font-bold justify-between"><span className="uppercase">GROSS TOTAL</span><span>{phCurrency.format(gross)}</span></div>
+        <div className="flex text-[11px] font-bold justify-between"><span className="uppercase">NET TOTAL</span><span>{phCurrency.format(netTotal)}</span></div>
       </div>
     );
   };
@@ -926,6 +938,23 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#a1a1aa]">
                     <Clock size={14} />
                   </div>
+                </div>
+              </div>
+
+              {/* Breakdown Toggle */}
+              <div className="w-full lg:w-auto space-y-1.5">
+                <label className="zr-label flex items-center gap-1.5 ml-1"><Activity size={11} /> Breakdown</label>
+                <div 
+                  className="flex items-center gap-2 h-11 px-4 border border-gray-100 rounded-xl bg-[#f5f4f8] cursor-pointer select-none hover:border-[#ddd6f7] transition-colors"
+                  onClick={() => setShowBreakdown(!showBreakdown)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showBreakdown}
+                    onChange={() => {}} 
+                    className="w-4 h-4 rounded border-gray-300 text-[#6a12b8] focus:ring-[#6a12b8] cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-[#1a0f2e] uppercase tracking-tight">Show Items</span>
                 </div>
               </div>
 

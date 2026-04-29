@@ -190,7 +190,7 @@ class SalesDashboardService
     //   grossSales     = totalCollected + totalDiscounts + voidAmount
     //   roundingAdj    = 0 (by construction)
     //
-    // This eliminates the need for an independent "reconstructGross" formula
+    // This eliminates the need for an independent \"reconstructGross\" formula
     // that could diverge from what was actually collected.
     // ─────────────────────────────────────────────────────────────────────────────
 
@@ -265,8 +265,9 @@ class SalesDashboardService
         $totalQtySold = $this->saleRepo->getTotalQtySoldBetween($from, $to, $branchId, $shift);
         $cashIn       = $this->saleRepo->getCashTransactionsSum($from, $to, ['cash_in'], $branchId, $shift);
         $cashDrop     = $this->saleRepo->getCashTransactionsSum($from, $to, ['cash_out', 'cash_drop'], $branchId, $shift);
+        $cupBreakdown = $this->saleRepo->getCupSizeBreakdown($from, $to, $branchId, $shift);
 
-        return [
+        return array_merge([
             'date'                => $from->toDateString(),
             'to_date'             => $to->toDateString(),
             'gross_sales'         => $grossSales,
@@ -301,7 +302,7 @@ class SalesDashboardService
             'previous_accumulated' => $previousAccumulated,
             'present_accumulated'  => $presentAccumulated,
             'reset_counter'       => 0,
-        ];
+        ], $cupBreakdown);
     }
 
     // ─── Z-Reading ─────────────────────────────────────────────────────────────
@@ -366,8 +367,9 @@ class SalesDashboardService
         $previousAccumulated = $this->saleRepo->getSalesAccumulatedUpTo($start, $branchId);
         $presentAccumulated  = round($previousAccumulated + $gross, 2);
         $actualNonCash       = (float) $paymentBreakdown->where('method', '!=', 'cash')->sum('amount');
+        $cupBreakdown        = $this->saleRepo->getCupSizeBreakdown($start, $end, $branchId, $shift);
 
-        $reportData = [
+        $reportData = array_merge([
             'from_date'            => $start->toDateString(),
             'to_date'              => $end->toDateString(),
             'branch_id'            => $branchId,
@@ -405,7 +407,7 @@ class SalesDashboardService
             'rounding_adjustment'  => $roundingAdjustment,
             'category_breakdown'   => [],
             'generated_at'         => now()->toDateTimeString(),
-        ];
+        ], $cupBreakdown);
 
         if ($isSingleDay) {
             ZReading::updateOrCreate(
