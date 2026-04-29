@@ -79,6 +79,10 @@ async function deriveId(): Promise<string> {
 }
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
+
+/**
+ * Sync read from standard vaults.
+ */
 function readFromStorage(): string | null {
   return (
     localStorage.getItem(STORAGE_KEY) ??
@@ -87,10 +91,49 @@ function readFromStorage(): string | null {
   );
 }
 
-function writeToStorage(id: string): void {
+/**
+ * Async read from ALL vaults including Cache API (survives basic site data clear).
+ */
+async function readFromStorageAsync(): Promise<string | null> {
+  // 1. Try standard vaults first
+  const standard = readFromStorage();
+  if (standard) return standard;
+
+  // 2. Try Cache API vault (The "Deep Vault")
+  try {
+    const cache = await caches.open('pos-metadata');
+    const response = await cache.match('/device-id');
+    if (response) {
+      const id = await response.text();
+      // Restore standard vaults from deep vault
+      if (id) writeToStorage(id);
+      return id;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  return null;
+}
+
+async function writeToStorage(id: string): Promise<void> {
+  // 1. Standard Vaults
   try { localStorage.setItem(STORAGE_KEY, id); }   catch { /* private mode */ }
   try { sessionStorage.setItem(SESSION_KEY, id); } catch { /* private mode */ }
   document.cookie = `${COOKIE_NAME}=${id}; max-age=${COOKIE_MAXAGE}; path=/; SameSite=Lax`;
+
+  // 2. Deep Vault (Cache API) - Harder to clear
+  try {
+    const cache = await caches.open('pos-metadata');
+    await cache.put('/device-id', new Response(id));
+  } catch (e) {
+    // ignore
+  }
+
+  // 3. Request Storage Persistence (Prevents browser from auto-clearing data)
+  if (navigator.storage && navigator.storage.persist) {
+    void navigator.storage.persist().catch(() => {});
+  }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -104,9 +147,9 @@ export function getDeviceId(): string {
   if (_cachedId) return _cachedId;
 
   // Not in storage — derive async and cache for next call
-  void deriveId().then(id => {
+  void deriveId().then(async (id) => {
     _cachedId = id;
-    writeToStorage(id);
+    await writeToStorage(id);
   });
 
   // Return a temporary empty string; callers should prefer getDeviceIdAsync
@@ -117,7 +160,7 @@ export function getDeviceId(): string {
 export async function getDeviceIdAsync(): Promise<string> {
   if (_cachedId) return _cachedId;
 
-  const stored = readFromStorage();
+  const stored = await readFromStorageAsync();
   if (stored) {
     _cachedId = stored;
     return stored;
@@ -126,14 +169,14 @@ export async function getDeviceIdAsync(): Promise<string> {
   // Storage was wiped — re-derive from hardware (same machine = same ID)
   const derived = await deriveId();
   _cachedId = derived;
-  writeToStorage(derived);
+  await writeToStorage(derived);
   return derived;
 }
 
 export function setDeviceId(id: string): void {
   const clean = id.trim();
   _cachedId   = clean;
-  writeToStorage(clean);
+  void writeToStorage(clean);
 }
 
 export function getPosNumber(): string {
