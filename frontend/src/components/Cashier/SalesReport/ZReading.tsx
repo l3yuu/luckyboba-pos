@@ -200,6 +200,8 @@ interface ZReadingReport {
   vat_exempt_sales?: number;
   other_discount?: number;
   rounding_adjustment?: number;
+  cup_size_totals?: Record<string, number>;
+  total_cups_sold?: number;
 }
 
 interface ReportParams {
@@ -809,43 +811,43 @@ const ZReading = () => {
                 </div>
               </div>
             )}
+            {(() => {
+              const sizeTotals = new Map<string, number>();
+              let noSizeTotal = 0;
+              reportData?.categories?.forEach(cat => {
+                cat.products.forEach(product => {
+                  if (product.size) sizeTotals.set(product.size, (sizeTotals.get(product.size) ?? 0) + product.total_qty);
+                  else noSizeTotal += product.total_qty;
+                });
+              });
+              const SIZE_ORDER2 = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
+              const orderedSizes = [...SIZE_ORDER2.filter(s => sizeTotals.has(s)), ...[...sizeTotals.keys()].filter(s => !SIZE_ORDER2.includes(s)).sort()];
+              const grandTotalQty = orderedSizes.reduce((a, s) => a + (sizeTotals.get(s) ?? 0), 0) + noSizeTotal;
+              if (orderedSizes.length === 0 && noSizeTotal === 0) return null;
+              return (
+                <>
+                  <p className="text-[11px] uppercase font-bold mb-0.5">CUP SIZE TOTALS</p>
+                  {orderedSizes.map(size => (
+                    <div key={size} className="flex text-[11px] leading-snug">
+                      <span className="w-[65%] uppercase pl-2">{size}</span>
+                      <span className="w-[35%] text-right">{sizeTotals.get(size) ?? 0} cups</span>
+                    </div>
+                  ))}
+                  {noSizeTotal > 0 && (
+                    <div className="flex text-[11px] leading-snug">
+                      <span className="w-[65%] uppercase pl-2">OTHER / NO SIZE</span>
+                      <span className="w-[35%] text-right">{noSizeTotal} pcs</span>
+                    </div>
+                  )}
+                  <div className="flex text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+                    <span className="w-[65%] uppercase font-bold">TOTAL CUPS SOLD</span>
+                    <span className="w-[35%] text-right font-bold">{grandTotalQty}</span>
+                  </div>
+                </>
+              );
+            })()}
           </>
         )}
-        {(() => {
-          const sizeTotals = new Map<string, number>();
-          let noSizeTotal = 0;
-          reportData?.categories?.forEach(cat => {
-            cat.products.forEach(product => {
-              if (product.size) sizeTotals.set(product.size, (sizeTotals.get(product.size) ?? 0) + product.total_qty);
-              else noSizeTotal += product.total_qty;
-            });
-          });
-          const SIZE_ORDER2 = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
-          const orderedSizes = [...SIZE_ORDER2.filter(s => sizeTotals.has(s)), ...[...sizeTotals.keys()].filter(s => !SIZE_ORDER2.includes(s)).sort()];
-          const grandTotalQty = orderedSizes.reduce((a, s) => a + (sizeTotals.get(s) ?? 0), 0) + noSizeTotal;
-          if (orderedSizes.length === 0 && noSizeTotal === 0) return null;
-          return (
-            <>
-              <p className="text-[11px] uppercase font-bold mb-0.5">CUP SIZE TOTALS</p>
-              {orderedSizes.map(size => (
-                <div key={size} className="flex text-[11px] leading-snug">
-                  <span className="w-[65%] uppercase pl-2">{size}</span>
-                  <span className="w-[35%] text-right">{sizeTotals.get(size) ?? 0} cups</span>
-                </div>
-              ))}
-              {noSizeTotal > 0 && (
-                <div className="flex text-[11px] leading-snug">
-                  <span className="w-[65%] uppercase pl-2">OTHER / NO SIZE</span>
-                  <span className="w-[35%] text-right">{noSizeTotal} pcs</span>
-                </div>
-              )}
-              <div className="flex text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
-                <span className="w-[65%] uppercase font-bold">TOTAL CUPS SOLD</span>
-                <span className="w-[35%] text-right font-bold">{grandTotalQty}</span>
-              </div>
-            </>
-          );
-        })()}
         <Divider />
         {(() => {
           const gross            = reportData?.gross_sales || 0;
@@ -1107,6 +1109,15 @@ const ZReading = () => {
                 ))}
               </React.Fragment>
             ))}
+            <Divider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
+            {reportData?.cup_size_totals && Object.entries(reportData.cup_size_totals).map(([size, qty]) => (
+              <Row key={size} label={size} value={`${qty} CUPS`} />
+            ))}
+            <div className="flex text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+              <span className="w-[65%] uppercase font-bold text-black">TOTAL CUPS SOLD</span>
+              <span className="w-[35%] text-right font-bold text-black">{reportData?.total_cups_sold ?? 0}</span>
+            </div>
           </>
         )}
         <Divider />

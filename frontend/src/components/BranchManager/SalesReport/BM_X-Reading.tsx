@@ -72,6 +72,8 @@ interface XReadingReport {
   previous_accumulated?: number;
   present_accumulated?: number;
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
+  cup_size_totals?: Record<string, number>;
+  total_cups_sold?: number;
 }
 
 interface BtnProps {
@@ -710,7 +712,20 @@ const fetchReading = useCallback(async () => {
         <ReceiptRow label="Previous Accumulated" value={phCurrency.format(reportData?.previous_accumulated || 0)} />
         <ReceiptRow label="Present Accumulated" value={phCurrency.format(reportData?.present_accumulated || 0)} />
         <ReceiptRow label="Z-Counter" value={String(reportData?.z_counter || 1).padStart(4, "0")} />
-        {showBreakdown && renderQtyItems()}
+        {showBreakdown && (
+          <>
+            {renderQtyItems()}
+            <ReceiptDivider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
+            {reportData?.cup_size_totals && Object.entries(reportData.cup_size_totals).map(([size, qty]) => (
+              <ReceiptRow key={size} label={size} value={`${qty} CUPS`} />
+            ))}
+            <div className="flex text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+              <span className="w-[65%] uppercase font-bold text-black">TOTAL CUPS SOLD</span>
+              <span className="w-[35%] text-right font-bold text-black">{reportData?.total_cups_sold ?? 0}</span>
+            </div>
+          </>
+        )}
         <ReceiptDivider />
         <div className="flex text-[11px] font-bold justify-between">
           <span className="uppercase">Gross Total</span>

@@ -422,4 +422,37 @@ class SaleRepository implements SaleRepositoryInterface
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('total_sales');
     }
+
+    public function getCupSizeBreakdown(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): array
+    {
+        $raw = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
+            ->select(
+                DB::raw("COALESCE(sale_items.cup_size_label, sale_items.size, 'No Size') as size_label"),
+                DB::raw("SUM(sale_items.quantity) as total_qty")
+            )
+            ->groupBy('size_label')
+            ->get();
+
+        $totals = [];
+        $grandTotal = 0;
+
+        foreach ($raw as $row) {
+            $label = strtoupper($row->size_label);
+            $qty = (int) $row->total_qty;
+            $totals[$label] = ($totals[$label] ?? 0) + $qty;
+            $grandTotal += $qty;
+        }
+
+        return [
+            'cup_size_totals' => $totals,
+            'total_cups_sold' => $grandTotal,
+        ];
+    }
 }

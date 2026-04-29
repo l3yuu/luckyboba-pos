@@ -129,6 +129,8 @@ interface XReadingReport {
   net_total?: number;
   expected_amount?: number;
   less_vat?: number;
+  cup_size_totals?: Record<string, number>;
+  total_cups_sold?: number;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -239,6 +241,7 @@ const ZReadingTab: React.FC = () => {
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
   const [selectedShift, setSelectedShift] = useState<string>('');
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const handleBranchChange = (id: string) => {
     setBranchId(id);
@@ -1068,6 +1071,19 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="Total Qty Sold"    value={reportData?.total_qty_sold ?? 0} />
         <ReceiptRow label="Transaction Count" value={txCount} />
+        {showBreakdown && (
+          <>
+            <ReceiptDivider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
+            {reportData?.cup_size_totals && Object.entries(reportData.cup_size_totals).map(([size, qty]) => (
+              <ReceiptRow key={size} label={size} value={`${qty} CUPS`} />
+            ))}
+            <div className="flex text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+              <span className="w-[65%] uppercase font-bold text-black">TOTAL CUPS SOLD</span>
+              <span className="w-[35%] text-right font-bold text-black">{reportData?.total_cups_sold ?? 0}</span>
+            </div>
+          </>
+        )}
       </div>
     );
   };
@@ -1216,7 +1232,7 @@ const handlePrint = () => window.print();
             <ReceiptRow label="DISCREPANCY" value={phCurrency.format(Math.abs(overShort))} />
           </>
         )}
-        {reportData?.categories && reportData.categories.length > 0 && (
+        {showBreakdown && reportData?.categories && reportData.categories.length > 0 && (
           <>
             <ReceiptDivider />
             <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
@@ -1239,6 +1255,15 @@ const handlePrint = () => window.print();
                 ))}
               </React.Fragment>
             ))}
+            <ReceiptDivider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
+            {reportData?.cup_size_totals && Object.entries(reportData.cup_size_totals).map(([size, qty]) => (
+              <ReceiptRow key={size} label={size} value={`${qty} CUPS`} />
+            ))}
+            <div className="flex text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+              <span className="w-[65%] uppercase font-bold text-black">TOTAL CUPS SOLD</span>
+              <span className="w-[35%] text-right font-bold text-black">{reportData?.total_cups_sold ?? 0}</span>
+            </div>
             <ReceiptDivider />
             <div className="flex text-[11px] font-bold justify-between">
               <span className="uppercase">GROSS TOTAL</span>
@@ -1439,6 +1464,21 @@ const handlePrint = () => window.print();
               <option value="2">PM Shift</option>
             </select>
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Breakdown</p>
+          <div 
+            className="flex items-center gap-2 h-9 px-3 border border-zinc-200 rounded-lg bg-zinc-50 cursor-pointer select-none hover:border-violet-400 transition-colors"
+            onClick={() => setShowBreakdown(!showBreakdown)}
+          >
+            <input
+              type="checkbox"
+              checked={showBreakdown}
+              onChange={() => {}} 
+              className="w-3.5 h-3.5 rounded border-zinc-300 text-violet-600 focus:ring-violet-400 cursor-pointer"
+            />
+            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-tight">Show Items</span>
           </div>
         </div>
         <Btn onClick={() => reportType === "z_reading" ? fetchFullZReading() : fetchXReport()} disabled={loading || !branchId}>

@@ -40,4 +40,7 @@ interface SaleRepositoryInterface
     public function getZReadingsHistory(?int $branchId = null, int $limit = 50): Collection;
     public function getZReadingsCountUpTo(Carbon $date, ?int $branchId = null, bool $singleDay = true): int;
     public function getSalesAccumulatedUpTo(Carbon $date, ?int $branchId = null): float;
+
+    /** Cup Size Breakdown */
+    public function getCupSizeBreakdown(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): array;
 }
