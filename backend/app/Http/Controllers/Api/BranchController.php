@@ -32,7 +32,7 @@ class BranchController extends Controller
     public function index()
     {
         try {
-            $branches = Branch::withTrashed()
+            $branches = Branch::query()
                 ->withCount('users as staff_count')
                 ->with(['manager:id,name,branch_id,role'])
                 ->orderBy('created_at', 'desc')
