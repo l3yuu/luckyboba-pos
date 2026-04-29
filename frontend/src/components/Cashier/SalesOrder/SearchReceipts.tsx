@@ -181,13 +181,20 @@ const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; i
   </div>
 );
 
+// Helper for local date
+const getLocalToday = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offset).toISOString().split('T')[0];
+};
+
 // ============================================================
 // MAIN COMPONENT
 // ============================================================
 
 const SearchReceipts = () => {
   useAuth();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalToday();
 
   const [searchQuery,   setSearchQuery]   = useState('');
   const [selectedDate,  setSelectedDate]  = useState(today);
