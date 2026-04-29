@@ -75,6 +75,12 @@ const fmtS = (v?: number) => {
   return `₱${n.toLocaleString()}`;
 };
 
+const getLocalToday = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offset).toISOString().split('T')[0];
+};
+
 // ── Components ───────────────────────────────────────────────────────────────
 const StatTile = ({ label, value, icon: Icon, color, trend }: StatTileProps) => (
   <div className="tl-tile p-6 flex flex-col justify-between min-h-[140px]">
@@ -103,7 +109,7 @@ const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
   const [hourly, setHourly] = useState<HourlyStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setRefreshing] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalToday();
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);

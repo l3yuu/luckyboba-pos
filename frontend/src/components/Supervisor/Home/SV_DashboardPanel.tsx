@@ -105,6 +105,12 @@ const fmtS = (v?: number) => {
   return `₱${n.toLocaleString()}`;
 };
 
+const getLocalToday = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offset).toISOString().split('T')[0];
+};
+
 // ── Components ───────────────────────────────────────────────────────────────
 const StatTile = ({ label, value, icon: Icon, color, trend }: StatTileProps) => (
   <div className="sv-tile sv-glass p-6 flex flex-col justify-between min-h-[150px]">
@@ -140,7 +146,7 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
   const [hourly, setHourly] = useState<HourlyStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalToday();
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
