@@ -64,7 +64,8 @@ interface ReprintPayload {
     discount_amount?: number;
     sc_discount_amount?: number;
     pwd_discount_amount?: number;
-    vat_type?:        string;   // ← add this
+    vat_type?:        string;
+    order_type?:      string;
     branch?: {
       name?:           string;
       brand?:          string;
@@ -367,7 +368,7 @@ return {
   itemDiscountTotal,
   promoDiscount,
   vatType: (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat',
-  orderType: ((sale as unknown as { order_type?: string }).order_type ?? 'dine-in') as 'dine-in' | 'take-out',
+  orderType: (sale.order_type === 'dine_in' ? 'dine-in' : sale.order_type === 'delivery' ? 'delivery' : 'take-out') as 'dine-in' | 'take-out' | 'delivery',
 
   // ✅ ADD THESE
   brand:           sale.branch?.brand,

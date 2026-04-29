@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
 import {
   RefreshCw, Clock, CheckCircle2, ChefHat, QrCode,
-  User, ShoppingBag, Package, AlertCircle, ArrowLeft, Utensils, Printer, Search, Tag,
+  User, ShoppingBag, Package, AlertCircle, ArrowLeft, Utensils, Printer, Search, Tag, Truck,
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { CustomerNameModal, SuccessModal } from './modals';
@@ -184,6 +184,7 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
   };
   const next = nextStatus[order.status as Status];
   const isDineIn = order.order_type === 'dine_in';
+  const isDelivery = order.order_type === 'delivery';
 
   return (
     <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col relative group">
@@ -203,8 +204,8 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
               Kiosk
             </span>
           ) : (
-            <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${isDineIn ? 'bg-violet-50 text-violet-600 border-violet-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200'}`}>
-              {isDineIn ? <><Utensils size={9} /> Dine In</> : <><ShoppingBag size={9} /> Take Out</>}
+            <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md border ${isDineIn ? 'bg-violet-50 text-violet-600 border-violet-200' : isDelivery ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200'}`}>
+              {isDineIn ? <><Utensils size={9} /> Dine In</> : isDelivery ? <><Truck size={9} /> Delivery</> : <><ShoppingBag size={9} /> Take Out</>}
             </span>
           )}
           <span className="text-[10px] font-bold text-zinc-400">{elapsed(order.created_at)}</span>
@@ -941,7 +942,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           orNumber={orderInvoice(printJob.order)}
           queueNumber={printJob.seqNumber}
           customerName={printJob.order.customer_name ?? 'App Customer'}
-          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
+          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : printJob.order.order_type === 'delivery' ? 'delivery' : 'take-out'}
           formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
           formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
         />
@@ -998,7 +999,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
               paxPwd={order.pax_pwd}
               sc_discount_amount={order.sc_discount_amount}
               pwd_discount_amount={order.pwd_discount_amount}
-              orderType={order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
+              orderType={order.order_type === 'dine_in' ? 'dine-in' : order.order_type === 'delivery' ? 'delivery' : 'take-out'}
               formattedDate={new Date(order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
               formattedTime={new Date(order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
               isReprint={false}
@@ -1015,7 +1016,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           orNumber={orderInvoice(printJob.order)}
           queueNumber={printJob.seqNumber}
           customerName={printJob.order.customer_name ?? 'App Customer'}
-          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : 'take-out'}
+          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : printJob.order.order_type === 'delivery' ? 'delivery' : 'take-out'}
           formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
           formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
           isOnline={true}

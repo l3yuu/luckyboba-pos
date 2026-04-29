@@ -362,7 +362,7 @@ const BranchReceiptsTab: React.FC = () => {
       itemDiscountTotal,
       promoDiscount,
       vatType: (sale.vat_type ?? 'vat') as 'vat' | 'non_vat',
-      orderType: (sale.order_type ?? 'dine-in') as 'dine-in' | 'take-out',
+      orderType: (sale.order_type === 'dine_in' ? 'dine-in' : sale.order_type === 'delivery' ? 'delivery' : 'take-out') as 'dine-in' | 'take-out' | 'delivery',
       brand: sale.branch?.brand,
       companyName: sale.branch?.company_name,
       storeAddress: sale.branch?.store_address,
