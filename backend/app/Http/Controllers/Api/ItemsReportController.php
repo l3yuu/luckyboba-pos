@@ -45,6 +45,8 @@ class ItemsReportController extends Controller
             if ($type === 'category-summary') {
                 $items = DB::table('sale_items')
                     ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                    ->join('branches', 'sales.branch_id', '=', 'branches.id')
+                    ->whereNull('branches.deleted_at')
                     ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
                     ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
                     ->whereBetween('sales.created_at', [
@@ -65,6 +67,8 @@ class ItemsReportController extends Controller
             } else {
                 $items = DB::table('sale_items')
                     ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                    ->join('branches', 'sales.branch_id', '=', 'branches.id')
+                    ->whereNull('branches.deleted_at')
                     ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
                     ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
                     ->whereBetween('sales.created_at', [
@@ -119,6 +123,8 @@ class ItemsReportController extends Controller
 
             $items = DB::table('sale_items')
                 ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->join('branches', 'sales.branch_id', '=', 'branches.id')
+                ->whereNull('branches.deleted_at')
                 ->whereDate('sales.created_at', $date)
                 ->where('sales.status', '!=', 'cancelled')
                 ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))

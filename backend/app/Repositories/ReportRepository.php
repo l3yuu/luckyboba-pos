@@ -34,15 +34,17 @@ class ReportRepository implements ReportRepositoryInterface
         switch ($type) {
             case 'SUMMARY':
                 return DB::table('sales')
+                    ->join('branches', 'sales.branch_id', '=', 'branches.id')
+                    ->whereNull('branches.deleted_at')
                     ->select(
-                        DB::raw('DATE(created_at) as Sales_Date'),
-                        DB::raw('COUNT(id) as Total_Orders'),
-                        DB::raw('SUM(total_amount) as Daily_Revenue')
+                        DB::raw('DATE(sales.created_at) as Sales_Date'),
+                        DB::raw('COUNT(sales.id) as Total_Orders'),
+                        DB::raw('SUM(sales.total_amount) as Daily_Revenue')
                     )
-                    ->whereBetween('created_at', [$from, $to])
-                    ->where('status', 'completed')
-                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                    ->when($shift,    fn($q) => $q->where('shift', $shift))
+                    ->whereBetween('sales.created_at', [$from, $to])
+                    ->where('sales.status', 'completed')
+                    ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                    ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
                     ->groupBy('Sales_Date')
                     ->orderBy('Sales_Date', 'desc')
                     ->get();
@@ -50,6 +52,8 @@ class ReportRepository implements ReportRepositoryInterface
             case 'SOLD_ITEMS':
                 return DB::table('sale_items')
                     ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                    ->join('branches', 'sales.branch_id', '=', 'branches.id')
+                    ->whereNull('branches.deleted_at')
                     ->select(
                         'sale_items.product_name as Item_Name',
                         DB::raw('SUM(sale_items.quantity) as Total_Qty'),
@@ -63,27 +67,44 @@ class ReportRepository implements ReportRepositoryInterface
                     ->get();
 
             case 'PAYMENTS':
-                return Sale::whereBetween('created_at', [$from, $to])
-                    ->select('invoice_number as Invoice', 'payment_method as Method', 'total_amount as Amount', 'created_at as Date')
-                    ->where('status', 'completed')
-                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                    ->when($shift,    fn($q) => $q->where('shift', $shift))
+                return Sale::query()
+                    ->leftJoin('receipts', 'sales.id', '=', 'receipts.sale_id')
+                    ->whereHas('branch')
+                    ->whereBetween('sales.created_at', [$from, $to])
+                    ->select(
+                        DB::raw('COALESCE(receipts.si_number, sales.invoice_number) as Invoice'),
+                        'sales.payment_method as Method',
+                        'sales.total_amount as Amount',
+                        'sales.created_at as Date'
+                    )
+                    ->where('sales.status', 'completed')
+                    ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                    ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
                     ->get();
 
             default:
-                return Sale::whereBetween('created_at', [$from, $to])
-                    ->select('invoice_number as Invoice', 'total_amount as Amount', 'status as Status', 'created_at as Date_Time')
-                    ->whereIn('status', ['completed', 'cancelled'])
-                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                    ->when($shift,    fn($q) => $q->where('shift', $shift))
-                    ->orderBy('created_at', 'desc')
+                return Sale::query()
+                    ->leftJoin('receipts', 'sales.id', '=', 'receipts.sale_id')
+                    ->whereHas('branch')
+                    ->whereBetween('sales.created_at', [$from, $to])
+                    ->select(
+                        DB::raw('COALESCE(receipts.si_number, sales.invoice_number) as Invoice'),
+                        'sales.total_amount as Amount',
+                        'sales.status as Status',
+                        'sales.created_at as Date_Time'
+                    )
+                    ->whereIn('sales.status', ['completed', 'cancelled'])
+                    ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                    ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
+                    ->orderBy('sales.created_at', 'desc')
                     ->get();
         }
     }
 
     public function getSummaryData(string $from, string $to, ?int $branchId, ?int $shift = null): array
     {
-        $summary = Sale::whereBetween('created_at', [$from, $to])
+        $summary = Sale::whereHas('branch')
+            ->whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->when($shift,    fn($q) => $q->where('shift', $shift))
@@ -100,13 +121,15 @@ class ReportRepository implements ReportRepositoryInterface
                       (\Schema::hasColumn('sales', 'discount_amount') ? 'discount_amount' : "0");
 
         $totals = DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$from, $to])
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
             ->select(
-                DB::raw("SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END) as gross_sales"),
-                DB::raw("SUM(CASE WHEN status = 'completed' THEN {$discountCol} ELSE 0 END) as total_discounts"),
-                DB::raw("SUM(CASE WHEN status = 'cancelled' THEN total_amount ELSE 0 END) as total_voids")
+                DB::raw("SUM(CASE WHEN sales.status = 'completed' THEN sales.total_amount ELSE 0 END) as gross_sales"),
+                DB::raw("SUM(CASE WHEN sales.status = 'completed' THEN sales.{$discountCol} ELSE 0 END) as total_discounts"),
+                DB::raw("SUM(CASE WHEN sales.status = 'cancelled' THEN sales.total_amount ELSE 0 END) as total_voids")
             )->first();
 
         $totalGross     = $totals->gross_sales ?? 0;
@@ -128,6 +151,8 @@ class ReportRepository implements ReportRepositoryInterface
         try {
             $query = DB::table('sale_items')
                 ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->join('branches', 'sales.branch_id', '=', 'branches.id')
+                ->whereNull('branches.deleted_at')
                 ->leftJoin('bundles', 'sale_items.bundle_id', '=', 'bundles.id')
                 ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
                 ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
@@ -263,7 +288,8 @@ class ReportRepository implements ReportRepositoryInterface
 
     public function getHourlySales(string $date, ?int $branchId, ?int $shift = null): mixed
     {
-        return Sale::whereDate('created_at', $date)
+        return Sale::whereHas('branch')
+            ->whereDate('created_at', $date)
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->when($shift,    fn($q) => $q->where('shift', $shift))
@@ -276,9 +302,11 @@ class ReportRepository implements ReportRepositoryInterface
     public function getCashCountSummary(string $date, ?int $branchId, string $cashierName, ?int $shift = null): array
     {
         $query = DB::table('cash_counts')
+            ->join('branches', 'cash_counts.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->where(function ($q) use ($date) {
-                $q->whereDate('date', $date)
-                  ->orWhereDate('created_at', $date);
+                $q->whereDate('cash_counts.date', $date)
+                  ->orWhereDate('cash_counts.created_at', $date);
             });
 
         if ($branchId) {
@@ -359,6 +387,8 @@ class ReportRepository implements ReportRepositoryInterface
         }
 
         return Sale::query()
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->leftJoin('users', 'sales.user_id', '=', 'users.id')
             ->whereDate('sales.created_at', $date)
             ->whereIn('sales.status', ['cancelled', 'voided', 'pending'])
@@ -380,25 +410,27 @@ class ReportRepository implements ReportRepositoryInterface
     public function getExportSalesData(Carbon $startDate, Carbon $endDate, ?int $branchId): array
     {
         $salesQuery = DB::table('sales')
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate]);
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.created_at', [$startDate, $endDate]);
 
         if ($branchId) {
             $salesQuery->where('branch_id', $branchId);
         }
 
         $totals = (clone $salesQuery)->select(
-            DB::raw('SUM(total_amount) as grand_total'),
-            DB::raw('COUNT(id)         as total_orders'),
-            DB::raw('AVG(total_amount) as avg_order_value')
+            DB::raw('SUM(sales.total_amount) as grand_total'),
+            DB::raw('COUNT(sales.id)         as total_orders'),
+            DB::raw('AVG(sales.total_amount) as avg_order_value')
         )->first();
 
         $breakdown = (clone $salesQuery)->select(
-            DB::raw('DATE(created_at) as date'),
-            DB::raw('COUNT(id)         as orders'),
-            DB::raw('SUM(total_amount) as revenue')
+            DB::raw('DATE(sales.created_at) as date'),
+            DB::raw('COUNT(sales.id)         as orders'),
+            DB::raw('SUM(sales.total_amount) as revenue')
         )
-        ->groupBy(DB::raw('DATE(created_at)'))
+        ->groupBy(DB::raw('DATE(sales.created_at)'))
         ->orderBy('date')
         ->get();
 
@@ -418,11 +450,11 @@ class ReportRepository implements ReportRepositoryInterface
             ->get();
 
         $paymentMethods = (clone $salesQuery)->select(
-            'payment_method',
-            DB::raw('COUNT(id)         as count'),
-            DB::raw('SUM(total_amount) as revenue')
+            'sales.payment_method',
+            DB::raw('COUNT(sales.id)         as count'),
+            DB::raw('SUM(sales.total_amount) as revenue')
         )
-        ->groupBy('payment_method')
+        ->groupBy('sales.payment_method')
         ->orderByDesc('revenue')
         ->get();
 
@@ -462,6 +494,7 @@ class ReportRepository implements ReportRepositoryInterface
     public function getExportItemsData(string $date, ?int $branchId): mixed
     {
         return SaleItem::join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereHas('sale.branch')
             ->whereDate('sales.created_at', $date)
             ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
@@ -497,12 +530,14 @@ class ReportRepository implements ReportRepositoryInterface
         $totalDiscounts = $scPwdDiscount + $diplomatDiscount + $otherDiscount;
 
         $vatData = DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$from, $to])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->select(
-                DB::raw('SUM(vat_amount) as total_vat'),
-                DB::raw('SUM(vatable_sales) as total_vatable')
+                DB::raw('SUM(sales.vat_amount) as total_vat'),
+                DB::raw('SUM(sales.vatable_sales) as total_vatable')
             )->first();
 
         $salesVatTotal     = (float) ($vatData->total_vat ?? 0);
@@ -516,7 +551,8 @@ class ReportRepository implements ReportRepositoryInterface
 
         $preDiscountGross = round($gross + $totalDiscounts + $salesVatTotal, 2);
 
-        $paymentBreakdown = Sale::whereBetween('created_at', [$from, $to])
+        $paymentBreakdown = Sale::whereHas('branch')
+            ->whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->selectRaw('payment_method as method, SUM(total_amount) as amount')

@@ -38,11 +38,13 @@ class SuperAdminReportController extends Controller
         };
 
         $baseQuery = DB::table('sales')
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate]);
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.created_at', [$startDate, $endDate]);
 
         if ($branchId) {
-            $baseQuery->where('branch_id', $branchId);
+            $baseQuery->where('sales.branch_id', $branchId);
         }
         $applyShift($baseQuery, 'sales');
 
@@ -56,6 +58,7 @@ class SuperAdminReportController extends Controller
                 DB::raw('AVG(sales.total_amount)   as average_order_value')
             )
             ->where('sales.status', 'completed')
+            ->whereNull('branches.deleted_at')
             ->whereBetween('sales.created_at', [$startDate, $endDate])
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->when($shift, fn($q) => $q->where('sales.shift', $shift))
@@ -64,22 +67,26 @@ class SuperAdminReportController extends Controller
             ->get();
 
         $breakdown = DB::table('sales')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(total_amount) as revenue'),
-                DB::raw('COUNT(id)         as orders'),
-                DB::raw('AVG(total_amount) as avg_order_value')
+                DB::raw('DATE(sales.created_at) as date'),
+                DB::raw('SUM(sales.total_amount) as revenue'),
+                DB::raw('COUNT(sales.id)         as orders'),
+                DB::raw('AVG(sales.total_amount) as avg_order_value')
             )
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift, fn($q) => $q->where('shift', $shift))
-            ->groupBy(DB::raw('DATE(created_at)'))
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift, fn($q) => $q->where('sales.shift', $shift))
+            ->groupBy(DB::raw('DATE(sales.created_at)'))
             ->orderBy('date')
             ->get();
 
         $topProducts = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->select(
                 'sale_items.product_name',
                 DB::raw('SUM(sale_items.quantity)               as total_quantity'),
@@ -97,9 +104,9 @@ class SuperAdminReportController extends Controller
             ->get();
 
         $totals = (clone $baseQuery)->select(
-            DB::raw('SUM(total_amount) as grand_total'),
-            DB::raw('COUNT(id)         as total_orders'),
-            DB::raw('AVG(total_amount) as avg_order_value'),
+            DB::raw('SUM(sales.total_amount) as grand_total'),
+            DB::raw('COUNT(sales.id)         as total_orders'),
+            DB::raw('AVG(sales.total_amount) as avg_order_value'),
             DB::raw('0                 as total_customers')  // ← was SUM(pax)
         )->first();
 
@@ -153,6 +160,7 @@ class SuperAdminReportController extends Controller
                 DB::raw('0                          as avg_pax_per_order')
             )
             ->where('sales.status', 'completed')
+            ->whereNull('branches.deleted_at')
             ->whereBetween('sales.created_at', [$startDate, $endDate])
             ->when($shift, fn($q) => $q->where('sales.shift', $shift))
             ->groupBy('branches.id', 'branches.name')
@@ -161,6 +169,8 @@ class SuperAdminReportController extends Controller
 
         $topProductPerBranch = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->select(
                 'sales.branch_id',
                 'sale_items.product_name',
@@ -183,9 +193,10 @@ class SuperAdminReportController extends Controller
                 'branches.name as branch_name',
                 'sales.payment_method',
                 DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(total_amount) as revenue')
+                DB::raw('SUM(sales.total_amount) as revenue')
             )
             ->where('sales.status', 'completed')
+            ->whereNull('branches.deleted_at')
             ->whereBetween('sales.created_at', [$startDate, $endDate])
             ->when($shift, fn($q) => $q->where('sales.shift', $shift))
             ->groupBy('sales.branch_id', 'branches.name', 'sales.payment_method')
@@ -246,6 +257,7 @@ class SuperAdminReportController extends Controller
 
         $topProducts = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
             ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
             ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
             ->select(
@@ -259,6 +271,7 @@ class SuperAdminReportController extends Controller
                 DB::raw('COUNT(DISTINCT sale_items.sale_id) as times_ordered')
             )
             ->where('sales.status', 'completed')
+            ->whereNull('branches.deleted_at')
             ->whereBetween('sales.created_at', [
                 $from . ' 00:00:00',
                 $to   . ' 23:59:59',
@@ -308,6 +321,7 @@ class SuperAdminReportController extends Controller
                 DB::raw('COUNT(DISTINCT sale_items.sale_id) as times_ordered')
             )
             ->where('sales.status', 'completed')
+            ->whereNull('branches.deleted_at')
             ->whereBetween('sales.created_at', [
                 $from . ' 00:00:00',
                 $to   . ' 23:59:59',
