@@ -93,7 +93,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
     
     const fetchShiftInfo = async () => {
       try {
-        const response = await api.get<{ hasCashedIn: boolean; shiftName?: string }>('/cash-counts/initial-cash');
+        const response = await api.get<{ hasCashedIn: boolean; shiftName?: string }>('/cash-transactions/status');
         if (response.data.shiftName) {
           setCashierInfo(prev => ({ ...prev, shift: response.data.shiftName || '' }));
         }
