@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../cart/delivery_page.dart';
-import 'stores_page.dart';
 
 // ── Same palette as HomePage ──────────────────────────────────────────────────
 const Color _kPurple      = Color(0xFF7C3AED);
@@ -11,8 +9,35 @@ const Color _kOrange      = Color(0xFFFF8C00);
 const Color _kWhite       = Colors.white;
 const Color _kBg          = Color(0xFFF4F4F8);
 
-class OrderPage extends StatelessWidget {
+class OrderPage extends StatefulWidget {
   const OrderPage({super.key});
+
+  @override
+  State<OrderPage> createState() => _OrderPageState();
+}
+
+class _OrderPageState extends State<OrderPage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween(begin: 0.85, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,94 +53,162 @@ class OrderPage extends StatelessWidget {
             // ── Purple header ──────────────────────────────────────────
             _buildPurpleHeader(topPad),
 
-            // ── White content area ─────────────────────────────────────
+            // ── Coming Soon content ────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 50),
 
-                  // Section label
-                  Row(
-                    children: [
-                      const Icon(PhosphorIconsFill.shoppingBag,
-                          color: _kPurple, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Choose Your Order',
-                        style: GoogleFonts.outfit(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF1A1A2E),
+                  // ── Lock icon with animated glow ─────────────────────
+                  ScaleTransition(
+                    scale: _pulseAnim,
+                    child: Container(
+                      width: 110,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [
+                            _kPurple.withValues(alpha: 0.15),
+                            _kPurpleLight.withValues(alpha: 0.08),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _kPurple.withValues(alpha: 0.12),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: _kPurple.withValues(alpha: 0.10),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            PhosphorIconsFill.lock,
+                            color: _kPurple,
+                            size: 32,
+                          ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
 
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 32),
+
+                  // ── Coming Soon text ─────────────────────────────────
                   Text(
-                    'How would you like your drinks today?',
+                    'Coming Soon',
                     style: GoogleFonts.outfit(
-                      fontSize: 13,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1A1A2E),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Text(
+                    'We\'re brewing something special!\nOnline ordering will be available soon.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: Colors.grey[500],
+                      height: 1.6,
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 36),
 
-                  // ── Delivery card ──────────────────────────────────────
-                  _OrderCard(
-                    title: 'Delivery',
-                    subtitle: 'Order via GrabFood or foodpanda',
+                  // ── Decorative progress bar ──────────────────────────
+                  Container(
+                    width: 200,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: _kPurple.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: 0.65,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF6D28D9), _kPurpleLight],
+                            ),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Text(
+                    '65% complete',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: _kPurple.withValues(alpha: 0.6),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // ── Info cards ────────────────────────────────────────
+                  _buildInfoTile(
                     icon: PhosphorIconsFill.moped,
-                    accentColor: const Color(0xFF00C853),
-                    badge: 'FASTEST',
-                    description:
-                        'Get your favorite boba delivered straight to your door.',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const DeliveryPage()),
-                    ),
+                    color: const Color(0xFF00C853),
+                    title: 'Delivery',
+                    subtitle: 'Order via GrabFood & foodpanda',
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
-                  // ── Store Pickup card ──────────────────────────────────
-                  _OrderCard(
-                    title: 'Store Pickup',
-                    subtitle: 'Skip the line and pick up nearby',
+                  _buildInfoTile(
                     icon: PhosphorIconsFill.storefront,
-                    accentColor: _kPurple,
-                    badge: 'POPULAR',
-                    description:
-                        'Order ahead and pick up fresh at your nearest branch.',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const StoresPage()),
-                    ),
+                    color: _kPurple,
+                    title: 'Store Pickup',
+                    subtitle: 'Skip the line, pick up fresh',
                   ),
 
                   const SizedBox(height: 28),
 
-                  // ── Info banner ────────────────────────────────────────
+                  // ── Notification banner ──────────────────────────────
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          _kPurple.withValues(alpha: 0.08),
-                          _kPurpleLight.withValues(alpha: 0.05),
+                          _kOrange.withValues(alpha: 0.08),
+                          _kOrange.withValues(alpha: 0.04),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                          color: _kPurple.withValues(alpha: 0.15)),
+                        color: _kOrange.withValues(alpha: 0.15),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -126,7 +219,7 @@ class OrderPage extends StatelessWidget {
                             color: _kOrange.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(PhosphorIconsFill.sparkle,
+                          child: const Icon(PhosphorIconsFill.bellRinging,
                               color: _kOrange, size: 22),
                         ),
                         const SizedBox(width: 14),
@@ -135,7 +228,7 @@ class OrderPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Earn points on every order!',
+                                'Stay tuned!',
                                 style: GoogleFonts.outfit(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
@@ -144,7 +237,7 @@ class OrderPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Loyalty points are added automatically.',
+                                'We\'ll notify you when ordering is live.',
                                 style: GoogleFonts.outfit(
                                   fontSize: 11,
                                   color: Colors.grey[500],
@@ -163,6 +256,81 @@ class OrderPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1A1A2E),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    color: Colors.grey[400],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'SOON',
+              style: GoogleFonts.outfit(
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                color: Colors.grey[400],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -266,150 +434,4 @@ class _WavePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WavePainter old) => old.color != color;
-}
-
-// ── Order card ────────────────────────────────────────────────────────────────
-
-class _OrderCard extends StatefulWidget {
-  final String title, subtitle, badge, description;
-  final IconData icon;
-  final Color accentColor;
-  final VoidCallback onTap;
-
-  const _OrderCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.accentColor,
-    required this.badge,
-    required this.description,
-    required this.onTap,
-  });
-
-  @override
-  State<_OrderCard> createState() => _OrderCardState();
-}
-
-class _OrderCardState extends State<_OrderCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 100));
-    _scale = Tween(begin: 1.0, end: 0.97)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) => _ctrl.reverse(),
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(
-        scale: _scale,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.07),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Icon
-              Container(
-                width: 62,
-                height: 62,
-                decoration: BoxDecoration(
-                  color: widget.accentColor.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(widget.icon,
-                    color: widget.accentColor, size: 28),
-              ),
-              const SizedBox(width: 16),
-              // Text
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          widget.title,
-                          style: GoogleFonts.outfit(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF1A1A2E),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: widget.accentColor
-                                .withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            widget.badge,
-                            style: GoogleFonts.outfit(
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
-                              color: widget.accentColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      widget.subtitle,
-                      style: GoogleFonts.outfit(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      widget.description,
-                      style: GoogleFonts.outfit(
-                        fontSize: 11,
-                        color: Colors.grey[400],
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_ios_rounded,
-                  color: Colors.grey[300], size: 14),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
