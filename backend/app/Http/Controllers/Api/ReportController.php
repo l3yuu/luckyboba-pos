@@ -47,8 +47,9 @@ class ReportController extends Controller
             $to       = $request->query('to',   date('Y-m-d')) . ' 23:59:59';
             $type     = $request->query('type', 'SALES');
             $branchId = $request->resolveBranchId();
+            $shift    = $request->query('shift');
 
-            $data = $this->reportRepo->getSalesReport($from, $to, $type, $branchId);
+            $data = $this->reportRepo->getSalesReport($from, $to, $type, $branchId, $shift);
 
             return response()->json($data->values());
         } catch (\Exception $e) {
@@ -64,8 +65,9 @@ class ReportController extends Controller
             $to          = $request->query('to',   $request->query('date', date('Y-m-d')));
             $branchId    = $request->resolveBranchId();
             $cashierName = $request->query('cashier_name');
+            $shift       = $request->query('shift');
 
-            $data = $this->reportRepo->getItemQuantities($from, $to, $branchId, $cashierName);
+            $data = $this->reportRepo->getItemQuantities($from, $to, $branchId, $cashierName, $shift);
 
             return response()->json($data);
         } catch (\Throwable $e) {
@@ -80,9 +82,10 @@ class ReportController extends Controller
         $branchId    = $request->resolveBranchId();
         $user        = auth('sanctum')->user() ?? $request->user();
         $cashierName = $user ? $user->name : 'System Admin';
+        $shift       = $request->query('shift');
 
         try {
-            $hourlyData = $this->reportRepo->getHourlySales($date, $branchId);
+            $hourlyData = $this->reportRepo->getHourlySales($date, $branchId, $shift);
             return response()->json([
                 'hourly_data' => $hourlyData,
                 'prepared_by' => $cashierName,
@@ -99,9 +102,10 @@ class ReportController extends Controller
         $branchId = $request->resolveBranchId();
         $user     = auth('sanctum')->user() ?? $request->user();
         $cashier  = $user ? $user->name : 'System Admin';
+        $shift    = $request->query('shift');
 
         try {
-            $data = $this->reportRepo->getCashCountSummary($date, $branchId, $cashier);
+            $data = $this->reportRepo->getCashCountSummary($date, $branchId, $cashier, $shift);
             return response()->json($data);
         } catch (\Exception $e) {
             Log::error('CashCount summary error: ' . $e->getMessage());
@@ -115,8 +119,9 @@ class ReportController extends Controller
             $date     = $request->query('date', now()->toDateString());
             $branchId = $request->resolveBranchId();
             $user     = auth('sanctum')->user() ?? $request->user();
+            $shift    = $request->query('shift');
 
-            $voids = $this->reportRepo->getVoidLogs($date, $branchId);
+            $voids = $this->reportRepo->getVoidLogs($date, $branchId, $shift);
 
             return response()->json([
                 'logs'        => $voids,
@@ -186,8 +191,9 @@ class ReportController extends Controller
             $from     = $request->query('from', now()->toDateString()) . ' 00:00:00';
             $to       = $request->query('to',   now()->toDateString()) . ' 23:59:59';
             $branchId = $request->resolveBranchId();
+            $shift    = $request->query('shift');
 
-            $data = $this->reportRepo->getSalesSummary($from, $to, $branchId);
+            $data = $this->reportRepo->getSalesSummary($from, $to, $branchId, $shift);
 
             return response()->json(new ReportSummaryResource($data));
         } catch (\Exception $e) {
@@ -205,8 +211,9 @@ class ReportController extends Controller
             // This mirrors getGeneralSalesData / getDetailedData fallback logic
             $from     = $date . ' 00:00:00';
             $to       = $date . ' 23:59:59';
+            $shift    = $request->query('shift');
             
-            $transactions = $this->reportRepo->getSalesReport($from, $to, 'DETAILED', $branchId);
+            $transactions = $this->reportRepo->getSalesReport($from, $to, 'DETAILED', $branchId, $shift);
 
             return response()->json([
                 'search_results' => $transactions,

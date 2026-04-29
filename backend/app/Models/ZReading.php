@@ -3,11 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ZReading extends Model
 {
-// app/Models/ZReading.php
-
     protected $fillable = [
         'reading_date',
         'branch_id',
@@ -19,6 +18,14 @@ class ZReading extends Model
     ];
 
     protected $casts = [
-        'data' => 'array' // This ensures 'data' is saved as JSON in DB but acts as an Array in PHP
+        'data' => 'array', // This ensures 'data' is saved as JSON in DB but acts as an Array in PHP
     ];
+
+    /**
+     * Get the branch that owns this Z-Reading.
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
 }

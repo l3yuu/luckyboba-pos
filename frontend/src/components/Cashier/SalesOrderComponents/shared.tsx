@@ -217,7 +217,7 @@ export const AddOnModalShell = ({
         {orderCharge && (
           <span className={`inline-block mt-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full
             ${orderCharge === 'grab' ? 'bg-green-400 text-green-900' : 'bg-pink-400 text-pink-900'}`}>
-            {orderCharge === 'grab' ? '🛵 Grab Prices' : '🐼 Panda Prices'}
+            {orderCharge === 'grab' ? 'Grab Prices' : 'Panda Prices'}
           </span>
         )}
         <button

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import React from "react";
 import {
   RefreshCw, AlertCircle, Printer, Lock, CheckCircle,
-  X, Menu,
+  X, Menu, ChevronDown,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -81,6 +81,8 @@ interface ZReading {
   all_addons_summary?: { name: string; qty: number }[];
   logs?: { id?: string; reason?: string; amount?: number; time?: string }[];
   cash_total?: number;
+  cup_size_totals?: Record<string, number>;
+  total_cups_sold?: number;
 }
 interface ZHistory {
   id:         number;
@@ -117,8 +119,6 @@ const getBMBranchId = (): string => {
 const getBMBranchName = (): string => {
   return localStorage.getItem("lucky_boba_user_branch") ?? "";
 };
-
-
 
 interface XReadingReport {
   date?: string;
@@ -169,6 +169,8 @@ interface XReadingReport {
   cash_in_drawer?: number;
   cash_in?: number;
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
+  cup_size_totals?: Record<string, number>;
+  total_cups_sold?: number;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -274,7 +276,8 @@ const BM_ZReading: React.FC = () => {
   const menuRef    = useRef<HTMLDivElement>(null);
   const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
   const [invoiceQuery, setInvoiceQuery] = useState("");
-  const [shift, _setShift] = useState("all");
+  const [shift, setShift] = useState("all");
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
   const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
@@ -462,6 +465,16 @@ const BM_ZReading: React.FC = () => {
         }
       })
       .catch(() => {});
+
+    // Fetch active shift status
+    fetch("/api/cash-counts/status", { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.active_shift) {
+          setShift(String(d.active_shift));
+        }
+      })
+      .catch(() => {});
   }, [branchName, branchId]);
 
   const fetchReading = useCallback(async () => {
@@ -478,10 +491,13 @@ const BM_ZReading: React.FC = () => {
         from: dateFrom,
         to: dateTo
       });
+      if (shift !== "all") zParams.set("shift", shift);
+
       const extraParams = new URLSearchParams({
         branch_id: branchId,
         date: dateTo
       });
+      if (shift !== "all") extraParams.set("shift", shift);
 
       const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
         fetch(`/api/reports/z-reading?${zParams}`, { headers: authHeaders() }).then(r => r.json()),
@@ -562,7 +578,7 @@ const BM_ZReading: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, dateFrom, dateTo, branchName]);
+  }, [branchId, dateFrom, dateTo, branchName, shift]);
 
   const fetchHistory = useCallback(async () => {
     if (!branchId) return;
@@ -1116,6 +1132,18 @@ const handlePrint = async () => {
         <ReceiptDivider />
         <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
+        <ReceiptRow label="Total Payments" value={phCurrency.format(netInclusive)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
+        {reportData?.cup_size_totals && Object.entries(reportData.cup_size_totals).map(([size, qty]) => (
+          <ReceiptRow key={size} label={size} value={`${qty} CUPS`} />
+        ))}
+        <div className="flex text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+          <span className="w-[65%] uppercase font-bold text-black">TOTAL CUPS SOLD</span>
+          <span className="w-[35%] text-right font-bold text-black">{reportData?.total_cups_sold ?? 0}</span>
+        </div>
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">Transaction Summary</p>
         <ReceiptRow label="Gross Amount"    value={phCurrency.format(gross)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Discount Summary</p>
@@ -1320,7 +1348,7 @@ const handlePrint = async () => {
         )}
 
         {/* Categories Item Breakdown */}
-        {data.categories && data.categories.length > 0 && (
+        {showBreakdown && data.categories && data.categories.length > 0 && (
           <>
             <ReceiptDivider />
             <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
@@ -1343,10 +1371,19 @@ const handlePrint = async () => {
                 ))}
               </React.Fragment>
             ))}
+            <ReceiptDivider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
+            {data.cup_size_totals && Object.entries(data.cup_size_totals).map(([size, qty]) => (
+              <ReceiptRow key={size} label={size} value={`${qty} CUPS`} />
+            ))}
+            <div className="flex text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+              <span className="w-[65%] uppercase font-bold text-black">TOTAL CUPS SOLD</span>
+              <span className="w-[35%] text-right font-bold text-black">{data.total_cups_sold ?? 0}</span>
+            </div>
           </>
         )}
 
-        <ReceiptDivider />
+
         {data.is_closed && data.closed_at && (
           <>
             <ReceiptRow
@@ -1532,10 +1569,37 @@ const handlePrint = async () => {
             </div>
           </div>
         </div>
-        <div>
+         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Shift</p>
+          <div className="relative">
+            <select value={shift} onChange={e => setShift(e.target.value)}
+              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-32">
+              <option value="all">Whole Day</option>
+              <option value="1">AM Shift</option>
+              <option value="2">PM Shift</option>
+            </select>
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Breakdown</p>
+          <div 
+            className="flex items-center gap-2 h-9 px-3 border border-zinc-200 rounded-lg bg-zinc-50 cursor-pointer select-none hover:border-violet-400 transition-colors"
+            onClick={() => setShowBreakdown(!showBreakdown)}
+          >
+            <input
+              type="checkbox"
+              checked={showBreakdown}
+              onChange={() => {}} 
+              className="w-3.5 h-3.5 rounded border-zinc-300 text-violet-600 focus:ring-violet-400 cursor-pointer"
+            />
+            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-tight">Show Items</span>
+          </div>
         </div>
         <Btn onClick={() => reportType === "z_reading" ? fetchReading() : fetchXReport()} disabled={loading || !branchId}>
           {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Load Reading"}

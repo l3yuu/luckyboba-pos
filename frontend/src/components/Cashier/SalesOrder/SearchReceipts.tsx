@@ -519,7 +519,7 @@ return {
                           </span>
                         </div>
                         <p className="text-[10px] text-zinc-300 font-medium mt-0.5 tabular-nums">
-                          SI-{item.si_number}
+                          {item.si_number}
                         </p>
                         <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
                           {item.created_at

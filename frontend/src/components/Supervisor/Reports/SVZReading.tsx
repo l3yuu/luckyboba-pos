@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import {
   Calendar, Printer, RefreshCw, Menu, Search,
@@ -63,6 +63,21 @@ interface ZReadingReport {
   is_vat?: boolean;
   total_discounts?: number;
   rounding_adjustment?: number;
+  cup_size_totals?: Record<string, number>;
+  total_cups_sold?: number;
+}
+
+interface ReportParams {
+  branch_id?: string | number;
+  date?: string;
+  from?: string;
+  to?: string;
+  date_from?: string;
+  date_to?: string;
+  shift?: string;
+  query?: string;
+  type?: string;
+  [key: string]: string | number | undefined;
 }
 
 interface SVZReadingProps {
@@ -107,10 +122,13 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
   const [invoiceQuery,  setInvoiceQuery]  = useState('');
   const [branchFilter,  setBranchFilter]  = useState('');
   const [teamLeaderFilter, setTeamLeaderFilter] = useState('');
+  const [selectedShift, setSelectedShift] = useState<string>('');
+  const [terminalShift, setTerminalShift] = useState<number | null>(null);
 
   const menuRef    = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
   const roundTo2 = (value: number) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const localVatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
   const isVat = reportData?.is_vat !== undefined ? reportData.is_vat : localVatType === 'vat';
@@ -118,6 +136,19 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
   useEffect(() => {
     const u = localStorage.getItem('user');
     if (u) { const p = JSON.parse(u); setCashierName(p.name || 'SUPERVISOR'); }
+
+    const getShift = async () => {
+      try {
+        const res = await api.get('/cash-counts/status');
+        if (res.data.shift) {
+          setTerminalShift(res.data.shift);
+          setSelectedShift(String(res.data.shift));
+        }
+      } catch (e) {
+        console.error("Failed to fetch shift status", e);
+      }
+    };
+    getShift();
   }, []);
 
   useEffect(() => {
@@ -170,16 +201,21 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
   };
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
-  const fetchReportData = async (type: string) => {
+  const fetchReportData = useCallback(async (type: string) => {
     setLoading(true); setError(null);
     try {
       const branchParam = branchId ? { branch_id: String(branchId) } : {};
 
       // ── Summary — merge sales-summary + item-quantities ──────────────────
       if (type === 'summary') {
+        const params: ReportParams = { from: selectedDate, to: selectedDate, ...branchParam };
+        if (selectedShift) params.shift = selectedShift;
+        const qParams: ReportParams = { date: selectedDate, ...branchParam };
+        if (selectedShift) qParams.shift = selectedShift;
+
         const [sRes, qRes] = await Promise.all([
-          api.get('/reports/sales-summary',   { params: { from: selectedDate, to: selectedDate, ...branchParam } }),
-          api.get('/reports/item-quantities', { params: { date: selectedDate, ...branchParam } }),
+          api.get('/reports/sales-summary',   { params }),
+          api.get('/reports/item-quantities', { params: qParams }),
         ]);
         const merged = { ...sRes.data, categories: qRes.data.categories ?? [], all_addons_summary: qRes.data.all_addons_summary ?? [] };
         setReportData({ ...normalizeResponse(type, merged), report_type: type });
@@ -188,20 +224,34 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
 
       // ── Z-Reading — merge z-reading + cash-counts + item-quantities + void-logs ──
       if (type === 'z_reading') {
-        const zParams = dateMode === 'range'
+        const zParams: ReportParams = dateMode === 'range'
           ? { from: fromDate, to: toDate, ...branchParam }
           : { from: selectedDate, to: selectedDate, ...branchParam };
         const ccDate = dateMode === 'range' ? toDate : selectedDate;
 
+        if (selectedShift) {
+          zParams.shift = selectedShift;
+        }
+
+        const ccParams: ReportParams = { date: ccDate, ...branchParam };
+        const qtyParams: ReportParams = { date: ccDate, ...branchParam };
+        const voidParams: ReportParams = { date: ccDate, ...branchParam };
+
+        if (selectedShift) {
+          ccParams.shift = selectedShift;
+          qtyParams.shift = selectedShift;
+          voidParams.shift = selectedShift;
+        }
+
         const [zRes, ccRes, qtyRes, voidRes] = await Promise.all([
           api.get('/reports/z-reading',       { params: zParams }),
-          api.get('/cash-counts/summary',     { params: { date: ccDate, ...branchParam } }),
-          api.get('/reports/item-quantities', { params: { date: ccDate, ...branchParam } }),
-          api.get('/reports/void-logs',       { params: { date: ccDate, ...branchParam } }),
+          api.get('/cash-counts/summary',     { params: ccParams }),
+          api.get('/reports/item-quantities', { params: qtyParams }),
+          api.get('/reports/void-logs',       { params: voidParams }),
         ]);
 
         const zData    = (zRes.data?.data ?? zRes.data)   as Record<string, unknown>;
-const ccData   = ccRes.data as Record<string, unknown>;
+        const ccData   = ccRes.data as Record<string, unknown>;
         const ccNested = ccData.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
 
         const ALL_DENOMS = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
@@ -271,13 +321,15 @@ const ccData   = ccRes.data as Record<string, unknown>;
         detailed: { url: '/reports/sales-detailed', params: { ...baseParams } },
       };
       const { url, params } = map[type];
-      const cleanParams = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== ''));
+      const finalParams: ReportParams = { ...params };
+      if (selectedShift) finalParams.shift = selectedShift;
+      const cleanParams = Object.fromEntries(Object.entries(finalParams).filter(([, v]) => v !== ''));
       const r = await api.get(url, { params: cleanParams });
       setReportData({ ...normalizeResponse(type, r.data), report_type: type });
     } catch (err: unknown) {
       setError(`Failed to load "${type.replace(/_/g, ' ')}": ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally { setLoading(false); }
-  };
+  }, [branchId, dateMode, fromDate, selectedDate, toDate, selectedShift, invoiceQuery, branchFilter, teamLeaderFilter]);
 
   // ── Receipt render helpers ─────────────────────────────────────────────────
 
@@ -692,7 +744,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
         )}
 
         {/* Item breakdown from item-quantities */}
-        {reportData?.categories && reportData.categories.length > 0 && (
+        {showBreakdown && reportData?.categories && reportData.categories.length > 0 && (
           <>
             <Divider />
             <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
@@ -714,10 +766,19 @@ const ccData   = ccRes.data as Record<string, unknown>;
               </React.Fragment>
             ))}
             <Divider />
-            <div className="flex text-[11px] font-bold justify-between"><span className="uppercase">GROSS TOTAL</span><span>{phCurrency.format(gross)}</span></div>
-            <div className="flex text-[11px] font-bold justify-between"><span className="uppercase">NET TOTAL</span><span>{phCurrency.format(netTotal)}</span></div>
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
+            {reportData?.cup_size_totals && Object.entries(reportData.cup_size_totals).map(([size, qty]) => (
+              <Row key={size} label={size} value={`${qty} CUPS`} />
+            ))}
+            <div className="flex text-[11px] font-bold border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+              <span className="w-[65%] uppercase font-bold text-black">TOTAL CUPS SOLD</span>
+              <span className="w-[35%] text-right font-bold text-black">{reportData?.total_cups_sold ?? 0}</span>
+            </div>
           </>
         )}
+        <Divider />
+        <div className="flex text-[11px] font-bold justify-between"><span className="uppercase">GROSS TOTAL</span><span>{phCurrency.format(gross)}</span></div>
+        <div className="flex text-[11px] font-bold justify-between"><span className="uppercase">NET TOTAL</span><span>{phCurrency.format(netTotal)}</span></div>
       </div>
     );
   };
@@ -860,6 +921,42 @@ const ccData   = ccRes.data as Record<string, unknown>;
                   </div>
                 </>
               )}
+
+              {/* Shift selector */}
+              <div className="w-full lg:w-auto space-y-1.5">
+                <label className="zr-label flex items-center gap-1.5 ml-1"><Clock size={11} /> Shift</label>
+                <div className="relative">
+                  <select
+                    value={selectedShift}
+                    onChange={(e) => setSelectedShift(e.target.value)}
+                    className="w-full h-11 pl-4 pr-10 rounded-xl border border-gray-100 bg-[#f5f4f8] font-semibold text-xs text-[#1a0f2e] outline-none appearance-none focus:border-[#ddd6f7] transition-all cursor-pointer uppercase tracking-wider"
+                  >
+                    <option value="">Whole Day</option>
+                    <option value="1">AM Shift {terminalShift === 1 ? '(Active)' : ''}</option>
+                    <option value="2">PM Shift {terminalShift === 2 ? '(Active)' : ''}</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#a1a1aa]">
+                    <Clock size={14} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Breakdown Toggle */}
+              <div className="w-full lg:w-auto space-y-1.5">
+                <label className="zr-label flex items-center gap-1.5 ml-1"><Activity size={11} /> Breakdown</label>
+                <div 
+                  className="flex items-center gap-2 h-11 px-4 border border-gray-100 rounded-xl bg-[#f5f4f8] cursor-pointer select-none hover:border-[#ddd6f7] transition-colors"
+                  onClick={() => setShowBreakdown(!showBreakdown)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showBreakdown}
+                    onChange={() => {}} 
+                    className="w-4 h-4 rounded border-gray-300 text-[#6a12b8] focus:ring-[#6a12b8] cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-[#1a0f2e] uppercase tracking-tight">Show Items</span>
+                </div>
+              </div>
 
               {/* Action buttons */}
               <div className="flex gap-2 w-full lg:w-auto">

@@ -5,6 +5,20 @@ namespace App\Http\Controllers\Api;
 use App\Helpers\AuditHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\RawMaterial;
+use App\Models\PosDevice;
+use App\Models\Sale;
+use App\Models\SaleItem;
+use App\Models\Receipt;
+use App\Models\StockDeduction;
+use App\Models\CashCount;
+use App\Models\ZReading;
+use App\Models\RawMaterialLog;
+use App\Models\Expense;
+use App\Models\PurchaseOrder;
+use App\Models\StockTransfer;
+use App\Models\CashTransaction;
+use App\Models\StockMovement;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,13 +32,15 @@ class BranchController extends Controller
     public function index()
     {
         try {
-            $branches = Branch::withCount('users as staff_count')
+            $branches = Branch::query()
+                ->withCount('users as staff_count')
                 ->with(['manager:id,name,branch_id,role'])
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(fn(Branch $branch) => array_merge($branch->toArray(), [
                     'manager_name' => $branch->manager?->name ?? '—',
                     'staff_count'  => $branch->staff_count ?? 0,
+                    'is_deleted'   => $branch->trashed(),
                 ]));
 
             return response()->json([
@@ -135,8 +151,8 @@ public function store(Request $request)
             AuditHelper::log('branch', "Created branch: {$branch->name}");
 
             // Auto-clone all global raw materials to the new branch
-            $globals = \App\Models\RawMaterial::whereNull('branch_id')->get();
-            /** @var \App\Models\RawMaterial $global */
+            $globals = RawMaterial::whereNull('branch_id')->get();
+            /** @var RawMaterial $global */
             foreach ($globals as $global) {
                 $clone = $global->replicate();
                 $clone->branch_id = $branch->id;
@@ -283,29 +299,68 @@ public function store(Request $request)
         try {
             $branch = Branch::findOrFail($id);
 
-            // Guard: prevent deleting a branch that has users or sales
-            $hasUsers = $branch->users()->exists();
-            $hasSales = method_exists($branch, 'sales') && $branch->sales()->exists();
-
-            if ($hasUsers || $hasSales) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot delete a branch that still has users or sales records. Mark it as inactive instead.',
-                ], 400);
-            }
-
-            AuditHelper::log('branch', "Deleted branch: {$branch->name}");
-
-            $branch->delete();
+            DB::transaction(function() use ($branch) {
+                // Soft delete ancillary records
+                RawMaterial::where('branch_id', $branch->id)->delete();
+                
+                AuditHelper::log('branch', "Soft deleted branch: {$branch->name}");
+                $branch->delete();
+            });
 
             return response()->json([
                 'success' => true,
-                'message' => 'Branch deleted successfully',
+                'message' => 'Branch marked as deleted successfully',
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete branch',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /api/branches/{id}/reset-sales
+     */
+    public function resetSales($id)
+    {
+        try {
+            $branch = Branch::withTrashed()->findOrFail($id);
+
+            DB::transaction(function() use ($branch) {
+                $saleIds = Sale::where('branch_id', $branch->id)->pluck('id');
+
+                // 1. Delete dependent sale data
+                SaleItem::whereIn('sale_id', $saleIds)->delete();
+                Receipt::whereIn('sale_id', $saleIds)->delete();
+                StockDeduction::whereIn('sale_id', $saleIds)->delete();
+                
+                // 2. Delete sales themselves
+                Sale::where('branch_id', $branch->id)->delete();
+                
+                // 3. Delete cash counts and Z-readings
+                CashCount::where('branch_id', $branch->id)->delete();
+                ZReading::where('branch_id', $branch->id)->delete();
+
+                // 4. Reset branch counters
+                $branch->update([
+                    'total_sales' => 0.00,
+                    'today_sales' => 0.00,
+                ]);
+
+                AuditHelper::log('branch', "RESET ALL SALES for branch: {$branch->name}");
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All sales records for this branch have been permanently deleted and counters reset.',
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reset sales.',
                 'error'   => $e->getMessage(),
             ], 500);
         }

@@ -3,6 +3,27 @@ const SESSION_KEY   = 'pos_device_id_backup';
 const COOKIE_NAME   = 'pos_device_id';
 const COOKIE_MAXAGE = 60 * 60 * 24 * 365; // 1 year
 
+// ── WebGL Fingerprint (GPU Information) ────────────────────────────────────────
+function getWebglRenderer(): string {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null);
+    if (!gl) return 'no-webgl';
+    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+    if (!debugInfo) return 'no-webgl-debug';
+    return String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
+  } catch {
+    return 'webgl-err';
+  }
+}
+
+// ── Stable User Agent (Strips versions) ────────────────────────────────────────
+function getStableUserAgent(): string {
+  // Removes version numbers (e.g. Chrome/124.0.0.0 -> Chrome/)
+  // This ensures the ID survives browser updates.
+  return navigator.userAgent.replace(/\d+[\d.]+/g, '');
+}
+
 // ── Canvas fingerprint (GPU/driver-derived) ───────────────────────────────────
 function canvasFingerprint(): string {
   try {
@@ -26,7 +47,7 @@ function canvasFingerprint(): string {
 // ── Hardware signal collection ────────────────────────────────────────────────
 function collectSignals(): string {
   return [
-    navigator.userAgent,
+    getStableUserAgent(),
     navigator.language,
     navigator.languages?.join(',') ?? '',
     String(navigator.hardwareConcurrency ?? ''),
@@ -37,8 +58,10 @@ function collectSignals(): string {
     String(screen.pixelDepth),
     Intl.DateTimeFormat().resolvedOptions().timeZone,
     canvasFingerprint(),
+    getWebglRenderer(), // Added GPU identification
   ].join('||');
 }
+
 
 // ── SHA-256 → deterministic hex ID ───────────────────────────────────────────
 async function deriveId(): Promise<string> {
@@ -56,6 +79,10 @@ async function deriveId(): Promise<string> {
 }
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
+
+/**
+ * Sync read from standard vaults.
+ */
 function readFromStorage(): string | null {
   return (
     localStorage.getItem(STORAGE_KEY) ??
@@ -64,10 +91,49 @@ function readFromStorage(): string | null {
   );
 }
 
-function writeToStorage(id: string): void {
+/**
+ * Async read from ALL vaults including Cache API (survives basic site data clear).
+ */
+async function readFromStorageAsync(): Promise<string | null> {
+  // 1. Try standard vaults first
+  const standard = readFromStorage();
+  if (standard) return standard;
+
+  // 2. Try Cache API vault (The "Deep Vault")
+  try {
+    const cache = await caches.open('pos-metadata');
+    const response = await cache.match('/device-id');
+    if (response) {
+      const id = await response.text();
+      // Restore standard vaults from deep vault
+      if (id) writeToStorage(id);
+      return id;
+    }
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
+
+async function writeToStorage(id: string): Promise<void> {
+  // 1. Standard Vaults
   try { localStorage.setItem(STORAGE_KEY, id); }   catch { /* private mode */ }
   try { sessionStorage.setItem(SESSION_KEY, id); } catch { /* private mode */ }
   document.cookie = `${COOKIE_NAME}=${id}; max-age=${COOKIE_MAXAGE}; path=/; SameSite=Lax`;
+
+  // 2. Deep Vault (Cache API) - Harder to clear
+  try {
+    const cache = await caches.open('pos-metadata');
+    await cache.put('/device-id', new Response(id));
+  } catch {
+    // ignore
+  }
+
+  // 3. Request Storage Persistence (Prevents browser from auto-clearing data)
+  if (navigator.storage && navigator.storage.persist) {
+    void navigator.storage.persist().catch(() => {});
+  }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -81,9 +147,9 @@ export function getDeviceId(): string {
   if (_cachedId) return _cachedId;
 
   // Not in storage — derive async and cache for next call
-  void deriveId().then(id => {
+  void deriveId().then(async (id) => {
     _cachedId = id;
-    writeToStorage(id);
+    await writeToStorage(id);
   });
 
   // Return a temporary empty string; callers should prefer getDeviceIdAsync
@@ -94,7 +160,7 @@ export function getDeviceId(): string {
 export async function getDeviceIdAsync(): Promise<string> {
   if (_cachedId) return _cachedId;
 
-  const stored = readFromStorage();
+  const stored = await readFromStorageAsync();
   if (stored) {
     _cachedId = stored;
     return stored;
@@ -103,14 +169,14 @@ export async function getDeviceIdAsync(): Promise<string> {
   // Storage was wiped — re-derive from hardware (same machine = same ID)
   const derived = await deriveId();
   _cachedId = derived;
-  writeToStorage(derived);
+  await writeToStorage(derived);
   return derived;
 }
 
 export function setDeviceId(id: string): void {
   const clean = id.trim();
   _cachedId   = clean;
-  writeToStorage(clean);
+  void writeToStorage(clean);
 }
 
 export function getPosNumber(): string {

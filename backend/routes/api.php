@@ -88,12 +88,13 @@ if ($branchId) {
             'categories.id as category_id',
             'menu_items.price as sellingPrice',
             'menu_items.image',
+            'menu_items.size',
             DB::raw("CASE 
                 WHEN menu_items.size = 'L' THEN COALESCE(cups.size_l, 'L')
                 WHEN menu_items.size = 'M' THEN COALESCE(cups.size_m, 'M')
                 WHEN menu_items.size = 'none' THEN COALESCE(cups.size_m, '')
                 ELSE menu_items.size
-            END as size")
+            END as cup_size_label")
         )
         ->where('menu_items.status', 'active') // globally inactive = always hidden
         ->get()
@@ -381,12 +382,35 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::get('/bundles',         [BundleController::class,       'index']);
         Route::get('/category-drinks', [CategoryDrinkController::class,'index']);
 
+        // ── Bundles Management ────────────────────────────────────────────────
+        Route::prefix('bundles')->group(function () {
+            Route::get   ('/all',         [BundleController::class, 'all']);
+            Route::get   ('/{id}',        [BundleController::class, 'show']);
+            Route::post  ('/',            [BundleController::class, 'store']);
+            Route::put   ('/{id}',        [BundleController::class, 'update']);
+            Route::delete('/{id}',        [BundleController::class, 'destroy']);
+            Route::patch ('/{id}/toggle', [BundleController::class, 'toggle']);
+        });
+
+        // ── Category Drinks (Pool) ────────────────────────────────────────────
+        Route::prefix('category-drinks')->group(function () {
+            Route::post('/', [CategoryDrinkController::class, 'store']);
+        });
+
+        // ── Add-Ons Management ────────────────────────────────────────────────
+        Route::prefix('add-ons')->group(function () {
+            Route::post  ('/',        [AddOnController::class, 'store']);
+            Route::put   ('/{addOn}', [AddOnController::class, 'update']);
+            Route::delete('/{addOn}', [AddOnController::class, 'destroy']);
+        });
+
         Route::apiResource('categories',     CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
 
-        Route::get('/cups',                                      [CupController::class,       'index']);
+        Route::get('/cup-sizes',                                 [CupController::class,       'index']);
         Route::get('/sugar-levels/by-item/{menuItemId}',         [SugarLevelController::class,'byMenuItem']);
+        Route::get('/menu-item-sugar-levels/bulk',               [SugarLevelController::class,'bulk']);
         Route::get('/menu-item-sugar-levels',                    [SugarLevelController::class,'byMenuItemViaQuery']); // Added to match frontend
         Route::put('/menu-item-sugar-levels/{id}',               [SugarLevelController::class,'updateAssignment']);   // Added to match frontend
 
@@ -601,20 +625,10 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::prefix('branches')->group(function () {
             Route::post  ('/',                    [BranchController::class, 'store']);
             Route::delete('/{id}',                [BranchController::class, 'destroy']);
+            Route::post  ('/{id}/reset-sales',     [BranchController::class, 'resetSales']);
         });
 
-        Route::prefix('bundles')->group(function () {
-            Route::get   ('/all',         [BundleController::class, 'all']);
-            Route::get   ('/{id}',        [BundleController::class, 'show']);
-            Route::post  ('/',            [BundleController::class, 'store']);
-            Route::put   ('/{id}',        [BundleController::class, 'update']);
-            Route::delete('/{id}',        [BundleController::class, 'destroy']);
-            Route::patch ('/{id}/toggle', [BundleController::class, 'toggle']);
-        });
 
-        Route::prefix('category-drinks')->group(function () {
-            Route::post('/', [CategoryDrinkController::class, 'store']);
-        });
 
         Route::prefix('sugar-levels')->group(function () {
             Route::get   ('/all',     [SugarLevelController::class, 'adminIndex']);
@@ -624,11 +638,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
             Route::patch ('/reorder', [SugarLevelController::class, 'reorder']);
         });
 
-        Route::prefix('add-ons')->group(function () {
-            Route::post  ('/',        [AddOnController::class, 'store']);
-            Route::put   ('/{addOn}', [AddOnController::class, 'update']);
-            Route::delete('/{addOn}', [AddOnController::class, 'destroy']);
-        });
+
 
         Route::prefix('admin/cards')->group(function () {
             Route::get ('/',                          [CardController::class, 'adminIndex']);

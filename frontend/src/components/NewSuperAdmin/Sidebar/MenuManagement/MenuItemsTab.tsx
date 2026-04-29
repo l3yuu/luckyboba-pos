@@ -1241,17 +1241,19 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
 
     if (idsToSync.length === 0) return;
 
-    // In edit mode, we only want to auto-sync if the selection has CHANGED from the initial load.
+    // In edit mode, we only want to auto-sync SELECTIONS if they changed from the initial load.
     // This prevents overwriting manually saved options immediately upon opening the modal.
+    // However, we ALWAYS want to fetch capabilities (itemCustomizations) to show the UI toggles.
+    let shouldSkipSelectionSync = false;
     if (isEdit && item) {
       if (initialIdsRef.current === null) {
         initialIdsRef.current = idsToSync;
-        return; // Skip first run in edit mode
+        shouldSkipSelectionSync = true;
+      } else {
+        const isSame = idsToSync.length === initialIdsRef.current.length && 
+                       idsToSync.every((id, idx) => id === initialIdsRef.current![idx]);
+        if (isSame) shouldSkipSelectionSync = true;
       }
-      
-      const isSame = idsToSync.length === initialIdsRef.current.length && 
-                     idsToSync.every((id, idx) => id === initialIdsRef.current![idx]);
-      if (isSame) return;
     }
 
     const fetchAll = async () => {
@@ -1270,23 +1272,28 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
 
         const newDetails: Record<string, { pearl: boolean, ice: boolean, sugar: boolean }> = {};
         results.forEach(r => {
+          const itemData = allItems.find(i => String(i.id) === r.id);
+          const isDrink = itemData?.category_type === "drink";
+
           newDetails[r.id] = {
-            pearl: r.options.some(o => o.option_type === "pearl"),
-            ice: r.options.some(o => o.option_type === "ice"),
-            sugar: r.sugarLevels.length > 0
+            pearl: r.options.some(o => o.option_type === "pearl") || isDrink,
+            ice: r.options.some(o => o.option_type === "ice") || isDrink,
+            sugar: r.sugarLevels.length > 0 || isDrink
           };
         });
         setItemCustomizations(prev => ({ ...prev, ...newDetails }));
 
-        // Aggregate Pearl/Ice (Union)
-        const hasPearl = results.some(r => r.options.some(o => o.option_type === "pearl"));
-        const hasIce = results.some(r => r.options.some(o => o.option_type === "ice"));
-        setOptions({ pearl: hasPearl, ice: hasIce });
+        if (!shouldSkipSelectionSync) {
+          // Aggregate Pearl/Ice (Union)
+          const hasPearl = results.some(r => r.options.some(o => o.option_type === "pearl"));
+          const hasIce = results.some(r => r.options.some(o => o.option_type === "ice"));
+          setOptions({ pearl: hasPearl, ice: hasIce });
 
-        // Aggregate Sugar Levels (Union)
-        const sugarIds = new Set<number>();
-        results.forEach(r => r.sugarLevels.forEach(s => sugarIds.add(s.sugar_level_id)));
-        setSelectedSugarLevelIds(Array.from(sugarIds));
+          // Aggregate Sugar Levels (Union)
+          const sugarIds = new Set<number>();
+          results.forEach(r => r.sugarLevels.forEach(s => sugarIds.add(s.sugar_level_id)));
+          setSelectedSugarLevelIds(Array.from(sugarIds));
+        }
 
       } catch (err) {
         console.error("Failed to auto-sync options:", err);
@@ -1294,7 +1301,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
     };
 
     fetchAll();
-  }, [drinkItemId, bundleItemIds, isComboCategory, isBundleCategory, isEdit, item]);
+  }, [drinkItemId, bundleItemIds, isComboCategory, isBundleCategory, isEdit, item, allItems]);
 
   const mmDrinkCount = mmBundleItems !== null
     ? mmBundleItems.filter(i => i.size !== 'none').length
@@ -1429,13 +1436,13 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         if (options.pearl) optList.push("pearl");
         if (options.ice) optList.push("ice");
         await fetch(`/api/menu-item-options/${savedItem.id}`, {
-          method: "PUT", headers: authHeaders(),
-          body: JSON.stringify({ options: optList }),
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({ _method: "PUT", options: optList }),
         }).catch(() => { });
 
         await fetch(`/api/menu-item-sugar-levels/${savedItem.id}`, {
-          method: "PUT", headers: authHeaders(),
-          body: JSON.stringify({ sugar_level_ids: selectedSugarLevelIds }),
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({ _method: "PUT", sugar_level_ids: selectedSugarLevelIds }),
         }).catch(() => { });
       }
 
@@ -1580,8 +1587,9 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         if (bundles.length > 0) {
           const bundleId = bundles[0].id;
           await fetch(`/api/bundles/${bundleId}`, {
-            method: 'PUT', headers: authHeaders(),
+            method: 'POST', headers: authHeaders(),
             body: JSON.stringify({
+              _method: 'PUT',
               name: form.name,
               price: Number(form.price),
               barcode: form.barcode,
@@ -1604,10 +1612,11 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
       );
       if (isFoodItem) {
         await fetch(`/api/menu-item-addons/${savedItem.id}`, {
-          method: "PUT", headers: authHeaders(),
-          body: JSON.stringify({ addon_ids: selectedFoodAddOnIds }),
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({ _method: "PUT", addon_ids: selectedFoodAddOnIds }),
         }).catch(() => { });
       }
+
 
       onSaved(savedItem);
       try {
@@ -2532,6 +2541,7 @@ const MenuItemsTab: React.FC = () => {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("");
+  const [filterSub, setFilterSub] = useState("");
   const [filterAvail, setFilterAvail] = useState("");
   const [filterType, setFilterType] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -2539,12 +2549,31 @@ const MenuItemsTab: React.FC = () => {
   const [delTarget, setDelTarget] = useState<MenuItem | null>(null);
   const [bundleInfo, setBundleInfo] = useState<Record<number, { name: string; quantity: number; size: string }[]>>({});
   const [itemOptions, setItemOptions] = useState<Record<number, ItemOptions>>({});
+  const [itemSugarLevels, setItemSugarLevels] = useState<Record<number, number[]>>({});
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [sugarLevels, setSugarLevels] = useState<SugarLevel[]>([]);
   const [addOnBuilderOpen, setAddOnBuilderOpen] = useState(false);
   const [allAddOns, setAllAddOns] = useState<AddOnItem[]>([]);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
+
+  const fetchAllSugarLevels = useCallback(async (loadedItems: MenuItem[]) => {
+    const drinkIds = loadedItems.filter(i => ["drink", "combo", "bundle"].includes(i.category_type)).map(i => i.id);
+    if (drinkIds.length === 0) return;
+    try {
+      const params = drinkIds.map(id => `ids[]=${id}`).join("&");
+      const res = await fetch(`/api/menu-item-sugar-levels/bulk?${params}`, { headers: authHeaders() });
+      const data = await res.json();
+      const rows: { menu_item_id: number; sugar_level_id: number }[] = data.data ?? [];
+      const map: Record<number, number[]> = {};
+      drinkIds.forEach(id => { map[id] = []; });
+      rows.forEach(r => {
+        if (!map[r.menu_item_id]) map[r.menu_item_id] = [];
+        map[r.menu_item_id].push(r.sugar_level_id);
+      });
+      setItemSugarLevels(map);
+    } catch { /* silent */ }
+  }, []);
 
   const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
     const drinkIds = loadedItems.filter(i => ["drink", "combo", "bundle"].includes(i.category_type)).map(i => i.id);
@@ -2596,6 +2625,7 @@ const MenuItemsTab: React.FC = () => {
       const mapped = (Array.isArray(itemsData) ? itemsData : (itemsData.data ?? [])).map(mapItem);
       setItems(mapped);
       fetchAllOptions(mapped);
+      fetchAllSugarLevels(mapped);
       setCategories((Array.isArray(catsData) ? catsData : (catsData.data ?? [])).map(mapCat));
       const rawSubs = Array.isArray(subsData) ? subsData : (subsData.data ?? []);
       setSubcategories(rawSubs.map((s: SubCategory) => ({ id: s.id, name: s.name, category_id: s.category_id })));
@@ -2603,7 +2633,7 @@ const MenuItemsTab: React.FC = () => {
       setAllAddOns(Array.isArray(addOnsData) ? addOnsData : (addOnsData.data ?? []));
     } catch { setError("Failed to load menu items."); }
     finally { setLoading(false); }
-  }, [fetchAllOptions]);
+  }, [fetchAllOptions, fetchAllSugarLevels]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -2627,26 +2657,38 @@ const MenuItemsTab: React.FC = () => {
     } catch { /* silent */ }
   }, [showToast]);
 
-  const fetchBundleItems = useCallback(async (itemId: number, categoryType: string, barcode: string | null) => {
-    if (bundleInfo[itemId] !== undefined || !["combo", "bundle"].includes(categoryType) || !barcode) return;
+  const fetchBundleItems = useCallback(async (itemId: number, categoryType: string, barcode: string | null, force: boolean = false) => {
+    if (!force && bundleInfo[itemId] !== undefined) return;
+    if (!["combo", "bundle"].includes(categoryType) || !barcode) return;
     try {
       const res = await fetch(`/api/bundles?barcode=${encodeURIComponent(barcode)}`, { headers: authHeaders() });
       const data = await res.json();
       const bundles = Array.isArray(data) ? data : (data.data ?? []);
       if (bundles.length > 0) {
         const rawItems = bundles[0].items ?? bundles[0].bundle_items ?? [];
-        setBundleInfo(prev => ({ ...prev, [itemId]: rawItems.map((i: BundleItemRaw) => ({ name: i.custom_name ?? i.name ?? "—", quantity: i.quantity ?? 1, size: i.size ?? "—" })) }));
+        setBundleInfo((prev: Record<number, { name: string; quantity: number; size: string }[]>) => ({
+          ...prev,
+          [itemId]: rawItems.map((i: BundleItemRaw) => {
+            const foundItem = items.find((mi: MenuItem) => mi.id === i.menu_item_id);
+            return {
+              name: foundItem?.name ?? i.custom_name ?? i.name ?? "—",
+              quantity: i.quantity ?? 1,
+              size: i.size ?? "—"
+            };
+          })
+        }));
       } else { setBundleInfo(prev => ({ ...prev, [itemId]: [] })); }
     } catch { setBundleInfo(prev => ({ ...prev, [itemId]: [] })); }
-  }, [bundleInfo]);
+  }, [bundleInfo, items]);
 
   const filtered = useMemo(() => items.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) || (i.barcode ?? "").toLowerCase().includes(search.toLowerCase());
     const matchCat = !filterCat || String(i.category_id) === filterCat;
+    const matchSub = !filterSub || String(i.subcategory_id) === filterSub;
     const matchAvail = !filterAvail || String(i.is_available) === filterAvail;
     const matchType = !filterType || i.category_type === filterType;
-    return matchSearch && matchCat && matchAvail && matchType;
-  }), [items, search, filterCat, filterAvail, filterType]);
+    return matchSearch && matchCat && matchSub && matchAvail && matchType;
+  }), [items, search, filterCat, filterSub, filterAvail, filterType]);
 
   const fmt = useCallback((v: number) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, []);
 
@@ -2697,10 +2739,21 @@ const MenuItemsTab: React.FC = () => {
             {search && <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500"><X size={12} /></button>}
           </div>
           <div className="relative">
-            <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+            <select value={filterCat} onChange={e => { setFilterCat(e.target.value); setFilterSub(""); }}
               className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
               <option value="">All Categories</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select value={filterSub} onChange={e => setFilterSub(e.target.value)}
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer disabled:opacity-50"
+              disabled={!filterCat}>
+              <option value="">All Sub-Categories</option>
+              {subcategories
+                .filter(s => !filterCat || String(s.category_id) === filterCat)
+                .map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
@@ -2728,8 +2781,8 @@ const MenuItemsTab: React.FC = () => {
             </select>
             <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
-          {(filterCat || filterAvail || filterType) && (
-            <button onClick={() => { setFilterCat(""); setFilterAvail(""); setFilterType(""); }}
+          {(filterCat || filterSub || filterAvail || filterType) && (
+            <button onClick={() => { setFilterCat(""); setFilterSub(""); setFilterAvail(""); setFilterType(""); }}
               className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors pl-1">
               <X size={11} /> Clear
             </button>
@@ -2803,14 +2856,27 @@ const MenuItemsTab: React.FC = () => {
                   </td>
                   <td className="px-5 py-3.5">
                     {["drink"].includes(item.category_type) ? (
-                      sugarLevels.length === 0 ? <span className="text-zinc-300 text-xs">—</span> : (
-                        <div className="flex flex-wrap gap-1 max-w-40">
-                          {sugarLevels.slice(0, 3).map(lvl => (
-                            <span key={lvl.id} className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200">{lvl.value}</span>
-                          ))}
-                          {sugarLevels.length > 3 && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-zinc-100 text-zinc-500 border border-zinc-200">+{sugarLevels.length - 3}</span>}
-                        </div>
-                      )
+                      (() => {
+                        const assignedIds = itemSugarLevels[item.id] || [];
+                        const assignedLevels = sugarLevels.filter(sl => assignedIds.includes(sl.id));
+                        
+                        if (assignedLevels.length === 0) return <span className="text-zinc-300 text-xs">—</span>;
+                        
+                        return (
+                          <div className="flex flex-wrap gap-1 max-w-40">
+                            {assignedLevels.slice(0, 3).map(lvl => (
+                              <span key={lvl.id} className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200">
+                                {lvl.value}
+                              </span>
+                            ))}
+                            {assignedLevels.length > 3 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-zinc-100 text-zinc-500 border border-zinc-200">
+                                +{assignedLevels.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()
                     ) : <span className="text-zinc-300 text-xs">—</span>}
                   </td>
                   <td className="px-5 py-3.5">
@@ -2886,12 +2952,28 @@ const MenuItemsTab: React.FC = () => {
       {addOpen && (
         <MenuItemForm allItems={items} categories={categories} subcategories={subcategories} sugarLevels={sugarLevels} allAddOns={allAddOns}
           onClose={() => startTransition(() => setAddOpen(false))}
-          onSaved={item => { setItems(p => [item, ...p]); setAddOpen(false); }} />
+          onSaved={item => { 
+            setItems(p => [item, ...p]); 
+            setBundleInfo(prev => {
+              const next = { ...prev };
+              delete next[item.id];
+              return next;
+            });
+            setAddOpen(false); 
+          }} />
       )}
       {editTarget && (
         <MenuItemForm item={editTarget} allItems={items} categories={categories} subcategories={subcategories} sugarLevels={sugarLevels} allAddOns={allAddOns}
           onClose={() => startTransition(() => setEditTarget(null))}
-          onSaved={updated => { setItems(p => p.map(i => i.id === updated.id ? updated : i)); setEditTarget(null); }} />
+          onSaved={updated => { 
+            setItems(p => p.map(i => i.id === updated.id ? updated : i)); 
+            setBundleInfo(prev => {
+              const next = { ...prev };
+              delete next[updated.id];
+              return next;
+            });
+            setEditTarget(null); 
+          }} />
       )}
       {delTarget && (
         <DeleteModal item={delTarget} onClose={() => startTransition(() => setDelTarget(null))}

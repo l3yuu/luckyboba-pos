@@ -36,6 +36,7 @@ interface MenuItem {
   sellingPrice: number;
   image: string | null;
   size?: string;
+  cup_size_label?: string;
 }
 
 interface Branch {
@@ -668,8 +669,8 @@ const KioskPage = () => {
               name: ao.name,
               price: ao.price
             })),
-            size: item.size || 'Standard',
-            cup_size_label: item.size || 'Standard',
+            size: item.size && item.size !== 'none' && item.size !== 'Standard' ? item.size : null,
+            cup_size_label: item.cup_size_label && item.cup_size_label !== 'none' && item.cup_size_label !== 'Standard' ? item.cup_size_label : null,
           };
         })
       };

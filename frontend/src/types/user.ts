@@ -4,6 +4,7 @@
 // 'in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin'
 export type UserRole =
   | 'superadmin'
+  | 'super_admin'
   | 'system_admin'
   | 'branch_manager'
   | 'supervisor'        // ← ADD

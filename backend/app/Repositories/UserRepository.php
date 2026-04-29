@@ -98,22 +98,11 @@ class UserRepository implements UserRepositoryInterface
         }
 
         DB::transaction(function () use ($user) {
+            // Revoke all tokens
             DB::table('personal_access_tokens')
                 ->where('tokenable_type', get_class($user))
                 ->where('tokenable_id', $user->id)
                 ->delete();
-
-            $tablesWithUserId = [
-                'sales', 'cash_counts', 'cash_transactions',
-                'expenses', 'purchase_orders', 'audit_logs', 'sessions',
-            ];
-
-            $schema = DB::getSchemaBuilder();
-            foreach ($tablesWithUserId as $table) {
-                if ($schema->hasTable($table) && $schema->hasColumn($table, 'user_id')) {
-                    DB::table($table)->where('user_id', $user->id)->update(['user_id' => null]);
-                }
-            }
 
             $user->delete();
         });

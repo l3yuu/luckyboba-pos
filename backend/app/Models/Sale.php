@@ -66,6 +66,7 @@ class Sale extends Model
         'pwd_id',
         'pax_discount_ids',
         'source',
+        'shift',
     ];
 
     protected $casts = [

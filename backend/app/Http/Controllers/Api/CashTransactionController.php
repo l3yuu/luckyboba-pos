@@ -43,22 +43,8 @@ class CashTransactionController extends Controller
     {
         $user   = Auth::user();
         $userId = $user->id;
-        $branchId = $user->branch_id; // ← get from authenticated user
+        $branchId = $user->branch_id; 
         $today  = now()->toDateString();
-
-        // 1. GLOBAL LOCK: Check if EOD is already done for today
-        $isEodDone = CashCount::where('user_id', $userId)
-            ->where(function($query) use ($today) {
-                $query->whereDate('date', $today)
-                    ->orWhereDate('created_at', $today);
-            })->exists();
-
-        if ($isEodDone) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Terminal is locked. End of Day has already been processed.'
-            ], 403);
-        }
 
         $validated = $request->validate([
             'type'   => 'required|in:cash_in,cash_out,cash_drop',
@@ -66,34 +52,45 @@ class CashTransactionController extends Controller
             'note'   => 'nullable|string|max:255',
         ]);
 
-        // 2. SHIFT INITIALIZATION CHECK
-        $hasCashedIn = CashTransaction::where('user_id', $userId)
-            ->where('type', 'cash_in')
-            ->whereDate('created_at', $today)
-            ->exists();
+        $shift = $this->getCurrentShiftNumber($branchId);
 
-        if (!$hasCashedIn && $validated['type'] !== 'cash_in') {
+        if ($shift > 2) {
             return response()->json([
                 'success' => false,
-                'message' => 'Shift not initialized. Please perform Cash In first.'
+                'message' => 'Terminal is locked. Maximum of 2 shifts per day reached.'
             ], 403);
         }
 
-        // 3. PREVENT DOUBLE CASH-IN
-        if ($validated['type'] === 'cash_in' && $hasCashedIn) {
+        // 1. SHIFT INITIALIZATION CHECK
+        $hasCashedInThisShift = CashTransaction::where('branch_id', $branchId)
+            ->where('type', 'cash_in')
+            ->whereDate('created_at', $today)
+            ->where('shift', $shift)
+            ->exists();
+
+        if (!$hasCashedInThisShift && $validated['type'] !== 'cash_in') {
             return response()->json([
                 'success' => false,
-                'message' => 'You have already performed a Cash In for today.'
-            ], 200);
+                'message' => "Shift {$shift} not initialized. Please perform Cash In first."
+            ], 403);
+        }
+
+        // 2. PREVENT DOUBLE CASH-IN PER SHIFT
+        if ($validated['type'] === 'cash_in' && $hasCashedInThisShift) {
+            return response()->json([
+                'success' => false,
+                'message' => "Shift {$shift} has already been initialized."
+            ], 422);
         }
 
         try {
             $transaction = CashTransaction::create([
                 'user_id'   => $userId,
-                'branch_id' => $branchId, // ← added
+                'branch_id' => $branchId,
                 'type'      => $validated['type'],
                 'amount'    => $validated['amount'],
                 'note'      => $validated['note'],
+                'shift'     => $shift,
             ]);
 
             return response()->json([
@@ -104,5 +101,14 @@ class CashTransactionController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    private function getCurrentShiftNumber(int $branchId): int
+    {
+        $today = now()->toDateString();
+        // Count how many EODs (CashCount) exist for today in this branch
+        return CashCount::where('branch_id', $branchId)
+            ->where('date', $today)
+            ->count() + 1;
     }
 }

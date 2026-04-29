@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\RawMaterialLog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class RawMaterial extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'name',
         'unit',
@@ -153,7 +155,7 @@ class RawMaterial extends Model
     /**
      * Centralized method to record stock movements with point-in-time snapshots.
      */
-    public function recordMovement(float $qtyChange, string $type, string $reason, ?int $userId = null): void
+    public function recordMovement(float $qtyChange, string $type, string $reason, ?int $userId = null, ?int $branchIdOverride = null): void
     {
         $before = (float) $this->current_stock;
 
@@ -168,7 +170,7 @@ class RawMaterial extends Model
 
         StockMovement::create([
             'raw_material_id' => $this->id,
-            'branch_id'       => $this->branch_id,
+            'branch_id'       => $branchIdOverride ?? $this->branch_id,
             'user_id'         => $userId ?? auth()->id(),
             'before_stock'    => $before,
             'after_stock'     => $after,

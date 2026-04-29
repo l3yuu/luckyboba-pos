@@ -294,7 +294,12 @@ export const ReceiptPrint = ({
               if (showAddOns) shownAddOns.add(cartIndex);
 
 
-              const unitGross = Number(item.price);
+              const perUnitSurcharge = item.charges?.grab
+                ? Number(item.grab_price ?? 0)
+                : item.charges?.panda
+                  ? Number(item.panda_price ?? 0)
+                  : 0;
+              const unitGross = Number(item.price) + perUnitSurcharge;
               return (
                 <div key={gi} className="mb-3">
                   {/* Item name + badge */}
@@ -310,7 +315,7 @@ export const ReceiptPrint = ({
                   {/* Qty × unit price row */}
                   <div className="flex justify-between w-full mt-0.5">
                     <span>
-                      {count} X {Number(item.price).toFixed(2)}
+                      {count} X {unitGross.toFixed(2)}
                     </span>
                     <span>
                       {(unitGross * count).toFixed(2)}
@@ -1050,11 +1055,12 @@ export const StickerPrint = ({
               >
                 <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
                 <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-                  <div className="text-[9px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">{item.name}</div>
-                  <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>{component.name}</div>
+                  <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
+                    {component.name} {component.size && component.size !== 'none' && `(${component.size})`}
+                  </div>
                   <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
                     {component.sugarLevel && component.sugarLevel.trim() !== '' && (
-                      <div>Sugar: {component.sugarLevel}</div>
+                      <div className="text-[#6a12b8]">Sugar: {component.sugarLevel}</div>
                     )}
                     {component.options.map(opt => <div key={opt}>{opt}</div>)}
                     {component.addOns.map(a => <div key={a}>+ {a}</div>)}
@@ -1120,7 +1126,7 @@ export const StickerPrint = ({
             <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
             <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
               <div className="text-[9px] font-bold uppercase text-black leading-none mb-0.5 tracking-wider">
-                Mix & Match — {item.name}
+                {item.name}
               </div>
               <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
                 {drinkName}

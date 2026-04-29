@@ -261,7 +261,7 @@ const CashierFormModal: React.FC<{
     if (form.password && form.password !== form.passwordConfirm) e.passwordConfirm = 'Passwords do not match.';
     if (showPin) {
       if (!form.manager_pin.trim()) e.manager_pin = 'PIN is required for this role.';
-      else if (!/^\d{4,8}$/.test(form.manager_pin)) e.manager_pin = 'PIN must be 4–8 digits.';
+      else if (form.manager_pin.length !== 6) e.manager_pin = "PIN must be exactly 6 digits.";
       if (form.manager_pin !== form.manager_pin_confirmation)
         e.manager_pin_confirmation = 'PINs do not match.';
     }
@@ -387,8 +387,8 @@ const handleSubmit = async () => {
                 {...f('manager_pin')}
                 type="password"
                 inputMode="numeric"
-                placeholder="4–8 digits"
-                maxLength={8}
+                placeholder="6 digits"
+                maxLength={6}
                 className={inputCls(errors.manager_pin)}
               />
             </Field>
@@ -397,8 +397,8 @@ const handleSubmit = async () => {
                 {...f('manager_pin_confirmation')}
                 type="password"
                 inputMode="numeric"
-                placeholder="Re-enter PIN"
-                maxLength={8}
+                placeholder="6 digits"
+                maxLength={6}
                 className={inputCls(errors.manager_pin_confirmation)}
               />
             </Field>

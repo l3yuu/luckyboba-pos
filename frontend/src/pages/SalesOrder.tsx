@@ -148,12 +148,11 @@ const SalesOrder = () => {
   const [remarks, setRemarks] = useState('')
   const [sugarLevel, setSugarLevel] = useState('')
   const [sugarLevels, setSugarLevels] = useState<{ id: number; label: string; value: string }[]>(() => {
-    // REVERT to standard 0, 25, 50, 75, 100 as per user request
-    return SUGAR_LEVELS.map((label, i) => ({
-      id: i + 1,
-      label,
-      value: label
-    }));
+    try {
+      const cached = localStorage.getItem('pos_sugar_levels_cache')
+      if (cached) return JSON.parse(cached)
+    } catch { /* ignore */ }
+    return SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label }));
   })
   const [size, setSize] = useState<'M' | 'L' | 'none'>('M')
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
@@ -291,7 +290,7 @@ const SalesOrder = () => {
   const isDrink = selectedCategory?.type === 'drink' || selectedCategory?.category_type === 'bundle'
   const isWings = selectedCategory?.category_type === 'wings'
   const isOz = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE'
-  const isCombo = selectedCategory?.category_type === 'combo'
+  const isCombo = selectedCategory?.category_type === 'combo' || selectedCategory?.category_type === 'bundle' || (selectedCategory?.name || '').toLowerCase().includes('bundle');
   const isWaffleCategory = selectedCategory?.category_type === 'waffle'
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1
 
@@ -478,11 +477,12 @@ const SalesOrder = () => {
     const t = Date.now(); // Cache busting timestamp
 
     try {
-      const [menuRes, addonsRes, bundlesRes, discountsRes, branchRes, paymentRes] = await Promise.allSettled([
+      const [menuRes, addonsRes, bundlesRes, discountsRes, sugarLevelsRes, branchRes, paymentRes] = await Promise.allSettled([
         api.get(`/menu?t=${t}`),
         api.get(`/add-ons?t=${t}`),
         api.get(`/bundles?t=${t}`),
         api.get(`/discounts?t=${t}`),
+        api.get(`/sugar-levels?t=${t}`),
         branchId ? api.get(`/branches/${branchId}?t=${t}`) : Promise.reject('no_branch'),
         api.get(`/payment-settings?t=${t}`)
       ]);
@@ -520,9 +520,15 @@ const SalesOrder = () => {
         setAddOnsData(data);
       }
 
-      // 3. Sugar Levels (Maintain standard levels even after sync)
-      // We ignore server sugar levels to stick to standard 0-100% per user request
-      setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })));
+      // 3. Sugar Levels
+      if (sugarLevelsRes.status === 'fulfilled') {
+        const data = sugarLevelsRes.value.data.data;
+        const mapped = data.map((s: { id: number; label: string; value: string }) => ({ id: s.id, label: s.label, value: s.value }));
+        localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(mapped));
+        setSugarLevels(mapped);
+      } else {
+        setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })));
+      }
 
       // 4. Bundles
       if (bundlesRes.status === 'fulfilled') {
@@ -875,8 +881,34 @@ const SalesOrder = () => {
       return
     }
 
-    if (catType === 'bundle') {
-      const bundle = bundlesData.find(b => b.barcode === item.barcode)
+    const catTypeLower = (catType || '').toLowerCase().trim();
+    const catNameLower = (actualCategory?.name || '').toLowerCase().trim();
+    const isBundleLike = catTypeLower.includes('bundle') || catNameLower.includes('bundle') || catTypeLower === 'combo';
+
+    if (isBundleLike) {
+      const bCode = (item.barcode || '').trim().toUpperCase();
+      const bName = (item.name || '').trim().toLowerCase();
+      let bundle = bundlesData.find(b => (b.barcode || '').trim().toUpperCase() === bCode) || 
+                     bundlesData.find(b => (b.name || '').trim().toLowerCase() === bName) ||
+                     bundlesData.find(b => String(b.id) === String(item.id));
+      
+      if (!bundle && bCode) {
+        try {
+          const res = await api.get(`/bundles?barcode=${bCode}`);
+          const fetchedBundles = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+          if (fetchedBundles.length > 0) {
+            bundle = fetchedBundles[0];
+            setBundlesData(prev => {
+              const next = [...prev, bundle!];
+              localStorage.setItem('pos_bundles_cache', JSON.stringify(next));
+              return next;
+            });
+          }
+        } catch (err) {
+          console.error("Dynamic bundle fetch failed:", err);
+        }
+      }
+      
       if (bundle) {
         // Flatten items: if quantity is 2, create 2 separate slots for customization
         const allMenuItems = categories.flatMap(c => c.menu_items)
@@ -898,12 +930,23 @@ const SalesOrder = () => {
           quantity: 1,
           sugarLevel: '',
           options: [],
-          addOns: []
+          addOns: [],
+          size: item.size || 'L'
         })))
         setBundleComponentIndex(0)
         setOrderCharge(null)
+        // Ensure sugar levels are set to active ones
+        try {
+          const cached = localStorage.getItem('pos_sugar_levels_cache')
+          if (cached) setSugarLevels(JSON.parse(cached))
+          else setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })))
+        } catch {
+          setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })))
+        }
         setIsBundleModalOpen(true)
         return
+      } else {
+        showToast(`Warning: "${item.name}" is in a Bundle category but has no linked components. Opening standard modal.`, "warning")
       }
     }
 
@@ -924,8 +967,7 @@ const SalesOrder = () => {
 
     const isDrinkItem = catType === 'drink' || catType === 'combo'
     if (isDrinkItem) {
-      // REVERT: Use standard sugar levels instead of fetching per-item
-      setSugarLevels(SUGAR_LEVELS.map((label, i) => ({ id: i + 1, label, value: label })))
+      setSugarLevels(item.sugar_levels || [])
       setSugarLevel('')
     } else {
       setSugarLevels([])
@@ -1087,12 +1129,7 @@ const SalesOrder = () => {
     // Validation for current step
     const item = flattenedBundleItems[bundleComponentIndex] as BundleComponent & { menuItem?: MenuItem }
     const sel = bundleComponentSelections[bundleComponentIndex]
-    const itemName = (sel.name || '').toLowerCase()
-    const hasSugarLevels = (item.menuItem?.sugar_levels?.length ?? 0) > 0 || 
-                           item.menuItem?.category_id != null ||
-                           itemName.includes('tea') || itemName.includes('drink') || 
-                           itemName.includes('coffee') || itemName.includes('boba') ||
-                           itemName.includes('milk') || itemName.includes('latte')
+    const hasSugarLevels = (item.menuItem?.sugar_levels?.length ?? 0) > 0;
     
     if (hasSugarLevels && sel.sugarLevel === '') {
         showToast(`Please select sugar level for ${sel.name}`, 'warning')
@@ -1194,8 +1231,9 @@ const SalesOrder = () => {
       ...comboDrinkOptions,
       ...comboDrinkAddOns.map(a => `+${a}`),
     ].join(' | ')
-    const drinkLabel =
-      isPizzaCombo && !isClassicPearl ? pendingComboCart.name.replace(/^PIZZA \+ /i, '') : 'Classic Pearl'
+    const drinkLabel = pendingComboCart.name.includes(' + ') 
+      ? pendingComboCart.name.split(' + ').pop()?.trim() || 'Second Item'
+      : (pendingComboCart.name.includes('+') ? pendingComboCart.name.split('+').pop()?.trim() : 'Classic Pearl');
     const finalItem: CartItem = {
       ...pendingComboCart,
       remarks: `${drinkLabel} [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
@@ -1825,7 +1863,6 @@ const SalesOrder = () => {
             pendingMixMatchCart={pendingMixMatchCart}
             drinkItems={mixMatchDrinkItems}
             selectedDrink={selectedMixMatchDrink}
-            drinkSugarLevels={sugarLevels}
             drinkSugar={mixMatchDrinkSugar}
             drinkOptions={mixMatchDrinkOptions}
             drinkAddOns={mixMatchDrinkAddOns}

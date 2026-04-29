@@ -390,21 +390,32 @@ const AssignCashierModal: React.FC<{
       <Field label="Add Cashier" required>
         {loading ? (
           <div className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
-        ) : cashiers.length === 0 ? (
-          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <AlertCircle size={13} className="text-amber-500 shrink-0" />
-            <p className="text-xs text-amber-700 font-medium">No active cashiers found for this branch.</p>
-          </div>
         ) : (
-          <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={inputCls()}>
-            <option value="">— Select a cashier to add —</option>
-            {cashiers.map(c => (
-              <option key={c.id} value={String(c.id)}>
-                {c.name} — {c.email}
-                {isAlreadyAssigned(c.id) ? " ✓ assigned" : ""}
-              </option>
-            ))}
-          </select>
+          (() => {
+            const available = cashiers.filter(c => !isAlreadyAssigned(c.id));
+            if (available.length === 0) {
+              return (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertCircle size={13} className="text-amber-500 shrink-0" />
+                  <p className="text-xs text-amber-700 font-medium">
+                    {cashiers.length === 0
+                      ? "No active cashiers found for this branch."
+                      : "All active cashiers for this branch are already assigned to this device."}
+                  </p>
+                </div>
+              );
+            }
+            return (
+              <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={inputCls()}>
+                <option value="">— Select a cashier to add —</option>
+                {available.map(c => (
+                  <option key={c.id} value={String(c.id)}>
+                    {c.name} — {c.email}
+                  </option>
+                ))}
+              </select>
+            );
+          })()
         )}
       </Field>
     </ModalShell>

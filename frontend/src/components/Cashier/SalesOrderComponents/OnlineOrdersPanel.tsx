@@ -670,15 +670,34 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     setError(null);
     try {
       const order = orders.find(o => o.id === id);
-      const branchName = order?.branch_name ?? '';
-      await api.patch(`/online-orders/${id}/status`, { status, branch_name: branchName });
+      if (!order) return;
+      const branchName = order.branch_name ?? '';
+      let invoice_number = orderInvoice(order);
 
-      const updatedOrder = order ? { ...order, status } : null;
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+      // Ensure SI number for kiosk/app orders when moving out of pending or finalizing
+      if (invoice_number.startsWith('KSK-') || invoice_number.startsWith('APP-')) {
+        try {
+          const res = await api.get(`/receipts/next-sequence?branch_id=${user?.branch_id || ''}&source=pos&t=${Date.now()}`);
+          if (res.data?.sequence || res.data?.next_sequence) {
+            invoice_number = res.data.sequence || generateORNumber(res.data.next_sequence);
+          }
+        } catch (e) {
+          console.error('Failed to fetch next sequence in handleMove', e);
+        }
+      }
+
+      await api.patch(`/online-orders/${id}/status`, { 
+        status, 
+        branch_name: branchName,
+        invoice_number: invoice_number !== orderInvoice(order) ? invoice_number : undefined
+      });
+
+      const updatedOrder = { ...order, status, invoice_number };
+      setOrders(prev => prev.map(o => o.id === id ? updatedOrder : o));
 
       if (status === 'preparing') {
         // Print kitchen ticket
-        if (updatedOrder) triggerPrint('kitchen', updatedOrder as OnlineOrder, updatedOrder.customer_code || '001');
+        triggerPrint('kitchen', updatedOrder as OnlineOrder, updatedOrder.customer_code || '001');
       }
 
       if (status === 'completed') {
