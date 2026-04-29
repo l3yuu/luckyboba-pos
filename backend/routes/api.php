@@ -499,6 +499,19 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::get('/users', [UserController::class, 'index']);
     });
 
+    // ── STAFF MANAGEMENT (Supervisor, Team Leader, etc.) ──────────────────────
+    Route::middleware(['role:superadmin,branch_manager,supervisor,team_leader'])->group(function () {
+        Route::prefix('users')->group(function () {
+            Route::post  ('/',                    [UserController::class, 'store']);
+            Route::get   ('/stats',               [UserController::class, 'stats']);
+            Route::get   ('/{id}',                [UserController::class, 'show']);
+            Route::put   ('/{id}',                [UserController::class, 'update']);
+            Route::delete('/{id}',                [UserController::class, 'destroy']);
+            Route::patch ('/{id}/toggle-status',  [UserController::class, 'toggleStatus']);
+            Route::patch ('/{id}/pin',            [UserController::class, 'updatePin'])->middleware('throttle:5,1');
+        });
+    });
+
     // ── BRANCH MANAGER + SUPERADMIN ──────────────────────────────────────────
     Route::middleware(['role:superadmin,branch_manager'])->group(function () {
 
@@ -543,16 +556,6 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
 
         Route::get('/item-checker/search',    [ItemCheckerController::class, 'search']);
         Route::get('/item-checker/{barcode}', [ItemCheckerController::class, 'lookup']);
-
-        Route::prefix('users')->group(function () {
-            Route::post  ('/',                    [UserController::class, 'store']);
-            Route::get   ('/stats',               [UserController::class, 'stats']);
-            Route::get   ('/{id}',                [UserController::class, 'show']);
-            Route::put   ('/{id}',                [UserController::class, 'update']);
-            Route::delete('/{id}',                [UserController::class, 'destroy']);
-            Route::patch ('/{id}/toggle-status',  [UserController::class, 'toggleStatus']);
-            Route::patch ('/{id}/pin',            [UserController::class, 'updatePin'])->middleware('throttle:5,1');
-        });
 
         Route::prefix('branches')->group(function () {
             Route::put   ('/{id}',                [BranchController::class, 'update']);
