@@ -523,7 +523,7 @@ const SalesOrder = () => {
       // 3. Sugar Levels
       if (sugarLevelsRes.status === 'fulfilled') {
         const data = sugarLevelsRes.value.data.data;
-        const mapped = data.map((s: any) => ({ id: s.id, label: s.label, value: s.value }));
+        const mapped = data.map((s: { id: number; label: string; value: string }) => ({ id: s.id, label: s.label, value: s.value }));
         localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(mapped));
         setSugarLevels(mapped);
       } else {
