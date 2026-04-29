@@ -224,10 +224,11 @@ export interface ComboBuilderProps {
   drinkItemId: string;
   onFoodChange: (id: string) => void;
   onDrinkChange: (id: string) => void;
-  options: { pearl: boolean; ice: boolean };
-  setOptions: (val: { pearl: boolean; ice: boolean }) => void;
-  selectedSugarIds: number[];
-  setSelectedSugarIds: (ids: number[]) => void;
+  // Independent options per slot
+  slotOptions: Record<string, ItemOptions>;
+  setSlotOptions: (slotKey: string, val: ItemOptions) => void;
+  slotSugarIds: Record<string, number[]>;
+  setSlotSugarIds: (slotKey: string, ids: number[]) => void;
   allSugarLevels: SugarLevel[];
   itemCustomizations: Record<string, { pearl: boolean; ice: boolean; sugar: boolean }>;
   errors: Record<string, string>;
@@ -238,10 +239,14 @@ const DRINK_TYPES = ["drink"];
 
 export const ComboBuilder: React.FC<ComboBuilderProps> = ({
   allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, 
-  options, setOptions, selectedSugarIds, setSelectedSugarIds, allSugarLevels, itemCustomizations, errors,
+  slotOptions, setSlotOptions, slotSugarIds, setSlotSugarIds, allSugarLevels, itemCustomizations, errors,
 }) => {
   const foodCustoms = itemCustomizations[foodItemId];
   const drinkCustoms = itemCustomizations[drinkItemId];
+
+  // Helper to get options for a slot, defaulting to false
+  const getOptions = (key: string) => slotOptions[key] || { pearl: false, ice: false };
+  const getSugarIds = (key: string) => slotSugarIds[key] || [];
 
   const foodOptions = useMemo(() =>
     allItems
@@ -296,47 +301,47 @@ export const ComboBuilder: React.FC<ComboBuilderProps> = ({
           <div className="mt-3 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               {foodCustoms.pearl && (
-                <div className={`p-2 rounded-lg border transition-all ${options.pearl ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
-                  <p className={`text-[9px] font-bold uppercase mb-1 ${options.pearl ? 'text-rose-500' : 'text-zinc-400'}`}>Pearl</p>
+                <div className={`p-2 rounded-lg border transition-all ${getOptions('food').pearl ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                  <p className={`text-[9px] font-bold uppercase mb-1 ${getOptions('food').pearl ? 'text-rose-500' : 'text-zinc-400'}`}>Pearl</p>
                   <button 
                     type="button"
-                    onClick={() => setOptions({ ...options, pearl: !options.pearl })}
-                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.pearl ? 'bg-white text-rose-600 border-rose-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                    onClick={() => setSlotOptions('food', { ...getOptions('food'), pearl: !getOptions('food').pearl })}
+                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${getOptions('food').pearl ? 'bg-white text-rose-600 border-rose-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
                   >
                     <span>🧋 Option</span>
-                    <span className={options.pearl ? 'text-rose-600' : 'text-zinc-300'}>{options.pearl ? 'ON' : 'OFF'}</span>
+                    <span className={getOptions('food').pearl ? 'text-rose-600' : 'text-zinc-300'}>{getOptions('food').pearl ? 'ON' : 'OFF'}</span>
                   </button>
                 </div>
               )}
 
               {foodCustoms.ice && (
-                <div className={`p-2 rounded-lg border transition-all ${options.ice ? 'bg-sky-50 border-sky-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
-                  <p className={`text-[9px] font-bold uppercase mb-1 ${options.ice ? 'text-sky-500' : 'text-zinc-400'}`}>Ice</p>
+                <div className={`p-2 rounded-lg border transition-all ${getOptions('food').ice ? 'bg-sky-50 border-sky-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                  <p className={`text-[9px] font-bold uppercase mb-1 ${getOptions('food').ice ? 'text-sky-500' : 'text-zinc-400'}`}>Ice</p>
                   <button 
                     type="button"
-                    onClick={() => setOptions({ ...options, ice: !options.ice })}
-                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.ice ? 'bg-white text-sky-600 border-sky-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                    onClick={() => setSlotOptions('food', { ...getOptions('food'), ice: !getOptions('food').ice })}
+                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${getOptions('food').ice ? 'bg-white text-sky-600 border-sky-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
                   >
                     <span>🧊 Option</span>
-                    <span className={options.ice ? 'text-sky-600' : 'text-zinc-300'}>{options.ice ? 'ON' : 'OFF'}</span>
+                    <span className={getOptions('food').ice ? 'text-sky-600' : 'text-zinc-300'}>{getOptions('food').ice ? 'ON' : 'OFF'}</span>
                   </button>
                 </div>
               )}
             </div>
 
             {foodCustoms.sugar && (
-              <div className={`p-2 rounded-lg border transition-all ${selectedSugarIds.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
-                <p className={`text-[9px] font-bold uppercase mb-1.5 ${selectedSugarIds.length > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>Available Sugar Levels</p>
+              <div className={`p-2 rounded-lg border transition-all ${getSugarIds('food').length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                <p className={`text-[9px] font-bold uppercase mb-1.5 ${getSugarIds('food').length > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>Available Sugar Levels</p>
                 <div className="flex flex-wrap gap-1.5">
                   {allSugarLevels.map(sl => {
-                    const isSelected = selectedSugarIds.includes(sl.id);
+                    const isSelected = getSugarIds('food').includes(sl.id);
                     return (
                       <button
                         key={sl.id}
                         type="button"
                         onClick={() => {
-                          if (isSelected) setSelectedSugarIds(selectedSugarIds.filter(id => id !== sl.id));
-                          else setSelectedSugarIds([...selectedSugarIds, sl.id]);
+                          if (isSelected) setSlotSugarIds('food', getSugarIds('food').filter(id => id !== sl.id));
+                          else setSlotSugarIds('food', [...getSugarIds('food'), sl.id]);
                         }}
                         className={`px-2 py-1 rounded text-[10px] font-bold border transition-all ${isSelected ? 'bg-white text-amber-600 border-amber-300 ring-1 ring-amber-300/20' : 'bg-white text-zinc-400 border-zinc-200'}`}
                       >
@@ -375,47 +380,47 @@ export const ComboBuilder: React.FC<ComboBuilderProps> = ({
           <div className="mt-3 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               {drinkCustoms.pearl && (
-                <div className={`p-2 rounded-lg border transition-all ${options.pearl ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
-                  <p className={`text-[9px] font-bold uppercase mb-1 ${options.pearl ? 'text-rose-500' : 'text-zinc-400'}`}>Pearl</p>
+                <div className={`p-2 rounded-lg border transition-all ${getOptions('drink').pearl ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                  <p className={`text-[9px] font-bold uppercase mb-1 ${getOptions('drink').pearl ? 'text-rose-500' : 'text-zinc-400'}`}>Pearl</p>
                   <button 
                     type="button"
-                    onClick={() => setOptions({ ...options, pearl: !options.pearl })}
-                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.pearl ? 'bg-white text-rose-600 border-rose-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                    onClick={() => setSlotOptions('drink', { ...getOptions('drink'), pearl: !getOptions('drink').pearl })}
+                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${getOptions('drink').pearl ? 'bg-white text-rose-600 border-rose-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
                   >
                     <span>🧋 Option</span>
-                    <span className={options.pearl ? 'text-rose-600' : 'text-zinc-300'}>{options.pearl ? 'ON' : 'OFF'}</span>
+                    <span className={getOptions('drink').pearl ? 'text-rose-600' : 'text-zinc-300'}>{getOptions('drink').pearl ? 'ON' : 'OFF'}</span>
                   </button>
                 </div>
               )}
 
               {drinkCustoms.ice && (
-                <div className={`p-2 rounded-lg border transition-all ${options.ice ? 'bg-sky-50 border-sky-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
-                  <p className={`text-[9px] font-bold uppercase mb-1 ${options.ice ? 'text-sky-500' : 'text-zinc-400'}`}>Ice</p>
+                <div className={`p-2 rounded-lg border transition-all ${getOptions('drink').ice ? 'bg-sky-50 border-sky-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                  <p className={`text-[9px] font-bold uppercase mb-1 ${getOptions('drink').ice ? 'text-sky-500' : 'text-zinc-400'}`}>Ice</p>
                   <button 
                     type="button"
-                    onClick={() => setOptions({ ...options, ice: !options.ice })}
-                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.ice ? 'bg-white text-sky-600 border-sky-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                    onClick={() => setSlotOptions('drink', { ...getOptions('drink'), ice: !getOptions('drink').ice })}
+                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${getOptions('drink').ice ? 'bg-white text-sky-600 border-sky-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
                   >
                     <span>🧊 Option</span>
-                    <span className={options.ice ? 'text-sky-600' : 'text-zinc-300'}>{options.ice ? 'ON' : 'OFF'}</span>
+                    <span className={getOptions('drink').ice ? 'text-sky-600' : 'text-zinc-300'}>{getOptions('drink').ice ? 'ON' : 'OFF'}</span>
                   </button>
                 </div>
               )}
             </div>
 
             {drinkCustoms.sugar && (
-              <div className={`p-2 rounded-lg border transition-all ${selectedSugarIds.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
-                <p className={`text-[9px] font-bold uppercase mb-1.5 ${selectedSugarIds.length > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>Available Sugar Levels</p>
+              <div className={`p-2 rounded-lg border transition-all ${getSugarIds('drink').length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                <p className={`text-[9px] font-bold uppercase mb-1.5 ${getSugarIds('drink').length > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>Available Sugar Levels</p>
                 <div className="flex flex-wrap gap-1.5">
                   {allSugarLevels.map(sl => {
-                    const isSelected = selectedSugarIds.includes(sl.id);
+                    const isSelected = getSugarIds('drink').includes(sl.id);
                     return (
                       <button
                         key={sl.id}
                         type="button"
                         onClick={() => {
-                          if (isSelected) setSelectedSugarIds(selectedSugarIds.filter(id => id !== sl.id));
-                          else setSelectedSugarIds([...selectedSugarIds, sl.id]);
+                          if (isSelected) setSlotSugarIds('drink', getSugarIds('drink').filter(id => id !== sl.id));
+                          else setSlotSugarIds('drink', [...getSugarIds('drink'), sl.id]);
                         }}
                         className={`px-2 py-1 rounded text-[10px] font-bold border transition-all ${isSelected ? 'bg-white text-amber-600 border-amber-300 ring-1 ring-amber-300/20' : 'bg-white text-zinc-400 border-zinc-200'}`}
                       >
@@ -445,10 +450,11 @@ export interface BundleBuilderProps {
   allItems: MenuItem[];
   bundleItemIds: string[];
   onItemsChange: (ids: string[]) => void;
-  options: { pearl: boolean; ice: boolean };
-  setOptions: (val: { pearl: boolean; ice: boolean }) => void;
-  selectedSugarIds: number[];
-  setSelectedSugarIds: (ids: number[]) => void;
+  // Independent options per slot
+  slotOptions: Record<number, ItemOptions>;
+  setSlotOptions: (idx: number, val: ItemOptions) => void;
+  slotSugarIds: Record<number, number[]>;
+  setSlotSugarIds: (idx: number, ids: number[]) => void;
   allSugarLevels: SugarLevel[];
   itemCustomizations: Record<string, { pearl: boolean; ice: boolean; sugar: boolean }>;
   errors: Record<string, string>;
@@ -456,7 +462,7 @@ export interface BundleBuilderProps {
 
 export const BundleBuilder: React.FC<BundleBuilderProps> = ({
   allItems, bundleItemIds, onItemsChange, 
-  options, setOptions, selectedSugarIds, setSelectedSugarIds, allSugarLevels, itemCustomizations, errors,
+  slotOptions, setSlotOptions, slotSugarIds, setSlotSugarIds, allSugarLevels, itemCustomizations, errors,
 }) => {
   const drinkOptions = useMemo(() => {
     const drinks = allItems
@@ -485,6 +491,10 @@ export const BundleBuilder: React.FC<BundleBuilderProps> = ({
   const setSlot = (idx: number, val: string) => {
     const next = [...bundleItemIds]; next[idx] = val; onItemsChange(next);
   };
+
+  // Helper to get options for a slot, defaulting to false
+  const getOptions = (idx: number) => slotOptions[idx] || { pearl: false, ice: false };
+  const getSugarIds = (idx: number) => slotSugarIds[idx] || [];
 
   return (
     <div className="flex flex-col gap-3 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
@@ -539,47 +549,47 @@ export const BundleBuilder: React.FC<BundleBuilderProps> = ({
               <div className="mt-3 space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   {itemCustomizations[itemId].pearl && (
-                    <div className={`p-2 rounded-lg border transition-all ${options.pearl ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
-                      <p className={`text-[9px] font-bold uppercase mb-1 ${options.pearl ? 'text-rose-500' : 'text-zinc-400'}`}>Pearl</p>
+                    <div className={`p-2 rounded-lg border transition-all ${getOptions(idx).pearl ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                      <p className={`text-[9px] font-bold uppercase mb-1 ${getOptions(idx).pearl ? 'text-rose-500' : 'text-zinc-400'}`}>Pearl</p>
                       <button 
                         type="button"
-                        onClick={() => setOptions({ ...options, pearl: !options.pearl })}
-                        className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.pearl ? 'bg-white text-rose-600 border-rose-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                        onClick={() => setSlotOptions(idx, { ...getOptions(idx), pearl: !getOptions(idx).pearl })}
+                        className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${getOptions(idx).pearl ? 'bg-white text-rose-600 border-rose-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
                       >
                         <span>🧋 Option</span>
-                        <span className={options.pearl ? 'text-rose-600' : 'text-zinc-300'}>{options.pearl ? 'ON' : 'OFF'}</span>
+                        <span className={getOptions(idx).pearl ? 'text-rose-600' : 'text-zinc-300'}>{getOptions(idx).pearl ? 'ON' : 'OFF'}</span>
                       </button>
                     </div>
                   )}
 
                   {itemCustomizations[itemId].ice && (
-                    <div className={`p-2 rounded-lg border transition-all ${options.ice ? 'bg-sky-50 border-sky-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
-                      <p className={`text-[9px] font-bold uppercase mb-1 ${options.ice ? 'text-sky-500' : 'text-zinc-400'}`}>Ice</p>
+                    <div className={`p-2 rounded-lg border transition-all ${getOptions(idx).ice ? 'bg-sky-50 border-sky-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                      <p className={`text-[9px] font-bold uppercase mb-1 ${getOptions(idx).ice ? 'text-sky-500' : 'text-zinc-400'}`}>Ice</p>
                       <button 
                         type="button"
-                        onClick={() => setOptions({ ...options, ice: !options.ice })}
-                        className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${options.ice ? 'bg-white text-sky-600 border-sky-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                        onClick={() => setSlotOptions(idx, { ...getOptions(idx), ice: !getOptions(idx).ice })}
+                        className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-bold transition-all border ${getOptions(idx).ice ? 'bg-white text-sky-600 border-sky-300' : 'bg-white text-zinc-400 border-zinc-200'}`}
                       >
                         <span>🧊 Option</span>
-                        <span className={options.ice ? 'text-sky-600' : 'text-zinc-300'}>{options.ice ? 'ON' : 'OFF'}</span>
+                        <span className={getOptions(idx).ice ? 'text-sky-600' : 'text-zinc-300'}>{getOptions(idx).ice ? 'ON' : 'OFF'}</span>
                       </button>
                     </div>
                   )}
                 </div>
 
                 {itemCustomizations[itemId].sugar && (
-                  <div className={`p-2 rounded-lg border transition-all ${selectedSugarIds.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
-                    <p className={`text-[9px] font-bold uppercase mb-1.5 ${selectedSugarIds.length > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>Available Sugar Levels</p>
+                  <div className={`p-2 rounded-lg border transition-all ${getSugarIds(idx).length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200 opacity-60'}`}>
+                    <p className={`text-[9px] font-bold uppercase mb-1.5 ${getSugarIds(idx).length > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>Available Sugar Levels</p>
                     <div className="flex flex-wrap gap-1.5">
                       {allSugarLevels.map(sl => {
-                        const isSelected = selectedSugarIds.includes(sl.id);
+                        const isSelected = getSugarIds(idx).includes(sl.id);
                         return (
                           <button
                             key={sl.id}
                             type="button"
                             onClick={() => {
-                              if (isSelected) setSelectedSugarIds(selectedSugarIds.filter(id => id !== sl.id));
-                              else setSelectedSugarIds([...selectedSugarIds, sl.id]);
+                              if (isSelected) setSlotSugarIds(idx, getSugarIds(idx).filter(id => id !== sl.id));
+                              else setSlotSugarIds(idx, [...getSugarIds(idx), sl.id]);
                             }}
                             className={`px-2 py-1 rounded text-[10px] font-bold border transition-all ${isSelected ? 'bg-white text-amber-600 border-amber-300 ring-1 ring-amber-300/20' : 'bg-white text-zinc-400 border-zinc-200'}`}
                           >
@@ -1112,12 +1122,21 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
   const [bundleItemIds, setBundleItemIds] = useState<string[]>(["", ""]);
   const [mixMatchFoodId, setMixMatchFoodId] = useState("");
   const [options, setOptions] = useState<ItemOptions>({ pearl: false, ice: false });
+  // Independent options/sugar per slot for builders
+  const [slotOptions, setSlotOptions] = useState<Record<string, ItemOptions>>({});
+  const [slotSugarIds, setSlotSugarIds] = useState<Record<string, number[]>>({});
+  
   const [mmBundleItems, setMmBundleItems] = useState<{ name: string; quantity: number; size: string }[] | null>(null);
   const [mmBundleLoading, setMmBundleLoading] = useState(false);
   const [selectedSugarLevelIds, setSelectedSugarLevelIds] = useState<number[]>([]);
   const initialIdsRef = useRef<string[] | null>(null);
   const [itemCustomizations, setItemCustomizations] = useState<Record<string, { pearl: boolean, ice: boolean, sugar: boolean }>>({});
   const [selectedFoodAddOnIds, setSelectedFoodAddOnIds] = useState<number[]>([]);
+
+  const selectedCategory = categories.find(c => String(c.id) === form.category_id);
+  const isComboCategory = selectedCategory?.category_type === "combo";
+  const isBundleCategory = selectedCategory?.category_type === "bundle";
+  const isMixAndMatchCategory = Boolean(selectedCategory?.category_type === "mix_and_match");
 
   // Pre-load existing options when editing a drink
   useEffect(() => {
@@ -1128,13 +1147,22 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
       .then(r => r.json())
       .then(data => {
         const rows: { option_type: string }[] = data.data ?? [];
-        setOptions({
+        const opts = {
           pearl: rows.some(r => r.option_type === "pearl"),
           ice: rows.some(r => r.option_type === "ice"),
-        });
+        };
+        setOptions(opts);
+        // Default all slots to these options on load
+        if (isComboCategory) {
+          setSlotOptions({ food: { ...opts }, drink: { ...opts } });
+        } else if (isBundleCategory) {
+          const map: Record<string, ItemOptions> = {};
+          bundleItemIds.forEach((_, i) => { map[i] = { ...opts }; });
+          setSlotOptions(map);
+        }
       })
       .catch(() => { });
-  }, [isEdit, item]);
+  }, [isEdit, item, isComboCategory, isBundleCategory]);
 
   useEffect(() => {
     if (!isEdit || !item) return;
@@ -1157,19 +1185,23 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
       .then(r => r.json())
       .then(data => {
         const rows: { sugar_level_id: number }[] = data.data ?? [];
-        setSelectedSugarLevelIds(rows.map(r => r.sugar_level_id));
+        const ids = rows.map(r => r.sugar_level_id);
+        setSelectedSugarLevelIds(ids);
+        // Default all slots to these sugar levels on load
+        if (isComboCategory) {
+          setSlotSugarIds({ food: [...ids], drink: [...ids] });
+        } else if (isBundleCategory) {
+          const map: Record<string, number[]> = {};
+          bundleItemIds.forEach((_, i) => { map[i] = [...ids]; });
+          setSlotSugarIds(map);
+        }
       })
       .catch(() => { });
-  }, [isEdit, item]);
+  }, [isEdit, item, isComboCategory, isBundleCategory]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
-
-  const selectedCategory = categories.find(c => String(c.id) === form.category_id);
-  const isComboCategory = selectedCategory?.category_type === "combo";
-  const isBundleCategory = selectedCategory?.category_type === "bundle";
-  const isMixAndMatchCategory = Boolean(selectedCategory?.category_type === "mix_and_match");
 
   useEffect(() => {
     if (!isEdit || !item || !isMixAndMatchCategory) return;
@@ -1258,13 +1290,22 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
 
     const fetchAll = async () => {
       try {
-        const results = await Promise.all(idsToSync.map(async (id) => {
+        const slotsToSync = isComboCategory
+          ? (drinkItemId ? [{ key: 'drink', id: drinkItemId }] : [])
+          : isBundleCategory
+            ? bundleItemIds.map((id, idx) => ({ key: String(idx), id })).filter(s => s.id !== "")
+            : [];
+
+        if (slotsToSync.length === 0) return;
+
+        const results = await Promise.all(slotsToSync.map(async (slot) => {
           const [optRes, sugarRes] = await Promise.all([
-            fetch(`/api/menu-item-options?menu_item_id=${id}`, { headers: authHeaders() }).then(r => r.json()),
-            fetch(`/api/menu-item-sugar-levels?menu_item_id=${id}`, { headers: authHeaders() }).then(r => r.json())
+            fetch(`/api/menu-item-options?menu_item_id=${slot.id}`, { headers: authHeaders() }).then(r => r.json()),
+            fetch(`/api/menu-item-sugar-levels?menu_item_id=${slot.id}`, { headers: authHeaders() }).then(r => r.json())
           ]);
           return {
-            id,
+            key: slot.key,
+            id: slot.id,
             options: (optRes.data ?? []) as { option_type: string }[],
             sugarLevels: (sugarRes.data ?? []) as { sugar_level_id: number }[]
           };
@@ -1272,27 +1313,29 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
 
         const newDetails: Record<string, { pearl: boolean, ice: boolean, sugar: boolean }> = {};
         results.forEach(r => {
-          const itemData = allItems.find(i => String(i.id) === r.id);
-          const isDrink = itemData?.category_type === "drink";
-
           newDetails[r.id] = {
-            pearl: r.options.some(o => o.option_type === "pearl") || isDrink,
-            ice: r.options.some(o => o.option_type === "ice") || isDrink,
-            sugar: r.sugarLevels.length > 0 || isDrink
+            pearl: r.options.some(o => o.option_type === "pearl"),
+            ice: r.options.some(o => o.option_type === "ice"),
+            sugar: r.sugarLevels.length > 0
           };
         });
         setItemCustomizations(prev => ({ ...prev, ...newDetails }));
 
         if (!shouldSkipSelectionSync) {
-          // Aggregate Pearl/Ice (Union)
-          const hasPearl = results.some(r => r.options.some(o => o.option_type === "pearl"));
-          const hasIce = results.some(r => r.options.some(o => o.option_type === "ice"));
-          setOptions({ pearl: hasPearl, ice: hasIce });
+          // Update slot-specific options/sugar
+          const newSlotOptions: Record<string, ItemOptions> = { ...slotOptions };
+          const newSlotSugarIds: Record<string, number[]> = { ...slotSugarIds };
 
-          // Aggregate Sugar Levels (Union)
-          const sugarIds = new Set<number>();
-          results.forEach(r => r.sugarLevels.forEach(s => sugarIds.add(s.sugar_level_id)));
-          setSelectedSugarLevelIds(Array.from(sugarIds));
+          results.forEach(r => {
+            newSlotOptions[r.key] = {
+              pearl: r.options.some(o => o.option_type === "pearl"),
+              ice: r.options.some(o => o.option_type === "ice"),
+            };
+            newSlotSugarIds[r.key] = r.sugarLevels.map(s => s.sugar_level_id);
+          });
+
+          setSlotOptions(newSlotOptions);
+          setSlotSugarIds(newSlotSugarIds);
         }
 
       } catch (err) {
@@ -1432,9 +1475,25 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         categories.find(c => String(c.id) === form.category_id)?.category_type ?? ""
       );
       if (isDrinkItem) {
+        // Aggregate all slot options and sugar levels for the bundle record
+        let finalPearl = options.pearl;
+        let finalIce = options.ice;
+        let finalSugarIds = [...selectedSugarLevelIds];
+
+        if (isComboCategory || isBundleCategory) {
+          const allOpts = Object.values(slotOptions);
+          finalPearl = allOpts.some(o => o.pearl);
+          finalIce = allOpts.some(o => o.ice);
+          
+          const sugarSet = new Set<number>();
+          Object.values(slotSugarIds).forEach(ids => ids.forEach(id => sugarSet.add(id)));
+          finalSugarIds = Array.from(sugarSet);
+        }
+
         const optList: string[] = [];
-        if (options.pearl) optList.push("pearl");
-        if (options.ice) optList.push("ice");
+        if (finalPearl) optList.push("pearl");
+        if (finalIce) optList.push("ice");
+        
         await fetch(`/api/menu-item-options/${savedItem.id}`, {
           method: "POST", headers: authHeaders(),
           body: JSON.stringify({ _method: "PUT", options: optList }),
@@ -1442,7 +1501,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
 
         await fetch(`/api/menu-item-sugar-levels/${savedItem.id}`, {
           method: "POST", headers: authHeaders(),
-          body: JSON.stringify({ _method: "PUT", sugar_level_ids: selectedSugarLevelIds }),
+          body: JSON.stringify({ _method: "PUT", sugar_level_ids: finalSugarIds }),
         }).catch(() => { });
       }
 
@@ -1799,10 +1858,10 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
           drinkItemId={drinkItemId} 
           onFoodChange={setFoodItemId} 
           onDrinkChange={setDrinkItemId} 
-          options={options}
-          setOptions={setOptions}
-          selectedSugarIds={selectedSugarLevelIds}
-          setSelectedSugarIds={setSelectedSugarLevelIds}
+          slotOptions={slotOptions}
+          setSlotOptions={(key, val) => setSlotOptions(p => ({ ...p, [key]: val }))}
+          slotSugarIds={slotSugarIds}
+          setSlotSugarIds={(key, ids) => setSlotSugarIds(p => ({ ...p, [key]: ids }))}
           allSugarLevels={sugarLevels}
           itemCustomizations={itemCustomizations}
           errors={errors} 
@@ -1815,10 +1874,10 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
           allItems={allItems} 
           bundleItemIds={bundleItemIds} 
           onItemsChange={setBundleItemIds} 
-          options={options}
-          setOptions={setOptions}
-          selectedSugarIds={selectedSugarLevelIds}
-          setSelectedSugarIds={setSelectedSugarLevelIds}
+          slotOptions={slotOptions}
+          setSlotOptions={(idx, val) => setSlotOptions(p => ({ ...p, [idx]: val }))}
+          slotSugarIds={slotSugarIds}
+          setSlotSugarIds={(idx, ids) => setSlotSugarIds(p => ({ ...p, [idx]: ids }))}
           allSugarLevels={sugarLevels}
           itemCustomizations={itemCustomizations}
           errors={errors} 
