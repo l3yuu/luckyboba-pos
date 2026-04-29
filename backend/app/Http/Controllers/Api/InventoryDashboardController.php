@@ -20,6 +20,8 @@ class InventoryDashboardController extends Controller
 
             $topProducts = DB::table('sale_items')
                 ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->join('branches', 'sales.branch_id', '=', 'branches.id')
+                ->whereNull('branches.deleted_at')
                 ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
                 ->whereBetween('sales.created_at', [$startOfWeek, $endOfWeek])
                 ->where('sales.status', 'completed')

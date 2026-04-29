@@ -25,7 +25,8 @@ class PulseController extends Controller
         $branchId = $request->query('branch_id') ?: ($user->role !== 'superadmin' ? $user->branch_id : null);
 
         // 1. Latest 10 sales from TODAY ONLY
-        $recentSalesQuery = Sale::with(['branch', 'user'])
+        $recentSalesQuery = Sale::whereHas('branch')
+            ->with(['branch', 'user'])
             ->where('status', 'completed')
             ->whereDate('created_at', Carbon::today())
             ->latest()
@@ -49,7 +50,8 @@ class PulseController extends Controller
             });
 
         // 2. Total Sales for Today
-        $todayTotalQuery = Sale::where('status', 'completed')
+        $todayTotalQuery = Sale::whereHas('branch')
+            ->where('status', 'completed')
             ->whereDate('created_at', Carbon::today());
         
         if ($branchId) {

@@ -109,9 +109,9 @@ class ReceiptController extends Controller
         ->select([
             'sales.id as sale_id',
             DB::raw('CASE 
-                WHEN (receipts.si_number LIKE "SI-%" OR receipts.si_number LIKE "OR-%") THEN receipts.si_number 
                 WHEN (sales.invoice_number LIKE "SI-%" OR sales.invoice_number LIKE "OR-%") THEN sales.invoice_number 
-                ELSE COALESCE(receipts.si_number, sales.invoice_number) 
+                WHEN (receipts.si_number LIKE "SI-%" OR receipts.si_number LIKE "OR-%") THEN receipts.si_number 
+                ELSE COALESCE(sales.invoice_number, receipts.si_number) 
             END as si_number'),
             'sales.total_amount',
             'sales.payment_method',
@@ -361,6 +361,13 @@ public function voidRequest(Request $request, $id)
                 'vat_exclusive' => $total,
                 'vat_rate'      => 0,
             ];
+
+        // Sanitize receipt SI number for display
+        if ($receipt) {
+            $receipt->si_number = (strpos($sale->invoice_number, 'OR-') === 0 || strpos($sale->invoice_number, 'SI-') === 0)
+                ? $sale->invoice_number
+                : $receipt->si_number;
+        }
 
         return response()->json([
             'type'    => $type,

@@ -40,6 +40,15 @@ class DeductStockFromSaleAction
                     ->first();
             }
 
+            // FINAL Fallback: Look for a generic recipe (size IS NULL)
+            if (!$recipe) {
+                $recipe = Recipe::where('menu_item_id', $saleItem->menu_item_id)
+                    ->where('is_active', true)
+                    ->whereNull('size')
+                    ->with('items')
+                    ->first();
+            }
+
             if (!$recipe) {
                 Log::info("[Inventory Action] No active recipe found — skipped.", [
                     'menu_item_id'    => $saleItem->menu_item_id,

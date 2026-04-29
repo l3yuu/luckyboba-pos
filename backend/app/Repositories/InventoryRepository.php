@@ -258,7 +258,7 @@ class InventoryRepository implements InventoryRepositoryInterface
             )->sum('quantity');
 
             // 2. Other Out (Subtract type AND NOT Spoil AND NOT Sale)
-            $out = $movements->filter(fn($m) => 
+            $otherOut = $movements->filter(fn($m) => 
                 $m->type === 'subtract' && 
                 !str_contains(strtolower($m->reason), 'sale') && 
                 !str_contains(strtolower($m->reason), 'spoil') &&
@@ -273,9 +273,9 @@ class InventoryRepository implements InventoryRepositoryInterface
 
             $end = $mat->current_stock;
             // Back-calculate BEG: End - Additions + All Subtractions
-            $beg = max(0, $end - ($del + $in + $cooked) + ($out + $spoil + $soldQty));
+            $beg = max(0, $end - ($del + $in + $cooked) + ($otherOut + $spoil + $soldQty));
 
-            $usage    = $out + $spoil + $soldQty;
+            $usage    = $otherOut + $spoil + $soldQty;
             $expected = $beg + $del + $in + $cooked - $usage;
             $variance = $end - $expected;
 
@@ -289,6 +289,7 @@ class InventoryRepository implements InventoryRepositoryInterface
                 'in'       => round($in, 2),
                 'cooked'   => round($cooked, 2),
                 'out'      => round($soldQty, 2),
+                'other_out'=> round($otherOut, 2),
                 'spoil'    => round($spoil, 2),
                 'end'      => round($end, 2),
                 'ending'   => round($end, 2),
@@ -333,6 +334,8 @@ class InventoryRepository implements InventoryRepositoryInterface
             })
             ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->where('sales.status', 'completed')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy('sale_items.product_name', 'sale_items.cup_size_label', 'recipe_items.quantity')
             ->orderBy('total_deducted', 'desc')
@@ -429,6 +432,8 @@ class InventoryRepository implements InventoryRepositoryInterface
             )
             ->whereBetween('sale_items.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->where('sales.status', 'completed')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy('categories.name', 'sale_items.product_name', 'sale_items.cup_size_label')
             ->orderBy('categories.name')
@@ -449,6 +454,8 @@ class InventoryRepository implements InventoryRepositoryInterface
             )
             ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->where('sales.status', 'completed')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy('sale_items.product_name', 'sale_items.cup_size_label', 'raw_materials.name', 'raw_materials.unit')
             ->get()
@@ -494,6 +501,8 @@ class InventoryRepository implements InventoryRepositoryInterface
             )
             ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->where('sales.status', 'completed')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy(DB::raw('COALESCE(raw_materials.parent_id, stock_deductions.raw_material_id)'))
             ->get();

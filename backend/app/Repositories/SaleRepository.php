@@ -12,9 +12,12 @@ class SaleRepository implements SaleRepositoryInterface
 {
     public function getSalesChartData(Carbon $startDate, Carbon $endDate, string $groupBy, ?int $branchId = null): Collection
     {
-        $query = Sale::whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+        $query = Sale::query()
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId));
 
         if ($groupBy === 'daily') {
             return $query->select(
@@ -49,11 +52,13 @@ class SaleRepository implements SaleRepositoryInterface
     public function getSalesSumBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): float
     {
         return (float) DB::table('sales')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
-            ->sum('total_amount');
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
+            ->sum('sales.total_amount');
     }
 
     public function getGrossItemSalesBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): float
@@ -61,6 +66,8 @@ class SaleRepository implements SaleRepositoryInterface
         // Gross sales = ordered line totals before any order-level discounts/VAT split adjustments.
         return (float) DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->whereBetween('sales.created_at', [$startDate, $endDate])
             ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
@@ -71,41 +78,49 @@ class SaleRepository implements SaleRepositoryInterface
     public function getSalesCountBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): int
     {
         return (int) DB::table('sales')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
             ->count();
     }
 
     public function getVoidSalesBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): float
     {
         return (float) DB::table('sales')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'cancelled')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
-            ->sum('total_amount');
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
+            ->sum('sales.total_amount');
     }
 
     public function getVoidCountBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): int
     {
         return (int) DB::table('sales')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'cancelled')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
             ->count();
     }
 
     public function getTaxAndVatAggregates(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): object
     {
         return DB::table('sales')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
-            ->selectRaw('SUM(vatable_sales) as vatable_sales, SUM(vat_amount) as vat_amount, SUM(vat_exempt_sales) as vat_exempt_sales')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
+            ->selectRaw('SUM(sales.vatable_sales) as vatable_sales, SUM(sales.vat_amount) as vat_amount, SUM(sales.vat_exempt_sales) as vat_exempt_sales')
             ->first() ?? (object)['vatable_sales' => 0, 'vat_amount' => 0, 'vat_exempt_sales' => 0];
     }
 
@@ -113,6 +128,8 @@ class SaleRepository implements SaleRepositoryInterface
     {
         $query = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->whereBetween('sales.created_at', [$startDate, $endDate])
             ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
@@ -131,6 +148,8 @@ class SaleRepository implements SaleRepositoryInterface
 
         return DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
             ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
             ->whereBetween('sales.created_at', [$startDate, $endDate])
@@ -154,6 +173,8 @@ class SaleRepository implements SaleRepositoryInterface
 
         return DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
             ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
             ->whereBetween('sales.created_at', [$startDate, $endDate])
@@ -174,6 +195,8 @@ class SaleRepository implements SaleRepositoryInterface
     {
         return (int) DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->whereBetween('sales.created_at', [$startDate, $endDate])
             ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
@@ -184,25 +207,29 @@ class SaleRepository implements SaleRepositoryInterface
     public function getFirstSiNumberBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): string
     {
         return DB::table('sales')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('invoice_number', 'LIKE', 'SI-%')
-            ->whereIn('status', ['completed', 'cancelled'])
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
-            ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) ASC')
-            ->value('invoice_number') ?? '—';
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.invoice_number', 'LIKE', 'SI-%')
+            ->whereIn('sales.status', ['completed', 'cancelled'])
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
+            ->orderByRaw('CAST(SUBSTRING(sales.invoice_number, 4) AS UNSIGNED) ASC')
+            ->value('sales.invoice_number') ?? '—';
     }
 
     public function getLastSiNumberBetween(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): string
     {
         return DB::table('sales')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('invoice_number', 'LIKE', 'SI-%')
-            ->whereIn('status', ['completed', 'cancelled'])
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
-            ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
-            ->value('invoice_number') ?? '—';
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.invoice_number', 'LIKE', 'SI-%')
+            ->whereIn('sales.status', ['completed', 'cancelled'])
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
+            ->orderByRaw('CAST(SUBSTRING(sales.invoice_number, 4) AS UNSIGNED) DESC')
+            ->value('sales.invoice_number') ?? '—';
     }
 
     public function getDiscountsBreakdown(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): array
@@ -210,6 +237,8 @@ class SaleRepository implements SaleRepositoryInterface
         // Centralized previously duplicate logic
         $base = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->whereBetween('sales.created_at', [$startDate, $endDate])
             ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
@@ -234,10 +263,12 @@ class SaleRepository implements SaleRepositoryInterface
         $itemLevelOther = (float) ($itemAggregates->other_item ?? 0);
 
         $orderBase = DB::table('sales')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift));
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift));
 
         $orderAggregates = (clone $orderBase)->select(
             DB::raw('SUM(sc_discount_amount) as sc_order'),
@@ -296,8 +327,10 @@ class SaleRepository implements SaleRepositoryInterface
                     END as method,
                     total_amount as net_amount
                 FROM sales
-                WHERE created_at BETWEEN ? AND ?
-                AND status = 'completed'
+                JOIN branches ON sales.branch_id = branches.id
+                WHERE sales.created_at BETWEEN ? AND ?
+                AND sales.status = 'completed'
+                AND branches.deleted_at IS NULL
                 {$branchCondition}
                 {$shiftCondition}
             ) as t
@@ -308,39 +341,45 @@ class SaleRepository implements SaleRepositoryInterface
     public function getNetCashPayments(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): float
     {
         return (float) DB::table('sales')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
-            ->where(fn($q) => $q->whereNull('charge_type')->orWhere('charge_type', ''))
-            ->whereNotIn(DB::raw('LOWER(TRIM(payment_method))'), [
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
+            ->where(fn($q) => $q->whereNull('sales.charge_type')->orWhere('sales.charge_type', ''))
+            ->whereNotIn(DB::raw('LOWER(TRIM(sales.payment_method))'), [
                 'gcash', 'e-wallet', 'ewallet', 'visa', 'mastercard',
                 'master card', 'master', 'visa card',
             ])
-            ->sum('total_amount');
+            ->sum('sales.total_amount');
     }
 
     public function getCashTransactionsSum(Carbon $startDate, Carbon $endDate, array $types, ?int $branchId = null, ?int $shift = null): float
     {
         return (float) DB::table('cash_transactions')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->whereIn('type', $types)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
-            ->sum('amount');
+            ->join('branches', 'cash_transactions.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('cash_transactions.created_at', [$startDate, $endDate])
+            ->whereIn('cash_transactions.type', $types)
+            ->when($branchId, fn($q) => $q->where('cash_transactions.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('cash_transactions.shift', $shift))
+            ->sum('cash_transactions.amount');
     }
 
     public function getHourlySalesBreakdown(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): Collection
     {
         return DB::table('sales')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($shift,    fn($q) => $q->where('shift', $shift))
+            ->join('branches', 'sales.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
             ->select(
-                DB::raw('HOUR(created_at) as hour'),
-                DB::raw('SUM(total_amount) as total'),
-                DB::raw('COUNT(*) as count')
+                DB::raw('HOUR(sales.created_at) as hour'),
+                DB::raw('SUM(sales.total_amount) as total'),
+                DB::raw('COUNT(sales.id) as count')
             )
             ->groupBy('hour')
             ->get();
@@ -357,10 +396,10 @@ class SaleRepository implements SaleRepositoryInterface
                 'z_readings.total_sales as gross',
                 'z_readings.data',
                 'z_readings.is_closed',
-                'z_readings.closed_at',
                 'z_readings.branch_id'
             )
             ->when($branchId, fn($q) => $q->where('z_readings.branch_id', $branchId))
+            ->whereNull('branches.deleted_at')
             ->orderByDesc('z_readings.reading_date')
             ->limit($limit)
             ->get();
@@ -368,7 +407,8 @@ class SaleRepository implements SaleRepositoryInterface
 
     public function getZReadingsCountUpTo(Carbon $date, ?int $branchId = null, bool $singleDay = true): int
     {
-        $query = ZReading::query()->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+        $query = ZReading::whereHas('branch')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
         if ($singleDay) {
             return (int) $query->count() + 1; // Since it considers previous read inclusive
         }
@@ -377,7 +417,8 @@ class SaleRepository implements SaleRepositoryInterface
 
     public function getSalesAccumulatedUpTo(Carbon $date, ?int $branchId = null): float
     {
-        return (float) ZReading::where('reading_date', '<', $date->toDateString())
+        return (float) ZReading::whereHas('branch')
+            ->where('reading_date', '<', $date->toDateString())
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('total_sales');
     }
