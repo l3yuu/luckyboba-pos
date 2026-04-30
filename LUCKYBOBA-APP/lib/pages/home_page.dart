@@ -7,7 +7,6 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import '../config/app_config.dart';
-import '../cart/menu_page.dart';
 import '../utils/app_theme.dart';
 import '../widgets/tappable_card.dart';
 import 'points_page.dart';
@@ -1480,24 +1479,17 @@ class _BranchPickerSheet extends StatelessWidget {
                 itemBuilder: (_, i) => _BranchTile(
                   store: stores[i],
                   isNearest: i == 0,
-                  onTap: () async {
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setInt(
-                        'selected_branch_id', stores[i]['branch_id']);
-                    await prefs.setString(
-                        'selected_branch_name', stores[i]['name']);
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => MenuPage(
-                            selectedStore: stores[i]['name'],
-                            branchId: stores[i]['branch_id'],
-                          ),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Online menu coming soon for ${stores[i]['name']}!',
+                          style: GoogleFonts.outfit(),
                         ),
-                      );
-                    }
+                        backgroundColor: _kPurple,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
                   },
                 ),
               ),
@@ -1601,12 +1593,25 @@ class _BranchTile extends StatelessWidget {
                   color: _kOrange.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('NEAR',
+                child: Text('SOON',
                     style: GoogleFonts.outfit(
                         fontSize: 8,
                         fontWeight: FontWeight.w900,
                         color: _kOrange)),
               ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white12,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('MENU SOON',
+                  style: GoogleFonts.outfit(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white54)),
+            ),
           ],
         ),
       ),

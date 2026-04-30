@@ -9,7 +9,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math' as math;
 import '../config/app_config.dart';
-import '../cart/menu_page.dart';
 import '../widgets/app_top_bar.dart';
 
 // ── Shared palette ────────────────────────────────────────────────────────────
@@ -149,7 +148,7 @@ class _StoresPageState extends State<StoresPage> {
     try {
       final position = await Geolocator.getCurrentPosition(
         locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
+            const LocationSettings(accuracy: LocationAccuracy.best),
       );
       setState(() {
         _userLocation = LatLng(position.latitude, position.longitude);
@@ -579,38 +578,20 @@ class _StoresPageState extends State<StoresPage> {
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // View Menu button
-                        GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MenuPage(
-                                selectedStore: store['name'],
-                                branchId: store['branch_id'] as int?,
-                              ),
-                            ),
+                        // View Menu button (Coming Soon)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: _kPurple,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color:      _kPurple.withValues(alpha: 0.35),
-                                  blurRadius: 10,
-                                  offset:     const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              'View Menu',
-                              style: GoogleFonts.outfit(
-                                fontSize:   11,
-                                fontWeight: FontWeight.w700,
-                                color:      Colors.white,
-                              ),
+                          child: Text(
+                            'Coming Soon',
+                            style: GoogleFonts.outfit(
+                              fontSize:   11,
+                              fontWeight: FontWeight.w700,
+                              color:      Colors.grey[400],
                             ),
                           ),
                         ),
