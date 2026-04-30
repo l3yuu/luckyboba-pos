@@ -1461,6 +1461,7 @@ export const CustomerNameModal = ({ customerName, onChange, onConfirm, submittin
 
 interface SuccessModalProps {
   orNumber: string;
+  queueNumber?: string;
   hasStickers: boolean;
   printedReceipt: boolean;
   printedKitchen: boolean;
@@ -1473,7 +1474,7 @@ interface SuccessModalProps {
 }
 
 export const SuccessModal = ({
-  orNumber, hasStickers, printedReceipt, printedKitchen, printedStickers,
+  orNumber, queueNumber, hasStickers, printedReceipt, printedKitchen, printedStickers,
   onPrintReceipt, onPrintKitchen, onPrintStickers, onNewOrder,
 }: SuccessModalProps) => {
   const printItems = [
@@ -1497,8 +1498,8 @@ export const SuccessModal = ({
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/50 leading-none mb-1.5">Transaction Complete</p>
-              <h2 className="text-2xl font-black uppercase tracking-widest leading-none">Order Saved</h2>
-              <p className="text-white/60 text-xs font-bold mt-2 font-mono tracking-tighter">{orNumber}</p>
+              <h2 className="text-2xl font-black uppercase tracking-widest leading-none">Ticket #{queueNumber || orNumber}</h2>
+              <p className="text-white/60 text-xs font-bold mt-2 font-mono tracking-tighter">Order: {orNumber}</p>
             </div>
           </div>
         </div>

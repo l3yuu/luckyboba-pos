@@ -1961,6 +1961,7 @@ const SalesOrder = () => {
         {isSuccessModalOpen && (
           <SuccessModal
             orNumber={orNumber}
+            queueNumber={queueNumber}
             hasStickers={hasStickers}
             printedReceipt={printedReceipt}
             printedKitchen={printedKitchen}

@@ -46,6 +46,7 @@ interface OnlineOrder {
   si_number?: string;
   customer_name?: string;
   customer_code?: string;
+  queue_number?: string;
   qr_code?: string;
   branch_name?: string;
   payment_method?: string;
@@ -56,7 +57,7 @@ interface OnlineOrder {
   vat_exempt_sales?: number;
   discount_amount?: number;
   order_type?: string;
-  status: 'pending' | 'preparing' | 'completed' | 'cancelled';
+  status: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
   source?: string;
   created_at: string;
   items: SaleItem[];
@@ -70,7 +71,7 @@ interface OnlineOrder {
   reference_number?: string;
 }
 
-type Status = 'pending' | 'preparing' | 'completed';
+type Status = 'pending' | 'preparing' | 'ready' | 'completed';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,13 @@ const STATUS_META: Record<Status, {
     border: 'border-blue-200',
     icon: <ChefHat size={14} className="text-blue-500" />,
   },
+  ready: {
+    label: 'Ready',
+    color: 'text-violet-700',
+    bg: 'bg-violet-50',
+    border: 'border-violet-200',
+    icon: <CheckCircle2 size={14} className="text-violet-500" />,
+  },
   completed: {
     label: 'Completed',
     color: 'text-emerald-700',
@@ -106,7 +114,7 @@ const STATUS_META: Record<Status, {
   },
 };
 
-const COLUMNS: Status[] = ['pending', 'preparing', 'completed'];
+const COLUMNS: Status[] = ['pending', 'preparing', 'ready', 'completed'];
 
 const fmt = (v: number) =>
   `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -173,13 +181,14 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
   const [showQr, setShowQr] = useState(false);
   const meta = STATUS_META[order.status as Status];
   const invoice = orderInvoice(order);
-  const seqNumber = order.customer_code || '???';
+  const seqNumber = order.queue_number || order.customer_code || '???';
   // Only show SI# if it's a real receipt number (not a temporary KSK-/APP- placeholder)
   const hasRealInvoice = invoice && !invoice.startsWith('KSK-') && !invoice.startsWith('APP-');
 
   const nextStatus: Record<Status, Status | null> = {
     pending: 'preparing',
-    preparing: 'completed',
+    preparing: 'ready',
+    ready: 'completed',
     completed: null,
   };
   const next = nextStatus[order.status as Status];
@@ -332,13 +341,21 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
           <button
             onClick={() => onMove(order.id, next)}
             disabled={updating}
-            className={`w-full py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${next === 'preparing' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-[0_4px_14px_0_rgba(37,99,235,0.3)]' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_4px_14px_0_rgba(16,185,129,0.3)]'}`}
+            className={`w-full py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+              next === 'preparing' 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-[0_4px_14px_0_rgba(37,99,235,0.3)]' 
+                : next === 'ready'
+                  ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-[0_4px_14px_0_rgba(139,92,246,0.3)]'
+                  : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_4px_14px_0_rgba(16,185,129,0.3)]'
+            }`}
           >
             {updating
               ? 'Updating...'
               : next === 'preparing'
                 ? '→ Start Preparing'
-                : '✓ Mark as Done'}
+                : next === 'ready'
+                  ? '→ Mark as Ready'
+                  : '✓ Mark as Done'}
           </button>
         )}
       </div>
@@ -362,6 +379,7 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, onPrintStickers, updati
   const COLUMN_LABELS: Record<Status, string> = {
     pending: 'New Orders',
     preparing: 'Preparing',
+    ready: 'Ready',
     completed: 'Completed',
   };
 
@@ -632,7 +650,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         pax_pwd: paxPwd || undefined,
       };
       setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
-      const seqNumber = updatedOrder.customer_code || '001';
+      const seqNumber = updatedOrder.queue_number || updatedOrder.customer_code || '001';
 
       setActiveSuccessOrder({
         order: updatedOrder,
@@ -650,7 +668,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
   // ── Reprint receipt (completed card button) ───────────────────────────────
   const handleReprintReceipt = useCallback((order: OnlineOrder) => {
-    triggerPrint('receipt', order, order.customer_code || '001');
+    triggerPrint('receipt', order, order.queue_number || order.customer_code || '001');
   }, [triggerPrint]);
 
   // ── Confirmation modal ────────────────────────────────────────────────────
@@ -698,7 +716,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
       if (status === 'preparing') {
         // Print kitchen ticket
-        triggerPrint('kitchen', updatedOrder as OnlineOrder, updatedOrder.customer_code || '001');
+        triggerPrint('kitchen', updatedOrder as OnlineOrder, updatedOrder.queue_number || updatedOrder.customer_code || '001');
       }
 
       if (status === 'completed') {
@@ -724,7 +742,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     const term = searchTerm.toLowerCase();
     return orders.filter(o => {
       const inv = orderInvoice(o).toLowerCase();
-      const seq = (o.customer_code || '').toLowerCase();
+      const seq = (o.queue_number || o.customer_code || '').toLowerCase();
       return inv.includes(term) || seq.includes(term);
     });
   };
@@ -800,7 +818,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
         {/* Kanban board */}
         <div className="flex-1 overflow-hidden p-5">
-          <div className="grid grid-cols-3 gap-5 h-full">
+          <div className="grid grid-cols-4 gap-5 h-full">
             {COLUMNS.map(status => (
               <KanbanColumn
                 key={status}
@@ -808,7 +826,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
                 orders={filteredOrders.filter(o => o.status === status)}
                 onMove={handleConfirm}
                 onPrint={handleReprintReceipt}
-                onPrintStickers={(o) => triggerPrint('stickers', o, o.customer_code || '001')}
+                onPrintStickers={(o) => triggerPrint('stickers', o, o.queue_number || o.customer_code || '001')}
                 updatingId={updatingId}
               />
             ))}
@@ -827,16 +845,18 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
 
-              <div className={`px-6 py-5 ${confirmOrder.status === 'preparing' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+              <div className={`px-6 py-5 ${confirmOrder.status === 'preparing' ? 'bg-blue-600' : confirmOrder.status === 'ready' ? 'bg-violet-600' : 'bg-emerald-600'}`}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                     {confirmOrder.status === 'preparing'
                       ? <ChefHat size={20} className="text-white" />
-                      : <CheckCircle2 size={20} className="text-white" />}
+                      : confirmOrder.status === 'ready'
+                        ? <CheckCircle2 size={20} className="text-white" />
+                        : <CheckCircle2 size={20} className="text-white" />}
                   </div>
                   <div>
                     <h2 className="text-white font-black text-base uppercase tracking-widest leading-tight">
-                      {confirmOrder.status === 'preparing' ? 'Start Preparing?' : 'Mark as Done?'}
+                      {confirmOrder.status === 'preparing' ? 'Start Preparing?' : confirmOrder.status === 'ready' ? 'Mark as Ready?' : 'Mark as Done?'}
                     </h2>
                     <p className="text-white/70 text-[11px] font-bold mt-0.5 font-mono">
                       #{confirmOrder.customer_code || '—'} · {confirmOrder.invoice}
@@ -849,7 +869,9 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
                 <p className="text-zinc-500 text-xs font-bold text-center">
                   {confirmOrder.status === 'preparing'
                     ? 'This will move the order to Preparing.'
-                    : 'This will mark the order as Completed.'}
+                    : confirmOrder.status === 'ready'
+                      ? 'This will move the order to Ready.'
+                      : 'This will mark the order as Completed.'}
                 </p>
               </div>
 

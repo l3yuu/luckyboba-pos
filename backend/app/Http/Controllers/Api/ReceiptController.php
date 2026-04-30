@@ -115,6 +115,7 @@ class ReceiptController extends Controller
             END as si_number'),
             'sales.total_amount',
             'sales.payment_method',
+            'sales.queue_number',
             'sales.cash_tendered',
             'sales.reference_number',
             'sales.status',
@@ -331,7 +332,7 @@ public function voidRequest(Request $request, $id)
             })
             ->count();
             
-        $saleArray['queue_number'] = $sale->source === 'kiosk' ? ($saleDayCount + 100) : ($saleDayCount + 1);
+        $saleArray['queue_number'] = $sale->queue_number ?? ($sale->source === 'kiosk' ? ($saleDayCount + 100) : ($saleDayCount + 1));
 
         // ✅ BIR fields from the related branch
         $branch = $sale->branch;

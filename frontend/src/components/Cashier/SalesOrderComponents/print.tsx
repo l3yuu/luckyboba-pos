@@ -780,7 +780,7 @@ export const KioskTicketPrint = ({
             NOT AN OFFICIAL RECEIPT. PRESENT TO COUNTER
           </p>
           <div className="bg-gray-100 p-0.5 text-[7px] font-bold uppercase tracking-tighter opacity-80" style={{ wordBreak: 'break-all' }}>
-            {orNumber} | {formattedDate} {formattedTime}
+            Ticket: {queueNumber || '—'} | Order: {orNumber} | {formattedDate} {formattedTime}
           </div>
         </div>
       </div>
@@ -858,8 +858,10 @@ export const KitchenPrint = ({
           <p className="text-sm tracking-widest uppercase">Queue</p>
           <h2 className="font-black text-4xl tracking-widest">#{queueNumber}</h2>
         </div>
-        <h2 className="text-m">SI # {orNumber}</h2>
-        <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
+        <div className="mt-4">
+          <h2 className="text-m">SI # {orNumber}</h2>
+          <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
+        </div>
       </div>
 
       <div className="mt-2">
