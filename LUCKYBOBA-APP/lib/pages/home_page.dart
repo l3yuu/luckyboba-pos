@@ -76,10 +76,19 @@ class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> _featuredDrinks = [];
   bool _loadingFeaturedDrinks = true;
 
+  final PageController _bannerController = PageController();
+  int _currentBannerPage = 0;
+
   @override
   void initState() {
     super.initState();
     _loadAll();
+  }
+
+  @override
+  void dispose() {
+    _bannerController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAll() async {
@@ -339,10 +348,12 @@ class _HomePageState extends State<HomePage> {
                         subTitle: 'Premium Collection',
                         cta: 'ORDER NOW',
                       )
-                    else
+                    else ...[
                       SizedBox(
                         height: 190,
                         child: PageView.builder(
+                          controller: _bannerController,
+                          onPageChanged: (i) => setState(() => _currentBannerPage = i),
                           itemCount: _featuredDrinks.length,
                           itemBuilder: (context, index) {
                             final item = _featuredDrinks[index];
@@ -357,6 +368,24 @@ class _HomePageState extends State<HomePage> {
                           },
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(_featuredDrinks.length, (i) {
+                          final active = _currentBannerPage == i;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: active ? 18 : 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: active ? _kPurple : Colors.grey[300],
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
 
                     const SizedBox(height: 28),
 
@@ -551,99 +580,147 @@ class _HomePageState extends State<HomePage> {
           ),
           padding: EdgeInsets.only(
               top: topPad + 16, left: 20, right: 20, bottom: 40),
-          child: Column(
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              // Top row: logo + search icon
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Decorative background elements
+              Positioned(
+                top: -50,
+                right: -30,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -20,
+                left: -40,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 40,
+                right: 60,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.04),
+                  ),
+                ),
+              ),
+              Column(
                 children: [
-                  const SizedBox(width: 40),
-                  // Logo / brand name
+                  // Top row: logo + search icon
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Image.asset(
-                        'assets/images/logo.png',
-                        height: 40,
-                        errorBuilder: (context, error, trace) => const Icon(
-                          PhosphorIconsFill.star,
-                          color: _kOrange,
-                          size: 36,
+                      const SizedBox(width: 40),
+                      // Logo / brand name
+                      Row(
+                        children: [
+                          Image.asset(
+                            'assets/images/logo.png',
+                            height: 40,
+                            errorBuilder: (context, error, trace) => const Icon(
+                              PhosphorIconsFill.star,
+                              color: _kOrange,
+                              size: 36,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Search button
+                      Semantics(
+                        label: 'Search drinks',
+                        button: true,
+                        child: GestureDetector(
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            margin: const EdgeInsets.only(right: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.search_rounded,
+                                color: _kWhite, size: 22),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  // Search button
-                  Semantics(
-                    label: 'Search drinks',
-                    button: true,
-                    child: GestureDetector(
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        margin: const EdgeInsets.only(right: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.search_rounded,
-                            color: _kWhite, size: 22),
+    
+                  const SizedBox(height: 16),
+    
+                  // Greeting
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      greeting,
+                      style: GoogleFonts.outfit(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: _kWhite,
+                        letterSpacing: -0.5,
                       ),
                     ),
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Greeting
-              Text(
-                greeting,
-                style: GoogleFonts.outfit(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: _kWhite,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Stat cards row
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _StatCardLight(
-                        label: 'Loyalty Points',
-                        value: _loadingPoints
-                            ? '...'
-                            : '$_luckyPoints Points',
-                        subValue: 'View History',
-                        icon: PhosphorIconsFill.sparkle,
-                        iconColor: _kOrange,
-                        isPrimary: true,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PointsPage(points: _luckyPoints),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'What are you craving today?',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+    
+                  const SizedBox(height: 24),
+    
+                  // Stat cards row
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _PointsCard(
+                            points: _luckyPoints,
+                            loading: _loadingPoints,
+                            hasActiveCard: _hasActiveCard,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PointsPage(points: _luckyPoints),
+                              ),
+                            ).then((_) => _fetchLuckyPoints()),
                           ),
-                        ).then((_) => _fetchLuckyPoints()),
-                      ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: _RewardsCard(
+                            hasActiveCard: _hasActiveCard,
+                            onTap: _goToCards,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _StatCardLight(
-                        label: 'Active Rewards',
-                        value: _hasActiveCard ? 'Active' : 'No Card',
-                        subValue: _hasActiveCard ? 'Card Active' : 'Tap to get a card',
-                        icon: PhosphorIconsFill.gift,
-                        iconColor: const Color(0xFF10B981),
-                        badge: _hasActiveCard ? null : 'GET CARD',
-                        onTap: _goToCards,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -697,21 +774,18 @@ class _WavePainter extends CustomPainter {
 
 class _StatCardLight extends StatelessWidget {
   final String label, value;
-  final String? subValue, badge;
+  final String? subValue;
   final IconData icon;
   final Color iconColor;
   final VoidCallback? onTap;
-  final bool isPrimary;
 
   const _StatCardLight({
     required this.label,
     required this.value,
     this.subValue,
-    this.badge,
     required this.icon,
     required this.iconColor,
     this.onTap,
-    this.isPrimary = false,
   });
 
   @override
@@ -723,9 +797,6 @@ class _StatCardLight extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: isPrimary
-              ? const Border(left: BorderSide(color: _kOrange, width: 3))
-              : null,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.10),
@@ -752,23 +823,6 @@ class _StatCardLight extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (badge != null)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: _kPurple.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      badge!,
-                      style: GoogleFonts.outfit(
-                        fontSize: 8,
-                        fontWeight: FontWeight.w900,
-                        color: _kPurple,
-                      ),
-                    ),
-                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -788,10 +842,219 @@ class _StatCardLight extends StatelessWidget {
                 style: GoogleFonts.outfit(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: isPrimary ? _kOrange : Colors.grey[500],
+                  color: Colors.grey[500],
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Points stat card with progress ───────────────────────────────────────────
+
+class _PointsCard extends StatelessWidget {
+  final int points;
+  final bool loading;
+  final bool hasActiveCard;
+  final VoidCallback onTap;
+
+  const _PointsCard({
+    required this.points,
+    required this.loading,
+    required this.hasActiveCard,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Next tier is the next multiple of 100
+    final nextTier = ((points ~/ 100) + 1) * 100;
+    final progress = loading ? 0.0 : (points / nextTier).clamp(0.0, 1.0);
+    final pointsNeeded = nextTier - points;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border(
+            left: BorderSide(
+              color: hasActiveCard ? _kOrange : Colors.grey[400]!,
+              width: 3,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  PhosphorIconsFill.sparkle,
+                  color: hasActiveCard ? _kOrange : Colors.grey[400],
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Loyalty Points',
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              loading ? '...' : '$points',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: hasActiveCard
+                    ? const Color(0xFF1A1A2E)
+                    : Colors.grey[400],
+                height: 1.1,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: hasActiveCard ? progress : 0,
+                minHeight: 6,
+                backgroundColor: hasActiveCard
+                    ? _kOrange.withValues(alpha: 0.2)
+                    : Colors.grey[200],
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  hasActiveCard ? _kOrange : Colors.grey[400]!,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              loading
+                  ? 'Loading...'
+                  : hasActiveCard
+                      ? '$pointsNeeded to next reward'
+                      : 'Card required for points',
+              style: GoogleFonts.outfit(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: hasActiveCard ? _kOrange : Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Rewards stat card with CTA ───────────────────────────────────────────────
+
+class _RewardsCard extends StatelessWidget {
+  final bool hasActiveCard;
+  final VoidCallback onTap;
+
+  const _RewardsCard({
+    required this.hasActiveCard,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (hasActiveCard) {
+      return _StatCardLight(
+        label: 'Active Rewards',
+        value: 'Active',
+        subValue: 'Card Active',
+        icon: PhosphorIconsFill.gift,
+        iconColor: const Color(0xFF10B981),
+        onTap: onTap,
+      );
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              children: [
+                const Icon(PhosphorIconsFill.gift, color: Color(0xFF10B981), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  'Rewards',
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              'Unlock rewards\n& earn points',
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF1A1A2E),
+                height: 1.1,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Card holders only',
+              style: GoogleFonts.outfit(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[500],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'GET CARD',
+                style: GoogleFonts.outfit(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF10B981),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -873,8 +1136,8 @@ class _HeroBannerLight extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withValues(alpha: 0.15),
-                        Colors.black.withValues(alpha: 0.85),
+                        Colors.black.withValues(alpha: 0.05),
+                        Colors.black.withValues(alpha: 0.95),
                       ],
                     ),
                   ),
@@ -913,15 +1176,15 @@ class _HeroBannerLight extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 9),
                       decoration: BoxDecoration(
-                        color: _kOrange,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         cta,
                         style: GoogleFonts.outfit(
                             fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: _kWhite),
+                            fontWeight: FontWeight.w900,
+                            color: _kPurple),
                       ),
                     ),
                   ],

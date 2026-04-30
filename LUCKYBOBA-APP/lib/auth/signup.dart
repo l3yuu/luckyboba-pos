@@ -250,7 +250,7 @@ class _SignupPageState extends State<SignupPage>
                             children: [
                               Text('FULL NAME', style: GoogleFonts.poppins(color: Colors.black54, fontSize: 11, fontWeight: FontWeight.w700)),
                               const SizedBox(height: 8),
-                              _inputField(controller: _nameCtrl, hint: 'John Doe', icon: Icons.person_rounded, isPassword: false, obscure: false),
+                              _inputField(controller: _nameCtrl, hint: 'Enter Full Name', icon: Icons.person_rounded, isPassword: false, obscure: false),
 
                               const SizedBox(height: 20),
                               Text('EMAIL ADDRESS', style: GoogleFonts.poppins(color: Colors.black54, fontSize: 11, fontWeight: FontWeight.w700)),

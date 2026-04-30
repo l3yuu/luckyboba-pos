@@ -181,7 +181,7 @@ Route::post('/kiosk/verify-password', function (Illuminate\Http\Request $request
 
 Route::get('/branches/available', [BranchController::class, 'availableBranches'])->middleware('throttle:api');
 Route::post('/google-login', [AuthController::class, 'googleLogin'])->middleware('throttle:10,1');
-Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:60,1');
 // ── Z Reading print — public, auth handled via one-time cache token ───────────
 Route::get('/readings/z/print', [SalesDashboardController::class, 'zReadingPrint'])->middleware('throttle:30,1');
 // ── Authenticated routes ─────────────────────────────────────────────────────
