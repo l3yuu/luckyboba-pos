@@ -20,7 +20,9 @@ class OnlineOrderController extends Controller
             ->where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
                   ->orWhere('invoice_number', 'like', 'KSK-%')
-                  ->orWhere('source', 'kiosk');
+                  ->orWhere('invoice_number', 'like', 'SI-%')
+                  ->orWhereIn('source', ['kiosk', 'pos', 'online'])
+                  ->orWhereNull('source');
             })
             ->whereNotIn('status', ['cancelled'])
             ->whereDate('created_at', now()->toDateString());
@@ -44,7 +46,7 @@ class OnlineOrderController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'status'              => ['required', 'in:pending,preparing,completed'],
+            'status'              => ['required', 'in:pending,preparing,ready,completed'],
             'branch_name'         => 'required|string|exists:branches,name',
             'invoice_number'      => 'nullable|string',
             'payment_method'      => 'nullable|string',
@@ -72,7 +74,9 @@ class OnlineOrderController extends Controller
             ->where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
                   ->orWhere('invoice_number', 'like', 'KSK-%')
-                  ->orWhere('source', 'kiosk');
+                  ->orWhere('invoice_number', 'like', 'SI-%')
+                  ->orWhereIn('source', ['kiosk', 'pos', 'online'])
+                  ->orWhereNull('source');
             });
 
         if (!empty($user->branch_id)) {
@@ -343,7 +347,9 @@ class OnlineOrderController extends Controller
             $query = Sale::where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
                   ->orWhere('invoice_number', 'like', 'KSK-%')
-                  ->orWhere('source', 'kiosk');
+                  ->orWhere('invoice_number', 'like', 'SI-%')
+                  ->orWhereIn('source', ['kiosk', 'pos', 'online'])
+                  ->orWhereNull('source');
             });
 
             // Branch scoping

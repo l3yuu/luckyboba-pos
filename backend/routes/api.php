@@ -41,6 +41,7 @@ Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'check
 
 // ✅ PUBLIC MOBILE ROUTES
 Route::post('/kiosk-sales', [SalesController::class, 'store'])->middleware('throttle:kiosk'); // Allow kiosk orders without auth
+Route::get('/queue/active', [\App\Http\Controllers\Api\QueueController::class, 'active'])->middleware('throttle:api');
 Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:api');
 Route::get('/cards/image/{path}', [CardController::class, 'image'])
     ->where('path', '.*')

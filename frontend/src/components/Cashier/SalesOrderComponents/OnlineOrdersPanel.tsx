@@ -56,7 +56,7 @@ interface OnlineOrder {
   vat_exempt_sales?: number;
   discount_amount?: number;
   order_type?: string;
-  status: 'pending' | 'preparing' | 'completed' | 'cancelled';
+  status: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
   source?: string;
   created_at: string;
   items: SaleItem[];
@@ -70,7 +70,7 @@ interface OnlineOrder {
   reference_number?: string;
 }
 
-type Status = 'pending' | 'preparing' | 'completed';
+type Status = 'pending' | 'preparing' | 'ready' | 'completed';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -97,6 +97,13 @@ const STATUS_META: Record<Status, {
     border: 'border-blue-200',
     icon: <ChefHat size={14} className="text-blue-500" />,
   },
+  ready: {
+    label: 'Now Serving',
+    color: 'text-violet-700',
+    bg: 'bg-violet-50',
+    border: 'border-violet-200',
+    icon: <AlertCircle size={14} className="text-violet-500" />,
+  },
   completed: {
     label: 'Completed',
     color: 'text-emerald-700',
@@ -106,7 +113,7 @@ const STATUS_META: Record<Status, {
   },
 };
 
-const COLUMNS: Status[] = ['pending', 'preparing', 'completed'];
+const COLUMNS: Status[] = ['pending', 'preparing', 'ready', 'completed'];
 
 const fmt = (v: number) =>
   `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -179,7 +186,8 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
 
   const nextStatus: Record<Status, Status | null> = {
     pending: 'preparing',
-    preparing: 'completed',
+    preparing: 'ready',
+    ready: 'completed',
     completed: null,
   };
   const next = nextStatus[order.status as Status];
@@ -338,7 +346,9 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
               ? 'Updating...'
               : next === 'preparing'
                 ? '→ Start Preparing'
-                : '✓ Mark as Done'}
+                : next === 'ready'
+                  ? '→ Now Serving'
+                  : '✓ Mark as Done'}
           </button>
         )}
       </div>
@@ -362,6 +372,7 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, onPrintStickers, updati
   const COLUMN_LABELS: Record<Status, string> = {
     pending: 'New Orders',
     preparing: 'Preparing',
+    ready: 'Now Serving',
     completed: 'Completed',
   };
 
@@ -514,7 +525,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       const raw: OnlineOrder[] = Array.isArray(res.data) ? res.data : res.data.data ?? [];
       const appOrders = raw.filter(o => {
         const inv = (o.invoice_number ?? o.si_number ?? '');
-        return inv.startsWith('APP-') || inv.startsWith('KSK-') || o.source === 'kiosk';
+        return inv.startsWith('APP-') || inv.startsWith('KSK-') || inv.startsWith('SI-') || ['kiosk', 'pos', 'online'].includes(o.source || '');
       });
       setOrders(appOrders);
       setError(null);

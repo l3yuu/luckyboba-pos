@@ -44,6 +44,7 @@ class Sale extends Model
         'branch_id',
         'is_synced',
         'invoice_number',
+        'queue_number',
         'status',
         'cancellation_reason',
         'cancelled_at',

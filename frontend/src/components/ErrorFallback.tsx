@@ -1,3 +1,4 @@
+import { useRouteError } from 'react-router-dom';
 import logo from '../assets/logo.png';
 
 interface ErrorFallbackProps {
@@ -13,6 +14,9 @@ export const ErrorFallback = ({ onRetry, errorMessage }: ErrorFallbackProps) => 
   const handleReload = () => {
     window.location.reload();
   };
+
+  const routeError = useRouteError() as any;
+  const displayError = errorMessage || routeError?.message || String(routeError) || 'Unknown error occurred.';
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f6ff] p-6 font-sans">
@@ -43,10 +47,10 @@ export const ErrorFallback = ({ onRetry, errorMessage }: ErrorFallbackProps) => 
         </div>
 
         {/* Dev-only error message */}
-        {errorMessage && (
-          <div className="text-left bg-zinc-50 rounded-2xl p-4 border border-zinc-200">
+        {displayError && displayError !== 'undefined' && (
+          <div className="text-left bg-zinc-50 rounded-2xl p-4 border border-zinc-200 overflow-hidden">
             <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Dev Error</p>
-            <p className="text-xs font-mono text-red-500 wrap-break-word">{errorMessage}</p>
+            <p className="text-xs font-mono text-red-500 break-words">{displayError}</p>
           </div>
         )}
 
