@@ -46,19 +46,24 @@ function canvasFingerprint(): string {
 
 // ── Hardware signal collection ────────────────────────────────────────────────
 function collectSignals(): string {
+  const w = screen.width;
+  const h = screen.height;
+  const maxDim = Math.max(w, h);
+  const minDim = Math.min(w, h);
+
   return [
     getStableUserAgent(),
     navigator.language,
     navigator.languages?.join(',') ?? '',
     String(navigator.hardwareConcurrency ?? ''),
     String((navigator as unknown as { deviceMemory?: number }).deviceMemory ?? ''),
-    String(screen.width),
-    String(screen.height),
+    String(maxDim), // Backward-compatible with Width in Landscape
+    String(minDim), // Backward-compatible with Height in Landscape
     String(screen.colorDepth),
     String(screen.pixelDepth),
     Intl.DateTimeFormat().resolvedOptions().timeZone,
     canvasFingerprint(),
-    getWebglRenderer(), // Added GPU identification
+    getWebglRenderer(), 
   ].join('||');
 }
 
