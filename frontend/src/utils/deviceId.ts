@@ -46,9 +46,6 @@ function canvasFingerprint(): string {
 
 // ── Hardware signal collection ────────────────────────────────────────────────
 function collectSignals(): string {
-  // Use orientation-independent dimensions (always [large]x[small])
-  // This matches the standard "Width x Height" of a Landscape tablet,
-  // ensuring backward compatibility with existing registered devices.
   const w = screen.width;
   const h = screen.height;
   const maxDim = Math.max(w, h);
@@ -60,8 +57,8 @@ function collectSignals(): string {
     navigator.languages?.join(',') ?? '',
     String(navigator.hardwareConcurrency ?? ''),
     String((navigator as unknown as { deviceMemory?: number }).deviceMemory ?? ''),
-    String(maxDim), // Backward-compatible with Landscape Width
-    String(minDim), // Backward-compatible with Landscape Height
+    String(maxDim), // Backward-compatible with Width in Landscape
+    String(minDim), // Backward-compatible with Height in Landscape
     String(screen.colorDepth),
     String(screen.pixelDepth),
     Intl.DateTimeFormat().resolvedOptions().timeZone,
