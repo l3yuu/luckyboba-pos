@@ -43,6 +43,7 @@ function createWindow() {
     height: 800,
     autoHideMenuBar: true,
     fullscreen: isWindows, // Auto-fullscreen on the Windows tablet
+    icon: path.join(__dirname, 'lucky.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

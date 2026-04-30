@@ -26,11 +26,11 @@ if not exist "%fullPath%" (
 
 echo [1/2] Creating Desktop Shortcut...
 echo Target: %desktopPath%
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%desktopPath%');$s.TargetPath='%fullPath%';$s.Save()"
+powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%desktopPath%');$s.TargetPath='%fullPath%';$s.IconLocation='%fullPath%';$s.Save()"
 
 echo [2/2] Setting up Auto-Start on Boot...
 echo Target: %startupPath%
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%startupPath%');$s.TargetPath='%fullPath%';$s.Save()"
+powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%startupPath%');$s.TargetPath='%fullPath%';$s.IconLocation='%fullPath%';$s.Save()"
 
 echo.
 echo ------------------------------------------
