@@ -15,7 +15,7 @@ export const ErrorFallback = ({ onRetry, errorMessage }: ErrorFallbackProps) => 
     window.location.reload();
   };
 
-  const routeError = useRouteError() as any;
+  const routeError = useRouteError() as { message?: string } | null;
   const displayError = errorMessage || routeError?.message || String(routeError) || 'Unknown error occurred.';
 
   return (

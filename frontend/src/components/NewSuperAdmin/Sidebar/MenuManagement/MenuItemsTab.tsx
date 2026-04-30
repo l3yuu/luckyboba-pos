@@ -1162,7 +1162,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         }
       })
       .catch(() => { });
-  }, [isEdit, item, isComboCategory, isBundleCategory]);
+  }, [isEdit, item, isComboCategory, isBundleCategory, bundleItemIds]);
 
   useEffect(() => {
     if (!isEdit || !item) return;
@@ -1197,7 +1197,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         }
       })
       .catch(() => { });
-  }, [isEdit, item, isComboCategory, isBundleCategory]);
+  }, [isEdit, item, isComboCategory, isBundleCategory, bundleItemIds]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -1344,7 +1344,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
     };
 
     fetchAll();
-  }, [drinkItemId, bundleItemIds, isComboCategory, isBundleCategory, isEdit, item, allItems]);
+  }, [drinkItemId, bundleItemIds, isComboCategory, isBundleCategory, isEdit, item, slotOptions, slotSugarIds]);
 
   const mmDrinkCount = mmBundleItems !== null
     ? mmBundleItems.filter(i => i.size !== 'none').length
