@@ -46,19 +46,27 @@ function canvasFingerprint(): string {
 
 // ── Hardware signal collection ────────────────────────────────────────────────
 function collectSignals(): string {
+  // Use orientation-independent dimensions (always [large]x[small])
+  // This matches the standard "Width x Height" of a Landscape tablet,
+  // ensuring backward compatibility with existing registered devices.
+  const w = screen.width;
+  const h = screen.height;
+  const maxDim = Math.max(w, h);
+  const minDim = Math.min(w, h);
+
   return [
     getStableUserAgent(),
     navigator.language,
     navigator.languages?.join(',') ?? '',
     String(navigator.hardwareConcurrency ?? ''),
     String((navigator as unknown as { deviceMemory?: number }).deviceMemory ?? ''),
-    String(screen.width),
-    String(screen.height),
+    String(maxDim), // Backward-compatible with Landscape Width
+    String(minDim), // Backward-compatible with Landscape Height
     String(screen.colorDepth),
     String(screen.pixelDepth),
     Intl.DateTimeFormat().resolvedOptions().timeZone,
     canvasFingerprint(),
-    getWebglRenderer(), // Added GPU identification
+    getWebglRenderer(), 
   ].join('||');
 }
 
