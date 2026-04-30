@@ -163,6 +163,15 @@ export function getDeviceId(): string {
 
 // Preferred: always returns the real ID, even after a full site data clear
 export async function getDeviceIdAsync(): Promise<string> {
+  // ── 0. Native Shell Support ────────────────────────────────────────────────
+  // If running inside our Windows Shell, use the real Hardware Serial Number.
+  // This is 100% stable and never resets.
+  const nativeId = (window as any).NATIVE_ID || (window as any).process?.env?.NATIVE_ID;
+  if (nativeId) {
+    _cachedId = nativeId;
+    return nativeId;
+  }
+
   if (_cachedId) return _cachedId;
 
   const stored = await readFromStorageAsync();
