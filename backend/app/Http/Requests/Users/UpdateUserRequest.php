@@ -21,11 +21,18 @@ class UpdateUserRequest extends FormRequest
     {
         $user = $this->user();
 
-        // Branch managers force their own branch and can't promote role
-        if ($user->role === 'branch_manager') {
+        // Branch managers, supervisors, and team leaders force their own branch and can't promote role
+        if (in_array($user->role, ['branch_manager', 'supervisor', 'team_leader'])) {
             $inputRole = $this->input('role');
             
-            $roleToSet = in_array($inputRole, ['cashier', 'team_leader', 'supervisor']) ? $inputRole : null;
+            $allowedRoles = ['cashier'];
+            if ($user->role === 'branch_manager') {
+                $allowedRoles = ['cashier', 'team_leader', 'supervisor'];
+            } elseif ($user->role === 'supervisor') {
+                $allowedRoles = ['cashier', 'team_leader'];
+            }
+
+            $roleToSet = in_array($inputRole, $allowedRoles) ? $inputRole : null;
 
             $mergeData = [
                 'branch_id' => $user->branch_id,

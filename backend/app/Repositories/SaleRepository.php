@@ -340,7 +340,7 @@ class SaleRepository implements SaleRepositoryInterface
 
     public function getNetCashPayments(Carbon $startDate, Carbon $endDate, ?int $branchId = null, ?int $shift = null): float
     {
-        return (float) DB::table('sales')
+        $sum = (float) DB::table('sales')
             ->join('branches', 'sales.branch_id', '=', 'branches.id')
             ->whereNull('branches.deleted_at')
             ->whereBetween('sales.created_at', [$startDate, $endDate])
@@ -348,11 +348,12 @@ class SaleRepository implements SaleRepositoryInterface
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->when($shift,    fn($q) => $q->where('sales.shift', $shift))
             ->where(fn($q) => $q->whereNull('sales.charge_type')->orWhere('sales.charge_type', ''))
-            ->whereNotIn(DB::raw('LOWER(TRIM(sales.payment_method))'), [
-                'gcash', 'e-wallet', 'ewallet', 'visa', 'mastercard',
-                'master card', 'master', 'visa card',
-            ])
+            // Strict filter for physical cash only
+            ->whereRaw('LOWER(TRIM(sales.payment_method)) = ?', ['cash'])
             ->sum('sales.total_amount');
+
+        \Log::info("getNetCashPayments: Branch [$branchId] Shift [$shift] Range [$startDate - $endDate] Result [$sum]");
+        return $sum;
     }
 
     public function getCashTransactionsSum(Carbon $startDate, Carbon $endDate, array $types, ?int $branchId = null, ?int $shift = null): float

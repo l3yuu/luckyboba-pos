@@ -1073,6 +1073,7 @@ const handlePrint = () => window.print();
         <ReceiptRow label="Transaction Count" value={txCount} />
         {showBreakdown && (
           <>
+            {renderQtyItems()}
             <ReceiptDivider />
             <p className="text-[11px] uppercase text-center font-bold mb-0.5">CUP SIZE TOTALS</p>
             {reportData?.cup_size_totals && Object.entries(reportData.cup_size_totals).map(([size, qty]) => (
@@ -1357,7 +1358,7 @@ const handlePrint = () => window.print();
               <Menu size={13} /> Menu
             </button>
             {isMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-violet-100 shadow-2xl p-4 z-50 rounded-[0.625rem]">
+              <div className="absolute left-0 top-full mt-1 w-80 bg-white border border-violet-100 shadow-2xl p-4 z-[100] rounded-[0.625rem]">
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#6a12b8]"   },

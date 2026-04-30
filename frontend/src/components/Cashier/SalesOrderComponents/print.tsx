@@ -254,7 +254,7 @@ export const ReceiptPrint = ({
         <div className="text-xs space-y-1 mb-3">
           <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
           <div className="mt-1">
-            Order Mode: {orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}
+            Order Mode: {orderType === 'dine-in' ? 'DINE IN' : orderType === 'delivery' ? 'DELIVERY' : 'TAKE OUT'}
           </div>
           {orderCharge && (
             <div className="mt-1">
@@ -852,7 +852,7 @@ export const KitchenPrint = ({
         <h2 className="font-bold text-lg uppercase tracking-widest">{branchName}</h2>
         <div className="mt-2 text-sm uppercase">
           <div>Customer: {customerName || 'N/A'}</div>
-          <div>Mode: {orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}</div>
+          <div>Mode: {orderType === 'dine-in' ? 'DINE IN' : orderType === 'delivery' ? 'DELIVERY' : 'TAKE OUT'}</div>
         </div>
         <div className="py-3 my-3">
           <p className="text-sm tracking-widest uppercase">Queue</p>

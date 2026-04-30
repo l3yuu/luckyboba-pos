@@ -12,6 +12,7 @@ import {
   CheckCircle2, 
   Printer, 
   Tag,
+  Calendar,
 } from 'lucide-react';
 import api from '../../../services/api';
 import { type CartItem } from '../../../types/index';
@@ -64,7 +65,8 @@ interface ReprintPayload {
     discount_amount?: number;
     sc_discount_amount?: number;
     pwd_discount_amount?: number;
-    vat_type?:        string;   // ← add this
+    vat_type?:        string;
+    order_type?:      string;
     branch?: {
       name?:           string;
       brand?:          string;
@@ -181,13 +183,20 @@ const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; i
   </div>
 );
 
+// Helper for local date
+const getLocalToday = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offset).toISOString().split('T')[0];
+};
+
 // ============================================================
 // MAIN COMPONENT
 // ============================================================
 
 const SearchReceipts = () => {
   useAuth();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalToday();
 
   const [searchQuery,   setSearchQuery]   = useState('');
   const [selectedDate,  setSelectedDate]  = useState(today);
@@ -360,7 +369,7 @@ return {
   itemDiscountTotal,
   promoDiscount,
   vatType: (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat',
-  orderType: ((sale as unknown as { order_type?: string }).order_type ?? 'dine-in') as 'dine-in' | 'take-out',
+  orderType: (sale.order_type === 'dine_in' ? 'dine-in' : sale.order_type === 'delivery' ? 'delivery' : 'take-out') as 'dine-in' | 'take-out' | 'delivery',
 
   // ✅ ADD THESE
   brand:           sale.branch?.brand,
@@ -434,6 +443,7 @@ return {
 
         {/* Search Bar */}
         <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
+          {/* Search Query */}
           <div className="bg-white flex items-center border border-[#e9d5ff] shadow-xl rounded-[0.625rem] flex-1">
             <div className="px-4 text-zinc-400"><Search size={17} /></div>
             <input
@@ -451,12 +461,44 @@ return {
               </button>
             )}
           </div>
+
+          {/* Date Picker */}
+          <div className="bg-white flex items-center border border-[#e9d5ff] shadow-xl rounded-[0.625rem] px-4 min-w-[200px]">
+            <Calendar size={17} className="text-zinc-400 mr-3" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={e => {
+                const newDate = e.target.value;
+                setSelectedDate(newDate);
+                handleSearch(searchQuery, newDate);
+              }}
+              className="flex-1 h-12 outline-none text-[#1a0f2e] font-bold text-sm bg-transparent cursor-pointer"
+            />
+          </div>
+
+          {/* All Time Toggle */}
+          <button
+            onClick={() => {
+              const newDate = selectedDate === '' ? today : '';
+              setSelectedDate(newDate);
+              handleSearch(searchQuery, newDate);
+            }}
+            className={`px-6 font-bold text-[10px] uppercase tracking-widest transition-all h-12 rounded-[0.625rem] border shadow-xl ${
+              !selectedDate 
+                ? 'bg-[#6a12b8] text-white border-[#6a12b8]' 
+                : 'bg-white text-zinc-400 border-[#e9d5ff] hover:border-[#6a12b8] hover:text-[#6a12b8]'
+            }`}
+          >
+            {!selectedDate ? 'All Time Active' : 'All Time'}
+          </button>
+
           <button onClick={() => handleSearch()} disabled={isLoading}
-            className="bg-[#6a12b8] hover:bg-[#6a12b8] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem]">
+            className="bg-[#6a12b8] hover:bg-[#6a12b8] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem] shadow-xl">
             {isLoading ? '...' : 'Search'}
           </button>
           <button onClick={handleRefresh}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#6a12b8] hover:border-[#6a12b8] px-4 h-12 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]">
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#6a12b8] hover:border-[#6a12b8] px-4 h-12 transition-all duration-300 hover:rotate-180 shadow-xl rounded-[0.625rem]">
             <RotateCcw size={16} />
           </button>
         </div>
