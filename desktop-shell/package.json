@@ -1,0 +1,12 @@
+{
+  "name": "luckyboba-pos-shell",
+  "version": "1.0.0",
+  "description": "Windows Hardware Shell for Lucky Boba POS",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^29.0.0"
+  }
+}
