@@ -145,8 +145,11 @@ class CashCountController extends Controller
                 ->where('shift', $currentShift)
                 ->whereDate('created_at', $today)
                 ->where(function($q) {
-                    $q->whereRaw('LOWER(TRIM(payment_method)) = ?', ['cash'])
-                      ->orWhereNull('payment_method');
+                    $q->whereRaw('LOWER(TRIM(payment_method)) = ?', ['cash']);
+                })
+                ->where(function($q) {
+                    $q->whereNull('charge_type')
+                      ->orWhere('charge_type', '');
                 })
                 ->sum('total_amount');
 
