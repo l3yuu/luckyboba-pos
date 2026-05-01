@@ -9,31 +9,61 @@ const { execSync } = require('child_process');
 function getHardwareId() {
   try {
     if (process.platform === 'win32') {
-      // 1. Try to get BIOS Serial Number
-      let output = execSync('wmic bios get serialnumber').toString();
-      let serial = output.split('\n')[1]?.trim() || '';
+      let serial = '';
       
-      // 2. List of common "fake" or generic serial numbers to ignore
+      // Method 1: Modern PowerShell (Best for Win 10/11)
+      try {
+        serial = execSync('powershell -ExecutionPolicy Bypass -Command "(Get-CimInstance -ClassName Win32_BIOS).SerialNumber"').toString().trim();
+      } catch (e) { /* skip */ }
+
+      // Method 2: Legacy WMIC (Best for Win 7/8 or if PowerShell is blocked)
+      if (!serial || serial === '') {
+        try {
+          const output = execSync('wmic bios get serialnumber').toString();
+          serial = output.split('\n')[1]?.trim();
+        } catch (e) { /* skip */ }
+      }
+
+      // Method 3: Product UUID fallback
+      if (!serial || serial === '') {
+        try {
+          serial = execSync('powershell -ExecutionPolicy Bypass -Command "(Get-CimInstance -ClassName Win32_ComputerSystemProduct).UUID"').toString().trim();
+        } catch (e) { /* skip */ }
+      }
+      
       const genericSerials = ['0', '00000000', 'NONE', 'DEFAULT STRING', 'TO BE FILLED BY O.E.M.', 'O.E.M'];
       const isGeneric = !serial || genericSerials.includes(serial.toUpperCase());
 
-      // 3. Fallback to Motherboard UUID if Serial is generic or missing
-      if (isGeneric) {
-        output = execSync('wmic csproduct get uuid').toString();
-        serial = output.split('\n')[1]?.trim() || 'UNKNOWN-UUID';
+      // Ultimate Fallback: Hostname
+      if (isGeneric || !serial) {
+        return `WIN-HOST-${require('os').hostname().toUpperCase()}`;
       }
       
       return `WIN-${serial}`.toUpperCase();
     } else {
-      // For testing production from your laptop
       return `PROD-TEST-${require('os').hostname().toUpperCase()}`;
     }
   } catch (e) {
-    return 'DEV-UNKNOWN-HARDWARE';
+    try {
+      return `WIN-FAILBACK-${require('os').hostname().toUpperCase()}`;
+    } catch (inner) {
+      return 'WIN-UNKNOWN-HARDWARE';
+    }
   }
 }
 
+// Disable Hardware Acceleration proactively to prevent GPU crashes on low-end Windows hardware
+app.disableHardwareAcceleration();
+
 const hardwareId = getHardwareId();
+
+// FIX: If GPU fails on some laptops, disable it to prevent "Goodbye" crash
+app.on('child-process-gone', (event, details) => {
+  if (details.type === 'GPU') {
+    console.log('GPU process gone, disabling hardware acceleration...');
+    app.disableHardwareAcceleration();
+  }
+});
 
 function createWindow() {
   const isWindows = process.platform === 'win32';
@@ -42,7 +72,7 @@ function createWindow() {
     width: 1280,
     height: 800,
     autoHideMenuBar: true,
-    fullscreen: isWindows, // Auto-fullscreen on the Windows tablet
+    fullscreen: isWindows,
     icon: path.join(__dirname, 'lucky.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -51,9 +81,7 @@ function createWindow() {
     }
   });
 
-  // Always point to production for this test
   const posUrl = 'https://luckybobastores.com'; 
-  
   win.loadURL(posUrl);
 }
 
