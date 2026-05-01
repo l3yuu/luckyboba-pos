@@ -4,7 +4,7 @@
   "description": "Windows Hardware Shell for Lucky Boba POS",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron . --no-sandbox"
   },
   "dependencies": {
     "electron": "^29.0.0"
