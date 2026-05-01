@@ -1162,7 +1162,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         }
       })
       .catch(() => { });
-  }, [isEdit, item, isComboCategory, isBundleCategory]);
+  }, [isEdit, item, isComboCategory, isBundleCategory, bundleItemIds]);
 
   useEffect(() => {
     if (!isEdit || !item) return;
@@ -1197,7 +1197,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         }
       })
       .catch(() => { });
-  }, [isEdit, item, isComboCategory, isBundleCategory]);
+  }, [isEdit, item, isComboCategory, isBundleCategory, bundleItemIds]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -1322,22 +1322,25 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         setItemCustomizations(prev => ({ ...prev, ...newDetails }));
 
         if (!shouldSkipSelectionSync) {
-          // Update slot-specific options/sugar
-          const newSlotOptions: Record<string, ItemOptions> = { ...slotOptions };
-          const newSlotSugarIds: Record<string, number[]> = { ...slotSugarIds };
-
-          results.forEach(r => {
-            newSlotOptions[r.key] = {
-              pearl: r.options.some(o => o.option_type === "pearl"),
-              ice: r.options.some(o => o.option_type === "ice"),
-            };
-            newSlotSugarIds[r.key] = r.sugarLevels.map(s => s.sugar_level_id);
+          setSlotOptions(prev => {
+            const next = { ...prev };
+            results.forEach(r => {
+              next[r.key] = {
+                pearl: r.options.some(o => o.option_type === "pearl"),
+                ice: r.options.some(o => o.option_type === "ice"),
+              };
+            });
+            return next;
           });
 
-          setSlotOptions(newSlotOptions);
-          setSlotSugarIds(newSlotSugarIds);
+          setSlotSugarIds(prev => {
+            const next = { ...prev };
+            results.forEach(r => {
+              next[r.key] = r.sugarLevels.map(s => s.sugar_level_id);
+            });
+            return next;
+          });
         }
-
       } catch (err) {
         console.error("Failed to auto-sync options:", err);
       }

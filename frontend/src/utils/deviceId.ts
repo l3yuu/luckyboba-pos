@@ -1,3 +1,14 @@
+declare global {
+  interface Window {
+    NATIVE_ID?: string;
+    process?: {
+      env?: {
+        NATIVE_ID?: string;
+      };
+    };
+  }
+}
+
 const STORAGE_KEY   = 'pos_device_id';
 const SESSION_KEY   = 'pos_device_id_backup';
 const COOKIE_NAME   = 'pos_device_id';
@@ -166,7 +177,7 @@ export async function getDeviceIdAsync(): Promise<string> {
   // ── 0. Native Shell Support ────────────────────────────────────────────────
   // If running inside our Windows Shell, use the real Hardware Serial Number.
   // This is 100% stable and never resets.
-  const nativeId = (window as any).NATIVE_ID || (window as any).process?.env?.NATIVE_ID;
+  const nativeId = window.NATIVE_ID || window.process?.env?.NATIVE_ID;
   if (nativeId) {
     _cachedId = nativeId;
     return nativeId;
