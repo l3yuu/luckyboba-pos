@@ -6,26 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\CashCount;
 use App\Models\CashTransaction;
 use App\Models\Sale;
+use App\Helpers\ShiftHelper;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CashCountController extends Controller
 {
-    /**
-     * Get the current active shift number for the branch.
-     * Shift 1 = AM, Shift 2 = PM.
-     */
-    private function getCurrentShiftNumber($branchId)
-    {
-        $today = now()->toDateString();
-        // Count how many EODs (CashCount) exist for today in this branch
-        $eodCount = CashCount::where('branch_id', $branchId)
-            ->where('date', $today)
-            ->count();
-        
-        return $eodCount + 1;
-    }
 
     /**
      * Store a Cash In transaction and immediately signal menu availability.
@@ -41,9 +29,10 @@ class CashCountController extends Controller
         try {
             $user     = $request->user();
             $branchId = $user->branch_id;
-            $today    = now()->toDateString();
 
-            $currentShift = $this->getCurrentShiftNumber($branchId);
+            $activeShift  = ShiftHelper::getCurrentShift($branchId);
+            $currentShift = $activeShift['shift'];
+            $businessDate = $activeShift['date'];
 
             if ($currentShift > 2) {
                 return response()->json([
@@ -57,7 +46,10 @@ class CashCountController extends Controller
             $alreadyCashedIn = CashTransaction::where('branch_id', $branchId)
                 ->where('type', 'cash_in')
                 ->where('shift', $currentShift)
-                ->whereDate('created_at', $today)
+                ->where(function($q) use ($businessDate) {
+                    $q->whereDate('created_at', $businessDate)
+                      ->orWhereRaw("DATE(created_at) = ?", [$businessDate]);
+                })
                 ->exists();
 
             if ($alreadyCashedIn) {
@@ -115,35 +107,39 @@ class CashCountController extends Controller
         try {
             $userId   = Auth::id();
             $branchId = Auth::user()->branch_id;
-            $today    = now()->toDateString();
 
-            $currentShift = $this->getCurrentShiftNumber($branchId);
+            $activeShift  = ShiftHelper::getCurrentShift($branchId);
+            $currentShift = $activeShift['shift'];
+            $businessDate = $activeShift['date'];
 
-            // 1. Get total cash_in for the current shift
-            $totalCashIn = CashTransaction::where('branch_id', $branchId)
-                ->where('type', 'cash_in')
+            // 1. Get total cash_in for the current shift (starting from business date)
+            $shiftTransactions = CashTransaction::where('branch_id', $branchId)
                 ->where('shift', $currentShift)
-                ->whereDate('created_at', $today)
-                ->sum('amount');
+                ->where(function($q) use ($businessDate) {
+                    $q->whereDate('created_at', $businessDate)
+                      ->orWhereRaw("DATE(created_at) = ?", [$businessDate]);
+                });
+
+            $totalCashIn = (clone $shiftTransactions)->where('type', 'cash_in')->sum('amount');
 
             // 2. Get just the first cash_in for this shift
-            $initialCash = CashTransaction::where('branch_id', $branchId)
+            $initialCashTransaction = (clone $shiftTransactions)
                 ->where('type', 'cash_in')
-                ->where('shift', $currentShift)
-                ->whereDate('created_at', $today)
                 ->orderBy('created_at')
-                ->value('amount') ?? 0;
+                ->first();
+            
+            $initialCash = $initialCashTransaction?->amount ?? 0;
+            $shiftStartTime = $initialCashTransaction?->created_at ?? Carbon::parse($businessDate)->startOfDay();
 
             // 3. Any cash_in entries after the first one (mid-shift additions)
-            $otherCashIn = $totalCashIn - $initialCash;
+            $otherCashIn = max(0, $totalCashIn - $initialCash);
 
-            // 4. Total sales collected during the shift
-            // IMPORTANT: Sales need to be associated with the shift.
-            // For now, we calculate sales between the shift start and now.
+            // 4. Total sales collected during the shift session
+            // We include all sales from the shift start time until now
             $totalSales = Sale::where('branch_id', $branchId)
                 ->where('status', 'completed')
                 ->where('shift', $currentShift)
-                ->whereDate('created_at', $today)
+                ->where('created_at', '>=', $shiftStartTime)
                 ->where(function($q) {
                     $q->whereRaw('LOWER(TRIM(payment_method)) = ?', ['cash']);
                 })
@@ -153,11 +149,9 @@ class CashCountController extends Controller
                 })
                 ->sum('total_amount');
 
-            // 5. All cash removed from the drawer for this shift
-            $cashOut = CashTransaction::where('branch_id', $branchId)
+            // 5. All cash removed from the drawer for this shift session
+            $cashOut = (clone $shiftTransactions)
                 ->whereIn('type', ['cash_out', 'cash_drop'])
-                ->where('shift', $currentShift)
-                ->whereDate('created_at', $today)
                 ->sum('amount');
 
             // 6. Expected cash on hand = opening float + sales + mid-shift additions - removals
@@ -178,7 +172,7 @@ class CashCountController extends Controller
                 'short_over'      => $shortOver,
                 'breakdown'       => $validated['breakdown'],
                 'remarks'         => $validated['remarks'],
-                'date'            => $today,
+                'date'            => $businessDate,
             ]);
 
             return response()->json([
@@ -207,7 +201,7 @@ class CashCountController extends Controller
         }
 
         $isEodDone = CashCount::where('user_id', $request->user()->id)
-            ->whereRaw('DATE(created_at) = ?', [now()->toDateString()])
+            ->where('date', now()->toDateString())
             ->exists();
 
         return response()->json(['isEodDone' => $isEodDone]);
@@ -224,8 +218,9 @@ class CashCountController extends Controller
             $user     = $request->user();
             $branchId = $user->branch_id;
 
-            $today        = now()->toDateString();
-            $currentShift = $this->getCurrentShiftNumber($branchId);
+            $activeShift  = ShiftHelper::getCurrentShift($branchId);
+            $currentShift = $activeShift['shift'];
+            $businessDate = $activeShift['date'];
 
             if ($currentShift > 2) {
                 return response()->json([
@@ -240,7 +235,10 @@ class CashCountController extends Controller
             $hasCashedIn = CashTransaction::where('branch_id', $branchId)
                 ->where('type', 'cash_in')
                 ->where('shift', $currentShift)
-                ->whereDate('created_at', $today)
+                ->where(function($q) use ($businessDate) {
+                    $q->whereDate('created_at', $businessDate)
+                      ->orWhereRaw("DATE(created_at) = ?", [$businessDate]);
+                })
                 ->exists();
 
             return response()->json([

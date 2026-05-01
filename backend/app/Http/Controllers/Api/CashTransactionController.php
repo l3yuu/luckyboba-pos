@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CashTransaction;
 use App\Models\CashCount;
+use App\Helpers\ShiftHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
@@ -52,7 +53,8 @@ class CashTransactionController extends Controller
             'note'   => 'nullable|string|max:255',
         ]);
 
-        $shift = $this->getCurrentShiftNumber($branchId);
+        $activeShift = ShiftHelper::getCurrentShift($branchId);
+        $shift       = $activeShift['shift'];
 
         if ($shift > 2) {
             return response()->json([
@@ -103,12 +105,4 @@ class CashTransactionController extends Controller
         }
     }
 
-    private function getCurrentShiftNumber(int $branchId): int
-    {
-        $today = now()->toDateString();
-        // Count how many EODs (CashCount) exist for today in this branch
-        return CashCount::where('branch_id', $branchId)
-            ->where('date', $today)
-            ->count() + 1;
-    }
 }
