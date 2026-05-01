@@ -21,25 +21,25 @@ class SaleRepository implements SaleRepositoryInterface
 
         if ($groupBy === 'daily') {
             return $query->select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('DATE_FORMAT(created_at, "%a") as day'),
-                DB::raw('SUM(total_amount) as value')
+                DB::raw('DATE(sales.created_at) as date'),
+                DB::raw('DATE_FORMAT(sales.created_at, "%a") as day'),
+                DB::raw('SUM(sales.total_amount) as value')
             )
             ->groupBy('date', 'day')
             ->orderBy('date', 'ASC')
             ->get();
         } elseif ($groupBy === 'monthly') {
             return $query->select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(total_amount) as value')
+                DB::raw('DATE(sales.created_at) as date'),
+                DB::raw('SUM(sales.total_amount) as value')
             )
             ->groupBy('date')
             ->orderBy('date', 'ASC')
             ->get();
         } elseif ($groupBy === 'weekly') {
             return $query->select(
-                DB::raw('DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) as week_start'),
-                DB::raw('SUM(total_amount) as value')
+                DB::raw('DATE(DATE_SUB(sales.created_at, INTERVAL WEEKDAY(sales.created_at) DAY)) as week_start'),
+                DB::raw('SUM(sales.total_amount) as value')
             )
             ->groupBy('week_start')
             ->orderBy('week_start', 'ASC')
@@ -298,12 +298,12 @@ class SaleRepository implements SaleRepositoryInterface
         $bindings = [$startDate, $endDate];
         $branchCondition = '';
         if ($branchId) {
-            $branchCondition = 'AND branch_id = ?';
+            $branchCondition = 'AND sales.branch_id = ?';
             $bindings[] = $branchId;
         }
         $shiftCondition = '';
         if ($shift) {
-            $shiftCondition = 'AND shift = ?';
+            $shiftCondition = 'AND sales.shift = ?';
             $bindings[] = $shift;
         }
 
@@ -312,20 +312,20 @@ class SaleRepository implements SaleRepositoryInterface
             FROM (
                 SELECT
                     CASE
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('grab','grabfood','grab food') THEN 'grab'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('master','master card','mastercard') THEN 'mastercard'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('visa','visa card') THEN 'visa'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('gcash','e-wallet','ewallet') THEN 'gcash'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' THEN LOWER(TRIM(charge_type))
-                        WHEN LOWER(TRIM(payment_method)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
-                        WHEN LOWER(TRIM(payment_method)) IN ('grab','grabfood','grab food') THEN 'grab'
-                        WHEN LOWER(TRIM(payment_method)) IN ('master','master card','mastercard') THEN 'mastercard'
-                        WHEN LOWER(TRIM(payment_method)) IN ('visa','visa card') THEN 'visa'
-                        WHEN LOWER(TRIM(payment_method)) IN ('gcash','e-wallet','ewallet') THEN 'gcash'
-                        ELSE LOWER(TRIM(payment_method))
+                        WHEN sales.charge_type IS NOT NULL AND sales.charge_type != '' AND LOWER(TRIM(sales.charge_type)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
+                        WHEN sales.charge_type IS NOT NULL AND sales.charge_type != '' AND LOWER(TRIM(sales.charge_type)) IN ('grab','grabfood','grab food') THEN 'grab'
+                        WHEN sales.charge_type IS NOT NULL AND sales.charge_type != '' AND LOWER(TRIM(sales.charge_type)) IN ('master','master card','mastercard') THEN 'mastercard'
+                        WHEN sales.charge_type IS NOT NULL AND sales.charge_type != '' AND LOWER(TRIM(sales.charge_type)) IN ('visa','visa card') THEN 'visa'
+                        WHEN sales.charge_type IS NOT NULL AND sales.charge_type != '' AND LOWER(TRIM(sales.charge_type)) IN ('gcash','e-wallet','ewallet') THEN 'gcash'
+                        WHEN sales.charge_type IS NOT NULL AND sales.charge_type != '' THEN LOWER(TRIM(sales.charge_type))
+                        WHEN LOWER(TRIM(sales.payment_method)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
+                        WHEN LOWER(TRIM(sales.payment_method)) IN ('grab','grabfood','grab food') THEN 'grab'
+                        WHEN LOWER(TRIM(sales.payment_method)) IN ('master','master card','mastercard') THEN 'mastercard'
+                        WHEN LOWER(TRIM(sales.payment_method)) IN ('visa','visa card') THEN 'visa'
+                        WHEN LOWER(TRIM(sales.payment_method)) IN ('gcash','e-wallet','ewallet') THEN 'gcash'
+                        ELSE LOWER(TRIM(sales.payment_method))
                     END as method,
-                    total_amount as net_amount
+                    sales.total_amount as net_amount
                 FROM sales
                 JOIN branches ON sales.branch_id = branches.id
                 WHERE sales.created_at BETWEEN ? AND ?

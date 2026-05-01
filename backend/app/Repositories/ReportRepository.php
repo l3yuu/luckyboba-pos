@@ -8,6 +8,7 @@ use App\Models\Branch;
 use App\Services\SalesDashboardService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\CashTransaction;
 use Carbon\Carbon;
 
 class ReportRepository implements ReportRepositoryInterface
@@ -357,8 +358,48 @@ class ReportRepository implements ReportRepositoryInterface
         })->values()->toArray();
 
         $actualAmount   = (float) ($cashCount->actual_amount  ?? $cashCount->total_amount  ?? 0);
-        $expectedAmount = (float) ($cashCount->expected_amount ?? $cashCount->expected_cash ?? 0);
-        $shortOver      = (float) ($cashCount->short_over      ?? ($actualAmount - $expectedAmount));
+        
+        // Recalculate expected amount on the fly for accuracy (ensures non-cash is never added)
+        $branchId = $cashCount->branch_id;
+        $shift    = $cashCount->shift;
+        $today    = $cashCount->date;
+
+        $totalCashIn = CashTransaction::where('branch_id', $branchId)
+            ->where('type', 'cash_in')
+            ->where('shift', $shift)
+            ->whereDate('created_at', $today)
+            ->sum('amount');
+
+        $initialCash = CashTransaction::where('branch_id', $branchId)
+            ->where('type', 'cash_in')
+            ->where('shift', $shift)
+            ->whereDate('created_at', $today)
+            ->orderBy('created_at')
+            ->value('amount') ?? 0;
+
+        $otherCashIn = $totalCashIn - $initialCash;
+
+        $totalSales = Sale::where('branch_id', $branchId)
+            ->where('status', 'completed')
+            ->where('shift', $shift)
+            ->whereDate('created_at', $today)
+            ->where(function($q) {
+                $q->whereRaw('LOWER(TRIM(payment_method)) = ?', ['cash']);
+            })
+            ->where(function($q) {
+                $q->whereNull('charge_type')
+                  ->orWhere('charge_type', '');
+            })
+            ->sum('total_amount');
+
+        $cashOut = CashTransaction::where('branch_id', $branchId)
+            ->whereIn('type', ['cash_out', 'cash_drop'])
+            ->where('shift', $shift)
+            ->whereDate('created_at', $today)
+            ->sum('amount');
+
+        $expectedAmount = ($initialCash + $totalSales + $otherCashIn) - $cashOut;
+        $shortOver      = (float) ($actualAmount - $expectedAmount);
 
         return [
             'cash_count' => [
