@@ -67,9 +67,9 @@ class _HomePageState extends State<HomePage> {
   bool   _loadingNearby  = true;
   Map<String, dynamic>? _nearestStore;
   double? _nearestDist;
-  String _userName       = '';
+  String _userName = '';
   Position? _currentPosition;
-  bool   _locationDenied = false;
+  bool _locationDenied = false;
 
   List<Map<String, dynamic>> _storeLocations = [];
   List<Map<String, dynamic>> _featuredDrinks = [];
@@ -778,7 +778,7 @@ class _StatCardLight extends StatelessWidget {
   final Color iconColor;
   final VoidCallback? onTap;
 
-  const _StatCardLight({
+  _StatCardLight({
     required this.label,
     required this.value,
     this.subValue,
@@ -860,7 +860,7 @@ class _PointsCard extends StatelessWidget {
   final bool hasActiveCard;
   final VoidCallback onTap;
 
-  const _PointsCard({
+  _PointsCard({
     required this.points,
     required this.loading,
     required this.hasActiveCard,
@@ -968,7 +968,7 @@ class _RewardsCard extends StatelessWidget {
   final bool hasActiveCard;
   final VoidCallback onTap;
 
-  const _RewardsCard({
+  _RewardsCard({
     required this.hasActiveCard,
     required this.onTap,
   });
