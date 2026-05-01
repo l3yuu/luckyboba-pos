@@ -4,9 +4,13 @@
   "description": "Windows Hardware Shell for Lucky Boba POS",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron . --no-sandbox",
+    "build": "electron-packager . LuckyBobaPOS --platform=win32 --arch=x64 --out=dist --overwrite --icon=lucky.ico"
   },
   "dependencies": {
     "electron": "^29.0.0"
+  },
+  "devDependencies": {
+    "electron-packager": "^17.1.2"
   }
 }
