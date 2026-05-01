@@ -14,6 +14,7 @@ import {
   Tag,
   Calendar,
 } from 'lucide-react';
+import { useToast } from '../../../context/ToastContext';
 import api from '../../../services/api';
 import { type CartItem } from '../../../types/index';
 import { getItemSurcharge } from '../SalesOrderComponents/shared';
@@ -191,6 +192,103 @@ const getLocalToday = () => {
 };
 
 // ============================================================
+// AdminPinOverlay — reused from POS modal, gates the Search button
+// ============================================================
+
+const AdminPinOverlay = ({
+  onCancel,
+  onSuccess,
+}: {
+  onCancel: () => void;
+  onSuccess: () => void;
+}) => {
+  const [pin, setPin]         = React.useState('');
+  const [error, setError]     = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+
+  const getHeaders = (): Record<string, string> => {
+    const token =
+      localStorage.getItem('auth_token') ??
+      localStorage.getItem('lucky_boba_token') ??
+      localStorage.getItem('token') ??
+      '';
+    return {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!pin.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method:  'POST',
+        headers: getHeaders(),
+        body:    JSON.stringify({ pin }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        onSuccess();
+      } else {
+        setError(json.message ?? 'Incorrect PIN. Try again.');
+        setPin('');
+      }
+    } catch {
+      setError('Connection error. Try again.');
+      setPin('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden text-center">
+        <div className="bg-[#6a12b8] px-6 py-5 text-white">
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
+          <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
+          <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to search transactions</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <input
+            type="password"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            placeholder="••••"
+            autoFocus
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#6a12b8] transition-colors"
+          />
+          {error && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">{error}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !pin.trim()}
+              className="flex-1 py-3 rounded-[0.625rem] bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading ? '...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
 // MAIN COMPONENT
 // ============================================================
 
@@ -205,6 +303,10 @@ const SearchReceipts = () => {
   const [isLoading,     setIsLoading]     = useState(false);
   const [hasSearched,   setHasSearched]   = useState(false);
   const [showKeyboard,  setShowKeyboard]  = useState(false);
+  const { showToast } = useToast();
+
+  const [showPinOverlay, setShowPinOverlay] = useState(false);
+  const [pendingSearch, setPendingSearch]   = useState<{ query: string; date: string } | null>(null);
 
   // Void state
   const [isModalOpen,    setIsModalOpen]    = useState(false);
@@ -292,6 +394,25 @@ const SearchReceipts = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearchClick = (query = searchQuery, date = selectedDate) => {
+    setPendingSearch({ query, date });
+    setShowPinOverlay(true);
+  };
+
+  const handlePinSuccess = async () => {
+    setShowPinOverlay(false);
+    if (pendingSearch) {
+      showToast('Access granted. Searching...', 'success');
+      await handleSearch(pendingSearch.query, pendingSearch.date);
+      setPendingSearch(null);
+    }
+  };
+
+  const handlePinCancel = () => {
+    setShowPinOverlay(false);
+    setPendingSearch(null);
   };
 
   const handleRefresh = () => {
@@ -451,12 +572,12 @@ return {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               onFocus={() => setShowKeyboard(true)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              onKeyDown={e => e.key === 'Enter' && handleSearchClick()}
               placeholder="Search by OR number or transaction..."
               className="flex-1 h-12 px-2 outline-none text-[#1a0f2e] font-semibold text-sm placeholder:text-zinc-300 bg-transparent"
             />
             {searchQuery && (
-              <button onClick={() => { setSearchQuery(''); handleSearch('', selectedDate); }} className="px-4 text-zinc-300 hover:text-red-500 transition-colors">
+              <button onClick={() => { setSearchQuery(''); handleSearchClick('', selectedDate); }} className="px-4 text-zinc-300 hover:text-red-500 transition-colors">
                 <X size={17} strokeWidth={2.5} />
               </button>
             )}
@@ -471,7 +592,7 @@ return {
               onChange={e => {
                 const newDate = e.target.value;
                 setSelectedDate(newDate);
-                handleSearch(searchQuery, newDate);
+                handleSearchClick(searchQuery, newDate);
               }}
               className="flex-1 h-12 outline-none text-[#1a0f2e] font-bold text-sm bg-transparent cursor-pointer"
             />
@@ -482,7 +603,7 @@ return {
             onClick={() => {
               const newDate = selectedDate === '' ? today : '';
               setSelectedDate(newDate);
-              handleSearch(searchQuery, newDate);
+              handleSearchClick(searchQuery, newDate);
             }}
             className={`px-6 font-bold text-[10px] uppercase tracking-widest transition-all h-12 rounded-[0.625rem] border shadow-xl ${
               !selectedDate 
@@ -493,7 +614,7 @@ return {
             {!selectedDate ? 'All Time Active' : 'All Time'}
           </button>
 
-          <button onClick={() => handleSearch()} disabled={isLoading}
+          <button onClick={() => handleSearchClick()} disabled={isLoading}
             className="bg-[#6a12b8] hover:bg-[#6a12b8] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem] shadow-xl">
             {isLoading ? '...' : 'Search'}
           </button>
@@ -702,6 +823,12 @@ return {
             </div>
           </div>
         </div>
+      )}
+      {showPinOverlay && (
+        <AdminPinOverlay
+          onCancel={handlePinCancel}
+          onSuccess={handlePinSuccess}
+        />
       )}
     </div>
     </>
