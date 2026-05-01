@@ -7,7 +7,7 @@ import api from '../services/api';
 import SyncOverlay from '../components/SyncOverlay';
 import { useToast } from '../hooks/useToast';
 import type { DashboardData, TopSeller } from '../types/dashboard';
-import { Monitor, DollarSign, Receipt, ArrowDownToLine, ArrowUpFromLine, Ban, Trophy, Clock4, RefreshCw, TrendingUp } from 'lucide-react';
+import { Monitor, Receipt, ArrowDownToLine, ArrowUpFromLine, Ban, Trophy, Clock4, RefreshCw, TrendingUp, Lock } from 'lucide-react';
 
 import CashIn from '../components/Cashier/SalesOrder/CashIn';
 import CashDrop from '../components/Cashier/SalesOrder/CashDrop';
@@ -283,6 +283,9 @@ const Dashboard = () => {
 
 const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnline, onRefresh }: DashboardStatsProps) => {
   const [time, setTime] = useState(new Date());
+  const [netRevenueVisible, setNetRevenueVisible] = useState(false);
+  const [showPinOverlay, setShowPinOverlay] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -338,7 +341,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#f5f0ff] border border-[#ddd6fe] flex items-center justify-center rounded-lg">
-                <DollarSign size={18} className="text-[#6a12b8]" strokeWidth={2} />
+                <span className="text-[#6a12b8] font-black text-lg leading-none">₱</span>
               </div>
               <p className="text-sm font-bold uppercase tracking-widest text-zinc-700">Net Revenue</p>
             </div>
@@ -348,13 +351,39 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
             </div>
           </div>
           <div>
-            {isLoading
-              ? <div className="h-10 w-40 bg-[#f5f0ff] animate-pulse rounded" />
-              : <p className="text-[2.6rem] font-bold text-[#1a0f2e] tracking-tight tabular-nums leading-none">{fmt(stats?.total_sales_today ?? 0)}</p>
-            }
+            {isLoading ? (
+              <div className="h-10 w-40 bg-[#f5f0ff] animate-pulse rounded" />
+            ) : netRevenueVisible ? (
+              <p className="text-[2.6rem] font-black text-[#1a0f2e] tracking-tight tabular-nums leading-none">
+                {fmt(stats?.total_sales_today ?? 0)}
+              </p>
+            ) : (
+              <div 
+                onClick={() => setShowPinOverlay(true)}
+                className="group cursor-pointer flex items-center justify-between w-full"
+              >
+                <p className="text-[2.6rem] font-black text-zinc-200 blur-[8px] tracking-tight tabular-nums leading-none transition-all group-hover:blur-[5px]">
+                  {fmt(8888.88)}
+                </p>
+                <div className="bg-[#6a12b8] p-3 rounded-[0.625rem] text-white shadow-sm transition-all group-hover:shadow-md group-hover:scale-110 active:scale-95">
+                  <Lock size={18} />
+                </div>
+              </div>
+            )}
             <p className="text-sm font-bold uppercase tracking-widest text-zinc-500 mt-2">Active Shift</p>
           </div>
         </div>
+
+        {showPinOverlay && (
+          <AdminPinOverlay
+            onCancel={() => setShowPinOverlay(false)}
+            onSuccess={() => {
+              setShowPinOverlay(false);
+              setNetRevenueVisible(true);
+              showToast('Revenue data authorized', 'success');
+            }}
+          />
+        )}
 
         {/* Transactions */}
         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-[#e9d5ff] rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 stat-card">
@@ -497,5 +526,102 @@ const DashboardSkeleton = () => (
     </div>
   </>
 );
+
+// ============================================================
+// AdminPinOverlay — reused for POS metrics
+// ============================================================
+
+const AdminPinOverlay = ({
+  onCancel,
+  onSuccess,
+}: {
+  onCancel: () => void;
+  onSuccess: () => void;
+}) => {
+  const [pin, setPin]         = React.useState('');
+  const [error, setError]     = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+
+  const getHeaders = (): Record<string, string> => {
+    const token =
+      localStorage.getItem('auth_token') ??
+      localStorage.getItem('lucky_boba_token') ??
+      localStorage.getItem('token') ??
+      '';
+    return {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!pin.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method:  'POST',
+        headers: getHeaders(),
+        body:    JSON.stringify({ pin }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        onSuccess();
+      } else {
+        setError(json.message ?? 'Incorrect PIN. Try again.');
+        setPin('');
+      }
+    } catch {
+      setError('Connection error. Try again.');
+      setPin('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden text-center">
+        <div className="bg-[#6a12b8] px-6 py-5 text-white">
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
+          <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
+          <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to view metrics</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <input
+            type="password"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            placeholder="••••"
+            autoFocus
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#6a12b8] transition-colors"
+          />
+          {error && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">{error}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !pin.trim()}
+              className="flex-1 py-3 rounded-[0.625rem] bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading ? '...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default Dashboard;
