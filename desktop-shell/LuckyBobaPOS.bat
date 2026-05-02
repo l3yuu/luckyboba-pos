@@ -8,10 +8,16 @@
 set "SCRIPT_DIR=%~dp0"
 
 :: ── Step 1: Start Hardware Bridge Service (hidden, no console window) ────────
+:: Use local node.exe (32-bit) if available, otherwise fallback to global node
+set "NODE_CMD=node"
+if exist "%SCRIPT_DIR%node.exe" (
+    set "NODE_CMD="%SCRIPT_DIR%node.exe""
+)
+
 :: Check if it's already running to avoid duplicates
 tasklist /FI "WINDOWTITLE eq LuckyBoba-HW-Bridge" 2>nul | find "node" >nul
 if errorlevel 1 (
-    start "LuckyBoba-HW-Bridge" /MIN cmd /c "node "%SCRIPT_DIR%hardware-service.js""
+    start "LuckyBoba-HW-Bridge" /MIN cmd /c %NODE_CMD% "%SCRIPT_DIR%hardware-service.js"
     :: Give the service a moment to boot
     timeout /t 1 /nobreak >nul
 )
