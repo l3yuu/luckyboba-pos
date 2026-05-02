@@ -171,62 +171,64 @@ export const ReceiptPrint = ({
   };
 
   return (
-    <div className={`${onScreen ? 'block shadow-2xl rounded-sm ring-1 ring-black/5' : 'hidden print:block'} w-[72mm] mx-auto`}>
-      <style>{`
-        @media print {
-          .receipt-area {
-            width: 66mm !important;
-            margin: 0 auto !important;
-            padding: 1mm 0 !important;
-            box-sizing: border-box !important;
-            color: #000 !important;
-            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
-            font-size: 11px !important;
-            line-height: 1.1 !important;
-            font-weight: 500 !important;
-            text-rendering: geometricPrecision !important;
-            -webkit-font-smoothing: none !important;
-            font-smooth: never !important;
-            letter-spacing: 0 !important;
-            font-kerning: none !important;
-            font-variant-ligatures: none !important;
-            text-shadow: none !important;
-            transform: none !important;
-            zoom: 1 !important;
+    <div className={`${onScreen ? 'printable-receipt-container block print:block shadow-2xl rounded-sm ring-1 ring-black/5' : 'hidden print:hidden'} w-[72mm] mx-auto`}>
+      {onScreen && (
+        <style>{`
+          @media print {
+            .receipt-area {
+              width: 66mm !important;
+              margin: 0 auto !important;
+              padding: 1mm 0 !important;
+              box-sizing: border-box !important;
+              color: #000 !important;
+              font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+              font-size: 11px !important;
+              line-height: 1.1 !important;
+              font-weight: 500 !important;
+              text-rendering: geometricPrecision !important;
+              -webkit-font-smoothing: none !important;
+              font-smooth: never !important;
+              letter-spacing: 0 !important;
+              font-kerning: none !important;
+              font-variant-ligatures: none !important;
+              text-shadow: none !important;
+              transform: none !important;
+              zoom: 1 !important;
+            }
+            .receipt-area * {
+              font-family: inherit !important;
+              font-weight: inherit !important;
+              line-height: inherit !important;
+              text-rendering: inherit !important;
+              -webkit-font-smoothing: inherit !important;
+              font-smooth: inherit !important;
+              letter-spacing: inherit !important;
+              font-kerning: inherit !important;
+              font-variant-ligatures: inherit !important;
+              text-shadow: none !important;
+              transform: none !important;
+              color: #000 !important;
+            }
+            .receipt-area strong,
+            .receipt-area b,
+            .receipt-area .font-semibold,
+            .receipt-area .font-bold,
+            .receipt-area .font-black {
+              font-weight: 700 !important;
+            }
+            /* Compact spacing */
+            .receipt-area .mb-4 { margin-bottom: 0.5rem !important; }
+            .receipt-area .mb-3 { margin-bottom: 0.35rem !important; }
+            .receipt-area .mt-6 { margin-top: 0.6rem !important; }
+            .receipt-area .mt-5 { margin-top: 0.5rem !important; }
+            .receipt-area .mt-3 { margin-top: 0.35rem !important; }
+            .receipt-area .mt-2 { margin-top: 0.25rem !important; }
+            .receipt-area .py-4 { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; }
+            .receipt-area .pb-3 { padding-bottom: 0.35rem !important; }
+            .receipt-area .pt-3 { padding-top: 0.35rem !important; }
           }
-          .receipt-area * {
-            font-family: inherit !important;
-            font-weight: inherit !important;
-            line-height: inherit !important;
-            text-rendering: inherit !important;
-            -webkit-font-smoothing: inherit !important;
-            font-smooth: inherit !important;
-            letter-spacing: inherit !important;
-            font-kerning: inherit !important;
-            font-variant-ligatures: inherit !important;
-            text-shadow: none !important;
-            transform: none !important;
-            color: #000 !important;
-          }
-          .receipt-area strong,
-          .receipt-area b,
-          .receipt-area .font-semibold,
-          .receipt-area .font-bold,
-          .receipt-area .font-black {
-            font-weight: 700 !important;
-          }
-          /* Compact spacing */
-          .receipt-area .mb-4 { margin-bottom: 0.5rem !important; }
-          .receipt-area .mb-3 { margin-bottom: 0.35rem !important; }
-          .receipt-area .mt-6 { margin-top: 0.6rem !important; }
-          .receipt-area .mt-5 { margin-top: 0.5rem !important; }
-          .receipt-area .mt-3 { margin-top: 0.35rem !important; }
-          .receipt-area .mt-2 { margin-top: 0.25rem !important; }
-          .receipt-area .py-4 { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; }
-          .receipt-area .pb-3 { padding-bottom: 0.35rem !important; }
-          .receipt-area .pt-3 { padding-top: 0.35rem !important; }
-        }
-      `}</style>
+        `}</style>
+      )}
       <div className="receipt-area bg-white text-black">
 
         {/* Store header */}
@@ -641,28 +643,30 @@ interface KioskTicketPrintProps {
   formattedDate: string;
   formattedTime: string;
   totalAmount: number;
+  onScreen?: boolean;
 }
 
 export const KioskTicketPrint = ({
-  cart, branchName, orNumber, queueNumber, formattedDate, formattedTime, totalAmount
+  cart, branchName, orNumber, queueNumber, formattedDate, formattedTime, totalAmount, onScreen = false
 }: KioskTicketPrintProps) => {
   return (
-    <div className="printable-receipt-container hidden print:block" style={{ width: '80mm', maxWidth: '80mm' }}>
-      <style>{`
-        @page {
-          margin: 0;
-        }
-        @media print {
-          body {
+    <div className={`${onScreen ? 'printable-receipt-container block print:block' : 'hidden print:hidden'}`} style={{ width: '80mm', maxWidth: '80mm' }}>
+      {onScreen && (
+        <style>{`
+          @page {
             margin: 0;
-            padding: 0;
           }
-          .printable-receipt-container {
-            display: block !important;
-            width: 80mm !important;
-            padding: 0;
-            background: white;
-          }
+          @media print {
+            body {
+              margin: 0;
+              padding: 0;
+            }
+            .printable-receipt-container {
+              display: block !important;
+              width: 80mm !important;
+              padding: 0;
+              background: white;
+            }
           .receipt-area {
             width: 70mm !important;
             margin: 0 auto !important;
@@ -697,6 +701,7 @@ export const KioskTicketPrint = ({
           }
         }
       `}</style>
+      )}
       <div className="receipt-area bg-white text-black">
         {/* Store header */}
         <div className="text-center mb-2 pb-2 border-minimal">
@@ -808,45 +813,54 @@ export const KitchenPrint = ({
   cart, branchName, orNumber, queueNumber, formattedDate, formattedTime, orderType,
   customerName, onScreen = false,
 }: KitchenPrintProps & { onScreen?: boolean }) => (
-  <div className={`${onScreen ? 'block shadow-2xl rounded-sm ring-1 ring-black/5' : 'hidden print:block'} w-[72mm] mx-auto`}>
-    <style>{`
-      @media print {
-        .receipt-area {
-          width: 66mm !important;
-          margin: 0 auto !important;
-          padding: 1mm 0 !important;
-          box-sizing: border-box !important;
-          color: #000 !important;
-          font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
-          font-size: 11px !important;
-          line-height: 1.1 !important;
-          font-weight: 500 !important;
-          text-rendering: geometricPrecision !important;
-          -webkit-font-smoothing: none !important;
-          font-smooth: never !important;
-          letter-spacing: 0 !important;
-          font-kerning: none !important;
-          font-variant-ligatures: none !important;
-          text-shadow: none !important;
-          transform: none !important;
-          zoom: 1 !important;
+  <div className={`${onScreen ? 'printable-receipt-container block print:block shadow-2xl rounded-sm ring-1 ring-black/5' : 'hidden print:hidden'} w-[72mm] mx-auto`}>
+    {onScreen && (
+      <style>{`
+        @media print {
+          .receipt-area {
+            width: 66mm !important;
+            margin: 0 auto !important;
+            padding: 1mm 0 !important;
+            box-sizing: border-box !important;
+            color: #000 !important;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+            font-size: 11px !important;
+            line-height: 1.1 !important;
+            font-weight: 500 !important;
+            text-rendering: geometricPrecision !important;
+            -webkit-font-smoothing: none !important;
+            font-smooth: never !important;
+            letter-spacing: 0 !important;
+            font-kerning: none !important;
+            font-variant-ligatures: none !important;
+            text-shadow: none !important;
+            transform: none !important;
+            zoom: 1 !important;
+          }
+          .receipt-area * {
+            font-family: inherit !important;
+            font-weight: inherit !important;
+            line-height: inherit !important;
+            text-rendering: inherit !important;
+            -webkit-font-smoothing: inherit !important;
+            font-smooth: inherit !important;
+            letter-spacing: inherit !important;
+            font-kerning: inherit !important;
+            font-variant-ligatures: inherit !important;
+            text-shadow: none !important;
+            transform: none !important;
+            color: #000 !important;
+          }
+          .receipt-area strong,
+          .receipt-area b,
+          .receipt-area .font-semibold,
+          .receipt-area .font-bold,
+          .receipt-area .font-black {
+            font-weight: 700 !important;
+          }
         }
-        .receipt-area * {
-          font-family: inherit !important;
-          font-weight: inherit !important;
-          line-height: inherit !important;
-          text-rendering: inherit !important;
-          -webkit-font-smoothing: inherit !important;
-          font-smooth: inherit !important;
-          letter-spacing: inherit !important;
-          font-kerning: inherit !important;
-          font-variant-ligatures: inherit !important;
-          text-shadow: none !important;
-          transform: none !important;
-          color: #000 !important;
-        }
-      }
-    `}</style>
+      `}</style>
+    )}
     <div className="receipt-area bg-white text-black">
       <div className="text-center mb-4 border-b-4 border-black pb-3">
         <h1 className="uppercase leading-tight font-black text-3xl mb-1">ORDER TICKET</h1>
@@ -1288,38 +1302,39 @@ export const StickerPrint = ({
   });
 
   return (
-    <div className={`printable-receipt-container sticker-mode ${onScreen ? 'block' : 'hidden print:block'}`}>
-      <style>{`
-        @page {
-          size: 38.5mm 50.8mm;
-          margin: 0;
-        }
-        @media print {
-          html, body {
-            width: 38.5mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
+    <div className={`sticker-mode ${onScreen ? 'printable-receipt-container block print:block' : 'hidden print:hidden'}`}>
+      {onScreen && (
+        <style>{`
+          @page {
+            size: 38.5mm 50.8mm;
+            margin: 0;
           }
-          .printable-receipt-container.sticker-mode {
-            width: 38.5mm !important;
-            height: auto !important;
-            display: block !important;
-            margin: 0 !important;
-            padding: 0 !important;
+          @media print {
+            html, body {
+              width: 38.5mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .printable-receipt-container.sticker-mode {
+              width: 38.5mm !important;
+              height: auto !important;
+              display: block !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .sticker-area {
+              width: 38.5mm !important;
+              height: 50.8mm !important;
+              padding: 1.5mm !important;
+              box-sizing: border-box !important;
+              overflow: hidden !important;
+              background: white !important;
+              color: black !important;
+              page-break-after: always !important;
+            }
           }
-          .sticker-area {
-            width: 38.5mm !important;
-            height: 50.8mm !important;
-            margin: 0 !important;
-            padding: 2mm !important;
-            box-sizing: border-box !important;
-          }
-          .sticker-area:not(:last-child) {
-            page-break-after: always !important;
-            break-after: page !important;
-          }
-        }
-      `}</style>
+        `}</style>
+      )}
       {stickers.length > 0 ? stickers : (
         <div className="text-center py-20 text-zinc-400 font-bold uppercase tracking-widest text-[10px]">
           No items eligible for stickers

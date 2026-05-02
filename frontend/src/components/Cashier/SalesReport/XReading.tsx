@@ -390,7 +390,10 @@ const XReading = () => {
     setPendingReportType('x_reading');
     setShowPinOverlay(true);
   };
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    if (!reportData) return;
+    setTimeout(() => window.print(), 500);
+  };
 
   const handleMenuAction = async (type: string) => {
     const fetchable = ['x_reading', 'hourly_sales', 'void_logs', 'detailed', 'qty_items', 'cash_count', 'summary', 'search'];
@@ -1105,7 +1108,8 @@ const XReading = () => {
             </button>
             <button
               onClick={handlePrint}
-              className="px-6 h-11 bg-white text-[#6a12b8] font-bold text-xs uppercase tracking-widest border border-[#6a12b8] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]"
+              disabled={!reportData || loading}
+              className="px-6 h-11 bg-white text-[#6a12b8] font-bold text-xs uppercase tracking-widest border border-[#6a12b8] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Print
             </button>
