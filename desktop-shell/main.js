@@ -36,10 +36,14 @@ function getHardwareId() {
         } catch (e) { /* skip */ }
       }
       
-      const genericSerials = ['0', '00000000', 'NONE', 'DEFAULT STRING', 'TO BE FILLED BY O.E.M.', 'O.E.M'];
-      const isGeneric = !serial || genericSerials.includes(serial.toUpperCase());
+      const genericIds = [
+        '0', '00000000', 'NONE', 'DEFAULT STRING', 'TO BE FILLED BY O.E.M.', 'O.E.M', 
+        '03000200-0400-0500-0006-000700080009', 'FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF',
+        '00000000-0000-0000-0000-000000000000'
+      ];
+      const isGeneric = !serial || genericIds.some(g => serial.toUpperCase().includes(g.toUpperCase()));
 
-      // Ultimate Fallback: Hostname
+      // Ultimate Fallback: Hostname (Ensures uniqueness if BIOS is generic)
       if (isGeneric || !serial) {
         return `WIN-HOST-${require('os').hostname().toUpperCase()}`;
       }
@@ -57,14 +61,17 @@ function getHardwareId() {
   }
 }
 
-// Performance Flags for low-end hardware
-app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion'); // Prevents lag on Windows
-app.commandLine.appendSwitch('no-proxy-server'); // Speeds up initial connection
-app.commandLine.appendSwitch('disable-dev-shm-usage'); // Prevents crashes in low memory
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512'); // Caps memory usage for JS
-
-// Note: Hardware acceleration is NOT disabled here by default anymore to improve rendering speed.
-// It will only be disabled if a GPU crash is detected below.
+// Aggressive Performance Flags for "Super Speed" on low-end hardware
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,IntensiveWakeUpThrottling'); 
+app.commandLine.appendSwitch('no-proxy-server');
+app.commandLine.appendSwitch('disable-dev-shm-usage');
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512 --v8-cache-options=code'); 
+app.commandLine.appendSwitch('disable-http-cache'); // Faster on slow HDD
+app.commandLine.appendSwitch('disable-background-networking');
+app.commandLine.appendSwitch('disable-default-apps');
+app.commandLine.appendSwitch('disable-sync');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('ignore-gpu-blocklist'); // Force GPU if available
 
 const hardwareId = getHardwareId();
 
@@ -84,12 +91,20 @@ function createWindow() {
     height: 800,
     autoHideMenuBar: true,
     fullscreen: isWindows,
+    backgroundColor: '#ffffff', // Prevent flicker
+    show: false, // Don't show until ready to prevent white flash
     icon: path.join(__dirname, 'lucky.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      backgroundThrottling: false, // Keep it fast even when window is obscured
+      offscreen: false
     }
+  });
+
+  win.once('ready-to-show', () => {
+    win.show();
   });
 
   const posUrl = 'https://luckybobastores.com'; 
