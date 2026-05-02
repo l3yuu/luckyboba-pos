@@ -7,6 +7,13 @@ import { registerSW } from 'virtual:pwa-register';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { bustCacheOnNewDeploy } from './utils/cacheBuster';
 
+// ── Override Print for Electron to Bypass Native Dialog ─────────────────────
+if (typeof window !== 'undefined' && (window as any).electron && (window as any).electron.previewPrint) {
+  window.print = function() {
+    (window as any).electron.previewPrint().catch(console.error);
+  };
+}
+
 // ── Clear all caches on new deployment, then boot the app ─────────────────────
 bustCacheOnNewDeploy().then((wasCleared) => {
   if (wasCleared) {

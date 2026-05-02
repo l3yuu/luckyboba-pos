@@ -434,7 +434,7 @@ export const BundleModal = ({
   if (!selection || !component) return null;
 
   const itemDetail = component.menuItem;
-  
+
   // Use backend flag if available, otherwise fall back to category/name detection
   const hasSugar = component.has_sugar === true || (
     (itemDetail?.sugar_levels?.length ?? 0) > 0
@@ -477,9 +477,9 @@ export const BundleModal = ({
                   </span>
                   <span className="text-sm font-black text-black block mt-1">
                     ₱ {Number(
-                      orderCharge === 'grab' ? bundleGrabPrice : 
-                      orderCharge === 'panda' ? bundlePandaPrice : 
-                      activeBundleItem.price
+                      orderCharge === 'grab' ? bundleGrabPrice :
+                        orderCharge === 'panda' ? bundlePandaPrice :
+                          activeBundleItem.price
                     ).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                   </span>
                 </div>

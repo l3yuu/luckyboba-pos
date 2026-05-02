@@ -18,13 +18,14 @@ app.commandLine.appendSwitch('enable-print-browser');
 app.commandLine.appendSwitch('enable-print-preview');
 app.commandLine.appendSwitch('disable-gpu'); 
 app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.commandLine.appendSwitch('disable-accelerated-2d-canvas');
 app.commandLine.appendSwitch('no-proxy-server');
 app.commandLine.appendSwitch('disable-dev-shm-usage');
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512 --v8-cache-options=code'); 
 app.commandLine.appendSwitch('disable-background-networking');
 app.commandLine.appendSwitch('disable-default-apps');
 app.commandLine.appendSwitch('disable-sync');
-app.commandLine.appendSwitch('disable-software-rasterizer');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache'); 
 app.commandLine.appendSwitch('ignore-certificate-errors');
@@ -160,6 +161,37 @@ ipcMain.handle('print-to-printer', async (event, { deviceName, silent = true }) 
   });
   
   return true;
+});
+
+ipcMain.handle('preview-print', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  try {
+    const fs = require('fs');
+    const pdfData = await win.webContents.printToPDF({
+      printBackground: true,
+      pageSize: 'A4',
+      margins: { marginType: 'default' }
+    });
+    
+    const tempPath = path.join(app.getPath('temp'), `receipt_preview_${Date.now()}.pdf`);
+    fs.writeFileSync(tempPath, pdfData);
+    
+    const previewWin = new BrowserWindow({
+      title: 'Print Preview',
+      width: 800,
+      height: 600,
+      autoHideMenuBar: true,
+      webPreferences: {
+        plugins: true // crucial to allow the built-in Chrome PDF viewer to work
+      }
+    });
+    previewWin.loadFile(tempPath);
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to generate preview', error);
+    return false;
+  }
 });
 
 app.on('window-all-closed', () => {
