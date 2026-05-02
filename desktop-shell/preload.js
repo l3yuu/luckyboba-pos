@@ -1,9 +1,11 @@
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
-/**
- * This bridge securely passes the Windows Hardware ID 
- * from the tablet to your POS website.
- */
 contextBridge.exposeInMainWorld('NATIVE_ID', process.env.NATIVE_ID);
 
-console.log('Windows Hardware Bridge Active');
+contextBridge.exposeInMainWorld('electron', {
+  getPrinters: () => ipcRenderer.invoke('get-printers'),
+  printToPrinter: (options) => ipcRenderer.invoke('print-to-printer', options),
+  previewPrint: () => ipcRenderer.invoke('preview-print')
+});
+
+console.log('Lucky Boba POS Hardware Bridge Active');
