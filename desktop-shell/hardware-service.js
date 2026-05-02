@@ -124,14 +124,14 @@ const server = http.createServer((req, res) => {
   res.end('Not found');
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '::', () => {
   console.log('----------------------------------------------------');
   console.log(`[Lucky Boba] Hardware Bridge: RUNNING`);
   console.log(`[Lucky Boba] Port:            ${PORT}`);
   console.log(`[Lucky Boba] Hardware ID:      ${HARDWARE_ID}`);
   console.log('----------------------------------------------------');
   console.log(`[Mozilla Fix] If Firefox blocks the connection, use:`);
-  console.log(`http://localhost:${PORT}/handshake?return=https://luckybobastores.com`);
+  console.log(`http://127.0.0.1:${PORT}/handshake?return=https://luckybobastores.com`);
   console.log('----------------------------------------------------');
 });
 

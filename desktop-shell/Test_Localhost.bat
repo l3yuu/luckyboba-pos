@@ -17,12 +17,25 @@ if exist "C:\LuckyBobaPOS\node.exe" (
     set "NODE_CMD="%~dp0node.exe""
 )
 
-echo [1/2] Starting Hardware Bridge...
-:: Check if it's already running to avoid duplicates
-tasklist /FI "WINDOWTITLE eq LuckyBoba-HW-Bridge-Dev" 2>nul | find "node" >nul
+echo [1/2] Checking Hardware Bridge...
+:: Check if port 9876 is already in use
+netstat -ano | findstr :9876 >nul
 if errorlevel 1 (
+    echo Starting new Hardware Bridge...
     start "LuckyBoba-HW-Bridge-Dev" /MIN cmd /c %NODE_CMD% "hardware-service.js"
-    timeout /t 1 /nobreak >nul
+    
+    :: Wait and verify it started
+    echo Waiting for bridge to initialize...
+    timeout /t 2 /nobreak >nul
+    netstat -ano | findstr :9876 >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to start Hardware Bridge! 
+        echo Please try running 'Debug_Bridge.bat' to see why.
+        pause
+        exit /b 1
+    )
+) else (
+    echo [OK] Hardware Bridge is already running.
 )
 
 :: 2. Find Firefox
@@ -30,11 +43,11 @@ set "FIREFOX="
 if exist "C:\Program Files\Mozilla Firefox\firefox.exe" set "FIREFOX=C:\Program Files\Mozilla Firefox\firefox.exe"
 if exist "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" set "FIREFOX=C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
 
-echo [2/2] Launching Firefox at localhost:5173...
+echo [2/2] Launching Firefox at 127.0.0.1:5173...
 if "%FIREFOX%"=="" (
-    start http://localhost:9876/handshake?return=http://localhost:5173
+    start http://127.0.0.1:9876/handshake?return=http://localhost:5173
 ) else (
-    start "" "%FIREFOX%" "http://localhost:9876/handshake?return=http://localhost:5173"
+    start "" "%FIREFOX%" "http://127.0.0.1:9876/handshake?return=http://localhost:5173"
 )
 
 echo.
