@@ -7,21 +7,9 @@ import { registerSW } from 'virtual:pwa-register';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { bustCacheOnNewDeploy } from './utils/cacheBuster';
 
-// ── Override Print for Electron to Bypass Native Dialog ─────────────────────
-declare global {
-  interface Window {
-    electron?: {
-      printToPrinter: (options: { silent: boolean }) => Promise<void>;
-      previewPrint: () => Promise<void>;
-    };
-  }
-}
-
-if (typeof window !== 'undefined' && window.electron && window.electron.previewPrint) {
-  window.print = function() {
-    window.electron?.previewPrint().catch(console.error);
-  };
-}
+// Note: No window.print() override needed.
+// Chrome App Mode provides native print preview out of the box.
+// The Electron shell (if used) will use its own print handling via preload.js.
 
 // ── Clear all caches on new deployment, then boot the app ─────────────────────
 bustCacheOnNewDeploy().then((wasCleared) => {
