@@ -8,9 +8,18 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { bustCacheOnNewDeploy } from './utils/cacheBuster';
 
 // ── Override Print for Electron to Bypass Native Dialog ─────────────────────
-if (typeof window !== 'undefined' && (window as any).electron && (window as any).electron.previewPrint) {
+declare global {
+  interface Window {
+    electron?: {
+      printToPrinter: (options: { silent: boolean }) => Promise<void>;
+      previewPrint: () => Promise<void>;
+    };
+  }
+}
+
+if (typeof window !== 'undefined' && window.electron && window.electron.previewPrint) {
   window.print = function() {
-    (window as any).electron.previewPrint().catch(console.error);
+    window.electron?.previewPrint().catch(console.error);
   };
 }
 
