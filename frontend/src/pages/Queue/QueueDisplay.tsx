@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import logo from '../../assets/logo.png';
 import { ChefHat, CheckCircle, Volume2, Sparkles, Utensils } from 'lucide-react';
@@ -24,10 +24,12 @@ const QueueDisplay = () => {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [lastReadyOrder, setLastReadyOrder] = useState<string | null>(null);
 
-  const branchId = useMemo(() => {
+  const [branchId, setBranchId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('branch_id') || localStorage.getItem('kiosk_branch_id');
-  }, []);
+  });
+  const [availableBranches, setAvailableBranches] = useState<BranchOption[]>([]);
+  const [isLoadingBranches, setIsLoadingBranches] = useState(false);
 
   // Clock
   useEffect(() => {
@@ -35,14 +37,18 @@ const QueueDisplay = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch branch name
+  // Fetch available branches
   useEffect(() => {
-    if (!branchId) return;
+    setIsLoadingBranches(true);
     api.get('/branches/available').then(res => {
       const branches = Array.isArray(res.data?.data) ? res.data.data : [];
-      const branch = branches.find((b: BranchOption) => b.id === parseInt(branchId || '0'));
-      if (branch) setBranchName(branch.name);
-    }).catch(console.error);
+      setAvailableBranches(branches);
+      
+      if (branchId) {
+        const branch = branches.find((b: BranchOption) => b.id === parseInt(branchId));
+        if (branch) setBranchName(branch.name);
+      }
+    }).catch(console.error).finally(() => setIsLoadingBranches(false));
   }, [branchId]);
 
   // Poll queue
@@ -77,13 +83,82 @@ const QueueDisplay = () => {
     return () => clearInterval(interval);
   }, [branchId, lastReadyOrder]);
 
+  const handleBranchSelect = (id: number) => {
+    const newId = id.toString();
+    setBranchId(newId);
+    // Update URL without page reload
+    const url = new URL(window.location.href);
+    url.searchParams.set('branch_id', newId);
+    window.history.pushState({}, '', url);
+  };
+
   if (!branchId) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#F4F0FC] text-purple-950">
-        <div className="text-center space-y-6 max-w-lg bg-white p-12 rounded-3xl border border-purple-100 shadow-2xl shadow-purple-900/5">
-          <img src={logo} alt="Lucky Boba" className="h-32 mx-auto animate-float" />
-          <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-amber-500">Setup Required</h1>
-          <p className="text-zinc-500 text-lg">Please select a branch from the Kiosk settings or provide ?branch_id= in the URL</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#F4F0FC] text-purple-950 p-6 relative overflow-hidden">
+        {/* Decorative Background Elements */}
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-300/20 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-200/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+
+        <div className="w-full max-w-4xl z-10 space-y-12">
+          {/* Header */}
+          <div className="text-center space-y-6">
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-purple-200 blur-2xl rounded-full opacity-50 scale-150"></div>
+              <img src={logo} alt="Lucky Boba" className="h-40 mx-auto animate-float relative z-10" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-6xl font-black text-purple-950 tracking-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                Queue Display
+              </h1>
+              <p className="text-xl font-medium text-purple-600/70 tracking-widest uppercase">Select a branch to begin</p>
+            </div>
+          </div>
+
+          {/* Branch Grid */}
+          {isLoadingBranches ? (
+            <div className="flex flex-col items-center justify-center space-y-4 py-20">
+              <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+              <p className="text-purple-400 font-bold uppercase tracking-widest animate-pulse">Loading branches...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {availableBranches.map((branch, idx) => (
+                <button
+                  key={branch.id}
+                  onClick={() => handleBranchSelect(branch.id)}
+                  className="group relative bg-white/60 backdrop-blur-md p-8 rounded-[2.5rem] border border-white shadow-xl shadow-purple-900/5 hover:shadow-2xl hover:shadow-purple-900/10 hover:-translate-y-2 transition-all duration-500 text-left animate-in fade-in zoom-in slide-in-from-bottom-8"
+                  style={{ animationDelay: `${idx * 100}ms` }}
+                >
+                  <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <Sparkles className="text-amber-400" size={24} />
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="h-14 w-14 bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+                      <Utensils className="text-white" size={28} />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-purple-950 group-hover:text-purple-700 transition-colors">
+                        {branch.name}
+                      </h3>
+                      <p className="text-sm font-bold text-purple-400 uppercase tracking-widest mt-1">Ready to serve</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 flex items-center gap-2 text-purple-600 font-black text-sm uppercase tracking-wider group-hover:translate-x-2 transition-transform">
+                    View Queue
+                    <CheckCircle size={16} />
+                  </div>
+                </button>
+              ))}
+
+              {availableBranches.length === 0 && !isLoadingBranches && (
+                <div className="col-span-full bg-white/50 backdrop-blur-sm p-12 rounded-[2.5rem] border border-dashed border-purple-200 text-center">
+                  <p className="text-purple-400 font-bold italic">No active branches found. Please check your setup.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -148,23 +223,22 @@ const QueueDisplay = () => {
 
           {/* Cards Grid */}
           <div className="flex-1 p-6 overflow-y-auto scrollbar-hide bg-[#F8F9FA]">
-            <div className="grid grid-cols-3 gap-6 auto-rows-max">
+            <div className="grid grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-max">
               {preparing.length === 0 ? (
-                <div className="col-span-3 flex flex-col items-center justify-center h-64 text-purple-400 space-y-4">
+                <div className="col-span-full flex flex-col items-center justify-center h-64 text-purple-400 space-y-4">
                   <ChefHat size={64} className="opacity-50" />
                   <p className="text-xl font-medium tracking-wider uppercase text-purple-500">No orders preparing</p>
                 </div>
               ) : (
                 preparing.map(order => (
-                  <div key={order.id} className="relative group">
-                    <div className="relative bg-white rounded-lg border border-purple-200 p-6 flex flex-col items-center justify-center aspect-[4/3] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
-                      <span className="text-6xl font-black tracking-wider text-purple-950 font-mono">
+                  <div key={order.id} className="flex flex-col items-center justify-center py-4 group">
+                    <div className="relative">
+                      <span className="text-4xl xl:text-5xl font-black tracking-wider text-purple-900 font-mono group-hover:scale-110 transition-transform">
                         {order.queue_number || '---'}
                       </span>
                       {order.source === 'kiosk' && (
-                        <span className="absolute top-4 right-4 text-[0.65rem] font-black uppercase tracking-widest text-amber-700 bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-full">Kiosk</span>
+                        <span className="absolute -top-3 -right-6 text-[0.55rem] font-black uppercase tracking-widest text-amber-700 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded-full shadow-sm">K</span>
                       )}
-                      <div className="absolute bottom-0 left-0 w-full h-1.5 bg-purple-500 rounded-b-lg"></div>
                     </div>
                   </div>
                 ))
@@ -193,27 +267,28 @@ const QueueDisplay = () => {
 
           {/* Cards Grid */}
           <div className="flex-1 p-6 overflow-y-auto scrollbar-hide z-10 relative">
-            <div className="grid grid-cols-2 gap-6 auto-rows-max">
+            <div className="grid grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-max">
               {ready.length === 0 ? (
-                <div className="col-span-2 flex flex-col items-center justify-center h-64 text-green-400 space-y-4">
+                <div className="col-span-full flex flex-col items-center justify-center h-64 text-green-400 space-y-4">
                   <Volume2 size={64} className="opacity-50 text-green-500" />
                   <p className="text-xl font-medium tracking-wider uppercase text-green-600">Waiting for ready orders</p>
                 </div>
               ) : (
                 ready.map((order, idx) => (
-                  <div key={order.id} className="relative group animate-in fade-in zoom-in duration-500 slide-in-from-bottom-4" style={{ animationDelay: `${idx * 100}ms` }}>
-                    <div className="relative bg-white rounded-lg border-2 border-green-300 p-8 flex flex-col items-center justify-center aspect-[4/3] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-green-50 rounded-bl-lg rounded-tr-lg border-l-2 border-b-2 border-green-200 flex items-center justify-center">
-                        <Sparkles size={20} className="text-green-500 animate-pulse" />
+                  <div key={order.id} className="flex flex-col items-center justify-center py-4 animate-in fade-in zoom-in duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
+                    <div className="relative flex flex-col items-center group">
+                      {/* Subdued Sparkle */}
+                      <div className="absolute -top-4 -right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Sparkles size={16} className="text-green-400 animate-pulse" />
                       </div>
 
-                      <span className="text-7xl font-black tracking-widest text-green-600 font-mono">
+                      <span className="text-5xl xl:text-6xl font-black tracking-widest text-green-600 font-mono group-hover:scale-105 transition-transform">
                         {order.queue_number || '---'}
                       </span>
 
-                      <div className="mt-6 flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full border border-green-200">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-ping"></span>
-                        <span className="text-xs font-black uppercase tracking-[0.2em] text-green-700">Ready</span>
+                      <div className="mt-3 flex items-center gap-1.5 bg-green-100/60 px-3 py-1 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping"></span>
+                        <span className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-green-700">Ready</span>
                       </div>
                     </div>
                   </div>

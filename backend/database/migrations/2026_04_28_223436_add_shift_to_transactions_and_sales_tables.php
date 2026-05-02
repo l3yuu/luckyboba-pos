@@ -11,17 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('cash_transactions', function (Blueprint $table) {
-            $table->integer('shift')->default(1)->after('branch_id');
-        });
+        if (!Schema::hasColumn('cash_transactions', 'shift')) {
+            Schema::table('cash_transactions', function (Blueprint $table) {
+                $table->integer('shift')->default(1)->after('branch_id');
+            });
+        }
 
-        Schema::table('cash_counts', function (Blueprint $table) {
-            $table->integer('shift')->default(1)->after('branch_id');
-        });
+        if (!Schema::hasColumn('cash_counts', 'shift')) {
+            Schema::table('cash_counts', function (Blueprint $table) {
+                $table->integer('shift')->default(1)->after('branch_id');
+            });
+        }
 
-        Schema::table('sales', function (Blueprint $table) {
-            $table->integer('shift')->default(1)->after('branch_id');
-        });
+        if (!Schema::hasColumn('sales', 'shift')) {
+            Schema::table('sales', function (Blueprint $table) {
+                $table->integer('shift')->default(1)->after('branch_id');
+            });
+        }
     }
 
     /**
@@ -29,16 +35,22 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('cash_transactions', function (Blueprint $table) {
-            $table->dropColumn('shift');
-        });
+        if (Schema::hasColumn('cash_transactions', 'shift')) {
+            Schema::table('cash_transactions', function (Blueprint $table) {
+                $table->dropColumn('shift');
+            });
+        }
 
-        Schema::table('cash_counts', function (Blueprint $table) {
-            $table->dropColumn('shift');
-        });
+        if (Schema::hasColumn('cash_counts', 'shift')) {
+            Schema::table('cash_counts', function (Blueprint $table) {
+                $table->dropColumn('shift');
+            });
+        }
 
-        Schema::table('sales', function (Blueprint $table) {
-            $table->dropColumn('shift');
-        });
+        if (Schema::hasColumn('sales', 'shift')) {
+            Schema::table('sales', function (Blueprint $table) {
+                $table->dropColumn('shift');
+            });
+        }
     }
 };
