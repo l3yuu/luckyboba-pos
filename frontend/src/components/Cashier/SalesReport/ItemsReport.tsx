@@ -1,6 +1,6 @@
 import TopNavbar from '../TopNavbar';
 import * as XLSX from 'xlsx';
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import api from '../../../services/api';
 import { 
   Calendar, 
@@ -11,6 +11,7 @@ import {
   Database, 
   ChevronDown,
   Activity} from 'lucide-react';
+import { useToast } from '../../../context/ToastContext';
 
 // ============================================================
 // TYPE DEFINITIONS
@@ -47,6 +48,103 @@ const getLocalToday = () => {
 };
 
 // ============================================================
+// AdminPinOverlay — reused from POS modal, gates the Query button
+// ============================================================
+
+const AdminPinOverlay = ({
+  onCancel,
+  onSuccess,
+}: {
+  onCancel: () => void;
+  onSuccess: () => void;
+}) => {
+  const [pin, setPin]         = useState('');
+  const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+
+  const getHeaders = (): Record<string, string> => {
+    const token =
+      localStorage.getItem('auth_token') ??
+      localStorage.getItem('lucky_boba_token') ??
+      localStorage.getItem('token') ??
+      '';
+    return {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!pin.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method:  'POST',
+        headers: getHeaders(),
+        body:    JSON.stringify({ pin }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        onSuccess();
+      } else {
+        setError(json.message ?? 'Incorrect PIN. Try again.');
+        setPin('');
+      }
+    } catch {
+      setError('Connection error. Try again.');
+      setPin('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden text-center">
+        <div className="bg-[#6a12b8] px-6 py-5 text-white">
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
+          <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
+          <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to view this report</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <input
+            type="password"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            placeholder="••••"
+            autoFocus
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#6a12b8] transition-colors"
+          />
+          {error && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">{error}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !pin.trim()}
+              className="flex-1 py-3 rounded-[0.625rem] bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading ? '...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
@@ -63,12 +161,11 @@ const ItemsReport = () => {
   const [reportType, setReportType] = useState<'item-list' | 'category-summary'>('item-list');
   const [loading, setLoading] = useState(false);
   const [_error, _setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
-  const [data, setData] = useState<ReportResponse | null>(() => {
-    const key = buildCacheKey(today, today, 'item-list');
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [showPinOverlay, setShowPinOverlay] = useState(false);
+
+  const [data, setData] = useState<ReportResponse | null>(null);
 
   const getCacheKey = useCallback(
     (from: string, to: string, type: string) => buildCacheKey(from, to, type),
@@ -97,10 +194,19 @@ const ItemsReport = () => {
     }
   }, [fromDate, toDate, reportType, getCacheKey]);
 
-useEffect(() => {
-  setData(null);
-  fetchReport();
-}, [fromDate, toDate, reportType, fetchReport]);
+  const handleQueryClick = () => {
+    setShowPinOverlay(true);
+  };
+
+  const handlePinSuccess = async () => {
+    setShowPinOverlay(false);
+    showToast('Access granted. Generating report...', 'success');
+    await fetchReport();
+  };
+
+  const handlePinCancel = () => {
+    setShowPinOverlay(false);
+  };
 
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {
@@ -269,7 +375,7 @@ useEffect(() => {
               {/* Actions */}
               <div className="flex gap-2 w-full lg:w-auto">
                 <button
-                  onClick={fetchReport} disabled={loading}
+                  onClick={handleQueryClick} disabled={loading}
                   className="flex-1 lg:w-32 h-11 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 rounded-[0.625rem]"
                 >
                   {loading ? 'Loading...' : 'Query'}
@@ -382,6 +488,12 @@ useEffect(() => {
           </div>
         </div>
       </div>
+      {showPinOverlay && (
+        <AdminPinOverlay
+          onCancel={handlePinCancel}
+          onSuccess={handlePinSuccess}
+        />
+      )}
     </>
   );
 };

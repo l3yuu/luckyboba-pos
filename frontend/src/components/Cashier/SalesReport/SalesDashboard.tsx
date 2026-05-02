@@ -10,8 +10,10 @@ import {
   Banknote, 
   History, 
   FileText,
-  Activity
+  Activity,
+  Lock
 } from 'lucide-react';
+import { useToast } from '../../../context/ToastContext';
 
 const WEEKLY_HEIGHT = 160;
 const TODAY_HEIGHT = 160;
@@ -111,51 +113,183 @@ const StatCard = ({ label, value, icon, isSuccess, isBrand, isDanger }: StatCard
 );
 
 // ============================================================
+// AdminPinOverlay — reused from POS modal, gates the Dashboard
+// ============================================================
+
+const AdminPinOverlay = ({
+  onCancel,
+  onSuccess,
+}: {
+  onCancel: () => void;
+  onSuccess: () => void;
+}) => {
+  const [pin, setPin]         = useState('');
+  const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+
+  const getHeaders = (): Record<string, string> => {
+    const token =
+      localStorage.getItem('auth_token') ??
+      localStorage.getItem('lucky_boba_token') ??
+      localStorage.getItem('token') ??
+      '';
+    return {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!pin.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method:  'POST',
+        headers: getHeaders(),
+        body:    JSON.stringify({ pin }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        onSuccess();
+      } else {
+        setError(json.message ?? 'Incorrect PIN. Try again.');
+        setPin('');
+      }
+    } catch {
+      setError('Connection error. Try again.');
+      setPin('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden text-center">
+        <div className="bg-[#6a12b8] px-6 py-5 text-white">
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
+          <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
+          <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to view analytics</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <input
+            type="password"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            placeholder="••••"
+            autoFocus
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#6a12b8] transition-colors"
+          />
+          {error && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">{error}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !pin.trim()}
+              className="flex-1 py-3 rounded-[0.625rem] bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading ? '...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
 const SalesDashboard = () => {
-  const [payload, setPayload] = useState<DashboardPayload | null>(() => {
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [loading, setLoading] = useState(!payload);
+  const [payload, setPayload] = useState<DashboardPayload | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
+  const [showPinOverlay, setShowPinOverlay] = useState(false);
   const [hoveredValue, setHoveredValue] = useState<HoveredValuePoint | null>(null);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [animatedBars, setAnimatedBars] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const response = await api.get<ApiResponse>('/reports/dashboard-data');
-        if (response.data.success) {
-          setPayload(response.data.data);
-          localStorage.setItem(CACHE_KEY, JSON.stringify(response.data.data));
-        }
-      } catch (error) {
-        console.error('Failed to load analytics:', error);
-      } finally {
-        setLoading(false);
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get<ApiResponse>('/reports/dashboard-data');
+      if (response.data.success) {
+        setPayload(response.data.data);
+        localStorage.setItem(CACHE_KEY, JSON.stringify(response.data.data));
       }
-    };
-    fetchAnalytics();
-  }, []);
+    } catch (error) {
+      console.error('Failed to load analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePinSuccess = async () => {
+    setShowPinOverlay(false);
+    showToast('Access granted. Syncing analytics...', 'success');
+    await fetchAnalytics();
+  };
+
+  const handlePinCancel = () => {
+    setShowPinOverlay(false);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimatedBars(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
+  if (!payload && !loading) {
+    return (
+      <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col">
+        <TopNavbar />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center font-sans">
+          <div className="bg-white p-10 rounded-[0.625rem] shadow-sm border border-zinc-200 max-w-sm w-full">
+            <div className="w-16 h-16 bg-[#f5f0ff] rounded-full flex items-center justify-center mx-auto mb-6">
+              <Lock size={32} className="text-[#6a12b8]" />
+            </div>
+            <h2 className="text-xl font-black text-[#1a0f2e] uppercase tracking-widest mb-2">Sales Analytics</h2>
+            <p className="text-xs text-zinc-400 mb-8 leading-relaxed">Authorization required to view detailed sales performance, revenue audits, and shift analytics.</p>
+            <button 
+              onClick={() => setShowPinOverlay(true)}
+              className="w-full py-4 bg-[#6a12b8] text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-[0.625rem] hover:shadow-lg transition-all active:scale-[0.98]"
+            >
+              Authorize & View
+            </button>
+          </div>
+        </div>
+        {showPinOverlay && (
+          <AdminPinOverlay
+            onCancel={handlePinCancel}
+            onSuccess={handlePinSuccess}
+          />
+        )}
+      </div>
+    );
+  }
+
   if (loading && !payload) {
     return (
-      <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col items-center justify-center font-sans">
-        <div className="w-10 h-10 border-2 border-[#6a12b8] border-t-transparent animate-spin rounded-none" />
-        <p className="mt-4 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-400">Syncing Terminal Analytics...</p>
+      <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col">
+        <TopNavbar />
+        <div className="flex-1 flex flex-col items-center justify-center font-sans">
+          <div className="w-10 h-10 border-2 border-[#6a12b8] border-t-transparent animate-spin rounded-none" />
+          <p className="mt-4 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-400">Syncing Terminal Analytics...</p>
+        </div>
       </div>
     );
   }
@@ -437,6 +571,12 @@ const SalesDashboard = () => {
 
         </div>
       </div>
+      {showPinOverlay && (
+        <AdminPinOverlay
+          onCancel={handlePinCancel}
+          onSuccess={handlePinSuccess}
+        />
+      )}
     </div>
   );
 };

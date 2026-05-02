@@ -36,3 +36,10 @@ yarn-error.log*
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Add this to the end of your .gitignore
+# Add this to the end of your .gitignore
+*.zip
+
+# Also ignore the installer folder if you don't want it in source control
+dist/*.zip

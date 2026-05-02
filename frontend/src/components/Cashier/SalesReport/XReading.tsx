@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
+import { useToast } from '../../../context/ToastContext';
 
 interface XReadingReport {
   date?: string;
@@ -109,6 +110,105 @@ const Row = ({ label, value, indent = false }: { label: string; value: React.Rea
 
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AdminPinOverlay — reused from POS modal, gates the Generate button
+// ─────────────────────────────────────────────────────────────────────────────
+
+const AdminPinOverlay = ({
+  onCancel,
+  onSuccess,
+}: {
+  onCancel: () => void;
+  onSuccess: () => void;
+}) => {
+  const [pin, setPin]         = React.useState('');
+  const [error, setError]     = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+
+  const getHeaders = (): Record<string, string> => {
+    const token =
+      localStorage.getItem('auth_token') ??
+      localStorage.getItem('lucky_boba_token') ??
+      localStorage.getItem('token') ??
+      '';
+    return {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!pin.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method:  'POST',
+        headers: getHeaders(),
+        body:    JSON.stringify({ pin }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        onSuccess();
+      } else {
+        setError(json.message ?? 'Incorrect PIN. Try again.');
+        setPin('');
+      }
+    } catch {
+      setError('Connection error. Try again.');
+      setPin('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden">
+        <div className="bg-[#6a12b8] px-6 py-5 text-white text-center">
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
+          <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
+          <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to generate this report</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <input
+            type="password"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            placeholder="••••"
+            autoFocus
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#6a12b8] transition-colors"
+          />
+          {error && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest text-center">{error}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !pin.trim()}
+              className="flex-1 py-3 rounded-[0.625rem] bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading ? '...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const XReading = () => {
   const getLocalDate = () => {
     const now = new Date();
@@ -118,6 +218,7 @@ const XReading = () => {
   };
 
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDate());
+  const { showToast } = useToast();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [reportData, setReportData] = useState<XReadingReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -133,6 +234,10 @@ const XReading = () => {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const branchId = localStorage.getItem('lucky_boba_user_branch_id') || '';
   const [selectedShift, setSelectedShift] = useState<string>('');
+
+  // ── PIN overlay state ──────────────────────────────────────────────────────
+  const [showPinOverlay, setShowPinOverlay]         = useState(false);
+  const [pendingReportType, setPendingReportType]   = useState<string | null>(null);
 
   useEffect(() => {
     const getShift = async () => {
@@ -281,13 +386,19 @@ const XReading = () => {
     }
   };
 
-  const handleGenerate = () => fetchReportData('x_reading');
+  const handleGenerate = () => {
+    setPendingReportType('x_reading');
+    setShowPinOverlay(true);
+  };
   const handlePrint = () => window.print();
 
   const handleMenuAction = async (type: string) => {
     const fetchable = ['x_reading', 'hourly_sales', 'void_logs', 'detailed', 'qty_items', 'cash_count', 'summary', 'search'];
     if (fetchable.includes(type)) {
-      await fetchReportData(type);
+      setPendingReportType(type);
+      setShowPinOverlay(true);
+      setIsMenuOpen(false);
+      return;
     } else if (type === 'export_sales' || type === 'export_items') {
       try {
         const endpoint = type === 'export_sales' ? 'export-sales' : 'export-items';
@@ -304,6 +415,20 @@ const XReading = () => {
         setError("Export failed. Check console for details.");
       }
     }
+  };
+
+  const handlePinSuccess = async () => {
+    setShowPinOverlay(false);
+    if (pendingReportType) {
+      showToast('Access granted. Generating report...', 'success');
+      await fetchReportData(pendingReportType);
+      setPendingReportType(null);
+    }
+  };
+
+  const handlePinCancel = () => {
+    setShowPinOverlay(false);
+    setPendingReportType(null);
   };
 
   const menuCards = [
@@ -1049,6 +1174,12 @@ const XReading = () => {
           )}
         </div>
       </div>
+      {showPinOverlay && (
+        <AdminPinOverlay
+          onCancel={handlePinCancel}
+          onSuccess={handlePinSuccess}
+        />
+      )}
     </div>
   );
 };
