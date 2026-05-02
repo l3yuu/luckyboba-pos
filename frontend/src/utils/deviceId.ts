@@ -153,10 +153,19 @@ async function writeToStorage(id: string): Promise<void> {
 }
 
 // ── Hardware Bridge Service (Chrome Mode) ────────────────────────────────────
+let _isBridgeChecking = false;
+let _lastBridgeAttempt = 0;
+
 // Fetches the hardware ID from the local companion service running on port 9876.
 // This allows Chrome (with full print preview) to access native hardware info.
 async function fetchFromHardwareBridge(): Promise<string | null> {
-  // We try both localhost and 127.0.0.1 to avoid DNS/CORS quirks
+  // Prevent spamming the bridge if we just tried recently
+  const now = Date.now();
+  if (_isBridgeChecking || (now - _lastBridgeAttempt < 5000)) return null;
+  
+  _isBridgeChecking = true;
+  _lastBridgeAttempt = now;
+
   const endpoints = ['http://127.0.0.1:9876/hardware-id', 'http://localhost:9876/hardware-id'];
   
   for (const url of endpoints) {
@@ -177,6 +186,7 @@ async function fetchFromHardwareBridge(): Promise<string | null> {
         const data = await res.json();
         if (data?.id) {
           console.log(`[HardwareBridge] SUCCESS! Found ID: ${data.id}`);
+          _isBridgeChecking = false;
           return data.id;
         }
       }
@@ -184,6 +194,7 @@ async function fetchFromHardwareBridge(): Promise<string | null> {
       console.warn(`[HardwareBridge] Failed to connect to ${url}:`, err);
     }
   }
+  _isBridgeChecking = false;
   return null;
 }
 
