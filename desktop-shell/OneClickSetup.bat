@@ -1,5 +1,12 @@
 @echo off
-set "folderName=LuckyBobaPOS-win32-x64"
+:: Detect Architecture
+if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
+    set "folderName=LuckyBobaPOS-win32-x64"
+) else if "%PROCESSOR_ARCHITEW6432%"=="AMD64" (
+    set "folderName=LuckyBobaPOS-win32-x64"
+) else (
+    set "folderName=LuckyBobaPOS-win32-ia32"
+)
 set "exeName=LuckyBobaPOS.exe"
 
 :: Get the full path to the EXE
