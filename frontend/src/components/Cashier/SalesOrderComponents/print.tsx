@@ -97,7 +97,8 @@ export const ReceiptPrint = ({
   posFooter = {},
   contactEmail,
   contactPhone,
-}: ReceiptPrintProps) => {
+  onScreen = false,
+}: ReceiptPrintProps & { onScreen?: boolean }) => {
 
   // FIX #6 + #7 — removed dead coveredUnitMap / itemCoverageMap computation that
   // was never read and had incorrect sorted-index logic. The split-groups block
@@ -170,7 +171,7 @@ export const ReceiptPrint = ({
   };
 
   return (
-    <div className="printable-receipt-container hidden print:block">
+    <div className={`${onScreen ? 'block shadow-2xl rounded-sm ring-1 ring-black/5' : 'hidden print:block'} w-[72mm] mx-auto`}>
       <style>{`
         @media print {
           .receipt-area {
@@ -805,9 +806,9 @@ interface KitchenPrintProps {
 
 export const KitchenPrint = ({
   cart, branchName, orNumber, queueNumber, formattedDate, formattedTime, orderType,
-  customerName,
-}: KitchenPrintProps) => (
-  <div className="printable-receipt-container hidden print:block">
+  customerName, onScreen = false,
+}: KitchenPrintProps & { onScreen?: boolean }) => (
+  <div className={`${onScreen ? 'block shadow-2xl rounded-sm ring-1 ring-black/5' : 'hidden print:block'} w-[72mm] mx-auto`}>
     <style>{`
       @media print {
         .receipt-area {
@@ -1008,8 +1009,8 @@ const StickerFooter = ({ cls, formattedDate, formattedTime }: { cls: StickerClas
 );
 
 export const StickerPrint = ({
-  cart, branchName, orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType, isOnline
-}: StickerPrintProps) => {
+  cart, branchName, orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType, isOnline, onScreen = false,
+}: StickerPrintProps & { onScreen?: boolean }) => {
   const stickers: React.ReactNode[] = [];
   let drinkIndex = 1;
 
@@ -1287,7 +1288,7 @@ export const StickerPrint = ({
   });
 
   return (
-    <div className="printable-receipt-container sticker-mode hidden print:block">
+    <div className={`printable-receipt-container sticker-mode ${onScreen ? 'block' : 'hidden print:block'}`}>
       <style>{`
         @page {
           size: 38.5mm 50.8mm;

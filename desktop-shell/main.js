@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { execSync } = require('child_process');
 
@@ -11,8 +11,11 @@ try {
   // Fallback if appData is somehow unavailable
 }
 
-// Aggressive Performance & Stability Flags
-app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,IntensiveWakeUpThrottling'); 
+// consolidated Performance & Stability Flags
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,IntensiveWakeUpThrottling,SpareRendererForSitePerProcess'); 
+app.commandLine.appendSwitch('enable-features', 'WebPrinting');
+app.commandLine.appendSwitch('enable-print-browser');
+app.commandLine.appendSwitch('enable-print-preview');
 app.commandLine.appendSwitch('no-proxy-server');
 app.commandLine.appendSwitch('disable-dev-shm-usage');
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512 --v8-cache-options=code'); 
@@ -21,7 +24,9 @@ app.commandLine.appendSwitch('disable-default-apps');
 app.commandLine.appendSwitch('disable-sync');
 app.commandLine.appendSwitch('disable-software-rasterizer');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
-app.commandLine.appendSwitch('disable-gpu-shader-disk-cache'); // Prevents "Gpu Cache Creation failed" on E: drive
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache'); 
+app.commandLine.appendSwitch('ignore-certificate-errors');
+app.commandLine.appendSwitch('no-sandbox'); // Improved hardware access for thermal printers
 
 /**
  * Gets the actual Windows Hardware Serial Number.
@@ -85,13 +90,6 @@ app.on('child-process-gone', (event, details) => {
   }
 });
 
-// Optimization: Enable print preview and browser features
-app.commandLine.appendSwitch('enable-print-browser');
-app.commandLine.appendSwitch('enable-print-preview');
-app.commandLine.appendSwitch('no-sandbox'); // Improved hardware access for thermal printers
-app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion'); // Prevent lag when printing
-app.commandLine.appendSwitch('ignore-certificate-errors');
-
 function createWindow() {
   const isWindows = process.platform === 'win32';
   
@@ -138,6 +136,29 @@ function createWindow() {
 process.env.NATIVE_ID = hardwareId;
 
 app.whenReady().then(createWindow);
+
+// ── Printer IPC Handlers ───────────────────────────────────────────────────
+
+ipcMain.handle('get-printers', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  return win.webContents.getPrintersAsync();
+});
+
+ipcMain.handle('print-to-printer', async (event, { deviceName, silent = true }) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  
+  // Note: Standard window.print() is used for manual preview.
+  // For silent printing to a specific device, we use webContents.print()
+  win.webContents.print({
+    silent,
+    printBackground: true,
+    deviceName: deviceName
+  }, (success, failureReason) => {
+    console.log(`Print to ${deviceName}: ${success ? 'Success' : 'Failed (' + failureReason + ')'}`);
+  });
+  
+  return true;
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
