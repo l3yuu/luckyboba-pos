@@ -6,11 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useOfflineQueue } from '../context/OfflineQueueContext'
 import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner'
 
-import {
-  type MenuItem, type Category, type CartItem,
-  type Bundle, type BundleComponent, type BundleComponentCustomization,
-  SUGAR_LEVELS
-} from '../types/index';
+import { type MenuItem, type Category, type CartItem, type Bundle, type BundleComponent, type BundleComponentCustomization, SUGAR_LEVELS } from '../types/index';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
@@ -280,8 +276,8 @@ const SalesOrder = () => {
 
   // Success / print
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
-  const [printTarget, setPrintTarget] = useState<'receipt' | 'stickers' | 'kitchen' | null>(null)
-  const [printedReceipt, setPrintedReceipt] = useState(false)
+  const [printTarget, setPrintTarget] = useState<'receipt' | 'kitchen' | 'stickers' | null>(null);
+  const [printedReceipt, setPrintedReceipt] = useState(false);
   const [printedKitchen, setPrintedKitchen] = useState(false)
   const [printedStickers, setPrintedStickers] = useState(false)
 
@@ -1587,25 +1583,28 @@ const SalesOrder = () => {
   // ── Print handlers ─────────────────────────────────────────────────────────
 
   const handlePrintReceipt = () => {
-    setPrintTarget(null);
+    setPrintTarget('receipt');
+    setPrintedReceipt(true);
     setTimeout(() => {
-      setPrintTarget('receipt');
-      setPrintedReceipt(true);
-    }, 50);
+      window.print();
+      setPrintTarget(null);
+    }, 100);
   }
   const handlePrintKitchen = () => {
-    setPrintTarget(null);
+    setPrintTarget('kitchen');
+    setPrintedKitchen(true);
     setTimeout(() => {
-      setPrintTarget('kitchen');
-      setPrintedKitchen(true);
-    }, 50);
+      window.print();
+      setPrintTarget(null);
+    }, 100);
   }
   const handlePrintStickers = () => {
-    setPrintTarget(null);
+    setPrintTarget('stickers');
+    setPrintedStickers(true);
     setTimeout(() => {
-      setPrintTarget('stickers');
-      setPrintedStickers(true);
-    }, 50);
+      window.print();
+      setPrintTarget(null);
+    }, 100);
   }
 
   // Handle Systemic Printing Trigger
@@ -1971,6 +1970,7 @@ const SalesOrder = () => {
             onNewOrder={handleNewOrder}
           />
         )}
+
 
         <Header
           branchName={branchName}

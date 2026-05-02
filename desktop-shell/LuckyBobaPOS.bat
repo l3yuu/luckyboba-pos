@@ -1,0 +1,51 @@
+@echo off
+:: ──────────────────────────────────────────────────────────────────────────────
+:: Lucky Boba POS - Firefox Launcher
+:: Starts the Hardware ID service silently, then opens Firefox in Kiosk Mode.
+:: The cashier sees a clean, fullscreen window with full print preview.
+:: ──────────────────────────────────────────────────────────────────────────────
+
+:: Get the directory this script lives in
+set "SCRIPT_DIR=%~dp0"
+
+:: ── Step 1: Start Hardware Bridge Service (hidden, no console window) ────────
+:: Check if it's already running to avoid duplicates
+tasklist /FI "WINDOWTITLE eq LuckyBoba-HW-Bridge" 2>nul | find "node" >nul
+if errorlevel 1 (
+    start "LuckyBoba-HW-Bridge" /MIN cmd /c "node "%SCRIPT_DIR%hardware-service.js""
+    :: Give the service a moment to boot
+    timeout /t 1 /nobreak >nul
+)
+
+:: ── Step 2: Find Firefox ─────────────────────────────────────────────────────
+set "FIREFOX="
+
+:: Try standard 64-bit location
+if exist "C:\Program Files\Mozilla Firefox\firefox.exe" (
+    set "FIREFOX=C:\Program Files\Mozilla Firefox\firefox.exe"
+)
+
+:: Try 32-bit location (ICHICO tablet)
+if "%FIREFOX%"=="" (
+    if exist "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" (
+        set "FIREFOX=C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
+    )
+)
+
+:: Fallback: try to find via registry
+if "%FIREFOX%"=="" (
+    for /f "tokens=2*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe" /ve 2^>nul') do set "FIREFOX=%%B"
+)
+
+if "%FIREFOX%"=="" (
+    echo [ERROR] Mozilla Firefox is not installed on this computer.
+    echo Please install Firefox first.
+    pause
+    exit /b 1
+)
+
+:: ── Step 3: Launch Firefox in Kiosk Mode ─────────────────────────────────────
+:: --kiosk : Opens fullscreen (no URL bar, no tabs, no menus)
+start "" "%FIREFOX%" --kiosk https://luckybobastores.com
+
+exit

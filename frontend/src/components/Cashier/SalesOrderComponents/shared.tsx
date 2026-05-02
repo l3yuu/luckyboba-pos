@@ -13,6 +13,21 @@ export interface Discount {
   status: 'ON' | 'OFF';
 }
 
+export const PrinterIcon = ({ className, size }: IconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+    stroke="currentColor"
+    className={className || "w-4 h-4"}
+    style={size ? { width: size, height: size } : undefined}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM9 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 7h3a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3h3m0 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3m-6 0h6m-9 6h12" />
+  </svg>
+);
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export const generateORNumber = (seq: number): string => {

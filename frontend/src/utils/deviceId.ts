@@ -152,6 +152,27 @@ async function writeToStorage(id: string): Promise<void> {
   }
 }
 
+// ── Hardware Bridge Service (Chrome Mode) ────────────────────────────────────
+// Fetches the hardware ID from the local companion service running on port 9876.
+// This allows Chrome (with full print preview) to access native hardware info.
+async function fetchFromHardwareBridge(): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500); // 1.5s timeout
+    const res = await fetch('http://127.0.0.1:9876/hardware-id', {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.id) return data.id;
+    }
+  } catch {
+    // Service not running — not in Chrome+Bridge mode, that's fine
+  }
+  return null;
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 // Returns the device ID synchronously from cache if available,
@@ -174,13 +195,22 @@ export function getDeviceId(): string {
 
 // Preferred: always returns the real ID, even after a full site data clear
 export async function getDeviceIdAsync(): Promise<string> {
-  // ── 0. Native Shell Support ────────────────────────────────────────────────
-  // If running inside our Windows Shell, use the real Hardware Serial Number.
-  // This is 100% stable and never resets.
+  // ── 0a. Electron Shell Support ─────────────────────────────────────────────
+  // If running inside our Windows Electron Shell, use the real Hardware Serial.
   const nativeId = window.NATIVE_ID || window.process?.env?.NATIVE_ID;
   if (nativeId) {
     _cachedId = nativeId;
     return nativeId;
+  }
+
+  // ── 0b. Chrome + Hardware Bridge Support ───────────────────────────────────
+  // If the local hardware bridge service is running (Chrome App Mode),
+  // fetch the real hardware serial from localhost:9876.
+  const bridgeId = await fetchFromHardwareBridge();
+  if (bridgeId) {
+    _cachedId = bridgeId;
+    await writeToStorage(bridgeId);
+    return bridgeId;
   }
 
   if (_cachedId) return _cachedId;

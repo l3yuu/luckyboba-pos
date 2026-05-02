@@ -7,6 +7,10 @@ import { registerSW } from 'virtual:pwa-register';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { bustCacheOnNewDeploy } from './utils/cacheBuster';
 
+// Note: No window.print() override needed.
+// Chrome App Mode provides native print preview out of the box.
+// The Electron shell (if used) will use its own print handling via preload.js.
+
 // ── Clear all caches on new deployment, then boot the app ─────────────────────
 bustCacheOnNewDeploy().then((wasCleared) => {
   if (wasCleared) {
