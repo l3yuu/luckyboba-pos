@@ -11,23 +11,28 @@ function getHardwareId() {
     if (process.platform === 'win32') {
       let serial = '';
       
-      // Method 1: Modern PowerShell (Best for Win 10/11)
+      // Method 1: Registry (INSTANT - Best for performance)
       try {
-        serial = execSync('powershell -ExecutionPolicy Bypass -Command "(Get-CimInstance -ClassName Win32_BIOS).SerialNumber"').toString().trim();
+        const regOutput = execSync('reg query "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS" /v SystemSerialNumber').toString();
+        const match = regOutput.match(/SystemSerialNumber\s+REG_SZ\s+(.+)/);
+        if (match && match[1]) {
+          serial = match[1].trim();
+        }
       } catch (e) { /* skip */ }
 
-      // Method 2: Legacy WMIC (Best for Win 7/8 or if PowerShell is blocked)
-      if (!serial || serial === '') {
+      // Method 2: Legacy WMIC (Fast fallback)
+      if (!serial || ['0', 'NONE', 'DEFAULT', 'TO BE FILLED'].some(s => serial.toUpperCase().includes(s))) {
         try {
           const output = execSync('wmic bios get serialnumber').toString();
           serial = output.split('\n')[1]?.trim();
         } catch (e) { /* skip */ }
       }
 
-      // Method 3: Product UUID fallback
-      if (!serial || serial === '') {
+      // Method 3: UUID fallback
+      if (!serial || ['0', 'NONE', 'DEFAULT', 'TO BE FILLED'].some(s => serial.toUpperCase().includes(s))) {
         try {
-          serial = execSync('powershell -ExecutionPolicy Bypass -Command "(Get-CimInstance -ClassName Win32_ComputerSystemProduct).UUID"').toString().trim();
+          const output = execSync('wmic csproduct get uuid').toString();
+          serial = output.split('\n')[1]?.trim();
         } catch (e) { /* skip */ }
       }
       
@@ -52,8 +57,14 @@ function getHardwareId() {
   }
 }
 
-// Disable Hardware Acceleration proactively to prevent GPU crashes on low-end Windows hardware
-app.disableHardwareAcceleration();
+// Performance Flags for low-end hardware
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion'); // Prevents lag on Windows
+app.commandLine.appendSwitch('no-proxy-server'); // Speeds up initial connection
+app.commandLine.appendSwitch('disable-dev-shm-usage'); // Prevents crashes in low memory
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512'); // Caps memory usage for JS
+
+// Note: Hardware acceleration is NOT disabled here by default anymore to improve rendering speed.
+// It will only be disabled if a GPU crash is detected below.
 
 const hardwareId = getHardwareId();
 
