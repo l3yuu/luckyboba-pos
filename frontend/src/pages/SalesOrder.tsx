@@ -7,7 +7,6 @@ import { useOfflineQueue } from '../context/OfflineQueueContext'
 import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner'
 
 import { type MenuItem, type Category, type CartItem, type Bundle, type BundleComponent, type BundleComponentCustomization, SUGAR_LEVELS } from '../types/index';
-import logo from '../assets/logo.png';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
@@ -34,7 +33,6 @@ import {
   AddOnModalShell,
   MixAndMatchDrinkModal,
   PaymentSelectModal,
-  VisualPrintPreviewModal,
   type ItemPaxAssignments,
 } from '../components/Cashier/SalesOrderComponents/modals'
 
@@ -279,11 +277,9 @@ const SalesOrder = () => {
   // Success / print
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
   const [printTarget, setPrintTarget] = useState<'receipt' | 'kitchen' | 'stickers' | null>(null);
-  const [visualPreviewTarget, setVisualPreviewTarget] = useState<'receipt' | 'kitchen' | 'stickers' | null>(null);
   const [printedReceipt, setPrintedReceipt] = useState(false);
   const [printedKitchen, setPrintedKitchen] = useState(false)
   const [printedStickers, setPrintedStickers] = useState(false)
-  const [lastOrderData, setLastOrderData] = useState<any>(null);
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
@@ -1521,7 +1517,6 @@ const SalesOrder = () => {
           finalOrNumber = res.data.si_number;
           setOrNumber(finalOrNumber);
         }
-        setLastOrderData(orderData)
         localStorage.removeItem('pos_cart_cache');
         const currentSeq = parseInt(finalOrNumber.split('-').pop() ?? '0', 10)
         if (!isNaN(currentSeq)) {
@@ -1559,7 +1554,6 @@ const SalesOrder = () => {
         const axiosErr = err as { response?: { data?: unknown } }
         console.error('422 detail:', axiosErr?.response?.data)
         enqueue(orderData)
-        setLastOrderData(orderData)
         localStorage.removeItem('pos_cart_cache')
         setPrintedReceipt(false)
         setPrintedKitchen(false)
@@ -1569,7 +1563,6 @@ const SalesOrder = () => {
       }
     } else {
       enqueue(orderData)
-      setLastOrderData(orderData)
       const currentSeq = parseInt(finalOrNumber.replace('SI-', ''), 10)
       if (!isNaN(currentSeq)) {
         localStorage.setItem(seqKey, String(currentSeq))
@@ -1590,39 +1583,28 @@ const SalesOrder = () => {
   // ── Print handlers ─────────────────────────────────────────────────────────
 
   const handlePrintReceipt = () => {
-    setVisualPreviewTarget('receipt');
+    setPrintTarget('receipt');
+    setPrintedReceipt(true);
+    setTimeout(() => {
+      window.print();
+      setPrintTarget(null);
+    }, 100);
   }
   const handlePrintKitchen = () => {
-    setVisualPreviewTarget('kitchen');
+    setPrintTarget('kitchen');
+    setPrintedKitchen(true);
+    setTimeout(() => {
+      window.print();
+      setPrintTarget(null);
+    }, 100);
   }
   const handlePrintStickers = () => {
-    setVisualPreviewTarget('stickers');
-  }
-
-  const triggerActualPrint = (target: 'receipt' | 'kitchen' | 'stickers', printerName?: string) => {
-    setPrintTarget(null);
-    setVisualPreviewTarget(null);
-    
+    setPrintTarget('stickers');
+    setPrintedStickers(true);
     setTimeout(() => {
-      setPrintTarget(target);
-      if (target === 'receipt') setPrintedReceipt(true);
-      if (target === 'kitchen') setPrintedKitchen(true);
-      if (target === 'stickers') setPrintedStickers(true);
-
-      // If a specific printer is selected and we are in Electron
-      // @ts-ignore
-      if (printerName && window.electron && window.electron.printToPrinter) {
-        setTimeout(() => {
-          // @ts-ignore
-          window.electron.printToPrinter({
-            deviceName: printerName,
-            silent: true
-          });
-          // Reset target after a short delay so the UI doesn't stay in "print mode"
-          setTimeout(() => setPrintTarget(null), 1000);
-        }, 100);
-      }
-    }, 50);
+      window.print();
+      setPrintTarget(null);
+    }, 100);
   }
 
   // Handle Systemic Printing Trigger
@@ -1989,59 +1971,6 @@ const SalesOrder = () => {
           />
         )}
 
-        {visualPreviewTarget && (
-          <VisualPrintPreviewModal
-            type={visualPreviewTarget}
-            onClose={() => setVisualPreviewTarget(null)}
-            onPrint={() => triggerActualPrint(visualPreviewTarget)}
-            content={
-              visualPreviewTarget === 'receipt' ? (
-                <ReceiptPrint
-                  orderData={lastOrderData}
-                  orNumber={orNumber}
-                  cashierName={cashierName}
-                  isVat={vatType === 'vat'}
-                  branchName={branchDetails.companyName || branchName}
-                  branchAddress={branchDetails.storeAddress || generalSettings.address || ''}
-                  contactPhone={generalSettings.contact_phone || ''}
-                  logo={logo}
-                  queueNumber={queueNumber}
-                  formattedDate={formattedDate}
-                  formattedTime={formattedTime}
-                  amtDue={amtDue}
-                  totalCount={totalCount}
-                  cart={cart}
-                  onScreen={true}
-                  {...lastOrderData} 
-                />
-              ) : visualPreviewTarget === 'kitchen' ? (
-                <KitchenPrint
-                  cart={cart}
-                  branchName={branchName}
-                  orNumber={orNumber}
-                  queueNumber={queueNumber}
-                  formattedDate={formattedDate}
-                  formattedTime={formattedTime}
-                  orderType={orderType || 'take-out'}
-                  customerName={customerName}
-                  onScreen={true}
-                />
-              ) : (
-                <StickerPrint
-                  cart={cart}
-                  branchName={branchName}
-                  orNumber={orNumber}
-                  queueNumber={queueNumber}
-                  customerName={customerName}
-                  formattedDate={formattedDate}
-                  formattedTime={formattedTime}
-                  orderType={orderType || 'take-out'}
-                  onScreen={true}
-                />
-              )
-            }
-          />
-        )}
 
         <Header
           branchName={branchName}

@@ -16,6 +16,8 @@ app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,In
 app.commandLine.appendSwitch('enable-features', 'WebPrinting');
 app.commandLine.appendSwitch('enable-print-browser');
 app.commandLine.appendSwitch('enable-print-preview');
+app.commandLine.appendSwitch('disable-gpu'); 
+app.commandLine.appendSwitch('disable-software-rasterizer');
 app.commandLine.appendSwitch('no-proxy-server');
 app.commandLine.appendSwitch('disable-dev-shm-usage');
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512 --v8-cache-options=code'); 
