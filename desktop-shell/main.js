@@ -85,6 +85,13 @@ app.on('child-process-gone', (event, details) => {
   }
 });
 
+// Optimization: Enable print preview and browser features
+app.commandLine.appendSwitch('enable-print-browser');
+app.commandLine.appendSwitch('enable-print-preview');
+app.commandLine.appendSwitch('no-sandbox'); // Improved hardware access for thermal printers
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion'); // Prevent lag when printing
+app.commandLine.appendSwitch('ignore-certificate-errors');
+
 function createWindow() {
   const isWindows = process.platform === 'win32';
   
@@ -100,9 +107,23 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      backgroundThrottling: false, // Keep it fast even when window is obscured
-      offscreen: false
+      backgroundThrottling: false,
+      offscreen: false,
+      spellcheck: false,
+      enableRemoteModule: false
     }
+  });
+
+  // Handle window.open (used for receipt previews and reports)
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        autoHideMenuBar: true,
+        title: 'Print Preview - Lucky Boba POS',
+        backgroundColor: '#ffffff'
+      }
+    };
   });
 
   win.once('ready-to-show', () => {
