@@ -7,6 +7,10 @@ use Illuminate\Http\Request;
 
 class ContentSecurityPolicy
 {
+    /**
+     * Handle an incoming request.
+     * Force Refresh: 2026-05-02
+     */
     public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
