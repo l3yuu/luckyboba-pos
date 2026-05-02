@@ -35,9 +35,15 @@ echo [1/2] Creating Desktop Shortcut...
 echo Target: %desktopPath%
 powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%desktopPath%');$s.TargetPath='%fullPath%';$s.IconLocation='%fullPath%';$s.Save()"
 
-echo [2/2] Setting up Auto-Start on Boot...
+echo [2/3] Setting up Auto-Start on Boot...
 echo Target: %startupPath%
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%startupPath%');$s.TargetPath='%fullPath%';$s.IconLocation='%fullPath%';$s.Save()"
+powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%startupPath%');$s.TargetPath='%fullPath%';$s.Save()"
+
+echo [3/3] Creating Mozilla Firefox One-Click Shortcut...
+set "mozShortcut=%desktopFolder%\Lucky Boba POS.lnk"
+set "launcherPath=%~dp0Launch_LuckyBoba_Mozilla.bat"
+:: Create shortcut to the BAT file, but run it minimized/cleanly
+powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%mozShortcut%');$s.TargetPath='%launcherPath%';$s.WorkingDirectory='%~dp0';$s.Save()"
 
 echo.
 echo ------------------------------------------
