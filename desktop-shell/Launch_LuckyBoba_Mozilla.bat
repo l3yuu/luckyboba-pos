@@ -15,9 +15,9 @@ netstat -ano | findstr :9876 > nul
 if %ERRORLEVEL% EQU 0 (
     echo [SKIP] Hardware Bridge is already running.
 ) else (
-    echo [1/2] Starting Hardware Bridge...
-    :: Start in a separate window to ensure it stays alive
-    start "Lucky Boba Bridge" node hardware-service.js
+    echo [1/2] Starting Hardware Bridge (Silent)...
+    :: Start the bridge invisibly using the VBS wrapper
+    wscript.exe "run-bridge-hidden.vbs"
     timeout /t 2 /nobreak > nul
 )
 
