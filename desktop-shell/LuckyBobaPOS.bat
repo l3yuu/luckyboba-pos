@@ -1,8 +1,8 @@
 @echo off
 :: ──────────────────────────────────────────────────────────────────────────────
-:: Lucky Boba POS - Chrome Launcher
-:: Starts the Hardware ID service silently, then opens Chrome in App Mode.
-:: The cashier sees a clean, native-looking window with full print preview.
+:: Lucky Boba POS - Firefox Launcher
+:: Starts the Hardware ID service silently, then opens Firefox in Kiosk Mode.
+:: The cashier sees a clean, fullscreen window with full print preview.
 :: ──────────────────────────────────────────────────────────────────────────────
 
 :: Get the directory this script lives in
@@ -17,44 +17,35 @@ if errorlevel 1 (
     timeout /t 1 /nobreak >nul
 )
 
-:: ── Step 2: Find Chrome ──────────────────────────────────────────────────────
-set "CHROME="
+:: ── Step 2: Find Firefox ─────────────────────────────────────────────────────
+set "FIREFOX="
 
 :: Try standard 64-bit location
-if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" (
-    set "CHROME=C:\Program Files\Google\Chrome\Application\chrome.exe"
+if exist "C:\Program Files\Mozilla Firefox\firefox.exe" (
+    set "FIREFOX=C:\Program Files\Mozilla Firefox\firefox.exe"
 )
 
 :: Try 32-bit location (ICHICO tablet)
-if "%CHROME%"=="" (
-    if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" (
-        set "CHROME=C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-    )
-)
-
-:: Try user-level Chrome install
-if "%CHROME%"=="" (
-    if exist "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe" (
-        set "CHROME=%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"
+if "%FIREFOX%"=="" (
+    if exist "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" (
+        set "FIREFOX=C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
     )
 )
 
 :: Fallback: try to find via registry
-if "%CHROME%"=="" (
-    for /f "tokens=2*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe" /ve 2^>nul') do set "CHROME=%%B"
+if "%FIREFOX%"=="" (
+    for /f "tokens=2*" %%A in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe" /ve 2^>nul') do set "FIREFOX=%%B"
 )
 
-if "%CHROME%"=="" (
-    echo [ERROR] Google Chrome is not installed on this computer.
-    echo Please install Google Chrome first.
+if "%FIREFOX%"=="" (
+    echo [ERROR] Mozilla Firefox is not installed on this computer.
+    echo Please install Firefox first.
     pause
     exit /b 1
 )
 
-:: ── Step 3: Launch Chrome in App Mode ────────────────────────────────────────
-:: --app= : Opens in a clean window (no tabs, no URL bar, no bookmarks)
-:: --start-fullscreen : Opens fullscreen like the Electron shell did
-:: --disable-infobars : Removes "Chrome is being controlled" banner
-start "" "%CHROME%" --app=https://luckybobastores.com --start-fullscreen --disable-infobars
+:: ── Step 3: Launch Firefox in Kiosk Mode ─────────────────────────────────────
+:: --kiosk : Opens fullscreen (no URL bar, no tabs, no menus)
+start "" "%FIREFOX%" --kiosk https://luckybobastores.com
 
 exit
