@@ -29,7 +29,7 @@ const QueueDisplay = () => {
     return params.get('branch_id') || localStorage.getItem('kiosk_branch_id');
   });
   const [availableBranches, setAvailableBranches] = useState<BranchOption[]>([]);
-  const [isLoadingBranches, setIsLoadingBranches] = useState(false);
+  const [isLoadingBranches, setIsLoadingBranches] = useState(true);
 
   // Clock
   useEffect(() => {
@@ -39,7 +39,6 @@ const QueueDisplay = () => {
 
   // Fetch available branches
   useEffect(() => {
-    setIsLoadingBranches(true);
     api.get('/branches/available').then(res => {
       const branches = Array.isArray(res.data?.data) ? res.data.data : [];
       setAvailableBranches(branches);
