@@ -1,8 +1,7 @@
 @echo off
 :: ──────────────────────────────────────────────────────────────────────────────
 :: Lucky Boba POS - Firefox Launcher
-:: Starts the Hardware ID service silently, then opens Firefox in Kiosk Mode.
-:: The cashier sees a clean, fullscreen window with full print preview.
+:: Starts the Hardware ID service silently, then opens Firefox.
 :: ──────────────────────────────────────────────────────────────────────────────
 
 :: Get the directory this script lives in
@@ -44,8 +43,8 @@ if "%FIREFOX%"=="" (
     exit /b 1
 )
 
-:: ── Step 3: Launch Firefox in Kiosk Mode ─────────────────────────────────────
-:: --kiosk : Opens fullscreen (no URL bar, no tabs, no menus)
-start "" "%FIREFOX%" --kiosk https://luckybobastores.com
+:: ── Step 3: Launch Firefox (Windowed mode) ───────────────────────────────────
+:: Removed --kiosk so it opens in a regular window
+start "" "%FIREFOX%" https://luckybobastores.com
 
 exit
