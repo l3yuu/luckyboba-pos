@@ -2,9 +2,29 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// CRITICAL: Set User Data Path immediately to local AppData to prevent "Access Denied" on external drives (E:)
+try {
+  const localAppData = app.getPath('appData');
+  const userDataPath = path.join(localAppData, 'LuckyBobaPOS-Shell');
+  app.setPath('userData', userDataPath);
+} catch (e) {
+  // Fallback if appData is somehow unavailable
+}
+
+// Aggressive Performance & Stability Flags
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,IntensiveWakeUpThrottling'); 
+app.commandLine.appendSwitch('no-proxy-server');
+app.commandLine.appendSwitch('disable-dev-shm-usage');
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512 --v8-cache-options=code'); 
+app.commandLine.appendSwitch('disable-background-networking');
+app.commandLine.appendSwitch('disable-default-apps');
+app.commandLine.appendSwitch('disable-sync');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache'); // Prevents "Gpu Cache Creation failed" on E: drive
+
 /**
  * Gets the actual Windows Hardware Serial Number.
- * This is the ultimate "Device ID" that never changes.
  */
 function getHardwareId() {
   try {
@@ -13,9 +33,9 @@ function getHardwareId() {
       
       // Method 1: Registry (INSTANT - Best for performance)
       try {
-        const regOutput = execSync('reg query "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS" /v SystemSerialNumber').toString();
+        const regOutput = execSync('reg query "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS" /v SystemSerialNumber 2>nul').toString();
         const match = regOutput.match(/SystemSerialNumber\s+REG_SZ\s+(.+)/);
-        if (match && match[1]) {
+        if (match && match[1] && match[1].trim() !== '') {
           serial = match[1].trim();
         }
       } catch (e) { /* skip */ }
@@ -23,7 +43,7 @@ function getHardwareId() {
       // Method 2: Legacy WMIC (Fast fallback)
       if (!serial || ['0', 'NONE', 'DEFAULT', 'TO BE FILLED'].some(s => serial.toUpperCase().includes(s))) {
         try {
-          const output = execSync('wmic bios get serialnumber').toString();
+          const output = execSync('wmic bios get serialnumber 2>nul').toString();
           serial = output.split('\n')[1]?.trim();
         } catch (e) { /* skip */ }
       }
@@ -31,7 +51,7 @@ function getHardwareId() {
       // Method 3: UUID fallback
       if (!serial || ['0', 'NONE', 'DEFAULT', 'TO BE FILLED'].some(s => serial.toUpperCase().includes(s))) {
         try {
-          const output = execSync('wmic csproduct get uuid').toString();
+          const output = execSync('wmic csproduct get uuid 2>nul').toString();
           serial = output.split('\n')[1]?.trim();
         } catch (e) { /* skip */ }
       }
@@ -43,35 +63,17 @@ function getHardwareId() {
       ];
       const isGeneric = !serial || genericIds.some(g => serial.toUpperCase().includes(g.toUpperCase()));
 
-      // Ultimate Fallback: Hostname (Ensures uniqueness if BIOS is generic)
       if (isGeneric || !serial) {
         return `WIN-HOST-${require('os').hostname().toUpperCase()}`;
       }
       
       return `WIN-${serial}`.toUpperCase();
-    } else {
-      return `PROD-TEST-${require('os').hostname().toUpperCase()}`;
     }
+    return `PROD-TEST-${require('os').hostname().toUpperCase()}`;
   } catch (e) {
-    try {
-      return `WIN-FAILBACK-${require('os').hostname().toUpperCase()}`;
-    } catch (inner) {
-      return 'WIN-UNKNOWN-HARDWARE';
-    }
+    return 'WIN-UNKNOWN-HARDWARE';
   }
 }
-
-// Aggressive Performance Flags for "Super Speed" on low-end hardware
-app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion,IntensiveWakeUpThrottling'); 
-app.commandLine.appendSwitch('no-proxy-server');
-app.commandLine.appendSwitch('disable-dev-shm-usage');
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512 --v8-cache-options=code'); 
-app.commandLine.appendSwitch('disable-http-cache'); // Faster on slow HDD
-app.commandLine.appendSwitch('disable-background-networking');
-app.commandLine.appendSwitch('disable-default-apps');
-app.commandLine.appendSwitch('disable-sync');
-app.commandLine.appendSwitch('disable-software-rasterizer');
-app.commandLine.appendSwitch('ignore-gpu-blocklist'); // Force GPU if available
 
 const hardwareId = getHardwareId();
 
