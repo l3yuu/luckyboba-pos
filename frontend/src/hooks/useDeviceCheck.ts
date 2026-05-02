@@ -29,6 +29,9 @@ interface ApiError {
  * and (optionally) if the provided userId is assigned to it.
  */
 export function useDeviceCheck(enabled: boolean = true, userId?: number | null) {
+  // We track if the very first check has completed to prevent UI flickering
+  const [hasCompletedFirstCheck, setHasCompletedFirstCheck] = useState(false);
+
   const [status, setStatus] = useState<DeviceStatus>(() => {
     if (!enabled) return 'registered';
     return 'checking';
@@ -52,7 +55,13 @@ export function useDeviceCheck(enabled: boolean = true, userId?: number | null) 
   useEffect(() => {
     if (!enabled) {
       setStatus('registered');
+      setHasCompletedFirstCheck(false);
       return;
+    }
+
+    // If we just enabled it, and haven't finished a check yet, make sure we are 'checking'
+    if (!hasCompletedFirstCheck) {
+      setStatus('checking');
     }
 
     const checkDevice = async () => {
@@ -95,6 +104,7 @@ export function useDeviceCheck(enabled: boolean = true, userId?: number | null) 
         }
       } finally {
         hasFetched.current = true;
+        setHasCompletedFirstCheck(true);
       }
     };
 
@@ -105,7 +115,7 @@ export function useDeviceCheck(enabled: boolean = true, userId?: number | null) 
     const interval = setInterval(checkDevice, 15000);
     return () => clearInterval(interval);
 
-  }, [enabled, userId]); // Re-run when user logs in/out
+  }, [enabled, userId, hasCompletedFirstCheck]); // Re-run when enabled/user changes
 
   return { status, posNumber, branchId, branch, message, deviceId };
 }
