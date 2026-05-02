@@ -15,9 +15,9 @@ netstat -ano | findstr :9876 > nul
 if %ERRORLEVEL% EQU 0 (
     echo [SKIP] Hardware Bridge is already running.
 ) else (
-    echo [1/2] Starting Hardware Bridge in background...
-    :: We use 'start /b' to run it in the same process tree but backgrounded
-    start /b node hardware-service.js
+    echo [1/2] Starting Hardware Bridge...
+    :: Start in a separate window to ensure it stays alive
+    start "Lucky Boba Bridge" node hardware-service.js
     timeout /t 2 /nobreak > nul
 )
 
