@@ -156,19 +156,33 @@ async function writeToStorage(id: string): Promise<void> {
 // Fetches the hardware ID from the local companion service running on port 9876.
 // This allows Chrome (with full print preview) to access native hardware info.
 async function fetchFromHardwareBridge(): Promise<string | null> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1500); // 1.5s timeout
-    const res = await fetch('http://127.0.0.1:9876/hardware-id', {
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.id) return data.id;
+  // We try both localhost and 127.0.0.1 to avoid DNS/CORS quirks
+  const endpoints = ['http://127.0.0.1:9876/hardware-id', 'http://localhost:9876/hardware-id'];
+  
+  for (const url of endpoints) {
+    try {
+      console.log(`[HardwareBridge] Attempting to fetch from ${url}...`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 1000);
+      
+      const res = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeout);
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.id) {
+          console.log(`[HardwareBridge] SUCCESS! Found ID: ${data.id}`);
+          return data.id;
+        }
+      }
+    } catch (err) {
+      console.warn(`[HardwareBridge] Failed to connect to ${url}:`, err);
     }
-  } catch {
-    // Service not running — not in Chrome+Bridge mode, that's fine
   }
   return null;
 }
@@ -200,14 +214,14 @@ export async function getDeviceIdAsync(): Promise<string> {
   // ── 0a. Electron Shell Support ─────────────────────────────────────────────
   const nativeId = window.NATIVE_ID || window.process?.env?.NATIVE_ID;
   if (nativeId) {
+    console.log('[DeviceId] Using native ID from Electron shell');
     _cachedId = nativeId;
     return nativeId;
   }
 
   // ── 0b. Hardware Bridge Support (Chrome/Firefox Mode) ──────────────────────
-  // We ALWAYS try the bridge first, even if we have a cached ID,
-  // unless the cached ID is already a hardware-derived 'WIN-' ID.
-  if (!_cachedId?.startsWith('WIN-')) {
+  // We check the bridge EVERY time until we have a 'WIN-' ID.
+  if (!_cachedId || !_cachedId.startsWith('WIN-')) {
     const bridgeId = await fetchFromHardwareBridge();
     if (bridgeId) {
       _cachedId = bridgeId;
@@ -218,10 +232,11 @@ export async function getDeviceIdAsync(): Promise<string> {
 
   if (_cachedId) return _cachedId;
 
+  // Fallback to storage or derivation
   const stored = await readFromStorageAsync();
   if (stored) {
     _cachedId = stored;
-    // If we just loaded a fallback ID, try one last check to the bridge
+    // One last ditch effort if we loaded a fallback
     if (!stored.startsWith('WIN-')) {
       const bridgeId = await fetchFromHardwareBridge();
       if (bridgeId) {
@@ -233,7 +248,6 @@ export async function getDeviceIdAsync(): Promise<string> {
     return stored;
   }
 
-  // Storage was wiped — re-derive from hardware (same machine = same ID)
   const derived = await deriveId();
   _cachedId = derived;
   await writeToStorage(derived);
