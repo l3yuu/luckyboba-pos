@@ -97,8 +97,8 @@ const server = http.createServer((req, res) => {
   res.end('Not found');
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`[Lucky Boba] Hardware Bridge running on http://127.0.0.1:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`[Lucky Boba] Hardware Bridge running on http://localhost:${PORT}`);
   console.log(`[Lucky Boba] Hardware ID: ${HARDWARE_ID}`);
 });
 
