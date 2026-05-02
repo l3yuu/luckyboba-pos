@@ -1,41 +1,34 @@
 @echo off
-title Lucky Boba POS - Mozilla Launcher
 setlocal
-
-:: Get the directory of this script
 cd /d "%~dp0"
 
 echo ------------------------------------------
-echo    Lucky Boba POS - Startup (Mozilla)
+echo    Lucky Boba POS - Launcher and Setup
 echo ------------------------------------------
 echo.
 
-:: 1. Check if the bridge is already running
-netstat -ano | findstr :9876 > nul
-if %ERRORLEVEL% EQU 0 (
-    echo [SKIP] Hardware Bridge is already running.
-) else (
-    echo [1/2] Starting Hardware Bridge (Silent)...
-    :: Start the bridge invisibly using the VBS wrapper
-    wscript.exe "run-bridge-hidden.vbs"
-    timeout /t 2 /nobreak > nul
-)
+:: 0. Auto-Setup Desktop Shortcut
+for /f "usebackq delims=" %%I in (`powershell "[Environment]::GetFolderPath('Desktop')"`) do set "desktopFolder=%%I"
+set "mozShortcut=%desktopFolder%\Lucky Boba POS.lnk"
 
-:: 2. Launch Firefox
-echo [2/2] Launching Mozilla Firefox...
-set "SITE_URL=https://luckybobastores.com"
-set "HANDSHAKE_URL=http://localhost:9876/handshake?return="
+:: Force create/update shortcut every time to be sure
+echo [0/2] Ensuring Desktop Shortcut is ready...
+echo $s = (New-Object -COM WScript.Shell).CreateShortcut('%mozShortcut%') > "%temp%\lb_shortcut.ps1"
+echo $s.TargetPath = '%~f0' >> "%temp%\lb_shortcut.ps1"
+echo $s.WorkingDirectory = '%~dp0' >> "%temp%\lb_shortcut.ps1"
+echo if (Test-Path '%~dp0lucky.ico') { $s.IconLocation = '%~dp0lucky.ico' } elseif (Test-Path '%~dp0lucky') { $s.IconLocation = '%~dp0lucky' } >> "%temp%\lb_shortcut.ps1"
+echo $s.Save() >> "%temp%\lb_shortcut.ps1"
+powershell -ExecutionPolicy Bypass -File "%temp%\lb_shortcut.ps1" > nul 2>&1
+del "%temp%\lb_shortcut.ps1"
 
-:: Launch Firefox with the handshake URL
-start firefox.exe "%HANDSHAKE_URL%%SITE_URL%"
+:: 1. Start the Bridge (Silent)
+echo [1/2] Starting Bridge...
+wscript.exe "run-bridge-hidden.vbs"
 
-echo.
-echo ------------------------------------------
-echo    SUCCESS! POS is opening in Mozilla.
-echo    Hardware ID: ACTIVE
-echo ------------------------------------------
-echo.
+:: Wait a moment
+timeout /t 2
 
-:: Briefly wait so the user sees the success message
-timeout /t 3
+:: Launch Firefox
+start firefox "http://localhost:9876/handshake?return=https://luckybobastores.com"
+
 exit
