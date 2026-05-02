@@ -153,12 +153,33 @@ async function writeToStorage(id: string): Promise<void> {
 }
 
 // ── Hardware Bridge Service (Chrome Mode) ────────────────────────────────────
+let _isBridgeChecking = false;
+let _lastBridgeAttempt = 0;
+
 // Fetches the hardware ID from the local companion service running on port 9876.
 // This allows Chrome (with full print preview) to access native hardware info.
 async function fetchFromHardwareBridge(): Promise<string | null> {
-  // We try both localhost and 127.0.0.1 to avoid DNS/CORS quirks
+  // 1. Check if we just received an ID via URL Handshake (Mozilla Fix)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlHwid = urlParams.get('hwid');
+  if (urlHwid && urlHwid.startsWith('WIN-')) {
+    console.log(`[HardwareBridge] Found ID in URL param: ${urlHwid}`);
+    // Clean up the URL so the ID isn't visible/shared
+    const newUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, '', newUrl);
+    return urlHwid;
+  }
+
+  // Prevent spamming the bridge if we just tried recently
+  const now = Date.now();
+  if (_isBridgeChecking || (now - _lastBridgeAttempt < 5000)) return null;
+  
+  _isBridgeChecking = true;
+  _lastBridgeAttempt = now;
+
   const endpoints = ['http://127.0.0.1:9876/hardware-id', 'http://localhost:9876/hardware-id'];
   
+  let fetchFailed = false;
   for (const url of endpoints) {
     try {
       console.log(`[HardwareBridge] Attempting to fetch from ${url}...`);
@@ -177,13 +198,34 @@ async function fetchFromHardwareBridge(): Promise<string | null> {
         const data = await res.json();
         if (data?.id) {
           console.log(`[HardwareBridge] SUCCESS! Found ID: ${data.id}`);
+          _isBridgeChecking = false;
           return data.id;
         }
       }
     } catch (err) {
       console.warn(`[HardwareBridge] Failed to connect to ${url}:`, err);
+      fetchFailed = true;
     }
   }
+
+  // ── MOZILLA FALLBACK: Handshake Redirect ──
+  // If fetch failed (likely due to Mixed Content in Firefox), and we are on an HTTPS site,
+  // we trigger a top-level redirect to the handshake endpoint.
+  if (fetchFailed && window.location.protocol === 'https:') {
+    const lastRedirect = localStorage.getItem('last_hw_handshake');
+    const oneMinuteAgo = Date.now() - 60000;
+    
+    if (!lastRedirect || parseInt(lastRedirect) < oneMinuteAgo) {
+      console.log('[HardwareBridge] Fetch blocked. Triggering Handshake Redirect for Mozilla...');
+      localStorage.setItem('last_hw_handshake', Date.now().toString());
+      
+      const returnUrl = window.location.href;
+      window.location.href = `http://localhost:9876/handshake?return=${encodeURIComponent(returnUrl)}`;
+      // This will halt execution and redirect back with ?hwid=...
+    }
+  }
+
+  _isBridgeChecking = false;
   return null;
 }
 
