@@ -1,9 +1,9 @@
 // components/BranchManager/MenuItems/BM_MenuList.tsx
-import { useState, useEffect, useCallback, useMemo, useContext } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Search, Edit2, Plus,
+  Search,
   AlertCircle, X, Package, ChevronDown,
-  ToggleLeft, ToggleRight, Coffee,
+  ToggleLeft, ToggleRight, Coffee, Eye,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useToast } from "../../../context/ToastContext";
@@ -348,11 +348,6 @@ const BM_MenuList: React.FC = () => {
   const [isFormOpen,      setIsFormOpen]      = useState(false);
   const [editingItem,     setEditingItem]     = useState<MenuItem | null>(null);
 
-  const [addOns,         setAddOns]         = useState<AddOnItem[]>([]);
-  const [addOnModalOpen, setAddOnModalOpen] = useState(false);
-  const [addOnLoading,   setAddOnLoading]   = useState(false);
-  const [addOnError,     setAddOnError]     = useState("");
-
   // Fetch all item options in bulk when items load
   const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
     const drinkIds = loadedItems
@@ -435,24 +430,6 @@ const BM_MenuList: React.FC = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const fetchAddOns = useCallback(async () => {
-    setAddOnLoading(true);
-    setAddOnError("");
-    try {
-      const res  = await fetch("/api/add-ons?all=1", { headers: authHeaders() });
-      const data = await res.json();
-      setAddOns(Array.isArray(data) ? data : (data.data ?? []));
-    } catch {
-      setAddOnError("Failed to load add-ons.");
-    } finally {
-      setAddOnLoading(false);
-    }
-  }, []);
-
-  const openAddOnModal = useCallback(async () => {
-    setAddOnModalOpen(true);
-    await fetchAddOns();
-  }, [fetchAddOns]);
 
   useEffect(() => {
   const handler = (e: Event) => {
@@ -549,16 +526,6 @@ const BM_MenuList: React.FC = () => {
             </select>
             <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
-          <Btn onClick={() => { setEditingItem(null); setIsFormOpen(true); }} className="shrink-0 gap-2">
-            <Plus size={14} /> Add Item
-          </Btn>
-        </div>
-
-        <div className="flex items-center gap-2 md:justify-end">
-          <Btn variant="secondary" size="md" onClick={openAddOnModal} className="whitespace-nowrap">
-            <Plus size={14} />
-            Add-Ons
-          </Btn>
         </div>
       </div>
 
@@ -680,8 +647,8 @@ const BM_MenuList: React.FC = () => {
 
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <button onClick={() => { setEditingItem(item); setIsFormOpen(true); }} className="text-zinc-400 hover:text-violet-600 transition-colors" title="Edit Item">
-                          <Edit2 size={16} />
+                        <button onClick={() => { setEditingItem(item); setIsFormOpen(true); }} className="text-zinc-400 hover:text-violet-600 transition-colors" title="View Item">
+                          <Eye size={16} />
                         </button>
                         <button onClick={() => toggleAvailable(item)} className="transition-colors"
                         title={item.is_available ? "Click to hide" : "Click to show"}>
@@ -715,55 +682,6 @@ const BM_MenuList: React.FC = () => {
         />
       )}
 
-      {addOnModalOpen && (
-        <ModalShell
-          onClose={() => setAddOnModalOpen(false)}
-          icon={<Plus size={15} className="text-violet-600" />}
-          title="Add-Ons"
-          sub="View mode only"
-          maxWidth="max-w-2xl"
-          footer={
-            <Btn variant="secondary" onClick={() => setAddOnModalOpen(false)}>
-              Done
-            </Btn>
-          }
-        >
-          {addOnLoading ? (
-            <p className="text-xs text-zinc-400 italic py-6 text-center">Loading add-ons...</p>
-          ) : addOnError ? (
-            <div className="flex flex-col items-center gap-3 py-6">
-              <p className="text-xs text-red-600 font-medium">{addOnError}</p>
-              <Btn variant="secondary" onClick={fetchAddOns}>Retry</Btn>
-            </div>
-          ) : addOns.length === 0 ? (
-            <p className="text-xs text-zinc-400 italic py-6 text-center">No add-ons found.</p>
-          ) : (
-            <div className="space-y-2">
-              {addOns.map((addon) => (
-                <div key={addon.id} className="border border-zinc-200 rounded-xl px-3 py-2.5 bg-zinc-50/40">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-bold text-zinc-700">{addon.name}</p>
-                    <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                      addon.is_available
-                        ? "text-emerald-600 bg-emerald-50 border-emerald-200"
-                        : "text-zinc-500 bg-zinc-100 border-zinc-200"
-                    }`}>
-                      {addon.is_available ? "Available" : "Unavailable"}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] font-semibold text-zinc-500">
-                    <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 uppercase">{addon.category}</span>
-                    <span>Base: ₱{Number(addon.price).toFixed(2)}</span>
-                    <span>Grab: ₱{Number(addon.grab_price).toFixed(2)}</span>
-                    <span>Panda: ₱{Number(addon.panda_price).toFixed(2)}</span>
-                    {addon.barcode && <span>Barcode: {addon.barcode}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </ModalShell>
-      )}
 
       {isFormOpen && (
         <MenuItemForm
@@ -774,14 +692,8 @@ const BM_MenuList: React.FC = () => {
           sugarLevels={sugarLevels}
           allAddOns={allAddOns}
           onClose={() => setIsFormOpen(false)}
-          onSaved={(savedItem: MenuItem) => {
-            setItems(prev => {
-              const idx = prev.findIndex(i => i.id === savedItem.id);
-              if (idx >= 0) { const next = [...prev]; next[idx] = savedItem; return next; }
-              return [...prev, savedItem];
-            });
-            setIsFormOpen(false);
-          }}
+          onSaved={() => {}}
+          readOnly={true}
         />
       )}
     </div>
