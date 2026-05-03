@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 trait MenuCache
 {
@@ -17,6 +18,16 @@ trait MenuCache
         
         // Also clear any other related caches if they exist
         Cache::forget('menu_data');
+
+        // Clear branch-specific caches
+        try {
+            $branchIds = DB::table('branches')->pluck('id');
+            foreach ($branchIds as $bid) {
+                Cache::forget("menu_data_v6_branch_{$bid}");
+            }
+        } catch (\Exception $e) {
+            // Ignore
+        }
 
         // Bump menu version to alert connected POS clients
         Cache::put('menu_version', time());
