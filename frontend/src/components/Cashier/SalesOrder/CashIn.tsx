@@ -225,33 +225,33 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       <div id="dashboard-main-container" className="flex flex-col h-full w-full bg-[#f4f2fb] relative overflow-hidden">
         <TopNavbar isEodLocked={isEodLocked} />
         
-        <div className="flex-1 flex flex-col xl:flex-row items-center justify-center p-5 md:p-8 gap-5 overflow-y-auto transition-all duration-300">
+        <div className="flex-1 flex flex-col lg:flex-row items-center justify-center p-4 md:p-8 gap-4 md:gap-8 overflow-y-auto transition-all duration-300">
           
           {/* Flip Card */}
-          <div className="relative w-full max-w-xl h-120" style={{ perspective: '1200px' }}>
+          <div className="relative w-full max-w-xl h-[420px] sm:h-[480px]" style={{ perspective: '1200px' }}>
             <div
               className="relative w-full h-full transition-transform duration-700 shadow-lg"
               style={{ transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
             >
               {/* Front: Form */}
-              <div className="absolute w-full h-full bg-white border border-[#e9d5ff] p-8 flex flex-col rounded-[0.625rem]" style={{ backfaceVisibility: 'hidden' }}>
-                <div className="flex items-center justify-between pb-5 mb-6 border-b border-[#e9d5ff]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-[#6a12b8] flex items-center justify-center">
-                      <Wallet size={17} className="text-white" />
+              <div className="absolute w-full h-full bg-white border border-[#e9d5ff] p-5 sm:p-8 flex flex-col rounded-[0.625rem]" style={{ backfaceVisibility: 'hidden' }}>
+                <div className="flex items-center justify-between pb-3 sm:pb-5 mb-3 sm:mb-6 border-b border-[#e9d5ff]">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 bg-[#6a12b8] flex items-center justify-center">
+                      <Wallet size={16} className="text-white" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-black">Point of Sale</p>
-                      <h2 className="text-sm font-bold text-black uppercase tracking-widest">Initial Cash In</h2>
+                      <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-black">Point of Sale</p>
+                      <h2 className="text-xs sm:text-sm font-bold text-black uppercase tracking-widest">Initial Cash In</h2>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f5f0ff] border border-[#e9d5ff]">
-                    <Monitor size={12} className="text-[#6a12b8]" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-black">Terminal 01</span>
+                  <div className="flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-[#f5f0ff] border border-[#e9d5ff]">
+                    <Monitor size={10} className="text-[#6a12b8]" />
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-black">Terminal 01</span>
                   </div>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-5">
+                <div className="flex-1 flex flex-col gap-3 sm:gap-5">
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-black uppercase tracking-widest block">Assigned Cashier</label>
                     <div className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-black font-bold text-sm px-5 py-3.5 uppercase tracking-widest">
@@ -260,9 +260,9 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-black uppercase tracking-widest block">Drawer Starting Balance</label>
+                    <label className="text-[10px] sm:text-[11px] font-bold text-black uppercase tracking-widest block">Drawer Starting Balance</label>
                     <div className="relative">
-                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-black font-bold text-2xl tabular-nums">₱</span>
+                      <span className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-black font-bold text-xl sm:text-2xl tabular-nums">₱</span>
                       <input
                         type="text"
                         autoFocus
@@ -271,7 +271,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                         onKeyDown={handleKeyDown}
                         placeholder={isEodLocked ? "SHIFT CLOSED" : "0.00"}
                         disabled={isEodLocked}
-                        className={`w-full text-black font-bold text-4xl pl-14 pr-5 py-5 border outline-none tabular-nums transition-all ${
+                        className={`w-full text-black font-bold text-2xl sm:text-4xl pl-10 sm:pl-14 pr-4 sm:pr-5 py-3 sm:py-5 border outline-none tabular-nums transition-all ${
                           isEodLocked
                             ? 'bg-[#f5f0ff] border-[#e9d5ff] text-[#6a12b8]/50'
                             : 'bg-white border-[#e9d5ff] focus:border-[#6a12b8]'
@@ -322,7 +322,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
 
               {/* Back: Receipt Preview */}
               <div
-                className="absolute w-full h-full bg-white border border-[#6a12b8] p-10 flex flex-col rounded-[0.625rem]"
+                className="absolute w-full h-full bg-white border border-[#6a12b8] p-5 sm:p-10 flex flex-col rounded-[0.625rem]"
                 style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               >
                 <div className="text-center border-b-2 border-dashed border-[#6a12b8] pb-6">
@@ -352,7 +352,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
           </div>
 
           {/* Print Panel */}
-          <div className="bg-white w-full max-w-sm border border-[#e9d5ff] p-7 flex flex-col gap-5 shadow-sm rounded-[0.625rem]">
+          <div className="bg-white w-full max-w-sm border border-[#e9d5ff] p-5 sm:p-7 flex flex-col gap-4 sm:gap-5 shadow-sm rounded-[0.625rem]">
             <div className="flex items-center gap-3 pb-4 border-b border-[#e9d5ff]">
               <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center">
                 <Printer size={17} className="text-[#6a12b8]" />

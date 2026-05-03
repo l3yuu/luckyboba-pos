@@ -202,7 +202,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
       <div id="main-ui" className="flex flex-col h-full w-full bg-[#f4f2fb] relative overflow-hidden">
         <TopNavbar />
 
-        <div className="flex-1 flex flex-row items-start justify-center p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300">
+        <div className="flex-1 flex flex-col lg:flex-row items-start justify-center p-4 md:p-7 gap-4 md:gap-5 overflow-y-auto transition-all duration-300">
 
           {/* ── LEFT: Drop Form ── */}
           <div className="bg-white w-full flex-1 border border-[#e9d5ff] flex flex-col h-full shadow-sm rounded-[0.625rem]">

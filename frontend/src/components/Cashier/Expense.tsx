@@ -155,18 +155,18 @@ const Expense = () => {
           </div>
 
           {/* Filter bar */}
-          <div className="bg-white border border-zinc-200 p-4 rounded-[0.625rem] shadow-sm flex flex-col xl:flex-row items-center gap-4">
-            <div className="flex flex-1 gap-2 w-full xl:w-auto">
+          <div className="bg-white border border-zinc-200 p-4 rounded-[0.625rem] shadow-sm flex flex-col lg:flex-row items-center gap-4">
+            <div className="flex flex-1 gap-2 w-full lg:w-auto">
               <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)}
                 className="flex-1 px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#6a12b8] transition-colors" />
               <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)}
                 className="flex-1 px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#6a12b8] transition-colors" />
             </div>
-            <div className="w-full xl:w-64">
+            <div className="w-full lg:w-64">
               <input type="text" placeholder="Search Ref #" value={refNumSearch} onChange={(e) => setRefNumSearch(e.target.value)}
                 className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#6a12b8] transition-colors placeholder:text-zinc-400" />
             </div>
-            <div className="w-full xl:w-48">
+            <div className="w-full lg:w-48">
               <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
                 className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#6a12b8] transition-colors cursor-pointer">
                 <option value="ALL">All Categories</option>
@@ -177,9 +177,9 @@ const Expense = () => {
                 <option value="Miscellaneous">Miscellaneous</option>
               </select>
             </div>
-            <div className="flex gap-2 w-full xl:w-auto">
+            <div className="flex gap-2 w-full lg:w-auto">
               <button onClick={() => fetchExpenses(true)}
-                className="flex-1 xl:flex-none h-11 px-7 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem]">
+                className="flex-1 lg:flex-none h-11 px-7 bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem]">
                 Search
               </button>
             </div>

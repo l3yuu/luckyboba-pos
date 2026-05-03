@@ -14,6 +14,23 @@ const SESSION_KEY   = 'pos_device_id_backup';
 const COOKIE_NAME   = 'pos_device_id';
 const COOKIE_MAXAGE = 60 * 60 * 24 * 365; // 1 year
 
+// ── MOZILLA HANDSHAKE CAPTURE ──
+// We check for the HWID in the URL immediately upon script load.
+// This ensures we catch it even if the React Router redirects the page.
+(function captureUrlHwid() {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const hwid = params.get('hwid');
+    if (hwid && hwid.startsWith('WIN-')) {
+      console.log(`[HardwareBridge] Captured ID from URL: ${hwid}`);
+      localStorage.setItem(STORAGE_KEY, hwid);
+      // Clean up the URL
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }
+})();
+
 // ── WebGL Fingerprint (GPU Information) ────────────────────────────────────────
 function getWebglRenderer(): string {
   try {
@@ -159,17 +176,6 @@ let _lastBridgeAttempt = 0;
 // Fetches the hardware ID from the local companion service running on port 9876.
 // This allows Chrome (with full print preview) to access native hardware info.
 async function fetchFromHardwareBridge(): Promise<string | null> {
-  // 1. Check if we just received an ID via URL Handshake (Mozilla Fix)
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlHwid = urlParams.get('hwid');
-  if (urlHwid && urlHwid.startsWith('WIN-')) {
-    console.log(`[HardwareBridge] Found ID in URL param: ${urlHwid}`);
-    // Clean up the URL so the ID isn't visible/shared
-    const newUrl = window.location.pathname + window.location.hash;
-    window.history.replaceState({}, '', newUrl);
-    return urlHwid;
-  }
-
   // Prevent spamming the bridge if we just tried recently
   const now = Date.now();
   if (_isBridgeChecking || (now - _lastBridgeAttempt < 5000)) return null;

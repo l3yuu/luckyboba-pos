@@ -25,25 +25,23 @@ echo ------------------------------------------
 echo.
 
 if not exist "%fullPath%" (
-    echo [ERROR] Could not find %exeName% in %folderName%
-    echo Please make sure this script is NEXT to the %folderName% folder.
-    pause
-    exit
+    echo [SKIP] Electron build not found. Proceeding with Mozilla setup...
+) else (
+    echo [1/3] Creating Desktop Shortcut (Electron)...
+    echo Target: %desktopPath%
+    powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%desktopPath%');$s.TargetPath='%fullPath%';$s.IconLocation='%fullPath%';$s.Save()"
+
+    echo [2/3] Setting up Auto-Start on Boot...
+    echo Target: %startupPath%
+    powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%startupPath%');$s.TargetPath='%fullPath%';$s.Save()"
 )
 
-echo [1/2] Creating Desktop Shortcut...
-echo Target: %desktopPath%
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%desktopPath%');$s.TargetPath='%fullPath%';$s.IconLocation='%fullPath%';$s.Save()"
-
-echo [2/3] Setting up Auto-Start on Boot...
-echo Target: %startupPath%
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%startupPath%');$s.TargetPath='%fullPath%';$s.Save()"
-
 echo [3/3] Creating Mozilla Firefox One-Click Shortcut...
+set "desktopFolder=%USERPROFILE%\Desktop"
 set "mozShortcut=%desktopFolder%\Lucky Boba POS.lnk"
 set "launcherPath=%~dp0Launch_LuckyBoba_Mozilla.bat"
-:: Create shortcut to the BAT file, but run it minimized/cleanly
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%mozShortcut%');$s.TargetPath='%launcherPath%';$s.WorkingDirectory='%~dp0';$s.Save()"
+:: Create shortcut to the BAT file
+powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut(\"%mozShortcut%\");$s.TargetPath=\"%launcherPath%\";$s.WorkingDirectory=\"%~dp0\";$s.Save()"
 
 echo.
 echo ------------------------------------------
@@ -52,8 +50,10 @@ echo    It will also open automatically on boot.
 echo ------------------------------------------
 echo.
 
-echo [3/3] Launching App now...
-start "" "%fullPath%"
+if exist "%fullPath%" (
+    echo Launching Electron App now...
+    start "" "%fullPath%"
+)
 
 pause
 

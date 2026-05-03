@@ -338,11 +338,12 @@ const SearchReceipts = () => {
   const openReprintModal  = (item: SaleItem) => { setReprintSale(item); setReprintError(null); setPrintPayload(null); setPrintType(null); };
   const closeReprintModal = () => { setReprintSale(null); setReprinting(null); setReprintError(null); setPrintPayload(null); setPrintType(null); };
 
+  const [lastPrintPayload, setLastPrintPayload] = useState<ReprintPayload | null>(null);
+
   const handleReprint = async (type: ReprintType) => {
     if (!reprintSale) return;
     setReprinting(type);
     setReprintError(null);
-    setPrintPayload(null);
     setPrintType(null);
 
     try {
@@ -350,8 +351,12 @@ const SearchReceipts = () => {
         params: { type },
       });
       setPrintPayload(data);
+      setLastPrintPayload(data);
       setPrintType(type);
-      setTimeout(() => window.print(), 1000);
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => setPrintType(null), 3000);
+      }, 1000);
     } catch (err) {
       console.error('Reprint error:', err);
       setReprintError('Reprint failed. Please try again.');
@@ -546,13 +551,29 @@ return {
   return (
     <>
       {/* ── Hidden print target — MUST be outside the layout div ── */}
-      {printPayload && printType && (() => {
-        const props = buildPrintProps(printPayload, reprintSale?.display_order_number);
+      {/* ── Hidden print target — persistent to avoid race conditions ── */}
+      {(() => {
+        const payload = printPayload || lastPrintPayload;
+        if (!payload) return null;
+        const props = buildPrintProps(payload, reprintSale?.display_order_number);
         return (
           <>
-            {printType === 'receipt' && <ReceiptPrint {...props} posFooter={props.posFooter} showDoubleQueueStub={false} isReprint={true} />}
-            {printType === 'kitchen' && <KitchenPrint {...props} />}
-            {printType === 'sticker' && <StickerPrint {...props} customerName={props.customerName} />}
+            <ReceiptPrint 
+              onScreen={printType === 'receipt'}
+              {...props} 
+              posFooter={props.posFooter} 
+              showDoubleQueueStub={false} 
+              isReprint={true} 
+            />
+            <KitchenPrint 
+              onScreen={printType === 'kitchen'}
+              {...props} 
+            />
+            <StickerPrint 
+              onScreen={printType === 'sticker'}
+              {...props} 
+              customerName={props.customerName} 
+            />
           </>
         );
       })()}
@@ -642,7 +663,7 @@ return {
               <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">Showing {searchResults.length} transactions</p>
             </div>
           </div>
-          <div className="overflow-y-auto">
+          <div className="overflow-x-auto overflow-y-auto">
             <table className="table-auto w-full text-left">
               <thead>
                 <tr className="border-b border-zinc-100">

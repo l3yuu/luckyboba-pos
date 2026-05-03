@@ -124,6 +124,16 @@ const server = http.createServer((req, res) => {
   res.end('Not found');
 });
 
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error(`[Lucky Boba] ERROR: Port ${PORT} is already in use.`);
+    console.error(`[Lucky Boba] The Hardware Bridge is likely already running.`);
+    process.exit(0); // Exit cleanly if already running
+  } else {
+    console.error('[Lucky Boba] Server Error:', e);
+  }
+});
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log('----------------------------------------------------');
   console.log(`[Lucky Boba] Hardware Bridge: RUNNING`);
@@ -131,7 +141,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`[Lucky Boba] Hardware ID:      ${HARDWARE_ID}`);
   console.log('----------------------------------------------------');
   console.log(`[Mozilla Fix] If Firefox blocks the connection, use:`);
-  console.log(`http://localhost:${PORT}/handshake?return=https://luckybobastores.com`);
+  console.log(`http://127.0.0.1:${PORT}/handshake?return=https://luckybobastores.com`);
   console.log('----------------------------------------------------');
 });
 
