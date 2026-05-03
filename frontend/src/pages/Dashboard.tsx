@@ -292,6 +292,15 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
     return () => clearInterval(t);
   }, []);
 
+  useEffect(() => {
+    if (netRevenueVisible) {
+      const timer = setTimeout(() => {
+        setNetRevenueVisible(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [netRevenueVisible]);
+
   const isLoading = isInitialLoad || isStale || loading;
   const fmt = (v: number) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const dateStr = time.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -354,9 +363,18 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
             {isLoading ? (
               <div className="h-10 w-40 bg-[#f5f0ff] animate-pulse rounded" />
             ) : netRevenueVisible ? (
-              <p className="text-[2.6rem] font-black text-[#1a0f2e] tracking-tight tabular-nums leading-none">
-                {fmt(stats?.total_sales_today ?? 0)}
-              </p>
+              <div className="flex items-center justify-between w-full">
+                <p className="text-[2.6rem] font-black text-[#1a0f2e] tracking-tight tabular-nums leading-none">
+                  {fmt(stats?.total_sales_today ?? 0)}
+                </p>
+                <button 
+                  onClick={() => setNetRevenueVisible(false)}
+                  className="p-2 text-zinc-400 hover:text-[#6a12b8] transition-colors"
+                  title="Lock Revenue"
+                >
+                  <Lock size={18} />
+                </button>
+              </div>
             ) : (
               <div 
                 onClick={() => setShowPinOverlay(true)}
@@ -380,7 +398,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
             onSuccess={() => {
               setShowPinOverlay(false);
               setNetRevenueVisible(true);
-              showToast('Revenue data authorized', 'success');
+              showToast('Authorized: Revenue visible for 5s', 'success');
             }}
           />
         )}

@@ -663,7 +663,7 @@ return {
               <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">Showing {searchResults.length} transactions</p>
             </div>
           </div>
-          <div className="overflow-y-auto">
+          <div className="overflow-x-auto overflow-y-auto">
             <table className="table-auto w-full text-left">
               <thead>
                 <tr className="border-b border-zinc-100">

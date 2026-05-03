@@ -1016,7 +1016,7 @@ const XReading = () => {
         `}</style>
 
         {/* ── CONTROLS ── */}
-        <div className="bg-white p-3 border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-3 relative z-50 print:hidden shadow-sm rounded-[0.625rem]">
+        <div className="bg-white p-3 border border-zinc-200 mb-6 flex flex-col lg:flex-row items-center gap-3 relative z-50 print:hidden shadow-sm rounded-[0.625rem]">
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}

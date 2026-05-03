@@ -2139,7 +2139,7 @@ const SalesOrder = () => {
           </div>
         </div>
 
-        <div className="flex flex-1 overflow-hidden relative z-10">
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative z-10">
           <MenuArea
             menuAvailable={menuAvailable}
             selectedCategory={selectedCategory}

@@ -124,7 +124,17 @@ const server = http.createServer((req, res) => {
   res.end('Not found');
 });
 
-server.listen(PORT, '::', () => {
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error(`[Lucky Boba] ERROR: Port ${PORT} is already in use.`);
+    console.error(`[Lucky Boba] The Hardware Bridge is likely already running.`);
+    process.exit(0); // Exit cleanly if already running
+  } else {
+    console.error('[Lucky Boba] Server Error:', e);
+  }
+});
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log('----------------------------------------------------');
   console.log(`[Lucky Boba] Hardware Bridge: RUNNING`);
   console.log(`[Lucky Boba] Port:            ${PORT}`);

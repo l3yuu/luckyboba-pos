@@ -173,7 +173,7 @@ const handleSubmit = async () => {
       <div className="flex flex-col h-full w-full bg-[#f4f2fb] relative overflow-hidden">
         <TopNavbar isEodLocked={isEodLocked} />
 
-        <div className="flex-1 flex flex-row items-start justify-center p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300">
+        <div className="flex-1 flex flex-col lg:flex-row items-start justify-center p-4 md:p-7 gap-4 md:gap-5 overflow-y-auto transition-all duration-300">
 
           {/* ── LEFT: Counting Form ── */}
           <div className="bg-white w-full flex-1 border border-zinc-200 flex flex-col relative shadow-sm rounded-[0.625rem]" style={{ minHeight: 0 }}>

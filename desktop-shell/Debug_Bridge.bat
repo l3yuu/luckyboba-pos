@@ -13,7 +13,7 @@ if exist "%~dp0node.exe" (
     echo [OK] Found portable node.exe
     set "NODE_EXE=%~dp0node.exe"
 ) else (
-    echo [INFO] Portable node.exe not found, trying system node...
+    echo [OK] Using system node
 )
 
 echo.
