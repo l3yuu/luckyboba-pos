@@ -166,7 +166,7 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
             <span className="px-2.5 py-1 rounded-full text-[9px] font-black text-violet-600 bg-violet-50 border border-violet-100 uppercase tracking-widest">{data.length} items</span>
           </div>
           <div style={{ height: 220 }}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={sortedData.slice(0, 6)} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="#f4f4f5" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#a1a1aa', fontWeight: 700 }} />
