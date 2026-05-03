@@ -102,7 +102,7 @@ interface XReadingReport {
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: React.ReactNode; indent?: boolean }) => (
-  <div className={`flex justify-between text-[11px] font-bold leading-snug ${indent ? 'pl-3' : ''}`}>
+  <div className={`flex justify-between text-[12px] font-bold leading-snug ${indent ? 'pl-3' : ''}`}>
     <span className="uppercase w-[60%] leading-tight text-black">{label}</span>
     <span className="text-right w-[40%] text-black whitespace-pre-line">{value}</span>
   </div>
@@ -959,8 +959,8 @@ const XReading = () => {
           .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }
           @media print {
             @page { 
-              size: 80mm 2000mm;
-              margin: 3mm 2mm !important; 
+              size: 80mm auto;
+              margin: 0 !important; 
             }
             body * { visibility: hidden; }
             nav, header, aside, button, .print\\:hidden, .TopNavbar, .TopNavbar * { display: none !important; }
@@ -980,20 +980,20 @@ const XReading = () => {
               width: 80mm !important; 
               display: block !important; 
               margin: 0 !important; 
-              padding: 0 !important; 
+              padding: 0 4mm !important; 
             }
             .receipt-area { 
-              width: 76mm !important; 
-              max-width: 76mm !important; 
-              margin: 0 auto !important; 
-              padding: 2mm !important; 
+              width: 100% !important; 
+              max-width: 100% !important; 
+              margin: 0 !important; 
+              padding: 4mm 0 !important; 
               box-sizing: border-box !important; 
               background: white !important; 
               color: #000 !important; 
               font-family: Arial, Helvetica, sans-serif !important; 
-              font-size: 12px !important; 
+              font-size: 11px !important; 
               font-weight: bold !important;
-              line-height: 1.4 !important; 
+              line-height: 1.2 !important; 
               box-shadow: none !important; 
               border: none !important; 
               border-radius: 0 !important; 
@@ -1002,14 +1002,18 @@ const XReading = () => {
             }
             .receipt-area * { 
               overflow: visible !important; 
-              font-weight: 900 !important; 
+              font-weight: 700 !important; 
               -webkit-font-smoothing: none !important;
             }
             .receipt-area > div > div {
               break-inside: avoid !important;
             }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
-            table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 12px !important; }
+            table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
+            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: bold !important; font-size: 11px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 11px !important; font-weight: bold !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+          }
+lapse !important; table-layout: fixed !important; font-size: 12px !important; }
             th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: bold !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
             td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: bold !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
           }
@@ -1137,7 +1141,7 @@ const XReading = () => {
             </div>
           ) : reportData ? (
             <div className="printable-receipt-container">
-              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem', fontWeight: 'bold' }}>
+              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '12px', maxWidth: '100%', padding: '1rem', fontWeight: 'bold' }}>
                 <div className="text-center">
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>
