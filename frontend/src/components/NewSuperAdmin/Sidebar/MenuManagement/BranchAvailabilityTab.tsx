@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   Building2, Search, RefreshCw, 
-  CheckCircle2, XCircle, ChevronRight,
+  CheckCircle2, XCircle,
   Utensils, Coffee, Layers, Package, Sliders
 } from "lucide-react";
 
