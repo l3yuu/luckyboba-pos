@@ -76,6 +76,7 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   menu_items: { label: "Menu List", desc: "All products & pricing" },
   categories: { label: "Categories", desc: "Top-level menu groupings" },
   subcategories: { label: "Sub-Categories", desc: "Nested category structure" },
+  branch_availability: { label: "Branch Availability", desc: "Manage menu item availability across branches" },
   featured_drinks: { label: "Featured Drinks", desc: "Manage highlighted and seasonal items" },
 
   inv_overview: { label: "Inventory Overview", desc: "Stock summary across all branches" },
