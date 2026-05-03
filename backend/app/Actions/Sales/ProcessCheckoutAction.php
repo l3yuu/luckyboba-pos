@@ -9,6 +9,7 @@ use App\Models\Receipt;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\CashCount;
+use App\Helpers\ShiftHelper;
 use App\Actions\Inventory\DeductStockFromSaleAction;
 use App\Services\DashboardService;
 use App\Models\ZReading;
@@ -140,7 +141,7 @@ class ProcessCheckoutAction
                 'pax_discount_ids'         => $data['pax_discount_ids'] ?? null,
                 'source'                   => $data['source'] ?? 'pos',
                 'order_type'               => $data['order_type'] ?? 'dine_in',
-                'shift'                    => $this->getCurrentShiftNumber((int)$branchId),
+                'shift'                    => ShiftHelper::getCurrentShift((int)$branchId)['shift'],
             ]);
 
             // 3. Create Sale Items
@@ -431,6 +432,7 @@ class ProcessCheckoutAction
             Discount::whereIn('id', $uniqueIds)->increment('used_count');
         }
     }
+
 
     private function getCurrentShiftNumber(int $branchId): int
     {

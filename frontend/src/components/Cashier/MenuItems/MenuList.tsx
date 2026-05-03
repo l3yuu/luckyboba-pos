@@ -107,7 +107,7 @@ function MenuList() {
 
         {/* ── Filter Bar ── */}
         <div className="bg-white border border-zinc-200 p-5 shadow-sm rounded-[0.625rem]">
-          <div className="flex flex-col xl:flex-row gap-3 items-end">
+          <div className="flex flex-col lg:flex-row gap-3 items-end">
             <div className="flex-1 w-full space-y-1.5">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
                 <Search size={10} /> Search
@@ -132,7 +132,7 @@ function MenuList() {
                 placeholder="Filter by category..."
               />
             </div>
-            <div className="flex gap-2 w-full xl:w-auto">
+            <div className="flex gap-2 w-full lg:w-auto">
             </div>
           </div>
         </div>

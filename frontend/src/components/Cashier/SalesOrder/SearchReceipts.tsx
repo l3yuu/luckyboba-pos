@@ -12,7 +12,9 @@ import {
   CheckCircle2, 
   Printer, 
   Tag,
+  Calendar,
 } from 'lucide-react';
+import { useToast } from '../../../context/ToastContext';
 import api from '../../../services/api';
 import { type CartItem } from '../../../types/index';
 import { getItemSurcharge } from '../SalesOrderComponents/shared';
@@ -191,6 +193,103 @@ const getLocalToday = () => {
 };
 
 // ============================================================
+// AdminPinOverlay — reused from POS modal, gates the Search button
+// ============================================================
+
+const AdminPinOverlay = ({
+  onCancel,
+  onSuccess,
+}: {
+  onCancel: () => void;
+  onSuccess: () => void;
+}) => {
+  const [pin, setPin]         = React.useState('');
+  const [error, setError]     = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+
+  const getHeaders = (): Record<string, string> => {
+    const token =
+      localStorage.getItem('auth_token') ??
+      localStorage.getItem('lucky_boba_token') ??
+      localStorage.getItem('token') ??
+      '';
+    return {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!pin.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method:  'POST',
+        headers: getHeaders(),
+        body:    JSON.stringify({ pin }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        onSuccess();
+      } else {
+        setError(json.message ?? 'Incorrect PIN. Try again.');
+        setPin('');
+      }
+    } catch {
+      setError('Connection error. Try again.');
+      setPin('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden text-center">
+        <div className="bg-[#6a12b8] px-6 py-5 text-white">
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
+          <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
+          <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to search transactions</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <input
+            type="password"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            placeholder="••••"
+            autoFocus
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#6a12b8] transition-colors"
+          />
+          {error && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">{error}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !pin.trim()}
+              className="flex-1 py-3 rounded-[0.625rem] bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading ? '...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
 // MAIN COMPONENT
 // ============================================================
 
@@ -205,6 +304,10 @@ const SearchReceipts = () => {
   const [isLoading,     setIsLoading]     = useState(false);
   const [hasSearched,   setHasSearched]   = useState(false);
   const [showKeyboard,  setShowKeyboard]  = useState(false);
+  const { showToast } = useToast();
+
+  const [showPinOverlay, setShowPinOverlay] = useState(false);
+  const [pendingSearch, setPendingSearch]   = useState<{ query: string; date: string } | null>(null);
 
   // Void state
   const [isModalOpen,    setIsModalOpen]    = useState(false);
@@ -236,11 +339,12 @@ const SearchReceipts = () => {
   const openReprintModal  = (item: SaleItem) => { setReprintSale(item); setReprintError(null); setPrintPayload(null); setPrintType(null); };
   const closeReprintModal = () => { setReprintSale(null); setReprinting(null); setReprintError(null); setPrintPayload(null); setPrintType(null); };
 
+  const [lastPrintPayload, setLastPrintPayload] = useState<ReprintPayload | null>(null);
+
   const handleReprint = async (type: ReprintType) => {
     if (!reprintSale) return;
     setReprinting(type);
     setReprintError(null);
-    setPrintPayload(null);
     setPrintType(null);
 
     try {
@@ -248,8 +352,12 @@ const SearchReceipts = () => {
         params: { type },
       });
       setPrintPayload(data);
+      setLastPrintPayload(data);
       setPrintType(type);
-      setTimeout(() => window.print(), 1000);
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => setPrintType(null), 3000);
+      }, 1000);
     } catch (err) {
       console.error('Reprint error:', err);
       setReprintError('Reprint failed. Please try again.');
@@ -292,6 +400,25 @@ const SearchReceipts = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearchClick = (query = searchQuery, date = selectedDate) => {
+    setPendingSearch({ query, date });
+    setShowPinOverlay(true);
+  };
+
+  const handlePinSuccess = async () => {
+    setShowPinOverlay(false);
+    if (pendingSearch) {
+      showToast('Access granted. Searching...', 'success');
+      await handleSearch(pendingSearch.query, pendingSearch.date);
+      setPendingSearch(null);
+    }
+  };
+
+  const handlePinCancel = () => {
+    setShowPinOverlay(false);
+    setPendingSearch(null);
   };
 
   const handleRefresh = () => {
@@ -425,13 +552,29 @@ return {
   return (
     <>
       {/* ── Hidden print target — MUST be outside the layout div ── */}
-      {printPayload && printType && (() => {
-        const props = buildPrintProps(printPayload, reprintSale?.display_order_number);
+      {/* ── Hidden print target — persistent to avoid race conditions ── */}
+      {(() => {
+        const payload = printPayload || lastPrintPayload;
+        if (!payload) return null;
+        const props = buildPrintProps(payload, reprintSale?.display_order_number);
         return (
           <>
-            {printType === 'receipt' && <ReceiptPrint {...props} posFooter={props.posFooter} showDoubleQueueStub={false} isReprint={true} />}
-            {printType === 'kitchen' && <KitchenPrint {...props} />}
-            {printType === 'sticker' && <StickerPrint {...props} customerName={props.customerName} />}
+            <ReceiptPrint 
+              onScreen={printType === 'receipt'}
+              {...props} 
+              posFooter={props.posFooter} 
+              showDoubleQueueStub={false} 
+              isReprint={true} 
+            />
+            <KitchenPrint 
+              onScreen={printType === 'kitchen'}
+              {...props} 
+            />
+            <StickerPrint 
+              onScreen={printType === 'sticker'}
+              {...props} 
+              customerName={props.customerName} 
+            />
           </>
         );
       })()}
@@ -443,6 +586,7 @@ return {
 
         {/* Search Bar */}
         <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
+          {/* Search Query */}
           <div className="bg-white flex items-center border border-[#e9d5ff] shadow-xl rounded-[0.625rem] flex-1">
             <div className="px-4 text-zinc-400"><Search size={17} /></div>
             <input
@@ -450,22 +594,54 @@ return {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               onFocus={() => setShowKeyboard(true)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              onKeyDown={e => e.key === 'Enter' && handleSearchClick()}
               placeholder="Search by OR number or transaction..."
               className="flex-1 h-12 px-2 outline-none text-[#1a0f2e] font-semibold text-sm placeholder:text-zinc-300 bg-transparent"
             />
             {searchQuery && (
-              <button onClick={() => { setSearchQuery(''); handleSearch('', selectedDate); }} className="px-4 text-zinc-300 hover:text-red-500 transition-colors">
+              <button onClick={() => { setSearchQuery(''); handleSearchClick('', selectedDate); }} className="px-4 text-zinc-300 hover:text-red-500 transition-colors">
                 <X size={17} strokeWidth={2.5} />
               </button>
             )}
           </div>
-          <button onClick={() => handleSearch()} disabled={isLoading}
-            className="bg-[#6a12b8] hover:bg-[#6a12b8] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem]">
+
+          {/* Date Picker */}
+          <div className="bg-white flex items-center border border-[#e9d5ff] shadow-xl rounded-[0.625rem] px-4 min-w-[200px]">
+            <Calendar size={17} className="text-zinc-400 mr-3" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={e => {
+                const newDate = e.target.value;
+                setSelectedDate(newDate);
+                handleSearchClick(searchQuery, newDate);
+              }}
+              className="flex-1 h-12 outline-none text-[#1a0f2e] font-bold text-sm bg-transparent cursor-pointer"
+            />
+          </div>
+
+          {/* All Time Toggle */}
+          <button
+            onClick={() => {
+              const newDate = selectedDate === '' ? today : '';
+              setSelectedDate(newDate);
+              handleSearchClick(searchQuery, newDate);
+            }}
+            className={`px-6 font-bold text-[10px] uppercase tracking-widest transition-all h-12 rounded-[0.625rem] border shadow-xl ${
+              !selectedDate 
+                ? 'bg-[#6a12b8] text-white border-[#6a12b8]' 
+                : 'bg-white text-zinc-400 border-[#e9d5ff] hover:border-[#6a12b8] hover:text-[#6a12b8]'
+            }`}
+          >
+            {!selectedDate ? 'All Time Active' : 'All Time'}
+          </button>
+
+          <button onClick={() => handleSearchClick()} disabled={isLoading}
+            className="bg-[#6a12b8] hover:bg-[#6a12b8] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem] shadow-xl">
             {isLoading ? '...' : 'Search'}
           </button>
           <button onClick={handleRefresh}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#6a12b8] hover:border-[#6a12b8] px-4 h-12 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]">
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#6a12b8] hover:border-[#6a12b8] px-4 h-12 transition-all duration-300 hover:rotate-180 shadow-xl rounded-[0.625rem]">
             <RotateCcw size={16} />
           </button>
         </div>
@@ -488,7 +664,7 @@ return {
               <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">Showing {searchResults.length} transactions</p>
             </div>
           </div>
-          <div className="overflow-y-auto">
+          <div className="overflow-x-auto overflow-y-auto">
             <table className="table-auto w-full text-left">
               <thead>
                 <tr className="border-b border-zinc-100">
@@ -669,6 +845,12 @@ return {
             </div>
           </div>
         </div>
+      )}
+      {showPinOverlay && (
+        <AdminPinOverlay
+          onCancel={handlePinCancel}
+          onSuccess={handlePinSuccess}
+        />
       )}
     </div>
     </>

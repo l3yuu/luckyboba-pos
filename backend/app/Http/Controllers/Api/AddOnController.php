@@ -19,6 +19,25 @@ class AddOnController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Apply branch-level filtering if user is authenticated
+        $branchId = $request->query('branch_id') ?? auth()->user()?->branch_id;
+
+        if ($branchId) {
+            try {
+                $disabled = \DB::table('branch_availability')
+                    ->where('branch_id', $branchId)
+                    ->where('entity_type', 'add_on')
+                    ->where('is_available', false)
+                    ->pluck('entity_id');
+
+                if ($disabled->isNotEmpty()) {
+                    $addOns = $addOns->filter(fn($a) => !$disabled->contains($a->id))->values();
+                }
+            } catch (\Exception $e) {
+                // Table doesn't exist yet, skip filtering
+            }
+        }
+
         return response()->json($addOns);
     }
 

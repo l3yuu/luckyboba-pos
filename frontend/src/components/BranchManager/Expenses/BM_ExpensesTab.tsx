@@ -430,7 +430,7 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
              </div>
              <div className="h-48 w-full">
                 {loading ? <SkeletonBox /> : trendData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                      <BarChart data={trendData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                         <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94a3b8', fontWeight: 800 }} dy={8} />
@@ -462,7 +462,7 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
            </div>
            <div className="h-60 w-full relative">
               {loading ? <SkeletonBox className="!rounded-full" /> : categoryData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                    <PieChart>
                       <Pie data={categoryData} innerRadius={65} outerRadius={85} paddingAngle={8} dataKey="value" stroke="none">
                          {categoryData.map((entry: {name: string, value: number}, index: number) => (

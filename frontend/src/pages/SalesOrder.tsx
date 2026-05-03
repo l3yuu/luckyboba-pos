@@ -6,11 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useOfflineQueue } from '../context/OfflineQueueContext'
 import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner'
 
-import {
-  type MenuItem, type Category, type CartItem,
-  type Bundle, type BundleComponent, type BundleComponentCustomization,
-  SUGAR_LEVELS
-} from '../types/index';
+import { type MenuItem, type Category, type CartItem, type Bundle, type BundleComponent, type BundleComponentCustomization, SUGAR_LEVELS } from '../types/index';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
@@ -54,6 +50,53 @@ interface Discount {
   amount: number
   type: string
   status: 'ON' | 'OFF'
+}
+
+interface PrintPayload {
+  printProps: {
+    cart: CartItem[];
+    branchName: string;
+    orNumber: string;
+    queueNumber: string;
+    cashierName: string;
+    formattedDate: string;
+    formattedTime: string;
+    terminalNumber: string;
+    orderType: 'dine-in' | 'take-out' | 'delivery';
+    customerName: string;
+    paxSenior: number;
+    paxPwd: number;
+    seniorIds: string[];
+    pwdIds: string[];
+  };
+  branchDetails: {
+    brand?: string;
+    companyName?: string;
+    storeAddress?: string;
+    vatRegTin?: string;
+    minNumber?: string;
+    serialNumber?: string;
+    owner_name?: string;
+  };
+  grossSubtotal: number;
+  amtDue: number;
+  vatableSales: number;
+  vatAmount: number;
+  vatExemptSales: number;
+  change: number;
+  cashTendered: number | '';
+  referenceNumber: string;
+  paymentMethod: string;
+  selectedDiscount: Discount | null;
+  selectedDiscounts: Discount[];
+  totalDiscountDisplay: number;
+  itemDiscountTotal: number;
+  promoDiscount: number;
+  itemPaxAssignments: ItemPaxAssignments;
+  orderCharge: 'grab' | 'panda' | null;
+  totalCount: number;
+  customerName: string;
+  posFooter: Record<string, string>;
 }
 
 
@@ -280,8 +323,9 @@ const SalesOrder = () => {
 
   // Success / print
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
-  const [printTarget, setPrintTarget] = useState<'receipt' | 'stickers' | 'kitchen' | null>(null)
-  const [printedReceipt, setPrintedReceipt] = useState(false)
+  const [printTarget, setPrintTarget] = useState<'receipt' | 'kitchen' | 'stickers' | null>(null);
+  const [lastPrintPayload, setLastPrintPayload] = useState<PrintPayload | null>(null);
+  const [printedReceipt, setPrintedReceipt] = useState(false);
   const [printedKitchen, setPrintedKitchen] = useState(false)
   const [printedStickers, setPrintedStickers] = useState(false)
 
@@ -1552,6 +1596,7 @@ const SalesOrder = () => {
         setPrintedReceipt(false)
         setPrintedKitchen(false)
         setPrintedStickers(false)
+        capturePrintPayload(finalOrNumber, finalQueueNumber);
         setIsSuccessModalOpen(true)
         showToast('Order saved successfully!', 'success')
       } catch (err) {
@@ -1562,6 +1607,7 @@ const SalesOrder = () => {
         setPrintedReceipt(false)
         setPrintedKitchen(false)
         setPrintedStickers(false)
+        capturePrintPayload(finalOrNumber, finalQueueNumber);
         setIsSuccessModalOpen(true)
         showToast('Order saved locally — will sync when server is available.', 'warning')
       }
@@ -1576,6 +1622,7 @@ const SalesOrder = () => {
         localStorage.setItem(queueKey, String(currentQueue + 1))
       }
       setPrintedReceipt(false); setPrintedKitchen(false); setPrintedStickers(false)
+      capturePrintPayload(finalOrNumber, finalQueueNumber);
       setIsSuccessModalOpen(true)
       showToast('Offline — order queued and will sync when connected.', 'warning')
     }
@@ -1586,43 +1633,74 @@ const SalesOrder = () => {
 
   // ── Print handlers ─────────────────────────────────────────────────────────
 
+  const capturePrintPayload = (siOverride?: string, queueOverride?: string) => {
+    const payload = {
+      printProps: { 
+        ...printProps,
+        orNumber: siOverride || orNumber,
+        queueNumber: queueOverride || queueNumber
+      },
+      branchDetails: { ...branchDetails },
+      grossSubtotal,
+      amtDue,
+      vatableSales,
+      vatAmount,
+      vatExemptSales,
+      change,
+      cashTendered,
+      referenceNumber,
+      paymentMethod,
+      selectedDiscount,
+      selectedDiscounts,
+      totalDiscountDisplay,
+      itemDiscountTotal,
+      promoDiscount,
+      itemPaxAssignments,
+      orderCharge,
+      totalCount,
+      customerName,
+      posFooter
+    };
+    setLastPrintPayload(payload);
+    return payload;
+  };
+
   const handlePrintReceipt = () => {
-    setPrintTarget(null);
+    setPrintTarget('receipt');
+    setPrintedReceipt(true);
     setTimeout(() => {
-      setPrintTarget('receipt');
-      setPrintedReceipt(true);
-    }, 50);
+      requestAnimationFrame(() => {
+        window.print();
+        setTimeout(() => setPrintTarget(null), 1000);
+      });
+    }, 300);
   }
   const handlePrintKitchen = () => {
-    setPrintTarget(null);
+    setPrintTarget('kitchen');
+    setPrintedKitchen(true);
     setTimeout(() => {
-      setPrintTarget('kitchen');
-      setPrintedKitchen(true);
-    }, 50);
+      requestAnimationFrame(() => {
+        window.print();
+        setTimeout(() => setPrintTarget(null), 1000);
+      });
+    }, 300);
   }
   const handlePrintStickers = () => {
-    setPrintTarget(null);
+    setPrintTarget('stickers');
+    setPrintedStickers(true);
     setTimeout(() => {
-      setPrintTarget('stickers');
-      setPrintedStickers(true);
-    }, 50);
+      requestAnimationFrame(() => {
+        window.print();
+        setTimeout(() => setPrintTarget(null), 1000);
+      });
+    }, 300);
   }
 
-  // Handle Systemic Printing Trigger
-  useEffect(() => {
-    if (printTarget) {
-      const timer = setTimeout(() => {
-        window.print();
-        // Delay slightly before potentially clearing if needed, 
-        // though POS usually keeps target for reprint.
-      }, 1000); 
-      return () => clearTimeout(timer);
-    }
-  }, [printTarget, orNumber]); 
 
   // ── New order ──────────────────────────────────────────────────────────────
 
   const handleNewOrder = async () => {
+    setLastPrintPayload(null)
     setCart([])
     localStorage.removeItem('pos_cart_cache')
     setOrderType(null)
@@ -1973,6 +2051,7 @@ const SalesOrder = () => {
           />
         )}
 
+
         <Header
           branchName={branchName}
           cashierName={cashierName}
@@ -2067,7 +2146,7 @@ const SalesOrder = () => {
           </div>
         </div>
 
-        <div className="flex flex-1 overflow-hidden relative z-10">
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative z-10">
           <MenuArea
             menuAvailable={menuAvailable}
             selectedCategory={selectedCategory}
@@ -2098,39 +2177,75 @@ const SalesOrder = () => {
         </div>
       </div>
 
-      {printTarget === 'receipt' && (
-        <ReceiptPrint
-          {...printProps}
-          {...branchDetails}
-          businessName={generalSettings.business_name}
-          contactEmail={generalSettings.contact_email}
-          contactPhone={generalSettings.contact_phone}
-          generalAddress={generalSettings.address}
-          ownerName={branchDetails.owner_name}
-          vatType={vatType}
-          addOnsData={addOnsData}
-          orderCharge={orderCharge}
-          totalCount={totalCount}
-          subtotal={grossSubtotal}
-          amtDue={amtDue}
-          vatableSales={vatableSales}
-          vatAmount={vatAmount}
-          vatExemptSales={vatExemptSales}
-          change={change}
-          cashTendered={cashTendered}
-          referenceNumber={referenceNumber}
-          paymentMethod={paymentMethod}
-          selectedDiscount={selectedDiscount}
-          selectedDiscounts={selectedDiscounts}
-          totalDiscountDisplay={totalDiscountDisplay}
-          itemDiscountTotal={itemDiscountTotal}
-          promoDiscount={promoDiscount}
-          itemPaxAssignments={itemPaxAssignments}
-          posFooter={posFooter}
-        />
-      )}
-      {printTarget === 'kitchen' && <KitchenPrint  {...printProps} />}
-      {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
+      {(() => {
+        const payload = lastPrintPayload || {
+          printProps,
+          branchDetails,
+          grossSubtotal,
+          amtDue,
+          vatableSales,
+          vatAmount,
+          vatExemptSales,
+          change,
+          cashTendered,
+          referenceNumber,
+          paymentMethod,
+          selectedDiscount,
+          selectedDiscounts,
+          totalDiscountDisplay,
+          itemDiscountTotal,
+          promoDiscount,
+          itemPaxAssignments,
+          orderCharge,
+          totalCount,
+          customerName,
+          posFooter
+        };
+
+        return (
+          <>
+            <ReceiptPrint
+              onScreen={printTarget === 'receipt'}
+              {...payload.printProps}
+              {...payload.branchDetails}
+              businessName={generalSettings.business_name}
+              contactEmail={generalSettings.contact_email}
+              contactPhone={generalSettings.contact_phone}
+              generalAddress={generalSettings.address}
+              ownerName={payload.branchDetails.owner_name}
+              vatType={vatType}
+              addOnsData={addOnsData}
+              orderCharge={payload.orderCharge}
+              totalCount={payload.totalCount}
+              subtotal={payload.grossSubtotal}
+              amtDue={payload.amtDue}
+              vatableSales={payload.vatableSales}
+              vatAmount={payload.vatAmount}
+              vatExemptSales={payload.vatExemptSales}
+              change={payload.change}
+              cashTendered={payload.cashTendered}
+              referenceNumber={payload.referenceNumber}
+              paymentMethod={payload.paymentMethod}
+              selectedDiscount={payload.selectedDiscount}
+              selectedDiscounts={payload.selectedDiscounts}
+              totalDiscountDisplay={payload.totalDiscountDisplay}
+              itemDiscountTotal={payload.itemDiscountTotal}
+              promoDiscount={payload.promoDiscount}
+              itemPaxAssignments={payload.itemPaxAssignments}
+              posFooter={payload.posFooter}
+            />
+            <KitchenPrint
+              onScreen={printTarget === 'kitchen'}
+              {...payload.printProps}
+            />
+            <StickerPrint
+              onScreen={printTarget === 'stickers'}
+              {...payload.printProps}
+              customerName={payload.customerName}
+            />
+          </>
+        );
+      })()}
 
       {/* Mandatory Sync Modal Overlay — NON-DISMISSIBLE until sync completes */}
       {syncRequired && (

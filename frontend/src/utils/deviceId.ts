@@ -1,7 +1,35 @@
+declare global {
+  interface Window {
+    NATIVE_ID?: string;
+    process?: {
+      env?: {
+        NATIVE_ID?: string;
+      };
+    };
+  }
+}
+
 const STORAGE_KEY   = 'pos_device_id';
 const SESSION_KEY   = 'pos_device_id_backup';
 const COOKIE_NAME   = 'pos_device_id';
 const COOKIE_MAXAGE = 60 * 60 * 24 * 365; // 1 year
+
+// ── MOZILLA HANDSHAKE CAPTURE ──
+// We check for the HWID in the URL immediately upon script load.
+// This ensures we catch it even if the React Router redirects the page.
+(function captureUrlHwid() {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const hwid = params.get('hwid');
+    if (hwid && hwid.startsWith('WIN-')) {
+      console.log(`[HardwareBridge] Captured ID from URL: ${hwid}`);
+      localStorage.setItem(STORAGE_KEY, hwid);
+      // Clean up the URL
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }
+})();
 
 // ── WebGL Fingerprint (GPU Information) ────────────────────────────────────────
 function getWebglRenderer(): string {
@@ -46,19 +74,24 @@ function canvasFingerprint(): string {
 
 // ── Hardware signal collection ────────────────────────────────────────────────
 function collectSignals(): string {
+  const w = screen.width;
+  const h = screen.height;
+  const maxDim = Math.max(w, h);
+  const minDim = Math.min(w, h);
+
   return [
     getStableUserAgent(),
     navigator.language,
     navigator.languages?.join(',') ?? '',
     String(navigator.hardwareConcurrency ?? ''),
     String((navigator as unknown as { deviceMemory?: number }).deviceMemory ?? ''),
-    String(screen.width),
-    String(screen.height),
+    String(maxDim), // Backward-compatible with Width in Landscape
+    String(minDim), // Backward-compatible with Height in Landscape
     String(screen.colorDepth),
     String(screen.pixelDepth),
     Intl.DateTimeFormat().resolvedOptions().timeZone,
     canvasFingerprint(),
-    getWebglRenderer(), // Added GPU identification
+    getWebglRenderer(), 
   ].join('||');
 }
 
@@ -136,6 +169,72 @@ async function writeToStorage(id: string): Promise<void> {
   }
 }
 
+// ── Hardware Bridge Service (Chrome Mode) ────────────────────────────────────
+let _isBridgeChecking = false;
+let _lastBridgeAttempt = 0;
+
+// Fetches the hardware ID from the local companion service running on port 9876.
+// This allows Chrome (with full print preview) to access native hardware info.
+async function fetchFromHardwareBridge(): Promise<string | null> {
+  // Prevent spamming the bridge if we just tried recently
+  const now = Date.now();
+  if (_isBridgeChecking || (now - _lastBridgeAttempt < 5000)) return null;
+  
+  _isBridgeChecking = true;
+  _lastBridgeAttempt = now;
+
+  const endpoints = ['http://127.0.0.1:9876/hardware-id', 'http://localhost:9876/hardware-id'];
+  
+  let fetchFailed = false;
+  for (const url of endpoints) {
+    try {
+      console.log(`[HardwareBridge] Attempting to fetch from ${url}...`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 1000);
+      
+      const res = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeout);
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.id) {
+          console.log(`[HardwareBridge] SUCCESS! Found ID: ${data.id}`);
+          _isBridgeChecking = false;
+          return data.id;
+        }
+      }
+    } catch (err) {
+      console.warn(`[HardwareBridge] Failed to connect to ${url}:`, err);
+      fetchFailed = true;
+    }
+  }
+
+  // ── MOZILLA FALLBACK: Handshake Redirect ──
+  // If fetch failed (likely due to Mixed Content in Firefox), and we are on an HTTPS site,
+  // we trigger a top-level redirect to the handshake endpoint.
+  if (fetchFailed && window.location.protocol === 'https:') {
+    const lastRedirect = localStorage.getItem('last_hw_handshake');
+    const oneMinuteAgo = Date.now() - 60000;
+    
+    if (!lastRedirect || parseInt(lastRedirect) < oneMinuteAgo) {
+      console.log('[HardwareBridge] Fetch blocked. Triggering Handshake Redirect for Mozilla...');
+      localStorage.setItem('last_hw_handshake', Date.now().toString());
+      
+      const returnUrl = window.location.href;
+      window.location.href = `http://localhost:9876/handshake?return=${encodeURIComponent(returnUrl)}`;
+      // This will halt execution and redirect back with ?hwid=...
+    }
+  }
+
+  _isBridgeChecking = false;
+  return null;
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 // Returns the device ID synchronously from cache if available,
@@ -148,6 +247,8 @@ export function getDeviceId(): string {
 
   // Not in storage — derive async and cache for next call
   void deriveId().then(async (id) => {
+    // If a bridge ID was found while we were deriving, don't overwrite it
+    if (_cachedId?.startsWith('WIN-')) return;
     _cachedId = id;
     await writeToStorage(id);
   });
@@ -158,15 +259,43 @@ export function getDeviceId(): string {
 
 // Preferred: always returns the real ID, even after a full site data clear
 export async function getDeviceIdAsync(): Promise<string> {
+  // ── 0a. Electron Shell Support ─────────────────────────────────────────────
+  const nativeId = window.NATIVE_ID || window.process?.env?.NATIVE_ID;
+  if (nativeId) {
+    console.log('[DeviceId] Using native ID from Electron shell');
+    _cachedId = nativeId;
+    return nativeId;
+  }
+
+  // ── 0b. Hardware Bridge Support (Chrome/Firefox Mode) ──────────────────────
+  // We check the bridge EVERY time until we have a 'WIN-' ID.
+  if (!_cachedId || !_cachedId.startsWith('WIN-')) {
+    const bridgeId = await fetchFromHardwareBridge();
+    if (bridgeId) {
+      _cachedId = bridgeId;
+      await writeToStorage(bridgeId);
+      return bridgeId;
+    }
+  }
+
   if (_cachedId) return _cachedId;
 
+  // Fallback to storage or derivation
   const stored = await readFromStorageAsync();
   if (stored) {
     _cachedId = stored;
+    // One last ditch effort if we loaded a fallback
+    if (!stored.startsWith('WIN-')) {
+      const bridgeId = await fetchFromHardwareBridge();
+      if (bridgeId) {
+        _cachedId = bridgeId;
+        await writeToStorage(bridgeId);
+        return bridgeId;
+      }
+    }
     return stored;
   }
 
-  // Storage was wiped — re-derive from hardware (same machine = same ID)
   const derived = await deriveId();
   _cachedId = derived;
   await writeToStorage(derived);

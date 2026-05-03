@@ -1,9 +1,10 @@
 <?php
+// Route definitions for Lucky Boba POS API
 
-use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, CustomerController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController, FavoriteController, ReviewController, FranchiseController, QueueController };
+use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, CustomerController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController, FavoriteController, ReviewController, FranchiseController, QueueController, SuperAdminAvailabilityController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\BranchManagerAppController; // ✅ FIXED: now in Api namespace
+use App\Http\Controllers\Api\BranchManagerAppController;
 use App\Http\Controllers\Api\BundleController;
 use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\Api\CupController;
@@ -56,26 +57,41 @@ Route::get('/queue/active',     [QueueController::class, 'index'])->middleware('
 
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
-Route::get('/public-menu', function (Illuminate\Http\Request $request) {
+Route::get('/public-menu', function (Request $request) {
 
-    $branchId = $request->query('branch_id');
+    $branchId = $request->input('branch_id');
 
-    // Load branch-specific overrides if branch_id is provided
-    $branchOverrides = collect();
-if ($branchId) {
-    try {
-        $branchOverrides = DB::table('branch_menu_availability')
-            ->where('branch_id', $branchId)
-            ->pluck('is_available', 'menu_item_id');
-    } catch (\Exception $e) {
-        // Table doesn't exist yet, skip overrides
-        $branchOverrides = collect();
+    // Load branch-specific overrides from the unified table
+    $disabledItems = collect();
+    $disabledCats  = collect();
+    $disabledSubs  = collect();
+
+    if ($branchId) {
+        try {
+            $overrides = DB::table('branch_availability')
+                ->where('branch_id', $branchId)
+                ->where('is_available', false)
+                ->get();
+
+            $disabledItems = $overrides->where('entity_type', 'menu_item')->pluck('entity_id');
+            $disabledCats  = $overrides->where('entity_type', 'category')->pluck('entity_id');
+            $disabledSubs  = $overrides->where('entity_type', 'sub_category')->pluck('entity_id');
+        } catch (\Exception $e) {
+            // Fallback to old table for menu items
+            try {
+                $disabledItems = DB::table('branch_menu_availability')
+                    ->where('branch_id', $branchId)
+                    ->where('is_available', false)
+                    ->pluck('menu_item_id');
+            } catch (\Exception $e2) {
+                // Neither table exists, skip
+            }
+        }
     }
-}
 
     $options = DB::table('menu_item_options')->get()->groupBy('menu_item_id');
 
-    $items = DB::table('menu_items')
+    $query = DB::table('menu_items')
         ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
         ->leftJoin('cups', 'categories.cup_id', '=', 'cups.id')
         ->select(
@@ -87,6 +103,7 @@ if ($branchId) {
             'categories.name as category',
             'categories.category_type',
             'categories.id as category_id',
+            'menu_items.sub_category_id',
             'menu_items.price as sellingPrice',
             'menu_items.image',
             'menu_items.size',
@@ -97,18 +114,28 @@ if ($branchId) {
                 ELSE menu_items.size
             END as cup_size_label")
         )
-        ->where('menu_items.status', 'active') // globally inactive = always hidden
-        ->get()
-        ->filter(function ($item) use ($branchOverrides) {
-            // If this branch has an override, respect it
-            if ($branchOverrides->has($item->id)) {
-                return (bool) $branchOverrides->get($item->id);
-            }
-            return true;
-        })
-        ->filter(function ($item) {
-            return !is_null($item->category) && $item->category !== '';
-        })
+        ->where('menu_items.status', 'active');
+
+    // Filter out disabled categories
+    if ($disabledCats->isNotEmpty()) {
+        $query->whereNotIn('categories.id', $disabledCats);
+    }
+
+    // Filter out disabled sub-categories
+    if ($disabledSubs->isNotEmpty()) {
+        $query->where(function ($q) use ($disabledSubs) {
+            $q->whereNull('menu_items.sub_category_id')
+              ->orWhereNotIn('menu_items.sub_category_id', $disabledSubs);
+        });
+    }
+
+    // Filter out disabled menu items
+    if ($disabledItems->isNotEmpty()) {
+        $query->whereNotIn('menu_items.id', $disabledItems);
+    }
+
+    $items = $query->get()
+        ->filter(fn($item) => !is_null($item->category) && $item->category !== '')
         ->values()
         ->map(function ($item) use ($options) {
             $item->image = $item->image
@@ -192,6 +219,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
     Route::post('/cards/generate-qr',  [CardController::class, 'generateQr']);
     Route::get('/cards/perk-status',   [CardController::class, 'perkStatus']);
     Route::get('/my-orders',      [OnlineOrderController::class, 'myOrders']);
+
     Route::get('/orders/{id}/reorder', [OnlineOrderController::class, 'reorder']);
     Route::get('/points', [PointsController::class, 'index']);
     Route::post('/points/redeem', [PointsController::class, 'redeem'])->middleware('throttle:5,1');
@@ -212,8 +240,13 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
     Route::get('/branches/{branchId}/reviews', [ReviewController::class, 'branchReviews']);
 
     Route::patch('/orders/{siNumber}/cancel', function (Request $request, string $siNumber) {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
         $sale = \App\Models\Sale::where('invoice_number', $siNumber)
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $user->id)
             ->firstOrFail();
 
         if ($sale->status !== 'pending') {
@@ -232,6 +265,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
     Route::get('/sales/{id}', [SalesController::class, 'show']);
 
     Route::get('/user', function (Request $request) {
+        /** @var \App\Models\User $user */
         $user = $request->user();
         $user->load('branch'); // Load full branch relation
         return $user;
@@ -240,8 +274,9 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
     // ── USER PROFILE UPDATES (Mobile App) ────────────────────────────────────
     Route::put('/user/name', function (Request $request) {
         $request->validate(['name' => 'required|string|max:255']);
+        /** @var \App\Models\User $user */
         $user       = $request->user();
-        $user->name = $request->name;
+        $user->name = $request->input('name');
         $user->save();
         return response()->json(['message' => 'Name updated successfully', 'user' => $user]);
     });
@@ -252,6 +287,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
             'password' => 'required|string',
         ]);
 
+        /** @var \App\Models\User $user */
         $user = $request->user();
 
         // Ensure the authenticated user matches the target ID
@@ -260,11 +296,12 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         }
 
         // Verify current password
-        if (!Hash::check($request->password, $user->password)) {
+        $password = $request->input('password');
+        if (!Hash::check($password, $user->password)) {
             return response()->json(['message' => 'Incorrect password.'], 422);
         }
 
-        $user->email = $request->email;
+        $user->email = $request->input('email');
         $user->save();
 
         return response()->json([
@@ -307,7 +344,14 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
         Route::patch ('branch/app-orders/{id}/status',  [BranchManagerAppController::class, 'updateStatus']);
         Route::get   ('branch/menu-items',              [BranchManagerAppController::class, 'menuItems']);
         Route::post  ('branch/menu-items/{id}/toggle',  [BranchManagerAppController::class, 'toggleMenuItem']);
-        
+
+        // ── Branch Availability Control ──────────────────────────────────────
+        Route::get   ('branch/categories',              [BranchManagerAppController::class, 'categoryList']);
+        Route::get   ('branch/sub-categories',          [BranchManagerAppController::class, 'subCategoryList']);
+        Route::get   ('branch/add-ons',                 [BranchManagerAppController::class, 'addOnList']);
+        Route::get   ('branch/bundles',                 [BranchManagerAppController::class, 'bundleList']);
+        Route::post  ('branch/availability/toggle',     [BranchManagerAppController::class, 'toggleEntity']);
+
         Route::get   ('branch/payment-settings',       [BranchSettingsController::class, 'getPaymentSettings']);
         Route::post  ('branch/payment-settings',       [BranchSettingsController::class, 'updatePaymentSettings']);
         // ─────────────────────────────────────────────────────────────────────
@@ -495,6 +539,20 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
             Route::post('/{stockTransfer}/in-transit',  [StockTransferController::class, 'inTransit']);
             Route::post('/{stockTransfer}/receive',     [StockTransferController::class, 'receive']);
             Route::post('/{stockTransfer}/cancel',      [StockTransferController::class, 'cancel']);
+        });
+
+        // ── SUPERADMIN ONLY ─────────────────────────────────────────────────────
+        Route::middleware(['role:superadmin'])->group(function () {
+            Route::prefix('admin/branch-availability')->group(function () {
+                Route::get ('/branches',       [SuperAdminAvailabilityController::class, 'branches']);
+                Route::get ('/{id}/items',     [SuperAdminAvailabilityController::class, 'items']);
+                Route::get ('/{id}/categories',[SuperAdminAvailabilityController::class, 'categories']);
+                Route::get ('/{id}/sub-categories', [SuperAdminAvailabilityController::class, 'subCategories']);
+                Route::get ('/{id}/add-ons',    [SuperAdminAvailabilityController::class, 'addOns']);
+                Route::get ('/{id}/bundles',    [SuperAdminAvailabilityController::class, 'bundles']);
+                Route::post('/toggle',         [SuperAdminAvailabilityController::class, 'toggle']);
+                Route::post('/toggle-global',  [SuperAdminAvailabilityController::class, 'toggleGlobal']);
+            });
         });
 
         Route::get('/users', [UserController::class, 'index']);

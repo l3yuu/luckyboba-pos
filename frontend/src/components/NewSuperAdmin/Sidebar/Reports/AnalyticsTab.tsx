@@ -278,7 +278,7 @@ const AnalyticsTab: React.FC = () => {
         {loading ? <SkeletonBar h="h-[260px]" /> : revenue.length === 0 ? (
           <div className="h-64 flex items-center justify-center text-zinc-400 text-xs">No data for this period.</div>
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={260} minWidth={0}>
             <LineChart data={revenue}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" />
               <XAxis dataKey="date" tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
@@ -312,7 +312,7 @@ const AnalyticsTab: React.FC = () => {
           {loading ? <SkeletonBar h="h-[280px]" /> : topProducts.length === 0 ? (
             <div className="h-72 flex items-center justify-center text-zinc-400 text-xs">No product data.</div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={280} minWidth={0}>
               <BarChart data={topProducts} layout="vertical" barSize={14}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
@@ -347,7 +347,7 @@ const AnalyticsTab: React.FC = () => {
               Peak hours data requires a branch selection.<br />Select a branch to view hourly breakdown.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={280} minWidth={0}>
               <BarChart data={peakHours} barSize={14}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 9, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
@@ -393,7 +393,7 @@ const AnalyticsTab: React.FC = () => {
           <div className="h-48 flex items-center justify-center text-zinc-400 text-xs">No branch data.</div>
         ) : (
           <>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={0}>
               <BarChart data={branchPerf.map(b => ({
                 name: b.branch_name.replace("Lucky Boba – ", "").replace("Lucky Boba - ", ""),
                 revenue: Number(b.total_revenue),

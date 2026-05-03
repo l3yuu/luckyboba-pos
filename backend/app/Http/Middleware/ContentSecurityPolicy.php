@@ -7,6 +7,10 @@ use Illuminate\Http\Request;
 
 class ContentSecurityPolicy
 {
+    /**
+     * Handle an incoming request.
+     * Force Refresh: 2026-05-02
+     */
     public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
@@ -17,7 +21,7 @@ class ContentSecurityPolicy
             "font-src 'self' https://fonts.gstatic.com; " .
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
             "img-src 'self' data: https:; " .
-            "connect-src 'self' https://luckybobastores.com https://staging.luckybobastores.com http://localhost:8000 http://localhost:5173"
+            "connect-src 'self' https://luckybobastores.com https://staging.luckybobastores.com http://localhost:8000 http://localhost:5173 http://127.0.0.1:9876 http://localhost:9876"
         );
 
         return $response;

@@ -174,49 +174,49 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <header className="flex-none bg-white border-b border-zinc-200 px-6 py-3.5 flex items-center justify-between z-20 shadow-sm">
+    <header className="flex-none bg-white border-b border-zinc-200 px-2 sm:px-6 py-1.5 sm:py-3.5 flex items-center justify-between z-20 shadow-sm">
 
       {/* ── LEFT: Info Pills ── */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-1 sm:gap-2.5">
 
         {/* Branch */}
-        <div className="flex items-center gap-2.5 bg-[#f5f0ff] border border-[#e9d5ff] px-4 py-2.5 rounded-[0.625rem]">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 bg-[#f5f0ff] border border-[#e9d5ff] px-1.5 sm:px-4 py-1 sm:py-2.5 rounded-[0.625rem]">
           <div className="w-7 h-7 bg-[#6a12b8] flex items-center justify-center shrink-0 rounded-[0.625rem]">
             <Store size={13} className="text-white" strokeWidth={2.5} />
           </div>
           <div>
-            <div className="text-[9px] font-bold text-[#6a12b8]/50 uppercase tracking-widest leading-none">Branch</div>
-            <div className="text-[11px] font-black text-[#6a12b8] uppercase leading-tight mt-0.5">{cashierInfo.branch}</div>
+            <div className="hidden md:block text-[9px] font-bold text-[#6a12b8]/50 uppercase tracking-widest leading-none">Branch</div>
+            <div className="text-[10px] sm:text-[11px] font-black text-[#6a12b8] uppercase leading-tight mt-0.5">{cashierInfo.branch}</div>
           </div>
         </div>
 
         {/* Cashier */}
-        <div className="flex items-center gap-2.5 bg-[#fff7ed] border border-[#fed7aa] px-4 py-2.5 rounded-[0.625rem]">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 bg-[#fff7ed] border border-[#fed7aa] px-1.5 sm:px-4 py-1 sm:py-2.5 rounded-[0.625rem]">
           <div className="w-7 h-7 bg-[#f97316] flex items-center justify-center shrink-0 rounded-[0.625rem]">
             <User size={13} className="text-white" strokeWidth={2.5} />
           </div>
           <div>
-            <div className="text-[9px] font-bold text-[#f97316]/50 uppercase tracking-widest leading-none">Cashier</div>
-            <div className="text-[11px] font-black text-[#c2410c] uppercase leading-tight mt-0.5">{cashierInfo.name}</div>
+            <div className="hidden md:block text-[9px] font-bold text-[#f97316]/50 uppercase tracking-widest leading-none">Cashier</div>
+            <div className="text-[10px] sm:text-[11px] font-black text-[#c2410c] uppercase leading-tight mt-0.5 truncate max-w-[60px] sm:max-w-none">{cashierInfo.name}</div>
           </div>
         </div>
 
         {/* Shift */}
         {cashierInfo.shift && (
-          <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 px-4 py-2.5 rounded-[0.625rem]">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 bg-blue-50 border border-blue-200 px-1.5 sm:px-4 py-1 sm:py-2.5 rounded-[0.625rem]">
             <div className="w-7 h-7 bg-blue-600 flex items-center justify-center shrink-0 rounded-[0.625rem]">
               <RefreshCw size={13} className="text-white" strokeWidth={2.5} />
             </div>
             <div>
-              <div className="text-[9px] font-bold text-blue-600/50 uppercase tracking-widest leading-none">Shift</div>
-              <div className="text-[11px] font-black text-blue-600 uppercase leading-tight mt-0.5">{cashierInfo.shift}</div>
+              <div className="hidden md:block text-[9px] font-bold text-blue-600/50 uppercase tracking-widest leading-none">Shift</div>
+              <div className="text-[10px] sm:text-[11px] font-black text-blue-600 uppercase leading-tight mt-0.5">{cashierInfo.shift}</div>
             </div>
           </div>
         )}
 
         {/* EOD Locked Badge */}
         {isEodLocked && (
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-[0.625rem]">
+          <div className="flex items-center gap-1.5 px-2 sm:px-4 py-1 sm:py-2.5 bg-red-50 border border-red-200 rounded-[0.625rem]">
             <span className="relative flex h-2 w-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
@@ -230,7 +230,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
 
         {/* Offline Badge */}
         {isOffline && (
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-zinc-100 border border-zinc-300 rounded-[0.625rem]">
+          <div className="flex items-center gap-1.5 px-2 sm:px-4 py-1 sm:py-2.5 bg-zinc-100 border border-zinc-300 rounded-[0.625rem]">
             <WifiOff size={11} className="text-zinc-500" strokeWidth={2.5} />
             <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Offline</span>
           </div>

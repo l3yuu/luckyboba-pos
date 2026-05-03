@@ -7,9 +7,9 @@ import api from '../services/api';
 import SyncOverlay from '../components/SyncOverlay';
 import { useToast } from '../hooks/useToast';
 import type { DashboardData, TopSeller } from '../types/dashboard';
-import { Monitor, DollarSign, Receipt, ArrowDownToLine, ArrowUpFromLine, Ban, Trophy, Clock4, RefreshCw, TrendingUp } from 'lucide-react';
+import { Monitor, Receipt, ArrowDownToLine, ArrowUpFromLine, Ban, Trophy, Clock4, RefreshCw, TrendingUp, Lock } from 'lucide-react';
 
-import CashIn from '../components/Cashier/SalesOrder/CashIn'; 
+import CashIn from '../components/Cashier/SalesOrder/CashIn';
 import CashDrop from '../components/Cashier/SalesOrder/CashDrop';
 import SearchReceipts from '../components/Cashier/SalesOrder/SearchReceipts';
 import CashCount from '../components/Cashier/SalesOrder/CashCount';
@@ -78,36 +78,36 @@ const Dashboard = () => {
   const isFetching = useRef(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-useEffect(() => {
-  if (!authLoading && !user) navigate('/login', { replace: true });
-}, [user, authLoading, navigate]);
+  useEffect(() => {
+    if (!authLoading && !user) navigate('/login', { replace: true });
+  }, [user, authLoading, navigate]);
 
-const fetchStats = useCallback(async (force = false) => {
-  if (isFetching.current) return;
-  if (!force) {
-    const lastFetch = localStorage.getItem('dashboard_stats_timestamp');
-    if (lastFetch && Date.now() - Number(lastFetch) < 5 * 60 * 1000) {
-      setLoading(false); setIsInitialLoad(false); setIsStale(false);
-      return;
+  const fetchStats = useCallback(async (force = false) => {
+    if (isFetching.current) return;
+    if (!force) {
+      const lastFetch = localStorage.getItem('dashboard_stats_timestamp');
+      if (lastFetch && Date.now() - Number(lastFetch) < 5 * 60 * 1000) {
+        setLoading(false); setIsInitialLoad(false); setIsStale(false);
+        return;
+      }
     }
-  }
-  isFetching.current = true;
-  setLoading(true);
-  try {
-    const response = await api.get('/dashboard/stats');
-    setStats(response.data);
-    localStorage.setItem('dashboard_stats', JSON.stringify(response.data));
-    localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
-    setIsStale(false);
-  } catch {
-    const cached = localStorage.getItem('dashboard_stats');
-    if (cached) setStats(JSON.parse(cached));
-  } finally {
-    setLoading(false); setIsInitialLoad(false); isFetching.current = false;
-  }
-}, []);
+    isFetching.current = true;
+    setLoading(true);
+    try {
+      const response = await api.get('/dashboard/stats');
+      setStats(response.data);
+      localStorage.setItem('dashboard_stats', JSON.stringify(response.data));
+      localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+      setIsStale(false);
+    } catch {
+      const cached = localStorage.getItem('dashboard_stats');
+      if (cached) setStats(JSON.parse(cached));
+    } finally {
+      setLoading(false); setIsInitialLoad(false); isFetching.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     const goOnline = () => {
@@ -222,33 +222,33 @@ const fetchStats = useCallback(async (force = false) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} isStale={isStale} loading={loading} isOnline={isOnline} onRefresh={() => fetchStats(true)} />;
-      case 'cash-in':             return <CashIn onSuccess={refreshStats} />;
-      case 'cash-drop':           return <CashDrop onSuccess={refreshStats} />;
-      case 'search-receipts':     return <SearchReceipts />;
-      case 'cash-count':          return <CashCount onSuccess={() => setActiveTab('dashboard')} />;
-      case 'sales-dashboard':     return <SalesDashboard />;
-      case 'items-report':        return <ItemsReport />;
-      case 'x-reading':           return <XReading />;
-      case 'z-reading':           return <ZReading />;
-      case 'menu-list':           return <MenuList />;
-      case 'category-list':       return <CategoryList />;
-      case 'sub-category-list':   return <SubCategoryList />;
+      case 'cash-in': return <CashIn onSuccess={refreshStats} />;
+      case 'cash-drop': return <CashDrop onSuccess={refreshStats} />;
+      case 'search-receipts': return <SearchReceipts />;
+      case 'cash-count': return <CashCount onSuccess={() => setActiveTab('dashboard')} />;
+      case 'sales-dashboard': return <SalesDashboard />;
+      case 'items-report': return <ItemsReport />;
+      case 'x-reading': return <XReading />;
+      case 'z-reading': return <ZReading />;
+      case 'menu-list': return <MenuList />;
+      case 'category-list': return <CategoryList />;
+      case 'sub-category-list': return <SubCategoryList />;
       case 'inventory-dashboard': return <InventoryDashboard view="dashboard" />;
       case 'inventory-raw-materials': return <InventoryDashboard view="materials" />;
       case 'inventory-usage': return <InventoryDashboard view="usage" />;
       case 'inventory-recipes': return <InventoryDashboard view="recipes" />;
-      case 'inventory-list':      return <InventoryList />;
-      case 'inventory-category':  return <InventoryCategoryList />;
-      case 'supplier':            return <Supplier />;
-      case 'item-checker':        return <ItemChecker />;
-      case 'item-serials':        return <ItemSerials />;
-      case 'purchase-order':      return <PurchaseOrder />;
-      case 'stock-transfer':      return <StockTransfer />;
-      case 'inventory-report':    return <InventoryReport />;
-      case 'expense':             return <Expense />;
+      case 'inventory-list': return <InventoryList />;
+      case 'inventory-category': return <InventoryCategoryList />;
+      case 'supplier': return <Supplier />;
+      case 'item-checker': return <ItemChecker />;
+      case 'item-serials': return <ItemSerials />;
+      case 'purchase-order': return <PurchaseOrder />;
+      case 'stock-transfer': return <StockTransfer />;
+      case 'inventory-report': return <InventoryReport />;
+      case 'expense': return <Expense />;
       case 'online-orders': return <OnlineOrdersPanel isPage={false} />;
-      case 'settings':            return <Settings />;
-      default:                    return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} isStale={isStale} loading={loading} isOnline={isOnline} onRefresh={() => fetchStats(true)} />;
+      case 'settings': return <Settings />;
+      default: return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} isStale={isStale} loading={loading} isOnline={isOnline} onRefresh={() => fetchStats(true)} />;
     }
   };
 
@@ -283,10 +283,23 @@ const fetchStats = useCallback(async (force = false) => {
 
 const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnline, onRefresh }: DashboardStatsProps) => {
   const [time, setTime] = useState(new Date());
+  const [netRevenueVisible, setNetRevenueVisible] = useState(false);
+  const [showPinOverlay, setShowPinOverlay] = useState(false);
+  const { showToast } = useToast();
+
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (netRevenueVisible) {
+      const timer = setTimeout(() => {
+        setNetRevenueVisible(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [netRevenueVisible]);
 
   const isLoading = isInitialLoad || isStale || loading;
   const fmt = (v: number) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -337,7 +350,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#f5f0ff] border border-[#ddd6fe] flex items-center justify-center rounded-lg">
-                <DollarSign size={18} className="text-[#6a12b8]" strokeWidth={2} />
+                <span className="text-[#6a12b8] font-black text-lg leading-none">₱</span>
               </div>
               <p className="text-sm font-bold uppercase tracking-widest text-zinc-700">Net Revenue</p>
             </div>
@@ -347,13 +360,48 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
             </div>
           </div>
           <div>
-            {isLoading
-              ? <div className="h-10 w-40 bg-[#f5f0ff] animate-pulse rounded" />
-              : <p className="text-[2.6rem] font-bold text-[#1a0f2e] tracking-tight tabular-nums leading-none">{fmt(stats?.total_sales_today ?? 0)}</p>
-            }
+            {isLoading ? (
+              <div className="h-10 w-40 bg-[#f5f0ff] animate-pulse rounded" />
+            ) : netRevenueVisible ? (
+              <div className="flex items-center justify-between w-full">
+                <p className="text-[2.6rem] font-black text-[#1a0f2e] tracking-tight tabular-nums leading-none">
+                  {fmt(stats?.total_sales_today ?? 0)}
+                </p>
+                <button 
+                  onClick={() => setNetRevenueVisible(false)}
+                  className="p-2 text-zinc-400 hover:text-[#6a12b8] transition-colors"
+                  title="Lock Revenue"
+                >
+                  <Lock size={18} />
+                </button>
+              </div>
+            ) : (
+              <div 
+                onClick={() => setShowPinOverlay(true)}
+                className="group cursor-pointer flex items-center justify-between w-full"
+              >
+                <p className="text-[2.6rem] font-black text-zinc-200 blur-[8px] tracking-tight tabular-nums leading-none transition-all group-hover:blur-[5px]">
+                  {fmt(8888.88)}
+                </p>
+                <div className="bg-[#6a12b8] p-3 rounded-[0.625rem] text-white shadow-sm transition-all group-hover:shadow-md group-hover:scale-110 active:scale-95">
+                  <Lock size={18} />
+                </div>
+              </div>
+            )}
             <p className="text-sm font-bold uppercase tracking-widest text-zinc-500 mt-2">Active Shift</p>
           </div>
         </div>
+
+        {showPinOverlay && (
+          <AdminPinOverlay
+            onCancel={() => setShowPinOverlay(false)}
+            onSuccess={() => {
+              setShowPinOverlay(false);
+              setNetRevenueVisible(true);
+              showToast('Authorized: Revenue visible for 5s', 'success');
+            }}
+          />
+        )}
 
         {/* Transactions */}
         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-[#e9d5ff] rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 stat-card">
@@ -372,13 +420,13 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard icon={<ArrowUpFromLine size={18} strokeWidth={2} className="text-emerald-600" />} label="Begin Cash" value={fmt(stats?.cash_in_today ?? 0)} isLoading={isLoading} accent="emerald" />
-        <MetricCard icon={<ArrowDownToLine size={18} strokeWidth={2} className="text-[#6a12b8]" />}  label="Cash Out"   value={fmt(stats?.cash_out_today ?? 0)}  isLoading={isLoading} accent="purple" />
-        <MetricCard icon={<Ban size={18} strokeWidth={2} className="text-red-500" />}                label="Voided"     value={fmt(stats?.voided_sales_today ?? 0)} isLoading={isLoading} accent="red" />
+        <MetricCard icon={<ArrowDownToLine size={18} strokeWidth={2} className="text-[#6a12b8]" />} label="Cash Out" value={fmt(stats?.cash_out_today ?? 0)} isLoading={isLoading} accent="purple" />
+        <MetricCard icon={<Ban size={18} strokeWidth={2} className="text-red-500" />} label="Voided" value={fmt(stats?.voided_sales_today ?? 0)} isLoading={isLoading} accent="red" />
       </div>
 
       <div className="grid grid-cols-12 gap-4 flex-1">
-        <LeaderboardCard title="Top Sellers Today"  icon={<Trophy size={17} strokeWidth={2} className="text-[#6a12b8]" />} sellers={stats?.top_seller_today ?? []}    loading={isLoading} />
-        <LeaderboardCard title="All Time Leaders"   icon={<Clock4  size={17} strokeWidth={2} className="text-[#6a12b8]" />} sellers={stats?.top_seller_all_time ?? []} loading={isLoading} />
+        <LeaderboardCard title="Top Sellers Today" icon={<Trophy size={17} strokeWidth={2} className="text-[#6a12b8]" />} sellers={stats?.top_seller_today ?? []} loading={isLoading} />
+        <LeaderboardCard title="All Time Leaders" icon={<Clock4 size={17} strokeWidth={2} className="text-[#6a12b8]" />} sellers={stats?.top_seller_all_time ?? []} loading={isLoading} />
       </div>
     </div>
   );
@@ -428,37 +476,37 @@ const LeaderboardCard = ({ title, icon, sellers, loading }: LeaderboardCardProps
       <div className="flex flex-col flex-1 px-7 py-3">
         {loading
           ? slots.map((_, i) => (
-              <div key={i} className="flex-1 flex items-center gap-4 border-b border-[#f3eeff] last:border-0 py-3">
-                <div className="w-5 h-4 bg-[#f5f0ff] animate-pulse rounded" />
-                <div className="flex-1 h-4 bg-[#f5f0ff] animate-pulse rounded" />
-                <div className="w-16 h-6 bg-[#f5f0ff] animate-pulse rounded" />
-              </div>
-            ))
+            <div key={i} className="flex-1 flex items-center gap-4 border-b border-[#f3eeff] last:border-0 py-3">
+              <div className="w-5 h-4 bg-[#f5f0ff] animate-pulse rounded" />
+              <div className="flex-1 h-4 bg-[#f5f0ff] animate-pulse rounded" />
+              <div className="w-16 h-6 bg-[#f5f0ff] animate-pulse rounded" />
+            </div>
+          ))
           : slots.map((item, i) => (
-              <div key={i} className="flex-1 flex flex-col justify-center border-b border-[#f3eeff] last:border-0 py-3">
-                {item ? (
-                  <>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm font-bold tabular-nums text-[#c4b5fd] w-5">{String(i + 1).padStart(2, '0')}</span>
-                        <span className="text-base font-semibold text-[#1a0f2e] truncate max-w-55">{item.product_name}</span>
-                      </div>
-                      <span className="text-sm font-bold tabular-nums text-[#6a12b8] bg-[#f5f0ff] border border-[#ddd6fe] px-3 py-1 rounded-sm">
-                        {item.total_qty} sold
-                      </span>
+            <div key={i} className="flex-1 flex flex-col justify-center border-b border-[#f3eeff] last:border-0 py-3">
+              {item ? (
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-bold tabular-nums text-[#c4b5fd] w-5">{String(i + 1).padStart(2, '0')}</span>
+                      <span className="text-base font-semibold text-[#1a0f2e] truncate max-w-55">{item.product_name}</span>
                     </div>
-                    <div className="h-0.5 bg-[#ede9fe] overflow-hidden rounded-full">
-                      <div className="rank-bar h-full bg-[#6a12b8]" style={{ width: `${(item.total_qty / max) * 100}%` }} />
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm font-bold tabular-nums text-[#ddd6fe] w-5">{String(i + 1).padStart(2, '0')}</span>
-                    <span className="text-sm font-semibold text-zinc-300">—</span>
+                    <span className="text-sm font-bold tabular-nums text-[#6a12b8] bg-[#f5f0ff] border border-[#ddd6fe] px-3 py-1 rounded-sm">
+                      {item.total_qty} sold
+                    </span>
                   </div>
-                )}
-              </div>
-            ))
+                  <div className="h-0.5 bg-[#ede9fe] overflow-hidden rounded-full">
+                    <div className="rank-bar h-full bg-[#6a12b8]" style={{ width: `${(item.total_qty / max) * 100}%` }} />
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-bold tabular-nums text-[#ddd6fe] w-5">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="text-sm font-semibold text-zinc-300">—</span>
+                </div>
+              )}
+            </div>
+          ))
         }
       </div>
     </div>
@@ -475,7 +523,7 @@ const DashboardSkeleton = () => (
       <div className="w-64 bg-white border-r border-[#e9d5ff] hidden md:flex flex-col justify-between">
         <div className="px-4 pt-10 flex flex-col gap-2">
           <div className="w-36 h-10 bg-[#f5f0ff] animate-pulse mx-auto mb-8 rounded" />
-          {[1,2,3,4,5].map(i => <div key={i} className="w-full h-11 bg-[#f5f0ff] animate-pulse border-b border-[#ede9fe]" />)}
+          {[1, 2, 3, 4, 5].map(i => <div key={i} className="w-full h-11 bg-[#f5f0ff] animate-pulse border-b border-[#ede9fe]" />)}
         </div>
         <div className="p-5"><div className="w-full h-12 bg-[#fdf4ff] animate-pulse rounded" /></div>
       </div>
@@ -486,7 +534,7 @@ const DashboardSkeleton = () => (
           <div className="col-span-3 h-44 bg-white animate-pulse border border-[#e9d5ff] rounded-[0.625rem]" />
         </div>
         <div className="grid grid-cols-3 gap-4">
-          {[1,2,3].map(i => <div key={i} className="h-20 bg-white border border-[#e9d5ff] animate-pulse rounded-[0.625rem]" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-20 bg-white border border-[#e9d5ff] animate-pulse rounded-[0.625rem]" />)}
         </div>
         <div className="grid grid-cols-12 gap-4 flex-1">
           <div className="col-span-6 bg-white border border-[#e9d5ff] animate-pulse rounded-[0.625rem]" />
@@ -496,5 +544,102 @@ const DashboardSkeleton = () => (
     </div>
   </>
 );
+
+// ============================================================
+// AdminPinOverlay — reused for POS metrics
+// ============================================================
+
+const AdminPinOverlay = ({
+  onCancel,
+  onSuccess,
+}: {
+  onCancel: () => void;
+  onSuccess: () => void;
+}) => {
+  const [pin, setPin]         = React.useState('');
+  const [error, setError]     = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+
+  const getHeaders = (): Record<string, string> => {
+    const token =
+      localStorage.getItem('auth_token') ??
+      localStorage.getItem('lucky_boba_token') ??
+      localStorage.getItem('token') ??
+      '';
+    return {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!pin.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method:  'POST',
+        headers: getHeaders(),
+        body:    JSON.stringify({ pin }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        onSuccess();
+      } else {
+        setError(json.message ?? 'Incorrect PIN. Try again.');
+        setPin('');
+      }
+    } catch {
+      setError('Connection error. Try again.');
+      setPin('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden text-center">
+        <div className="bg-[#6a12b8] px-6 py-5 text-white">
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
+          <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
+          <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to view metrics</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <input
+            type="password"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            placeholder="••••"
+            autoFocus
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#6a12b8] transition-colors"
+          />
+          {error && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">{error}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !pin.trim()}
+              className="flex-1 py-3 rounded-[0.625rem] bg-[#6a12b8] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading ? '...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default Dashboard;

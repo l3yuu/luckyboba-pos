@@ -212,7 +212,7 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
             </div>
             
             <div className="h-[320px] -ml-6">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={sortedData.slice(0, 8)} margin={{ top: 0, right: 30, left: 10, bottom: 0 }}>
                   <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="5 5" />
                   <XAxis 

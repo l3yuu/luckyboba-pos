@@ -29,6 +29,7 @@ interface ApiError {
  * and (optionally) if the provided userId is assigned to it.
  */
 export function useDeviceCheck(enabled: boolean = true, userId?: number | null) {
+
   const [status, setStatus] = useState<DeviceStatus>(() => {
     if (!enabled) return 'registered';
     return 'checking';
@@ -54,6 +55,9 @@ export function useDeviceCheck(enabled: boolean = true, userId?: number | null) 
       setStatus('registered');
       return;
     }
+
+    // Reset to 'checking' on first mount (or when enabled/userId changes)
+    setStatus('checking');
 
     const checkDevice = async () => {
       try {
@@ -98,14 +102,17 @@ export function useDeviceCheck(enabled: boolean = true, userId?: number | null) 
       }
     };
 
-    // Immediate check on mount or when userId changes
+    // Immediate check on mount or when enabled/userId changes
     checkDevice();
 
-    // Periodic check every 15 seconds
+    // Periodic re-check every 15 seconds (single interval — no re-spawning)
     const interval = setInterval(checkDevice, 15000);
     return () => clearInterval(interval);
 
-  }, [enabled, userId]); // Re-run when user logs in/out
+  // ⚠️ hasCompletedFirstCheck intentionally excluded: including it would
+  // re-fire this effect (and spawn a new interval) after every single check.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, userId]);
 
   return { status, posNumber, branchId, branch, message, deviceId };
 }

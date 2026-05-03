@@ -138,14 +138,16 @@ const OptionsBadge: React.FC<{ opts: ItemOptions }> = ({ opts }) => {
 export const OptionsToggle: React.FC<{
   value: ItemOptions;
   onChange: (v: ItemOptions) => void;
-}> = ({ value, onChange }) => (
+  disabled?: boolean;
+}> = ({ value, onChange, disabled = false }) => (
   <div className="flex flex-col gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
     <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Drink Options</p>
     <div className="flex items-center gap-3">
       <button
         type="button"
-        onClick={() => onChange({ ...value, pearl: !value.pearl })}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${value.pearl
+        onClick={() => { if (!disabled) onChange({ ...value, pearl: !value.pearl }); }}
+        disabled={disabled}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${disabled ? "cursor-default opacity-80" : ""} ${value.pearl
           ? "bg-rose-50 border-rose-300 text-rose-700"
           : "bg-white border-zinc-200 text-zinc-400"
           }`}
@@ -158,8 +160,9 @@ export const OptionsToggle: React.FC<{
       </button>
       <button
         type="button"
-        onClick={() => onChange({ ...value, ice: !value.ice })}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${value.ice
+        onClick={() => { if (!disabled) onChange({ ...value, ice: !value.ice }); }}
+        disabled={disabled}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${disabled ? "cursor-default opacity-80" : ""} ${value.ice
           ? "bg-sky-50 border-sky-300 text-sky-700"
           : "bg-white border-zinc-200 text-zinc-400"
           }`}
@@ -177,8 +180,8 @@ export const OptionsToggle: React.FC<{
   </div>
 );
 
-export const inputCls = (err?: string) =>
-  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? "border-red-300 bg-red-50" : "border-zinc-200"}`;
+export const inputCls = (err?: string, disabled?: boolean) =>
+  `w-full text-sm font-medium ${disabled ? "text-zinc-400 cursor-not-allowed bg-zinc-100 border-zinc-100" : "text-zinc-700 bg-zinc-50 border-zinc-200 focus:ring-2 focus:ring-violet-400 focus:bg-white"} border rounded-lg px-3 py-2.5 outline-none transition-all ${err ? "border-red-300 bg-red-50" : ""}`;
 
 export const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
   <div>
@@ -787,8 +790,10 @@ export const SugarLevelToggle: React.FC<{
   allLevels: SugarLevel[];
   selected: number[];
   onChange: (ids: number[]) => void;
-}> = ({ allLevels, selected, onChange }) => {
+  disabled?: boolean;
+}> = ({ allLevels, selected, onChange, disabled = false }) => {
   const toggle = (id: number) => {
+    if (disabled) return;
     onChange(selected.includes(id)
       ? selected.filter(s => s !== id)
       : [...selected, id]
@@ -809,7 +814,8 @@ export const SugarLevelToggle: React.FC<{
               key={lvl.id}
               type="button"
               onClick={() => toggle(lvl.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${isOn
+              disabled={disabled}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${disabled ? "cursor-default opacity-80" : ""} ${isOn
                 ? "bg-violet-50 border-violet-300 text-violet-700"
                 : "bg-white border-zinc-200 text-zinc-400"
                 }`}
@@ -834,9 +840,11 @@ export const FoodAddOnsToggle: React.FC<{
   allAddOns: AddOnItem[];
   selected: number[];
   onChange: (ids: number[]) => void;
-}> = ({ allAddOns, selected, onChange }) => {
+  disabled?: boolean;
+}> = ({ allAddOns, selected, onChange, disabled = false }) => {
   const foodAddOns = allAddOns.filter(a => a.category === "food" && a.is_available);
   const toggle = (id: number) => {
+    if (disabled) return;
     onChange(selected.includes(id)
       ? selected.filter(s => s !== id)
       : [...selected, id]
@@ -854,7 +862,8 @@ export const FoodAddOnsToggle: React.FC<{
               key={addon.id}
               type="button"
               onClick={() => toggle(addon.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${isOn
+              disabled={disabled}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${disabled ? "cursor-default opacity-80" : ""} ${isOn
                 ? "bg-amber-100 border-amber-300 text-amber-700"
                 : "bg-white border-zinc-200 text-zinc-400"
                 }`}
@@ -890,6 +899,7 @@ export interface SearchableSelectProps {
   placeholder?: string;
   error?: boolean;
   accentColor?: string;
+  disabled?: boolean;
 }
 
 const ACCENT: Record<string, { border: string; ring: string; icon: string; highlight: string }> = {
@@ -899,7 +909,7 @@ const ACCENT: Record<string, { border: string; ring: string; icon: string; highl
 };
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
-  options, value, onChange, placeholder = "Search or select...", error = false, accentColor = "purple",
+  options, value, onChange, placeholder = "Search or select...", error = false, accentColor = "purple", disabled = false,
 }) => {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -931,15 +941,16 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={open ? () => { setOpen(false); setQuery(""); } : handleOpen}
-        className={`w-full flex items-center gap-2 bg-white border rounded-lg px-3 py-2.5 text-sm transition-all outline-none ring-2 ring-transparent ${ac.ring} ${error ? "border-red-300" : ac.border}`}
+        onClick={open ? () => { if (!disabled) { setOpen(false); setQuery(""); } } : handleOpen}
+        disabled={disabled}
+        className={`w-full flex items-center gap-2 bg-white border rounded-lg px-3 py-2.5 text-sm transition-all outline-none ring-2 ring-transparent ${ac.ring} ${error ? "border-red-300" : ac.border} ${disabled ? "cursor-default bg-zinc-50 border-zinc-100" : ""}`}
       >
         <Search size={13} className={`shrink-0 ${selected ? "text-zinc-400" : ac.icon}`} />
         <span className={`flex-1 text-left truncate ${selected ? "font-medium text-zinc-700" : "text-zinc-400 font-normal"}`}>
           {selected ? selected.label : placeholder}
         </span>
         {selected && (
-          <span role="button" onClick={e => { e.stopPropagation(); handleSelect(""); }} className="text-zinc-300 hover:text-zinc-500 transition-colors">
+          <span role="button" onClick={e => { if (disabled) return; e.stopPropagation(); handleSelect(""); }} className={`text-zinc-300 ${disabled ? "" : "hover:text-zinc-500"} transition-colors`}>
             <X size={12} />
           </span>
         )}
@@ -992,9 +1003,10 @@ interface ImageUploadFieldProps {
   error?: string;
   onFileChange: (file: File | null, previewUrl: string | null, error: string | null) => void;
   onRemove: () => void;
+  disabled?: boolean;
 }
 
-const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ preview, error, onFileChange, onRemove }) => {
+const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ preview, error, onFileChange, onRemove, disabled = false }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     // Reset the input so the same file can be re-selected after removal
@@ -1035,7 +1047,8 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ preview, error, onF
               <button
                 type="button"
                 onClick={onRemove}
-                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                disabled={disabled}
+                className={`absolute inset-0 bg-black/50 opacity-0 ${disabled ? "" : "group-hover:opacity-100"} transition-opacity flex items-center justify-center`}
                 title="Remove image"
               >
                 <ImageOff size={16} className="text-white" />
@@ -1048,8 +1061,8 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ preview, error, onF
 
         {/* Upload input */}
         <div className="flex-1">
-          <label className="flex flex-col gap-1.5 cursor-pointer">
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed transition-colors ${error ? "border-red-300 bg-red-50 hover:border-red-400" : "border-zinc-200 bg-zinc-50 hover:border-violet-400 hover:bg-violet-50"}`}>
+          <label className={`flex flex-col gap-1.5 ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed transition-colors ${error ? "border-red-300 bg-red-50 hover:border-red-400" : (disabled ? "border-zinc-100 bg-zinc-50" : "border-zinc-200 bg-zinc-50 hover:border-violet-400 hover:bg-violet-50")}`}>
               <Upload size={13} className={error ? "text-red-400" : "text-zinc-400"} />
               <span className={`text-xs font-medium ${error ? "text-red-500" : "text-zinc-500"}`}>
                 {preview ? "Change image..." : "Upload image..."}
@@ -1060,6 +1073,7 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ preview, error, onF
               accept=".jpg,.jpeg,.png,.webp,.gif"
               onChange={handleChange}
               className="sr-only"
+              disabled={disabled}
             />
           </label>
           <p className="text-[9px] text-zinc-400 mt-1">Max 2 MB · JPG, PNG, WEBP</p>
@@ -1080,9 +1094,10 @@ export interface MenuItemFormProps {
   allAddOns: AddOnItem[];
   onClose: () => void;
   onSaved: (item: MenuItem) => void;
+  readOnly?: boolean;
 }
 
-export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, allAddOns, onClose, onSaved }) => {
+export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, allAddOns, onClose, onSaved, readOnly = false }) => {
   const { showToast } = useToast();
   const isEdit = !!item;
 
@@ -1162,7 +1177,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         }
       })
       .catch(() => { });
-  }, [isEdit, item, isComboCategory, isBundleCategory]);
+  }, [isEdit, item, isComboCategory, isBundleCategory, bundleItemIds]);
 
   useEffect(() => {
     if (!isEdit || !item) return;
@@ -1197,7 +1212,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         }
       })
       .catch(() => { });
-  }, [isEdit, item, isComboCategory, isBundleCategory]);
+  }, [isEdit, item, isComboCategory, isBundleCategory, bundleItemIds]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -1322,22 +1337,25 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         setItemCustomizations(prev => ({ ...prev, ...newDetails }));
 
         if (!shouldSkipSelectionSync) {
-          // Update slot-specific options/sugar
-          const newSlotOptions: Record<string, ItemOptions> = { ...slotOptions };
-          const newSlotSugarIds: Record<string, number[]> = { ...slotSugarIds };
-
-          results.forEach(r => {
-            newSlotOptions[r.key] = {
-              pearl: r.options.some(o => o.option_type === "pearl"),
-              ice: r.options.some(o => o.option_type === "ice"),
-            };
-            newSlotSugarIds[r.key] = r.sugarLevels.map(s => s.sugar_level_id);
+          setSlotOptions(prev => {
+            const next = { ...prev };
+            results.forEach(r => {
+              next[r.key] = {
+                pearl: r.options.some(o => o.option_type === "pearl"),
+                ice: r.options.some(o => o.option_type === "ice"),
+              };
+            });
+            return next;
           });
 
-          setSlotOptions(newSlotOptions);
-          setSlotSugarIds(newSlotSugarIds);
+          setSlotSugarIds(prev => {
+            const next = { ...prev };
+            results.forEach(r => {
+              next[r.key] = r.sugarLevels.map(s => s.sugar_level_id);
+            });
+            return next;
+          });
         }
-
       } catch (err) {
         console.error("Failed to auto-sync options:", err);
       }
@@ -1693,7 +1711,9 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
 
   const f = (key: keyof typeof form) => ({
     value: String(form[key]),
+    disabled: readOnly,
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      if (readOnly) return;
       setForm(p => ({ ...p, [key]: e.target.value }));
       setErrors(ev => { const n = { ...ev }; delete n[key]; return n; });
     },
@@ -1702,16 +1722,18 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
   return (
     <ModalShell onClose={onClose}
       icon={<Package size={15} className="text-violet-600" />}
-      title={isEdit ? "Edit Menu Item" : "Add Menu Item"}
-      sub={isEdit ? `Editing ${item!.name}` : "Add a new item to the menu"}
+      title={readOnly ? "View Menu Item" : (isEdit ? "Edit Menu Item" : "Add Menu Item")}
+      sub={readOnly ? `Viewing ${item!.name}` : (isEdit ? `Editing ${item!.name}` : "Add a new item to the menu")}
       footer={
         <>
-          <Btn variant="secondary" onClick={onClose} disabled={loading}>Cancel</Btn>
-          <Btn onClick={handleSubmit} disabled={loading || !!imageError}>
-            {loading
-              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
-              : isEdit ? "Save Changes" : <><Plus size={13} /> {isComboCategory ? "Add Combo" : isBundleCategory ? "Add Bundle" : isMixAndMatchCategory ? "Add Mix & Match" : "Add Item"}</>}
-          </Btn>
+          <Btn variant="secondary" onClick={onClose} disabled={loading}>{readOnly ? "Close" : "Cancel"}</Btn>
+          {!readOnly && (
+            <Btn onClick={handleSubmit} disabled={loading || !!imageError}>
+              {loading
+                ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+                : isEdit ? "Save Changes" : <><Plus size={13} /> {isComboCategory ? "Add Combo" : isBundleCategory ? "Add Bundle" : isMixAndMatchCategory ? "Add Mix & Match" : "Add Item"}</>}
+            </Btn>
+          )}
         </>
       }>
 
@@ -1734,7 +1756,8 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
             <select
               value={form.category_id}
               onChange={e => handleCategoryChange(e.target.value)}
-              className={inputCls(errors.category_id) + " appearance-none pr-8"}>
+              disabled={readOnly}
+              className={inputCls(errors.category_id, readOnly) + " appearance-none pr-8"}>
               <option value="">Select Category</option>
               {categories
                 .filter(c => {
@@ -1762,8 +1785,8 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
             <select
               value={form.subcategory_id}
               onChange={e => setForm(p => ({ ...p, subcategory_id: e.target.value }))}
-              className={inputCls() + " appearance-none pr-8"}
-              disabled={!form.category_id || isComboCategory}>
+              className={inputCls(undefined, readOnly) + " appearance-none pr-8"}
+              disabled={readOnly || !form.category_id || isComboCategory}>
               <option value="">None</option>
               {filteredSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -1799,6 +1822,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
         error={imageError ?? undefined}
         onFileChange={handleImageChange}
         onRemove={handleImageRemove}
+        disabled={readOnly}
       />
 
       {/* Delivery Surcharge */}
@@ -1905,6 +1929,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
               placeholder="Search food item..."
               error={!!errors.food_item_id}
               accentColor="rose"
+              disabled={readOnly}
             />
             {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
           </div>
@@ -1948,7 +1973,8 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
               <select
                 value={mixMatchFoodId}
                 onChange={e => setMixMatchFoodId(e.target.value)}
-                className="w-full text-sm font-medium text-zinc-700 bg-white border border-rose-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-rose-400 transition-all appearance-none pr-8"
+                disabled={readOnly}
+                className={inputCls(undefined, readOnly).replace("bg-zinc-50", "bg-white") + " border-rose-200 outline-none focus:ring-2 focus:ring-rose-400 appearance-none pr-8"}
               >
                 <option value="">{mmBundleItems?.[0]?.name ?? "Keep current food item"}</option>
                 {allItems.filter(i => ["food", "wings", "waffle"].includes(i.category_type)).map(i => (
@@ -1995,14 +2021,14 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
       {/* Drink Options + Sugar Levels - Moved to builders for combos/bundles */}
       {["drink", "mix_and_match"].includes(selectedCategory?.category_type ?? "") && (
         <>
-          <OptionsToggle value={options} onChange={setOptions} />
-          <SugarLevelToggle allLevels={sugarLevels} selected={selectedSugarLevelIds} onChange={setSelectedSugarLevelIds} />
+          <OptionsToggle value={options} onChange={setOptions} disabled={readOnly} />
+          <SugarLevelToggle allLevels={sugarLevels} selected={selectedSugarLevelIds} onChange={setSelectedSugarLevelIds} disabled={readOnly} />
         </>
       )}
 
       {/* Food Add-Ons */}
       {["food", "wings", "waffle"].includes(selectedCategory?.category_type ?? "") && (
-        <FoodAddOnsToggle allAddOns={allAddOns} selected={selectedFoodAddOnIds} onChange={setSelectedFoodAddOnIds} />
+        <FoodAddOnsToggle allAddOns={allAddOns} selected={selectedFoodAddOnIds} onChange={setSelectedFoodAddOnIds} disabled={readOnly} />
       )}
 
       <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
@@ -2010,9 +2036,9 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
           <p className="text-xs font-bold text-zinc-700">Available on POS</p>
           <p className="text-[10px] text-zinc-400">Toggle off to hide from cashier view</p>
         </div>
-        <button type="button" onClick={() => setForm(p => ({ ...p, is_available: !p.is_available }))} className="transition-colors">
+        <button type="button" onClick={() => { if (!readOnly) setForm(p => ({ ...p, is_available: !p.is_available })) }} className={`transition-colors ${readOnly ? "cursor-default" : ""}`}>
           {form.is_available
-            ? <ToggleRight size={28} className="text-[#6a12b8]" />
+            ? <ToggleRight size={28} className={readOnly ? "text-zinc-400" : "text-[#6a12b8]"} />
             : <ToggleLeft size={28} className="text-zinc-300" />}
         </button>
       </div>

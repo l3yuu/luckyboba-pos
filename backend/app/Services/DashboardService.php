@@ -164,11 +164,11 @@ class DashboardService
 
         $salesData = Sale::whereHas('branch')
             ->select(
-                DB::raw('DATE(created_at) as date'),
+                DB::raw('DATE(sales.created_at) as date'),
                 DB::raw('SUM(total_amount) as total')
             )
             ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
-            ->groupBy(DB::raw('DATE(created_at)'))
+            ->groupBy(DB::raw('DATE(sales.created_at)'))
             ->orderBy('date', 'asc')
             ->get();
 

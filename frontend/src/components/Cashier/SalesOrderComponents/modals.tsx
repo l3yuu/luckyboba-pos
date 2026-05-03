@@ -434,7 +434,7 @@ export const BundleModal = ({
   if (!selection || !component) return null;
 
   const itemDetail = component.menuItem;
-  
+
   // Use backend flag if available, otherwise fall back to category/name detection
   const hasSugar = component.has_sugar === true || (
     (itemDetail?.sugar_levels?.length ?? 0) > 0
@@ -477,9 +477,9 @@ export const BundleModal = ({
                   </span>
                   <span className="text-sm font-black text-black block mt-1">
                     ₱ {Number(
-                      orderCharge === 'grab' ? bundleGrabPrice : 
-                      orderCharge === 'panda' ? bundlePandaPrice : 
-                      activeBundleItem.price
+                      orderCharge === 'grab' ? bundleGrabPrice :
+                        orderCharge === 'panda' ? bundlePandaPrice :
+                          activeBundleItem.price
                     ).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -1487,7 +1487,7 @@ export const SuccessModal = ({
   // Allow skip print is now default behavior so we omit allRequiredPrinted check entirely.
 
   return (
-    <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
         <div className="bg-[#6a12b8] px-9 pt-10 pb-9 text-white relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-28 h-28 border-2 border-white/10 rounded-[0.625rem] rotate-12" />
