@@ -110,7 +110,7 @@ class ReportRepository implements ReportRepositoryInterface
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->when($shift,    fn($q) => $q->where('shift', $shift))
             ->select(
-                DB::raw('DATE(created_at) as Sales_Date'),
+                DB::raw('DATE(sales.created_at) as Sales_Date'),
                 DB::raw('COUNT(id) as Total_Orders'),
                 DB::raw('SUM(total_amount) as Daily_Revenue')
             )
@@ -294,7 +294,7 @@ class ReportRepository implements ReportRepositoryInterface
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->when($shift,    fn($q) => $q->where('shift', $shift))
-            ->selectRaw('HOUR(created_at) as hour, SUM(total_amount) as total, COUNT(*) as count')
+            ->selectRaw('HOUR(sales.created_at) as hour, SUM(sales.total_amount) as total, COUNT(*) as count')
             ->groupBy('hour')
             ->orderBy('hour')
             ->get();

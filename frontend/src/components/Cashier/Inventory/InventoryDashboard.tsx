@@ -641,7 +641,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Profit vs Cost Breakdown</div>
                   <div style={{ height: '220px' }}>
                     {salesData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={220}>
+                      <ResponsiveContainer width="100%" height={220} minWidth={0}>
                         <BarChart data={salesData}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f0ff" />
                           <XAxis dataKey="name" hide />
@@ -659,7 +659,7 @@ const InventoryDashboard = ({ view = 'dashboard' }: { view?: 'dashboard' | 'mate
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Sales Quantity Share</div>
                   <div style={{ height: '220px' }}>
                     {salesData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={220}>
+                      <ResponsiveContainer width="100%" height={220} minWidth={0}>
                         <PieChart>
                           <Pie data={salesData} dataKey="qty" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} stroke="none">
                             {salesData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}

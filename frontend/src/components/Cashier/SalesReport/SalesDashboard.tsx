@@ -311,11 +311,16 @@ const SalesDashboard = () => {
 
   const linePoints: HoveredValuePoint[] = weekly.map((data, index) => {
     const totalPoints = weekly.length - 1;
+    const dateObj = new Date(data.date + 'T00:00:00');
+    const displayDate = isNaN(dateObj.getTime()) 
+      ? data.date 
+      : dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
     return {
       x: totalPoints > 0 ? (index / totalPoints) * 100 : 50,
       y: getLineY(data.value),
       value: data.value,
-      date: `${data.day} — ${data.date}`,
+      date: `${data.day} — ${displayDate}`,
     };
   });
 
@@ -340,7 +345,12 @@ const SalesDashboard = () => {
   };
 
   const dateRangeText = weekly.length > 0
-    ? `${weekly[0].date} — ${weekly[weekly.length - 1].date}, 2026`
+    ? (() => {
+        const first = new Date(weekly[0].date + 'T00:00:00');
+        const last = new Date(weekly[weekly.length - 1].date + 'T00:00:00');
+        const fmt = (d: Date) => isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `${fmt(first)} — ${fmt(last)}, ${new Date().getFullYear()}`;
+      })()
     : 'No data available';
 
   // ── TODAY GRAPH LOGIC ──
@@ -462,12 +472,16 @@ const SalesDashboard = () => {
               </div>
 
               <div className="flex justify-between pt-3 mt-1 border-t border-zinc-100">
-                {weekly.map((d, i) => (
-                  <div key={i} className="text-center" style={{ width: `${100 / weekly.length}%` }}>
-                    <p className="text-[9px] font-black uppercase text-[#6a12b8] tracking-widest">{d.day}</p>
-                    <p className="text-[8px] font-black text-zinc-300 uppercase">{d.date.split(' ')[1]}</p>
-                  </div>
-                ))}
+                {weekly.map((d, i) => {
+                  const dateObj = new Date(d.date + 'T00:00:00');
+                  const dayNum = isNaN(dateObj.getTime()) ? '' : dateObj.getDate();
+                  return (
+                    <div key={i} className="text-center" style={{ width: `${100 / weekly.length}%` }}>
+                      <p className="text-[9px] font-black uppercase text-[#6a12b8] tracking-widest">{d.day}</p>
+                      <p className="text-[8px] font-black text-zinc-300 uppercase">{dayNum}</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

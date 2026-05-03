@@ -229,7 +229,7 @@ const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
         </div>
 
         <div className="h-[420px] -ml-6">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <LineChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
               <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="3 3" />
               <XAxis 
