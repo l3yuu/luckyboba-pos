@@ -598,7 +598,7 @@ export const ReceiptPrint = ({
         )}
 
         {/* Queue number stub 1 */}
-        <div className="mt-6 py-4 text-center" style={{ pageBreakAfter: 'always' }}>
+        <div className="mt-6 py-4 text-center" style={{ pageBreakAfter: showDoubleQueueStub ? 'always' : 'auto' }}>
           <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
           <h2 className="font-black text-4xl">#{queueNumber}</h2>
           <p className="text-[10px] mt-2 uppercase text-gray-500">Please wait for your number to be called</p>
@@ -606,7 +606,7 @@ export const ReceiptPrint = ({
 
         {/* Queue number stub 2 — on its own page */}
         {showDoubleQueueStub && (
-          <div className="py-4 text-center queue-stub" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+          <div className="py-4 text-center queue-stub">
             <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
             <h2 className="font-black text-4xl">#{queueNumber}</h2>
             <p className="text-[10px] mt-2 uppercase text-gray-500">Please wait for your number to be called</p>
