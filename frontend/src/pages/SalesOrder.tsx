@@ -52,6 +52,53 @@ interface Discount {
   status: 'ON' | 'OFF'
 }
 
+interface PrintPayload {
+  printProps: {
+    cart: CartItem[];
+    branchName: string;
+    orNumber: string;
+    queueNumber: string;
+    cashierName: string;
+    formattedDate: string;
+    formattedTime: string;
+    terminalNumber: string;
+    orderType: 'dine-in' | 'take-out' | 'delivery';
+    customerName: string;
+    paxSenior: number;
+    paxPwd: number;
+    seniorIds: string[];
+    pwdIds: string[];
+  };
+  branchDetails: {
+    brand?: string;
+    companyName?: string;
+    storeAddress?: string;
+    vatRegTin?: string;
+    minNumber?: string;
+    serialNumber?: string;
+    owner_name?: string;
+  };
+  grossSubtotal: number;
+  amtDue: number;
+  vatableSales: number;
+  vatAmount: number;
+  vatExemptSales: number;
+  change: number;
+  cashTendered: number | '';
+  referenceNumber: string;
+  paymentMethod: string;
+  selectedDiscount: Discount | null;
+  selectedDiscounts: Discount[];
+  totalDiscountDisplay: number;
+  itemDiscountTotal: number;
+  promoDiscount: number;
+  itemPaxAssignments: ItemPaxAssignments;
+  orderCharge: 'grab' | 'panda' | null;
+  totalCount: number;
+  customerName: string;
+  posFooter: Record<string, string>;
+}
+
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const SalesOrder = () => {
@@ -277,7 +324,7 @@ const SalesOrder = () => {
   // Success / print
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
   const [printTarget, setPrintTarget] = useState<'receipt' | 'kitchen' | 'stickers' | null>(null);
-  const [lastPrintPayload, setLastPrintPayload] = useState<any>(null);
+  const [lastPrintPayload, setLastPrintPayload] = useState<PrintPayload | null>(null);
   const [printedReceipt, setPrintedReceipt] = useState(false);
   const [printedKitchen, setPrintedKitchen] = useState(false)
   const [printedStickers, setPrintedStickers] = useState(false)
