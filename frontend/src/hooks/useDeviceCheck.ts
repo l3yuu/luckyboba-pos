@@ -29,8 +29,6 @@ interface ApiError {
  * and (optionally) if the provided userId is assigned to it.
  */
 export function useDeviceCheck(enabled: boolean = true, userId?: number | null) {
-  // We track if the very first check has completed to prevent UI flickering
-  const [hasCompletedFirstCheck, setHasCompletedFirstCheck] = useState(false);
 
   const [status, setStatus] = useState<DeviceStatus>(() => {
     if (!enabled) return 'registered';
@@ -55,14 +53,11 @@ export function useDeviceCheck(enabled: boolean = true, userId?: number | null) 
   useEffect(() => {
     if (!enabled) {
       setStatus('registered');
-      setHasCompletedFirstCheck(false);
       return;
     }
 
-    // If we just enabled it, and haven't finished a check yet, make sure we are 'checking'
-    if (!hasCompletedFirstCheck) {
-      setStatus('checking');
-    }
+    // Reset to 'checking' on first mount (or when enabled/userId changes)
+    setStatus('checking');
 
     const checkDevice = async () => {
       try {
@@ -104,18 +99,20 @@ export function useDeviceCheck(enabled: boolean = true, userId?: number | null) 
         }
       } finally {
         hasFetched.current = true;
-        setHasCompletedFirstCheck(true);
       }
     };
 
-    // Immediate check on mount or when userId changes
+    // Immediate check on mount or when enabled/userId changes
     checkDevice();
 
-    // Periodic check every 15 seconds
+    // Periodic re-check every 15 seconds (single interval — no re-spawning)
     const interval = setInterval(checkDevice, 15000);
     return () => clearInterval(interval);
 
-  }, [enabled, userId, hasCompletedFirstCheck]); // Re-run when enabled/user changes
+  // ⚠️ hasCompletedFirstCheck intentionally excluded: including it would
+  // re-fire this effect (and spawn a new interval) after every single check.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, userId]);
 
   return { status, posNumber, branchId, branch, message, deviceId };
 }

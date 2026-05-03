@@ -1486,7 +1486,7 @@ export const SuccessModal = ({
   // Allow skip print is now default behavior so we omit allRequiredPrinted check entirely.
 
   return (
-    <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
         <div className="bg-[#6a12b8] px-9 pt-10 pb-9 text-white relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-28 h-28 border-2 border-white/10 rounded-[0.625rem] rotate-12" />
