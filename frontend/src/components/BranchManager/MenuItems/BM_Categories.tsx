@@ -1,5 +1,5 @@
 // BM_Categories.tsx — Read-only SuperAdmin-style category list for BM
-import { useState, useEffect, useCallback, useMemo, useContext } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   RefreshCw, AlertCircle, Search, LayoutGrid,
   Tag, Activity, ToggleLeft, ToggleRight,

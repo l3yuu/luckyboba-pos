@@ -1,5 +1,4 @@
-// BM_Sub-Categories.tsx — Read-only SuperAdmin-style sub-category list for BM
-import { useState, useEffect, useCallback, useContext } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   RefreshCw, AlertCircle, Layers, Search,
   ToggleLeft, ToggleRight,

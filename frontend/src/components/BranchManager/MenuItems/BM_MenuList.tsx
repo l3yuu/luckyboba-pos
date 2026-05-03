@@ -459,7 +459,7 @@ const BM_MenuList: React.FC = () => {
     } catch (err) {
       console.error("Toggle branch availability failed", err);
     }
-  }, []);
+  }, [showToast]);
 
 
 

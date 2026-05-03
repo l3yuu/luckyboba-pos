@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback, useContext } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import {
   ShoppingBag, Search, ToggleLeft, ToggleRight,
   ChevronDown, AlertCircle, Layers, Tag, Package, Grid3X3,
@@ -254,8 +255,8 @@ const BM_MenuManagement = () => {
       setItems(prev =>
         prev.map(i => i.id === id ? { ...i, is_available: newVal ?? !i.is_available } : i)
       );
-    } catch (e: any) {
-      if (e.response?.status === 403) {
+    } catch (e: unknown) {
+      if (axios.isAxiosError(e) && e.response?.status === 403) {
         showToast(e.response.data.message || "Admin deactivated this item", "warning");
       } else {
         console.error('Toggle failed', e);
