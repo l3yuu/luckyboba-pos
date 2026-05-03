@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import {
   ShoppingBag, Search, ToggleLeft, ToggleRight,
   ChevronDown, AlertCircle, Layers, Tag, Package, Grid3X3,
 } from 'lucide-react';
+import { useToast } from '../../../context/ToastContext';
 import api from '../../../services/api';
 
 // ─── Design tokens — matches BM_SalesDashboard exactly ───────────────────────
@@ -202,6 +203,7 @@ const EntityRowCard = ({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const BM_MenuManagement = () => {
+  const { showToast } = useToast();
   const [activeTabKey, setActiveTabKey] = useState<TabKey>('items');
   const [items,        setItems]        = useState<EntityRow[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -252,8 +254,12 @@ const BM_MenuManagement = () => {
       setItems(prev =>
         prev.map(i => i.id === id ? { ...i, is_available: newVal ?? !i.is_available } : i)
       );
-    } catch (e) {
-      console.error('Toggle failed', e);
+    } catch (e: any) {
+      if (e.response?.status === 403) {
+        showToast(e.response.data.message || "Admin deactivated this item", "warning");
+      } else {
+        console.error('Toggle failed', e);
+      }
     } finally {
       setToggling(prev => { const n = new Set(prev); n.delete(id); return n; });
     }

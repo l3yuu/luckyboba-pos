@@ -1,9 +1,10 @@
 // BM_Categories.tsx — Read-only SuperAdmin-style category list for BM
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useContext } from "react";
 import {
   RefreshCw, AlertCircle, Search, LayoutGrid,
   Tag, Activity, ToggleLeft, ToggleRight,
 } from "lucide-react";
+import { useToast } from "../../../context/ToastContext";
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 const getToken = () =>
@@ -82,6 +83,7 @@ const Btn: React.FC<{
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const BM_Categories: React.FC = () => {
+  const { showToast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState("");
@@ -106,15 +108,21 @@ const BM_Categories: React.FC = () => {
   const handleToggle = async (cat: Category) => {
     setTogglingId(cat.id);
     try {
-      const res = await fetch(`/api/categories/${cat.id}`, {
-        method:  "PUT",
+      const res = await fetch("/api/branch/availability/toggle", {
+        method: "POST",
         headers: authHeaders(),
-        body:    JSON.stringify({ is_active: !cat.is_active }),
+        body: JSON.stringify({
+          entity_type: "category",
+          entity_id: cat.id
+        }),
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.is_available !== undefined) {
         setCategories(prev =>
-          prev.map(c => c.id === cat.id ? { ...c, is_active: !c.is_active } : c)
+          prev.map(c => c.id === cat.id ? { ...c, is_active: data.is_available } : c)
         );
+      } else if (res.status === 403) {
+        showToast(data.message || "Admin deactivated this item", "warning");
       }
     } catch { /* silent */ }
     finally { setTogglingId(null); }

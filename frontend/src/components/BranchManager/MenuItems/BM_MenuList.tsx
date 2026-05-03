@@ -1,11 +1,12 @@
 // components/BranchManager/MenuItems/BM_MenuList.tsx
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useContext } from "react";
 import {
   Search, Edit2, Plus,
   AlertCircle, X, Package, ChevronDown,
   ToggleLeft, ToggleRight, Coffee,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useToast } from "../../../context/ToastContext";
 import type {
   MenuItem, Category, CategoryDrink, SugarLevel, ItemOptions, SubCategory, AddOnItem
 } from '../../NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab';
@@ -330,6 +331,7 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
 
 
 const BM_MenuList: React.FC = () => {
+  const { showToast } = useToast();
   const [items,         setItems]         = useState<MenuItem[]>([]);
   const [categories,    setCategories]    = useState<Category[]>([]);
   const [loading,         setLoading]         = useState(true);
@@ -382,7 +384,7 @@ const BM_MenuList: React.FC = () => {
         fetch("/api/menu-items",   { headers: authHeaders() }),
         fetch("/api/categories",   { headers: authHeaders() }),
         fetch("/api/sugar-levels", { headers: authHeaders() }),
-        fetch("/api/subcategories", { headers: authHeaders() }),
+        fetch("/api/sub-categories", { headers: authHeaders() }),
         fetch("/api/addons", { headers: authHeaders() }),
       ]);
       const [itemsData, catsData, sugarData, subCatsData, addOnsData] = await Promise.all([
@@ -463,14 +465,23 @@ const BM_MenuList: React.FC = () => {
 
   const toggleAvailable = useCallback(async (item: MenuItem) => {
     try {
-      const res  = await fetch(`/api/menu-items/${item.id}`, {
-        method: "PUT", headers: authHeaders(),
-        body: JSON.stringify({ is_available: !item.is_available }),
+      const res = await fetch("/api/branch/availability/toggle", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          entity_type: "menu_item",
+          entity_id: item.id
+        }),
       });
       const data = await res.json();
-      if (res.ok && data.success)
-        setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_available: !i.is_available } : i));
-    } catch { /* silent */ }
+      if (res.ok && data.is_available !== undefined) {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_available: data.is_available } : i));
+      } else if (res.status === 403) {
+        showToast(data.message || "Admin deactivated this item", "warning");
+      }
+    } catch (err) {
+      console.error("Toggle branch availability failed", err);
+    }
   }, []);
 
 

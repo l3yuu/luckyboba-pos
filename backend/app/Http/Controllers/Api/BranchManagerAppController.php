@@ -215,8 +215,24 @@ class BranchManagerAppController extends Controller
         $entityType = $request->entity_type;
         $entityId   = $request->entity_id;
 
-        // Verify entity exists
-        $this->verifyEntityExists($entityType, $entityId);
+        // Verify entity exists and check global status
+        $entity = $this->getEntity($entityType, $entityId);
+        
+        $isGloballyActive = match ($entityType) {
+            'menu_item'    => $entity->status === 'active',
+            'category'     => (bool) $entity->is_active,
+            'sub_category' => (bool) $entity->is_active,
+            'add_on'       => (bool) $entity->is_available,
+            'bundle'       => (bool) $entity->is_active,
+            default        => true,
+        };
+
+        if (!$isGloballyActive) {
+            return response()->json([
+                'message' => 'Admin deactivated this item',
+                'error'   => 'Global deactivation is in effect.'
+            ], 403);
+        }
 
         $newValue = $this->toggleAvailability($branchId, $entityType, $entityId);
 
@@ -227,6 +243,19 @@ class BranchManagerAppController extends Controller
             'entity_id'    => $entityId,
             'is_available' => $newValue,
         ]);
+    }
+
+    private function getEntity(string $type, int $id)
+    {
+        $model = match ($type) {
+            'menu_item'    => MenuItem::class,
+            'category'     => Category::class,
+            'sub_category' => SubCategory::class,
+            'add_on'       => AddOn::class,
+            'bundle'       => Bundle::class,
+        };
+
+        return $model::findOrFail($id);
     }
 
     // ── Private Helpers ──────────────────────────────────────────────────────
@@ -305,18 +334,6 @@ class BranchManagerAppController extends Controller
         return $newValue;
     }
 
-    private function verifyEntityExists(string $type, int $id): void
-    {
-        $model = match ($type) {
-            'menu_item'    => MenuItem::class,
-            'category'     => Category::class,
-            'sub_category' => SubCategory::class,
-            'add_on'       => AddOn::class,
-            'bundle'       => Bundle::class,
-        };
-
-        $model::findOrFail($id);
-    }
 
     private function formatOrder(Sale $sale): array
     {

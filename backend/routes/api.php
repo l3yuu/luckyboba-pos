@@ -550,6 +550,7 @@ Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function ()
                 Route::get ('/{id}/add-ons',    [SuperAdminAvailabilityController::class, 'addOns']);
                 Route::get ('/{id}/bundles',    [SuperAdminAvailabilityController::class, 'bundles']);
                 Route::post('/toggle',         [SuperAdminAvailabilityController::class, 'toggle']);
+                Route::post('/toggle-global',  [SuperAdminAvailabilityController::class, 'toggleGlobal']);
             });
         });
 

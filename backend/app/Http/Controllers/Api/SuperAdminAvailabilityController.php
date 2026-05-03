@@ -38,13 +38,13 @@ class SuperAdminAvailabilityController extends Controller
             ->pluck('is_available', 'entity_id');
 
         $items = MenuItem::with('category')
-            ->where('status', 'active')
             ->orderBy('name')
             ->get()
             ->map(fn($item) => [
                 'id'           => $item->id,
                 'name'         => $item->name,
                 'category'     => $item->category?->name ?? 'Uncategorized',
+                'status'       => $item->status,
                 'is_available' => $overrides->has($item->id) ? (bool) $overrides->get($item->id) : true,
             ]);
 
@@ -61,12 +61,12 @@ class SuperAdminAvailabilityController extends Controller
             ->where('entity_type', 'category')
             ->pluck('is_available', 'entity_id');
 
-        $cats = Category::where('is_active', true)
-            ->orderBy('name')
+        $cats = Category::orderBy('name')
             ->get()
             ->map(fn($c) => [
                 'id'           => $c->id,
                 'name'         => $c->name,
+                'is_active'    => (bool) $c->is_active,
                 'is_available' => $overrides->has($c->id) ? (bool) $overrides->get($c->id) : true,
             ]);
 
@@ -84,13 +84,13 @@ class SuperAdminAvailabilityController extends Controller
             ->pluck('is_available', 'entity_id');
 
         $subs = SubCategory::with('category')
-            ->where('is_active', true)
             ->orderBy('name')
             ->get()
             ->map(fn($s) => [
                 'id'           => $s->id,
                 'name'         => $s->name,
                 'category'     => $s->category?->name ?? 'N/A',
+                'is_active'    => (bool) $s->is_active,
                 'is_available' => $overrides->has($s->id) ? (bool) $overrides->get($s->id) : true,
             ]);
 
@@ -107,12 +107,12 @@ class SuperAdminAvailabilityController extends Controller
             ->where('entity_type', 'add_on')
             ->pluck('is_available', 'entity_id');
 
-        $addOns = AddOn::where('is_available', true)
-            ->orderBy('name')
+        $addOns = AddOn::orderBy('name')
             ->get()
             ->map(fn($a) => [
                 'id'           => $a->id,
                 'name'         => $a->name,
+                'is_active'    => (bool) $a->is_available, // Global 'is_available' is its active state
                 'is_available' => $overrides->has($a->id) ? (bool) $overrides->get($a->id) : true,
             ]);
 
@@ -129,12 +129,12 @@ class SuperAdminAvailabilityController extends Controller
             ->where('entity_type', 'bundle')
             ->pluck('is_available', 'entity_id');
 
-        $bundles = Bundle::where('is_active', true)
-            ->orderBy('name')
+        $bundles = Bundle::orderBy('name')
             ->get()
             ->map(fn($b) => [
                 'id'           => $b->id,
                 'name'         => $b->name,
+                'is_active'    => (bool) $b->is_active,
                 'is_available' => $overrides->has($b->id) ? (bool) $overrides->get($b->id) : true,
             ]);
 
@@ -189,6 +189,48 @@ class SuperAdminAvailabilityController extends Controller
         return response()->json([
             'success'      => true,
             'is_available' => $newValue,
+        ]);
+    }
+
+    /**
+     * POST /api/admin/branch-availability/toggle-global
+     */
+    public function toggleGlobal(Request $request): JsonResponse
+    {
+        $request->validate([
+            'entity_type' => 'required|in:menu_item,category,sub_category,add_on,bundle',
+            'entity_id'   => 'required|integer',
+        ]);
+
+        $entityType = $request->input('entity_type');
+        $entityId   = $request->input('entity_id');
+
+        $model = match($entityType) {
+            'menu_item'    => MenuItem::find($entityId),
+            'category'     => Category::find($entityId),
+            'sub_category' => SubCategory::find($entityId),
+            'add_on'       => AddOn::find($entityId),
+            'bundle'       => Bundle::find($entityId),
+        };
+
+        if (!$model) {
+            return response()->json(['success' => false, 'message' => 'Entity not found.'], 404);
+        }
+
+        if ($entityType === 'menu_item') {
+            $model->status = ($model->status === 'active') ? 'inactive' : 'active';
+        } elseif ($entityType === 'add_on') {
+            $model->is_available = !$model->is_available;
+        } else {
+            $model->is_active = !$model->is_active;
+        }
+
+        $model->save();
+        $this->clearMenuCache();
+
+        return response()->json([
+            'success' => true,
+            'model'   => $model,
         ]);
     }
 }
