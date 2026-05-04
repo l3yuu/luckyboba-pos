@@ -13,6 +13,7 @@ import '../pages/order_page.dart';
 import '../cards/cards_page.dart';
 import '../pages/stores_page.dart';
 import '../account/profile_page.dart';
+import '../admin/admin_branches_page.dart';
 import '../utils/app_theme.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -25,22 +26,39 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   int    _selectedIndex = 0;
   String _userName      = '';
-  late final List<Widget> _pages;
+  bool   _isSuperAdmin  = false;
+  List<Widget> _pages   = [];
 
   @override
   void initState() {
     super.initState();
+    _initPages();
+    _loadUserData();
+    _checkRole();
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor:          Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ));
+  }
+
+  void _initPages() {
     _pages = [
       HomePage(onGoToCards: _goToCards),
       const OrderPage(),
       const CardsPage(),
       StoresPage(onBack: () => _onItemTapped(0)),
     ];
-    _loadUserData();
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor:          Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ));
+  }
+
+  Future<void> _checkRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    final role = prefs.getString('userRole') ?? 'customer';
+    if (role == 'superadmin') {
+      setState(() {
+        _isSuperAdmin = true;
+        _pages.add(const AdminBranchesPage());
+      });
+    }
   }
 
   void _goToCards() => _onItemTapped(2);
@@ -62,7 +80,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool showHeader = _selectedIndex != 3;
+    final bool showHeader = _selectedIndex != 3 && _selectedIndex != 4;
 
     return Scaffold(
       extendBody: true,
@@ -86,6 +104,7 @@ class _DashboardPageState extends State<DashboardPage> {
       bottomNavigationBar: CustomNavBar(
         selectedIndex: _selectedIndex,
         onTabChange:   _onItemTapped,
+        isSuperAdmin:  _isSuperAdmin,
       ),
     );
   }

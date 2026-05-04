@@ -104,9 +104,10 @@ public function store(Request $request)
     'min_number'     => 'sometimes|nullable|string|max:255',
     'serial_number'  => 'sometimes|nullable|string|max:255',
     'latitude'       => 'sometimes|nullable|string',
-    'longitude'      => 'sometimes|nullable|string',
-    'image'          => 'sometimes|nullable|image|max:2048',
-], [
+        'longitude'      => 'sometimes|nullable|string',
+        'image'          => 'sometimes|nullable|image|max:2048',
+        'manager_id'     => 'sometimes|nullable|exists:users,id',
+    ], [
     'name.required'     => 'Branch name is required.',
     'name.unique'       => 'A branch with this name already exists.',
     'location.required' => 'Location is required.',
@@ -149,6 +150,14 @@ public function store(Request $request)
         ]);
 
             AuditHelper::log('branch', "Created branch: {$branch->name}");
+
+            if ($request->manager_id) {
+                \App\Models\User::where('id', $request->manager_id)
+                    ->update([
+                        'branch_id'   => $branch->id,
+                        'branch_name' => $branch->name
+                    ]);
+            }
 
             // Auto-clone all global raw materials to the new branch
             $globals = RawMaterial::whereNull('branch_id')->get();
@@ -220,6 +229,7 @@ public function store(Request $request)
             'latitude'       => 'sometimes|nullable|string',
             'longitude'      => 'sometimes|nullable|string',
             'image'          => 'sometimes|nullable|image|max:2048',
+            'manager_id'     => 'sometimes|nullable|exists:users,id',
         ]);
 
         if ($validator->fails()) {
@@ -257,6 +267,24 @@ public function store(Request $request)
             }
 
             $branch->update($updateData);
+
+            if ($request->has('manager_id')) {
+                // Clear branch_id for any user currently assigned as manager to this branch
+                \App\Models\User::where('branch_id', $branch->id)
+                    ->where('role', 'branch_manager')
+                    ->update([
+                        'branch_id'   => null,
+                        'branch_name' => null
+                    ]);
+
+                if ($request->manager_id) {
+                    \App\Models\User::where('id', $request->manager_id)
+                        ->update([
+                            'branch_id'   => $branch->id,
+                            'branch_name' => $branch->name
+                        ]);
+                }
+            }
 
             // Sync users.branch_name whenever branch name changes
             if ($request->has('name') && $oldName !== $branch->name) {

@@ -6,11 +6,13 @@ import '../utils/app_theme.dart';
 class CustomNavBar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTabChange;
+  final bool isSuperAdmin;
 
   const CustomNavBar({
     super.key,
     required this.selectedIndex,
     required this.onTabChange,
+    this.isSuperAdmin = false,
   });
 
   @override
@@ -44,6 +46,8 @@ class CustomNavBar extends StatelessWidget {
                   _buildNavItem(index: 1, icon: Icons.local_drink_rounded, label: 'Orders'),
                   _buildNavItem(index: 2, icon: Icons.credit_card_rounded, label: 'Cards'),
                   _buildNavItem(index: 3, icon: Icons.map_rounded, label: 'Stores'),
+                  if (isSuperAdmin)
+                    _buildNavItem(index: 4, icon: Icons.business_center_rounded, label: 'Manage'),
                 ],
               ),
             ),
