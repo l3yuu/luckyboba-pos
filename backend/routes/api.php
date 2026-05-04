@@ -1,7 +1,7 @@
 <?php
 // Route definitions for Lucky Boba POS API
 
-use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, CustomerController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController, FavoriteController, ReviewController, FranchiseController, SuperAdminAvailabilityController };
+use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, CustomerController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController, FavoriteController, ReviewController, FranchiseController, QueueController, SuperAdminAvailabilityController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchManagerAppController;
@@ -53,6 +53,7 @@ Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])
 Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:api');
 Route::get('/bundles',          [BundleController::class, 'index'])->middleware('throttle:api');
 Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence'])->middleware('throttle:kiosk');
+Route::get('/queue/active',     [QueueController::class, 'index'])->middleware('throttle:kiosk');
 
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────

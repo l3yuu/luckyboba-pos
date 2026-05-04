@@ -1669,25 +1669,31 @@ const SalesOrder = () => {
     setPrintTarget('receipt');
     setPrintedReceipt(true);
     setTimeout(() => {
-      window.print();
-      setTimeout(() => setPrintTarget(null), 1000);
-    }, 500);
+      requestAnimationFrame(() => {
+        window.print();
+        setTimeout(() => setPrintTarget(null), 1000);
+      });
+    }, 300);
   }
   const handlePrintKitchen = () => {
     setPrintTarget('kitchen');
     setPrintedKitchen(true);
     setTimeout(() => {
-      window.print();
-      setTimeout(() => setPrintTarget(null), 1000);
-    }, 500);
+      requestAnimationFrame(() => {
+        window.print();
+        setTimeout(() => setPrintTarget(null), 1000);
+      });
+    }, 300);
   }
   const handlePrintStickers = () => {
     setPrintTarget('stickers');
     setPrintedStickers(true);
     setTimeout(() => {
-      window.print();
-      setTimeout(() => setPrintTarget(null), 1000);
-    }, 500);
+      requestAnimationFrame(() => {
+        window.print();
+        setTimeout(() => setPrintTarget(null), 1000);
+      });
+    }, 300);
   }
 
 
@@ -2033,6 +2039,7 @@ const SalesOrder = () => {
         {isSuccessModalOpen && (
           <SuccessModal
             orNumber={orNumber}
+            queueNumber={queueNumber}
             hasStickers={hasStickers}
             printedReceipt={printedReceipt}
             printedKitchen={printedKitchen}

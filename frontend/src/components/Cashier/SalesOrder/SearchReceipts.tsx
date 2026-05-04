@@ -39,6 +39,7 @@ interface SaleItem {
   customer_name?:     string;
   display_order_number?: number;
   payment_method?:    string;
+  queue_number?:      string;
 }
 
 interface Stats { gross: number; voided: number; net: number; }
@@ -692,7 +693,7 @@ return {
                       <td className="px-7 py-4">
                         <div className="flex items-center gap-2.5">
                           <span className="font-bold text-black text-sm tabular-nums">
-                            #{String(item.display_order_number ?? item.daily_order_number ?? '—').padStart(3, '0')}
+                            #{item.queue_number || String(item.display_order_number ?? item.daily_order_number ?? '—').padStart(3, '0')}
                           </span>
                           <span className={`text-[9px] font-bold px-2 py-0.5 border uppercase tracking-widest ${
                             item.status === 'cancelled'

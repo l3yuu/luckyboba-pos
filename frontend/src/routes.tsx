@@ -14,6 +14,7 @@ import PosDeviceManager        from './pages/PosDeviceManager';
 import OnlineOrdersPage        from './components/Cashier/SalesOrder/OnlineOrdersPage'; // ← NEW
 import SupervisorDashboard from './pages/SupervisorDashboard';  // ← ADD THIS IMPORT
 import KioskPage from './pages/Kiosk/KioskPage';
+import QueueDisplay from './pages/Queue/QueueDisplay';
 
 export const router = createBrowserRouter([
 
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
 
   // ── Kiosk (Publicly accessible, no redirect if already logged in) ──────────
   { path: '/kiosk', element: <KioskPage />, errorElement: <ErrorFallback /> },
+  { path: '/queue-display', element: <QueueDisplay />, errorElement: <ErrorFallback /> },
 
   // ── Super Admin only ─────────────────────────────────────────────────────
   {

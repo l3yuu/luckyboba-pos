@@ -36,6 +36,7 @@ interface SaleItem {
   customer_name?: string;
   branch_name?: string;
   display_order_number?: number;
+  queue_number?: string;
 }
 
 interface Stats { gross: number; voided: number; net: number; }
@@ -619,7 +620,8 @@ const BranchReceiptsTab: React.FC = () => {
               {!isLoading && searchResults.map(item => (
                 <tr key={item.sale_id} className="hover:bg-zinc-50/80 transition-colors group">
                   <td className="px-6 py-4">
-                    <div className="text-sm font-black text-[#1a0f2e]">{item.si_number}</div>
+                    <div className="text-sm font-black text-[#1a0f2e]">#{item.queue_number || String(item.display_order_number ?? item.daily_order_number ?? '—').padStart(3, '0')}</div>
+                    <div className="text-xs font-bold text-zinc-400 mt-0.5">{item.si_number}</div>
                     <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
                       {new Date(item.created_at).toLocaleString([], { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
