@@ -103,7 +103,9 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
     setIsFetching(true);
     try {
       const response = await api.get('/purchase-orders');
-      const mappedOrders: POItem[] = response.data.orders.map((po: RawPOData) => ({
+      const payload = response.data?.data ?? response.data;
+      const rawOrders: RawPOData[] = payload?.orders ?? payload ?? [];
+      const mappedOrders: POItem[] = (Array.isArray(rawOrders) ? rawOrders : []).map((po: RawPOData) => ({
         id: po.id,
         poNumber: po.po_number,
         supplier: po.supplier,
@@ -111,10 +113,11 @@ const TL_PurchaseOrderPanel: React.FC<{ branchId?: number | null }> = ({ branchI
         status: po.status,
         dateOrdered: po.date_ordered
       }));
-      const toCache: POCache = { orders: mappedOrders, stats: response.data.stats };
+      const resolvedStats: POStats = payload?.stats ?? { active_orders: 0, pending_payment: 0, monthly_spend: 0 };
+      const toCache: POCache = { orders: mappedOrders, stats: resolvedStats };
       setCache(cacheKey, toCache);
       setOrders(mappedOrders);
-      setStats(response.data.stats);
+      setStats(resolvedStats);
     } catch (error) {
       console.error(error);
       showToast("Failed to load purchase orders", "error");

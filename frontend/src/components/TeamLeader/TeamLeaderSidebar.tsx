@@ -96,7 +96,6 @@ const STYLES = `
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
     width: 2.5px; background: #6a12b8; border-radius: 0 2px 2px 0;
   }
-  .ops-topbar-header { background: linear-gradient(135deg, #6a12b8 0%, #4c2b7d 100%); }
 `;
 
 const TeamLeaderSidebar: React.FC<TeamLeaderSidebarProps> = ({
@@ -144,12 +143,12 @@ const TeamLeaderSidebar: React.FC<TeamLeaderSidebarProps> = ({
       {/* ══════════════════════════════════════════════
           DESKTOP SIDEBAR (md and above)
       ══════════════════════════════════════════════ */}
-      <aside className={`tl-sb-root fixed inset-y-0 left-0 z-[70] w-60 bg-white border-r border-zinc-100 flex-col md:flex md:relative transition-transform duration-300 ease-in-out ${
-        isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      <aside className={`tl-sb-root fixed inset-y-0 left-0 z-[70] w-60 h-screen bg-white flex flex-col md:relative md:shrink-0 transition-transform duration-300 ease-in-out ${
+        isSidebarOpen ? 'translate-x-0 flex' : '-translate-x-full md:translate-x-0'
       }`}>
         
         {/* User profile section - Unified Header Style */}
-        <div className="shrink-0 px-4 pt-6 pb-4 border-b border-[#2d184d] ops-topbar-header">
+        <div className="shrink-0 h-[72px] px-4 flex flex-col justify-center border-b border-black/10 bg-[#6a12b8]">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-[0.4rem] bg-[#ffffff20] border border-[#ffffff20] flex items-center justify-center shrink-0 shadow-sm">
               <span className="text-[0.55rem] font-black text-white tracking-wide">{initials}</span>
@@ -166,7 +165,7 @@ const TeamLeaderSidebar: React.FC<TeamLeaderSidebarProps> = ({
         </div>
 
         {/* Navigation scroll area */}
-        <div className="flex-1 sa-scroll px-3 py-3">
+        <div className="flex-1 sa-scroll px-3 py-3 border-r border-zinc-100">
           {MENU_GROUPS.map((group, gIdx) => (
             <div key={group.label} className={gIdx > 0 ? 'mt-5' : ''}>
               <p className="px-2 pb-1.5 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">
@@ -198,7 +197,7 @@ const TeamLeaderSidebar: React.FC<TeamLeaderSidebarProps> = ({
         </div>
 
         {/* Bottom actions */}
-        <div className="shrink-0 px-3 pb-4 pt-2 border-t border-zinc-100">
+        <div className="shrink-0 px-3 pb-4 pt-2 border-t border-r border-zinc-100">
           <button
             onClick={onLogout}
             disabled={isLoggingOut}

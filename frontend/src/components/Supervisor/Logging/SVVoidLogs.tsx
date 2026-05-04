@@ -181,7 +181,16 @@ const SV_VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5">
         <div>
-
+          <h2 className="text-base font-bold text-[#1a0f2e]">Receipt Management</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">Search and void transactions</p>
+        </div>
+        <div className="flex gap-2">
+          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+            className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-bold outline-none" />
+          <button onClick={fetchLogs} disabled={loading}
+            className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
         </div>
       </div>
 

@@ -70,7 +70,7 @@ const TeamLeaderDashboard = () => {
   const renderContent = () => {
     const bId = authUser?.branch_id ?? null;
     switch (activeTab) {
-      case 'dashboard':       return <TL_DashboardPanel />;
+      case 'dashboard':       return <TL_DashboardPanel branchId={bId} />;
       case 'users':           return <StaffOverviewPanel  branchId={bId} />;
       case 'void-logs':       return <SV_VoidLogsPanel    branchId={bId} />;
       case 'sales-dashboard': return <SalesDashboardPanel branchId={bId} />;
