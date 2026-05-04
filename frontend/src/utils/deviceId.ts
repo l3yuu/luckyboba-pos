@@ -14,6 +14,23 @@ const SESSION_KEY   = 'pos_device_id_backup';
 const COOKIE_NAME   = 'pos_device_id';
 const COOKIE_MAXAGE = 60 * 60 * 24 * 365; // 1 year
 
+// ── MOZILLA HANDSHAKE CAPTURE ──
+// We check for the HWID in the URL immediately upon script load.
+// This ensures we catch it even if the React Router redirects the page.
+(function captureUrlHwid() {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const hwid = params.get('hwid');
+    if (hwid && hwid.startsWith('WIN-')) {
+      console.log(`[HardwareBridge] Captured ID from URL: ${hwid}`);
+      localStorage.setItem(STORAGE_KEY, hwid);
+      // Clean up the URL
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }
+})();
+
 // ── WebGL Fingerprint (GPU Information) ────────────────────────────────────────
 function getWebglRenderer(): string {
   try {
@@ -153,12 +170,22 @@ async function writeToStorage(id: string): Promise<void> {
 }
 
 // ── Hardware Bridge Service (Chrome Mode) ────────────────────────────────────
+let _isBridgeChecking = false;
+let _lastBridgeAttempt = 0;
+
 // Fetches the hardware ID from the local companion service running on port 9876.
 // This allows Chrome (with full print preview) to access native hardware info.
 async function fetchFromHardwareBridge(): Promise<string | null> {
-  // We try both localhost and 127.0.0.1 to avoid DNS/CORS quirks
+  // Prevent spamming the bridge if we just tried recently
+  const now = Date.now();
+  if (_isBridgeChecking || (now - _lastBridgeAttempt < 5000)) return null;
+  
+  _isBridgeChecking = true;
+  _lastBridgeAttempt = now;
+
   const endpoints = ['http://127.0.0.1:9876/hardware-id', 'http://localhost:9876/hardware-id'];
   
+  let fetchFailed = false;
   for (const url of endpoints) {
     try {
       console.log(`[HardwareBridge] Attempting to fetch from ${url}...`);
@@ -177,13 +204,34 @@ async function fetchFromHardwareBridge(): Promise<string | null> {
         const data = await res.json();
         if (data?.id) {
           console.log(`[HardwareBridge] SUCCESS! Found ID: ${data.id}`);
+          _isBridgeChecking = false;
           return data.id;
         }
       }
     } catch (err) {
       console.warn(`[HardwareBridge] Failed to connect to ${url}:`, err);
+      fetchFailed = true;
     }
   }
+
+  // ── MOZILLA FALLBACK: Handshake Redirect ──
+  // If fetch failed (likely due to Mixed Content in Firefox), and we are on an HTTPS site,
+  // we trigger a top-level redirect to the handshake endpoint.
+  if (fetchFailed && window.location.protocol === 'https:') {
+    const lastRedirect = localStorage.getItem('last_hw_handshake');
+    const oneMinuteAgo = Date.now() - 60000;
+    
+    if (!lastRedirect || parseInt(lastRedirect) < oneMinuteAgo) {
+      console.log('[HardwareBridge] Fetch blocked. Triggering Handshake Redirect for Mozilla...');
+      localStorage.setItem('last_hw_handshake', Date.now().toString());
+      
+      const returnUrl = window.location.href;
+      window.location.href = `http://localhost:9876/handshake?return=${encodeURIComponent(returnUrl)}`;
+      // This will halt execution and redirect back with ?hwid=...
+    }
+  }
+
+  _isBridgeChecking = false;
   return null;
 }
 

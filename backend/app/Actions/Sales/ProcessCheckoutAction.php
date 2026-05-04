@@ -12,6 +12,7 @@ use App\Models\CashCount;
 use App\Helpers\ShiftHelper;
 use App\Actions\Inventory\DeductStockFromSaleAction;
 use App\Services\DashboardService;
+use App\Models\ZReading;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -106,6 +107,7 @@ class ProcessCheckoutAction
             $branch = Branch::find($branchId);
             $isVat  = ($branch?->vat_type ?? 'vat') !== 'non_vat';
 
+<<<<<<< HEAD
             $status = $data['status'] ?? 'completed';
             // Force pos and kiosk orders to 'preparing' initially for the queue display
             if (in_array($status, ['completed', 'pending']) && in_array($data['source'] ?? 'pos', ['kiosk', 'pos'])) {
@@ -114,6 +116,10 @@ class ProcessCheckoutAction
 
             // Extract queue number (last 3 digits of invoice, or fallback)
             $queueNumber = $data['queue_number'] ?? substr($officialOR, -3);
+=======
+            $source = $data['source'] ?? 'pos';
+            $queueNumber = $this->generateQueueNumber((int)$branchId, $source);
+>>>>>>> origin/main
 
             // 2. Create Sale header
             $sale = Sale::create([
@@ -122,7 +128,11 @@ class ProcessCheckoutAction
                 'total_amount'             => 0, // Placeholder
                 'invoice_number'           => $officialOR,
                 'queue_number'             => $queueNumber,
+<<<<<<< HEAD
                 'status'                   => $status,
+=======
+                'status'                   => $data['status'] ?? 'completed',
+>>>>>>> origin/main
                 'payment_method'           => $data['payment_method'] ?? 'cash',
                 'reference_number'         => $data['reference_number'] ?? null,
                 'charge_type'              => $chargeType,
@@ -438,4 +448,42 @@ class ProcessCheckoutAction
         }
     }
 
+
+    private function getCurrentShiftNumber(int $branchId): int
+    {
+        $today = now()->toDateString();
+        // Count how many EODs (CashCount) exist for today in this branch
+        return CashCount::where('branch_id', $branchId)
+            ->where('date', $today)
+            ->count() + 1;
+    }
+
+    private function generateQueueNumber(int $branchId, string $source): string
+    {
+        $lastZReading = ZReading::where('branch_id', $branchId)
+            ->where('is_closed', true)
+            ->latest('closed_at')
+            ->first();
+
+        $queueQuery = Sale::where('branch_id', $branchId);
+        
+        if ($source === 'kiosk') {
+            $queueQuery->where('source', 'kiosk');
+        } else {
+            $queueQuery->where(function($q) {
+                $q->where('source', 'pos')->orWhereNull('source')->orWhere('source', '!=', 'kiosk');
+            });
+        }
+        
+        if ($lastZReading && $lastZReading->closed_at) {
+            $queueQuery->where('created_at', '>', $lastZReading->closed_at);
+        } else {
+            $queueQuery->whereDate('created_at', now()->toDateString());
+        }
+
+        $count = $queueQuery->count();
+        $nextQueue = $source === 'kiosk' ? $count + 100 : $count + 1;
+
+        return str_pad($nextQueue, 3, '0', STR_PAD_LEFT);
+    }
 }

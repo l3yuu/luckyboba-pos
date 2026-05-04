@@ -39,26 +39,30 @@ class SalesDashboardService
         $dailyEnd     = $today->copy()->endOfDay();
         $weeklyStart  = Carbon::now()->subDays(6)->startOfDay();
         $weeklyEnd    = Carbon::now()->endOfDay();
+        $monthlyStart = Carbon::now()->subDays(29)->startOfDay();
 
-        // 1. Weekly Sales
-        $weeklyDataPoints = $this->saleRepo->getSalesChartData($weeklyStart, $weeklyEnd, 'daily', $branchId)
-            ->map(fn($row) => [
-                'day'       => $row->day,
-                'date'      => Carbon::parse($row->date)->format('M d'),
-                'value'     => (float) $row->value,
-                'full_date' => Carbon::parse($row->date)->toFormattedDateString(),
-            ]);
-        
-        $totalWeeklyRevenue = $weeklyDataPoints->sum('value');
+        // 1. Assemble Period Blocks for BM_Dashboard
+        // assemblePeriodData uses raw dates (YYYY-MM-DD) which Recharts needs.
+        $daily   = $this->assemblePeriodData($dailyStart, $dailyEnd, 'daily', $branchId);
+        $weekly  = $this->assemblePeriodData($weeklyStart, $weeklyEnd, 'daily', $branchId);
+        $monthly = $this->assemblePeriodData($monthlyStart, $weeklyEnd, 'daily', $branchId);
 
-        // 2. Today's Hourly Sales
+        // 2. Re-format Weekly for SalesDashboard.tsx (keeping 'date' as raw for compatibility)
+        $weeklySalesData = $weekly['data']->map(fn($row) => [
+            'day'       => $row['day'],
+            'date'      => $row['date'], // Keep as YYYY-MM-DD
+            'value'     => $row['value'],
+            'full_date' => Carbon::parse($row['date'])->toFormattedDateString(),
+        ]);
+
+        // 3. Re-format Today Hourly for SalesDashboard.tsx
         $todayHourly = $this->saleRepo->getHourlySalesBreakdown($dailyStart, $dailyEnd, $branchId)
             ->map(fn($item) => [
                 'time'  => Carbon::createFromTime($item->hour)->format('g A'),
                 'value' => (float) $item->total,
             ]);
 
-        // 3. Statistics (Matching X-Reading logic)
+        // 4. Statistics (Matching X-Reading logic)
         $voidToday          = $this->saleRepo->getVoidSalesBetween($dailyStart, $dailyEnd, $branchId);
         $grossOrdered       = $this->saleRepo->getGrossItemSalesBetween($dailyStart, $dailyEnd, $branchId);
         $grossSalesToday    = round($grossOrdered + $voidToday, 2);
@@ -67,28 +71,36 @@ class SalesDashboardService
         $presentAccumulated  = round($previousAccumulated + $grossSalesToday, 2);
         
         $stats = [
-            'beginning_sales' => (float) $previousAccumulated,
-            'today_sales'     => (float) $grossSalesToday,
-            'ending_sales'    => (float) $presentAccumulated,
-            'cancelled_sales' => (float) $voidToday,
-            'beginning_or'    => $this->saleRepo->getFirstSiNumberBetween($dailyStart, $dailyEnd, $branchId),
-            'ending_or'       => $this->saleRepo->getLastSiNumberBetween($dailyStart, $dailyEnd, $branchId),
+            'beginning_sales'  => (float) $previousAccumulated,
+            'today_sales'      => (float) $grossSalesToday,
+            'ending_sales'     => (float) $presentAccumulated,
+            'cancelled_sales'  => (float) $voidToday,
+            'beginning_or'     => $this->saleRepo->getFirstSiNumberBetween($dailyStart, $dailyEnd, $branchId),
+            'ending_or'        => $this->saleRepo->getLastSiNumberBetween($dailyStart, $dailyEnd, $branchId),
+            'top_seller_today' => $daily['top_sellers'],
         ];
 
         return [
-            'weekly_sales' => [
-                'data'               => $weeklyDataPoints->values()->all(),
-                'total_revenue'      => (float) $totalWeeklyRevenue,
+            // Original fields (for SalesDashboard.tsx)
+            'weekly_sales' => array_merge($weekly, [
+                'data'               => $weeklySalesData->values()->all(),
+                'total_revenue'      => (float) $weekly['stats']['total_sales'],
                 'start_date'         => $weeklyStart->toDateString(),
                 'end_date'           => $weeklyEnd->toDateString(),
                 'current_week_start' => $weeklyStart->toDateString(),
-            ],
+            ]),
             'today_sales'  => [
                 'data' => $todayHourly->values()->all(),
                 'date' => $today->toDateString(),
             ],
-            'statistics'   => $stats,
-            'generated_at' => now()->toDateTimeString(),
+            
+            // New fields (for BM_Dashboard)
+            'daily_sales'   => $daily,
+            'monthly_sales' => $monthly,
+            
+            // Shared/Unified fields
+            'statistics'    => $stats,
+            'generated_at'  => now()->toDateTimeString(),
         ];
     }
 

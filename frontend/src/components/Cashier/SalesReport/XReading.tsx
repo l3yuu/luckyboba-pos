@@ -390,7 +390,10 @@ const XReading = () => {
     setPendingReportType('x_reading');
     setShowPinOverlay(true);
   };
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    if (!reportData) return;
+    setTimeout(() => window.print(), 500);
+  };
 
   const handleMenuAction = async (type: string) => {
     const fetchable = ['x_reading', 'hourly_sales', 'void_logs', 'detailed', 'qty_items', 'cash_count', 'summary', 'search'];
@@ -1013,7 +1016,7 @@ const XReading = () => {
         `}</style>
 
         {/* ── CONTROLS ── */}
-        <div className="bg-white p-3 border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-3 relative z-50 print:hidden shadow-sm rounded-[0.625rem]">
+        <div className="bg-white p-3 border border-zinc-200 mb-6 flex flex-col lg:flex-row items-center gap-3 relative z-50 print:hidden shadow-sm rounded-[0.625rem]">
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -1105,7 +1108,8 @@ const XReading = () => {
             </button>
             <button
               onClick={handlePrint}
-              className="px-6 h-11 bg-white text-[#6a12b8] font-bold text-xs uppercase tracking-widest border border-[#6a12b8] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]"
+              disabled={!reportData || loading}
+              className="px-6 h-11 bg-white text-[#6a12b8] font-bold text-xs uppercase tracking-widest border border-[#6a12b8] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Print
             </button>

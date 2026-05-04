@@ -518,7 +518,10 @@ const ZReading = () => {
     setPendingReportType(null);
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    if (!reportData) return;
+    setTimeout(() => window.print(), 500);
+  };
 
   const menuCards = [
     { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#6a12b8]" },
@@ -1242,7 +1245,7 @@ const ZReading = () => {
         )}
 
         {/* ── CONTROLS ── */}
-        <div className="bg-white p-3 border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-3 relative z-50 print:hidden shadow-sm rounded-[0.625rem]">
+        <div className="bg-white p-3 border border-zinc-200 mb-6 flex flex-col lg:flex-row items-center gap-3 relative z-50 print:hidden shadow-sm rounded-[0.625rem]">
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -1352,8 +1355,11 @@ const ZReading = () => {
               className={`px-6 h-11 text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] border ${zStatus?.is_closed ? 'bg-zinc-400 border-zinc-400 cursor-not-allowed opacity-60' : 'bg-[#6a12b8] border-[#6a12b8] hover:bg-[#6a12b8] active:bg-[#5a0fa0] disabled:opacity-50'}`}>
               {loading ? 'Processing...' : zStatus?.is_closed ? 'Day Closed' : 'Generate'}
             </button>
-            <button onClick={handlePrint}
-              className="px-6 h-11 bg-white text-[#6a12b8] font-bold text-xs uppercase tracking-widest border border-[#6a12b8] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]">
+            <button 
+              onClick={handlePrint}
+              disabled={!reportData || loading}
+              className="px-6 h-11 bg-white text-[#6a12b8] font-bold text-xs uppercase tracking-widest border border-[#6a12b8] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Print
             </button>
           </div>

@@ -81,15 +81,42 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // 1. Standard API (Works in Chrome, blocked in Firefox via HTTPS)
   if (req.url === '/hardware-id') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ id: HARDWARE_ID }));
     return;
   }
 
-  if (req.url === '/health') {
+  // 2. Handshake Redirect (BEST FOR MOZILLA)
+  // Bypasses Firefox "Mixed Content" blocks by using a top-level navigation.
+  // Usage: http://localhost:9876/handshake?return=https://luckybobastores.com
+  if (req.url.startsWith('/handshake')) {
+    try {
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const returnUrl = url.searchParams.get('return');
+      if (returnUrl) {
+        const separator = returnUrl.includes('?') ? '&' : '?';
+        const finalUrl = `${returnUrl}${separator}hwid=${HARDWARE_ID}`;
+        console.log(`[Handshake] Redirecting to: ${finalUrl}`);
+        res.writeHead(302, { 'Location': finalUrl });
+        res.end();
+        return;
+      }
+    } catch (e) {
+      console.error('[Handshake] Error:', e.message);
+    }
+  }
+
+  // 3. Status Check
+  if (req.url === '/health' || req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', service: 'LuckyBoba Hardware Bridge' }));
+    res.end(JSON.stringify({ 
+      status: 'ok', 
+      service: 'LuckyBoba Hardware Bridge',
+      hwid: HARDWARE_ID,
+      mozilla_ready: true
+    }));
     return;
   }
 
@@ -97,9 +124,25 @@ const server = http.createServer((req, res) => {
   res.end('Not found');
 });
 
-server.listen(PORT, () => {
-  console.log(`[Lucky Boba] Hardware Bridge running on http://localhost:${PORT}`);
-  console.log(`[Lucky Boba] Hardware ID: ${HARDWARE_ID}`);
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error(`[Lucky Boba] ERROR: Port ${PORT} is already in use.`);
+    console.error(`[Lucky Boba] The Hardware Bridge is likely already running.`);
+    process.exit(0); // Exit cleanly if already running
+  } else {
+    console.error('[Lucky Boba] Server Error:', e);
+  }
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log('----------------------------------------------------');
+  console.log(`[Lucky Boba] Hardware Bridge: RUNNING`);
+  console.log(`[Lucky Boba] Port:            ${PORT}`);
+  console.log(`[Lucky Boba] Hardware ID:      ${HARDWARE_ID}`);
+  console.log('----------------------------------------------------');
+  console.log(`[Mozilla Fix] If Firefox blocks the connection, use:`);
+  console.log(`http://127.0.0.1:${PORT}/handshake?return=https://luckybobastores.com`);
+  console.log('----------------------------------------------------');
 });
 
 // Graceful shutdown

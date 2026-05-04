@@ -22,10 +22,10 @@ export const Header = ({
   branchName, formattedDate, formattedTime,
   searchQuery, onSearchChange, onHomeClick,
 }: HeaderProps) => (
-  <div className="flex gap-3 px-4 py-3 bg-white border-b border-[#e9d5ff] items-center h-20 shrink-0 shadow-sm z-20">
+  <div className="flex flex-col sm:flex-row gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-white border-b border-[#e9d5ff] items-center sm:h-20 shrink-0 shadow-sm z-20">
     <button
       onClick={onHomeClick}
-      className="bg-[#6a12b8] text-white h-full px-5 rounded-[0.625rem] font-black text-[11px] uppercase tracking-widest shadow-md hover:bg-[#6a12b8] transition-all flex items-center gap-2"
+      className="bg-[#6a12b8] text-white h-10 sm:h-full px-4 sm:px-5 rounded-[0.625rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-md hover:bg-[#6a12b8] transition-all flex items-center justify-center gap-2 w-full sm:w-auto"
     >
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
         <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
@@ -33,7 +33,7 @@ export const Header = ({
       Home
     </button>
 
-    <div className="flex-1 bg-[#f5f0ff] rounded-[0.625rem] border-2 border-[#e9d5ff] flex items-center px-4 gap-2 h-full focus-within:border-[#6a12b8] transition-colors">
+    <div className="flex-1 w-full bg-[#f5f0ff] rounded-[0.625rem] border-2 border-[#e9d5ff] flex items-center px-4 gap-2 h-10 sm:h-full focus-within:border-[#6a12b8] transition-colors">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-zinc-400 shrink-0">
         <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
       </svg>
@@ -329,7 +329,7 @@ interface CartSidebarProps {
 export const CartSidebar = ({
   cart, cashierName, orNumber, totalCount, subtotal, terminalNumber, onEditItem, onConfirmOrder,
 }: CartSidebarProps) => (
-  <div className="w-96 bg-white border-l-2 border-[#e9d5ff] flex flex-col shrink-0 shadow-2xl z-30">
+  <div className="w-full lg:w-96 bg-white border-l-0 lg:border-l-2 border-[#e9d5ff] flex flex-col shrink-0 shadow-2xl z-30">
 
 {/* Cart header */}
 <div className="bg-[#6a12b8] p-4 text-white flex items-center justify-between shrink-0">

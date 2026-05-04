@@ -85,7 +85,7 @@ class MenuItemController extends Controller
             'panda_price' => 'nullable|numeric|min:0',
             // FIX: barcode is truly nullable — only enforce unique when provided
             'barcode' => 'nullable|string|max:255|unique:menu_items,barcode',
-            'is_available' => 'nullable|in:0,1,true,false',
+            'is_available' => 'nullable|boolean',
             // FIX: max:4096 (4MB) to give headroom; browser already limits to 2MB via JS
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         ]);
@@ -152,7 +152,7 @@ class MenuItemController extends Controller
             'panda_price' => 'nullable|numeric|min:0',
             // FIX: Properly ignore the current item's own barcode in the unique check
             'barcode' => 'nullable|string|max:255|unique:menu_items,barcode,' . $id . ',id',
-            'is_available' => 'nullable|in:0,1,true,false',
+            'is_available' => 'nullable|boolean',
             // FIX: max:4096 to match server limits; JS enforces 2MB on client side
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         ]);

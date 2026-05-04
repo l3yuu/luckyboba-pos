@@ -487,7 +487,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                 <p className="text-xs font-medium">No data for this period</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={220} minWidth={0}>
                 <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="bmGrad" x1="0" y1="0" x2="0" y2="1">
@@ -568,7 +568,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
           <div className="grid grid-cols-12 gap-4">
             <div className="col-span-12 lg:col-span-7 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
               <SectionHeader title="All-Time Best Sellers" desc="Cumulative sales volume by product" />
-              <ResponsiveContainer width="100%" height={180}>
+              <ResponsiveContainer width="100%" height={180} minWidth={0}>
                 <BarChart
                   data={sellersAllTime.slice(0, 6).map((x: TopSellerItem) => ({ name: x.product_name.split(' ')[0], qty: x.total_qty }))}
                   margin={{ top: 0, right: 0, left: -25, bottom: 0 }}

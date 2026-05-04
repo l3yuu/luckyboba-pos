@@ -509,11 +509,11 @@ public function store(Request $request)
 
             // ── Weekly sales (last 7 days) ───────────────────────────────────
             $weeklyRaw = DB::table('sales')
-                ->selectRaw('DATE(created_at) as date, SUM(total_amount) as total, COUNT(*) as count')
+                ->selectRaw('DATE(sales.created_at) as date, SUM(sales.total_amount) as total, COUNT(*) as count')
                 ->where('branch_id', $id)
                 ->where('status', 'completed')
                 ->whereBetween('created_at', [$weekStart, Carbon::now()])
-                ->groupByRaw('DATE(created_at)')
+                ->groupByRaw('DATE(sales.created_at)')
                 ->orderBy('date')
                 ->get()
                 ->keyBy('date');

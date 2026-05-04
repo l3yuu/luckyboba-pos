@@ -249,6 +249,8 @@ class OnlineOrderController extends Controller
                 'LOWER(name) = ?', [strtolower($request->input('branch_name'))]
             )->first();
 
+            $queueNumber = $this->generateQueueNumberForOrder($branch?->id, $request->input('source', 'app'));
+
             \Log::info('Branch lookup', [
                 'requested' => $request->input('branch_name'),
                 'found'     => $branch?->name,
@@ -257,6 +259,7 @@ class OnlineOrderController extends Controller
 
             $sale = Sale::create([
                 'invoice_number' => $request->si_number,
+                'queue_number'   => $queueNumber,
                 'branch_id'      => $branch?->id,
                 'user_id'        => $request->user()->id,
                 'customer_name'  => $request->user()->name,
@@ -400,36 +403,40 @@ class OnlineOrderController extends Controller
 
     private function formatOrder($sale): array
     {
-        // Calculate daily queue number (synchronized with Cashier logic)
-        $lastZReading = ZReading::where('branch_id', $sale->branch_id)
-            ->where('is_closed', true)
-            ->where('closed_at', '<', $sale->created_at)
-            ->latest('closed_at')
-            ->first();
-
-        $queueQuery = Sale::where('branch_id', $sale->branch_id)
-            ->where('id', '<=', $sale->id);
-
-        // Partition by source so kiosk and POS have independent queues
-        if ($sale->source === 'kiosk') {
-            $queueQuery->where('source', 'kiosk');
+        if ($sale->queue_number) {
+            $code = $sale->queue_number;
         } else {
-            $queueQuery->where(function ($q) {
-                $q->where('source', '!=', 'kiosk')->orWhereNull('source');
-            });
-        }
+            // Calculate daily queue number (fallback for legacy orders)
+            $lastZReading = ZReading::where('branch_id', $sale->branch_id)
+                ->where('is_closed', true)
+                ->where('closed_at', '<', $sale->created_at)
+                ->latest('closed_at')
+                ->first();
 
-        if ($lastZReading) {
-            $queueQuery->where('created_at', '>', $lastZReading->closed_at);
-        } else {
-            $queueQuery->whereDate('created_at', $sale->created_at->toDateString());
-        }
+            $queueQuery = Sale::where('branch_id', $sale->branch_id)
+                ->where('id', '<=', $sale->id);
 
-        $dailyNo = $queueQuery->count();
-        if ($sale->source === 'kiosk') {
-            $dailyNo += 99; // 1 becomes 100, 2 becomes 101, etc.
+            // Partition by source so kiosk and POS have independent queues
+            if ($sale->source === 'kiosk') {
+                $queueQuery->where('source', 'kiosk');
+            } else {
+                $queueQuery->where(function ($q) {
+                    $q->where('source', '!=', 'kiosk')->orWhereNull('source');
+                });
+            }
+
+            if ($lastZReading) {
+                $queueQuery->where('created_at', '>', $lastZReading->closed_at);
+            } else {
+                $queueQuery->whereDate('created_at', $sale->created_at->toDateString());
+            }
+
+            $dailyNo = $queueQuery->count();
+            if ($sale->source === 'kiosk') {
+                $dailyNo += 99; // 1 becomes 100, 2 becomes 101, etc.
+            }
+            $code = str_pad($dailyNo, 3, '0', STR_PAD_LEFT);
         }
-        $code = str_pad($dailyNo, 3, '0', STR_PAD_LEFT);
 
         return [
             'id'             => $sale->id,
@@ -483,5 +490,36 @@ class OnlineOrderController extends Controller
                 ];
             })->values()->toArray(),
         ];
+    }
+
+    private function generateQueueNumberForOrder(?int $branchId, string $source): string
+    {
+        if (!$branchId) return '000';
+
+        $lastZReading = ZReading::where('branch_id', $branchId)
+            ->where('is_closed', true)
+            ->latest('closed_at')
+            ->first();
+
+        $queueQuery = Sale::where('branch_id', $branchId);
+        
+        if ($source === 'kiosk') {
+            $queueQuery->where('source', 'kiosk');
+        } else {
+            $queueQuery->where(function($q) {
+                $q->where('source', 'pos')->orWhereNull('source')->orWhere('source', '!=', 'kiosk');
+            });
+        }
+        
+        if ($lastZReading && $lastZReading->closed_at) {
+            $queueQuery->where('created_at', '>', $lastZReading->closed_at);
+        } else {
+            $queueQuery->whereDate('created_at', now()->toDateString());
+        }
+
+        $count = $queueQuery->count();
+        $nextQueue = $source === 'kiosk' ? $count + 100 : $count + 1;
+
+        return str_pad($nextQueue, 3, '0', STR_PAD_LEFT);
     }
 }

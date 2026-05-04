@@ -14,7 +14,7 @@ export type TabId =
   | "overview" | "branches" | "users" | "devices" | "online_orders"
   | "sales_report" | "analytics" | "items_report" | "staff_performance" | "branch_receipts"
   | "cross_branch_reports" | "x_reading" | "z_reading"
-  | "menu_items" | "categories" | "subcategories"
+  | "menu_items" | "categories" | "subcategories" | "branch_availability"
   | "inv_overview" | "inventory_alerts" | "raw_materials" | "usage_report"
   | "recipes" | "supplier" | "purchase_order" | "stock_transfer"
   | "expenses"
@@ -200,6 +200,7 @@ const MENU_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "menu_items",    label: "Menu List",      icon: <BookOpen size={13} /> },
   { id: "categories",    label: "Categories",     icon: <Layers   size={13} /> },
   { id: "subcategories", label: "Sub-Categories", icon: <List     size={13} /> },
+  { id: "branch_availability", label: "Branch Availability", icon: <GitBranch size={13} /> },
 ];
 
 const INVENTORY_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [

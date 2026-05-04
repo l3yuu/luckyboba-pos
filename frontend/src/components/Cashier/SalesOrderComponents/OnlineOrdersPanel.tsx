@@ -46,6 +46,7 @@ interface OnlineOrder {
   si_number?: string;
   customer_name?: string;
   customer_code?: string;
+  queue_number?: string;
   qr_code?: string;
   branch_name?: string;
   payment_method?: string;
@@ -98,11 +99,19 @@ const STATUS_META: Record<Status, {
     icon: <ChefHat size={14} className="text-blue-500" />,
   },
   ready: {
+<<<<<<< HEAD
     label: 'Now Serving',
     color: 'text-violet-700',
     bg: 'bg-violet-50',
     border: 'border-violet-200',
     icon: <AlertCircle size={14} className="text-violet-500" />,
+=======
+    label: 'Ready',
+    color: 'text-violet-700',
+    bg: 'bg-violet-50',
+    border: 'border-violet-200',
+    icon: <CheckCircle2 size={14} className="text-violet-500" />,
+>>>>>>> origin/main
   },
   completed: {
     label: 'Completed',
@@ -180,7 +189,7 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
   const [showQr, setShowQr] = useState(false);
   const meta = STATUS_META[order.status as Status];
   const invoice = orderInvoice(order);
-  const seqNumber = order.customer_code || '???';
+  const seqNumber = order.queue_number || order.customer_code || '???';
   // Only show SI# if it's a real receipt number (not a temporary KSK-/APP- placeholder)
   const hasRealInvoice = invoice && !invoice.startsWith('KSK-') && !invoice.startsWith('APP-');
 
@@ -340,14 +349,24 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
           <button
             onClick={() => onMove(order.id, next)}
             disabled={updating}
-            className={`w-full py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${next === 'preparing' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-[0_4px_14px_0_rgba(37,99,235,0.3)]' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_4px_14px_0_rgba(16,185,129,0.3)]'}`}
+            className={`w-full py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+              next === 'preparing' 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-[0_4px_14px_0_rgba(37,99,235,0.3)]' 
+                : next === 'ready'
+                  ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-[0_4px_14px_0_rgba(139,92,246,0.3)]'
+                  : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_4px_14px_0_rgba(16,185,129,0.3)]'
+            }`}
           >
             {updating
               ? 'Updating...'
               : next === 'preparing'
                 ? '→ Start Preparing'
                 : next === 'ready'
+<<<<<<< HEAD
                   ? '→ Now Serving'
+=======
+                  ? '→ Mark as Ready'
+>>>>>>> origin/main
                   : '✓ Mark as Done'}
           </button>
         )}
@@ -372,7 +391,11 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, onPrintStickers, updati
   const COLUMN_LABELS: Record<Status, string> = {
     pending: 'New Orders',
     preparing: 'Preparing',
+<<<<<<< HEAD
     ready: 'Now Serving',
+=======
+    ready: 'Ready',
+>>>>>>> origin/main
     completed: 'Completed',
   };
 
@@ -546,12 +569,19 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
 
   // ── Generic print trigger ─────────────────────────────────────────────────
+  const [lastPrintJob, setLastPrintJob] = useState<{
+    type: 'receipt' | 'kitchen' | 'stickers';
+    order: OnlineOrder;
+    seqNumber: string;
+  } | null>(null);
+
   const triggerPrint = useCallback((
     type: 'receipt' | 'kitchen' | 'stickers',
     order: OnlineOrder,
     seqNumber: string,
   ) => {
     setPrintJob({ type, order, seqNumber });
+    setLastPrintJob({ type, order, seqNumber });
   }, []);
 
   // Handle printing after job is set - ensures DOM is ready
@@ -643,7 +673,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         pax_pwd: paxPwd || undefined,
       };
       setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
-      const seqNumber = updatedOrder.customer_code || '001';
+      const seqNumber = updatedOrder.queue_number || updatedOrder.customer_code || '001';
 
       setActiveSuccessOrder({
         order: updatedOrder,
@@ -661,7 +691,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
   // ── Reprint receipt (completed card button) ───────────────────────────────
   const handleReprintReceipt = useCallback((order: OnlineOrder) => {
-    triggerPrint('receipt', order, order.customer_code || '001');
+    triggerPrint('receipt', order, order.queue_number || order.customer_code || '001');
   }, [triggerPrint]);
 
   // ── Confirmation modal ────────────────────────────────────────────────────
@@ -709,7 +739,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
       if (status === 'preparing') {
         // Print kitchen ticket
-        triggerPrint('kitchen', updatedOrder as OnlineOrder, updatedOrder.customer_code || '001');
+        triggerPrint('kitchen', updatedOrder as OnlineOrder, updatedOrder.queue_number || updatedOrder.customer_code || '001');
       }
 
       if (status === 'completed') {
@@ -735,7 +765,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
     const term = searchTerm.toLowerCase();
     return orders.filter(o => {
       const inv = orderInvoice(o).toLowerCase();
-      const seq = (o.customer_code || '').toLowerCase();
+      const seq = (o.queue_number || o.customer_code || '').toLowerCase();
       return inv.includes(term) || seq.includes(term);
     });
   };
@@ -811,7 +841,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
 
         {/* Kanban board */}
         <div className="flex-1 overflow-hidden p-5">
-          <div className="grid grid-cols-3 gap-5 h-full">
+          <div className="grid grid-cols-4 gap-5 h-full">
             {COLUMNS.map(status => (
               <KanbanColumn
                 key={status}
@@ -819,7 +849,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
                 orders={filteredOrders.filter(o => o.status === status)}
                 onMove={handleConfirm}
                 onPrint={handleReprintReceipt}
-                onPrintStickers={(o) => triggerPrint('stickers', o, o.customer_code || '001')}
+                onPrintStickers={(o) => triggerPrint('stickers', o, o.queue_number || o.customer_code || '001')}
                 updatingId={updatingId}
               />
             ))}
@@ -838,16 +868,18 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
 
-              <div className={`px-6 py-5 ${confirmOrder.status === 'preparing' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+              <div className={`px-6 py-5 ${confirmOrder.status === 'preparing' ? 'bg-blue-600' : confirmOrder.status === 'ready' ? 'bg-violet-600' : 'bg-emerald-600'}`}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                     {confirmOrder.status === 'preparing'
                       ? <ChefHat size={20} className="text-white" />
-                      : <CheckCircle2 size={20} className="text-white" />}
+                      : confirmOrder.status === 'ready'
+                        ? <CheckCircle2 size={20} className="text-white" />
+                        : <CheckCircle2 size={20} className="text-white" />}
                   </div>
                   <div>
                     <h2 className="text-white font-black text-base uppercase tracking-widest leading-tight">
-                      {confirmOrder.status === 'preparing' ? 'Start Preparing?' : 'Mark as Done?'}
+                      {confirmOrder.status === 'preparing' ? 'Start Preparing?' : confirmOrder.status === 'ready' ? 'Mark as Ready?' : 'Mark as Done?'}
                     </h2>
                     <p className="text-white/70 text-[11px] font-bold mt-0.5 font-mono">
                       #{confirmOrder.customer_code || '—'} · {confirmOrder.invoice}
@@ -860,7 +892,9 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
                 <p className="text-zinc-500 text-xs font-bold text-center">
                   {confirmOrder.status === 'preparing'
                     ? 'This will move the order to Preparing.'
-                    : 'This will mark the order as Completed.'}
+                    : confirmOrder.status === 'ready'
+                      ? 'This will move the order to Ready.'
+                      : 'This will mark the order as Completed.'}
                 </p>
               </div>
 
@@ -946,93 +980,95 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       </div>
 
       {/* Print area — rendered outside print:hidden div, matching SalesOrder pattern */}
-      {printJob?.type === 'kitchen' && (
-        <KitchenPrint
-          cart={mapOrderToCart(printJob.order)}
-          branchName={printJob.order.branch_name ?? '—'}
-          orNumber={orderInvoice(printJob.order)}
-          queueNumber={printJob.seqNumber}
-          customerName={printJob.order.customer_name ?? 'App Customer'}
-          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : printJob.order.order_type === 'delivery' ? 'delivery' : 'take-out'}
-          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
-          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-        />
-      )}
-      {printJob?.type === 'receipt' && (
-        (() => {
-          const order = printJob.order;
-          const calculatedSubtotal = (order.items || []).reduce((acc: number, item: SaleItem) => {
-            const finalLineTotal = Number(item.price || 0);
-            const itemDisc = Number(item.discount_amount || 0);
-            return acc + (finalLineTotal + itemDisc);
-          }, 0);
-          const totalDue = order.total_amount ?? orderTotal(order);
-          const itemDiscountTotal = (order.items || []).reduce((acc: number, i: SaleItem) => acc + Number(i.discount_amount || 0), 0);
+      {/* Print area — persistent to avoid race conditions */}
+      <KitchenPrint
+        onScreen={printJob?.type === 'kitchen'}
+        cart={mapOrderToCart(lastPrintJob?.order || ({} as OnlineOrder))}
+        branchName={lastPrintJob?.order.branch_name ?? '—'}
+        orNumber={lastPrintJob ? orderInvoice(lastPrintJob.order) : ''}
+        queueNumber={lastPrintJob?.seqNumber ?? ''}
+        customerName={lastPrintJob?.order.customer_name ?? 'App Customer'}
+        orderType={lastPrintJob?.order.order_type === 'dine_in' ? 'dine-in' : lastPrintJob?.order.order_type === 'delivery' ? 'delivery' : 'take-out'}
+        formattedDate={lastPrintJob ? new Date(lastPrintJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}
+        formattedTime={lastPrintJob ? new Date(lastPrintJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
+      />
 
-          return (
-            <ReceiptPrint
-              cart={mapOrderToCart(order)}
-              branchName={order.branch_name ?? '—'}
-              brand={branchDetails.brand || "LUCKY BOBA MILKTEA"}
-              {...branchDetails}
-              businessName={generalSettings.business_name}
-              contactEmail={generalSettings.contact_email}
-              contactPhone={generalSettings.contact_phone}
-              generalAddress={generalSettings.address}
-              ownerName={branchDetails.owner_name}
-              vatType={vatType}
-              addOnsData={addOnsData}
-              orNumber={orderInvoice(order)}
-              queueNumber={printJob.seqNumber}
-              terminalNumber={terminalNumber}
-              cashierName="Customer App"
-              orderCharge={order.source === 'grab' || order.source === 'panda' ? order.source as 'grab' | 'panda' : null}
-              totalCount={order.items.reduce((acc, i) => acc + itemQty(i), 0)}
-              subtotal={calculatedSubtotal}
-              amtDue={totalDue}
-              vatableSales={order.vatable_sales ?? (totalDue / 1.12)}
-              vatAmount={order.vat_amount ?? (totalDue - (totalDue / 1.12))}
-              vatExemptSales={order.vat_exempt_sales ?? 0}
-              change={Math.max(0, (order.cash_tendered || 0) - totalDue)}
-              cashTendered={order.cash_tendered ?? totalDue}
-              referenceNumber={order.reference_number ?? ""}
-              paymentMethod={(order.payment_method ?? 'online').toLowerCase()}
-              selectedDiscount={null}
-              selectedDiscounts={[]}
-              totalDiscountDisplay={Math.max(0, calculatedSubtotal - totalDue)}
-              itemDiscountTotal={itemDiscountTotal}
-              promoDiscount={order.discount_amount ?? 0}
-              itemPaxAssignments={{}}
-              customerName={order.customer_name ?? 'App Customer'}
-              seniorIds={order.senior_id ? order.senior_id.split(',') : []}
-              pwdIds={order.pwd_id ? order.pwd_id.split(',') : []}
-              paxSenior={order.pax_senior}
-              paxPwd={order.pax_pwd}
-              sc_discount_amount={order.sc_discount_amount}
-              pwd_discount_amount={order.pwd_discount_amount}
-              orderType={order.order_type === 'dine_in' ? 'dine-in' : order.order_type === 'delivery' ? 'delivery' : 'take-out'}
-              formattedDate={new Date(order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
-              formattedTime={new Date(order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-              isReprint={false}
-              showDoubleQueueStub={order.order_type === 'take-out'}
-              posFooter={posFooter}
-            />
-          );
-        })()
-      )}
-      {printJob?.type === 'stickers' && (
-        <StickerPrint
-          cart={mapOrderToCart(printJob.order)}
-          branchName={printJob.order.branch_name ?? '—'}
-          orNumber={orderInvoice(printJob.order)}
-          queueNumber={printJob.seqNumber}
-          customerName={printJob.order.customer_name ?? 'App Customer'}
-          orderType={printJob.order.order_type === 'dine_in' ? 'dine-in' : printJob.order.order_type === 'delivery' ? 'delivery' : 'take-out'}
-          formattedDate={new Date(printJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
-          formattedTime={new Date(printJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-          isOnline={true}
-        />
-      )}
+      {(() => {
+        const activeOrder = lastPrintJob?.order;
+        if (!activeOrder) return null;
+        
+        const calculatedSubtotal = (activeOrder.items || []).reduce((acc: number, item: SaleItem) => {
+          const finalLineTotal = Number(item.price || 0);
+          const itemDisc = Number(item.discount_amount || 0);
+          return acc + (finalLineTotal + itemDisc);
+        }, 0);
+        const totalDue = activeOrder.total_amount ?? orderTotal(activeOrder);
+        const itemDiscountTotal = (activeOrder.items || []).reduce((acc: number, i: SaleItem) => acc + Number(i.discount_amount || 0), 0);
+
+        return (
+          <ReceiptPrint
+            onScreen={printJob?.type === 'receipt'}
+            cart={mapOrderToCart(activeOrder)}
+            branchName={activeOrder.branch_name ?? '—'}
+            brand={branchDetails.brand || "LUCKY BOBA MILKTEA"}
+            {...branchDetails}
+            businessName={generalSettings.business_name}
+            contactEmail={generalSettings.contact_email}
+            contactPhone={generalSettings.contact_phone}
+            generalAddress={generalSettings.address}
+            ownerName={branchDetails.owner_name}
+            vatType={vatType}
+            addOnsData={addOnsData}
+            orNumber={orderInvoice(activeOrder)}
+            queueNumber={lastPrintJob.seqNumber}
+            terminalNumber={terminalNumber}
+            cashierName="Customer App"
+            orderCharge={activeOrder.source === 'grab' || activeOrder.source === 'panda' ? activeOrder.source as 'grab' | 'panda' : null}
+            totalCount={activeOrder.items.reduce((acc, i) => acc + itemQty(i), 0)}
+            subtotal={calculatedSubtotal}
+            amtDue={totalDue}
+            vatableSales={activeOrder.vatable_sales ?? (totalDue / 1.12)}
+            vatAmount={activeOrder.vat_amount ?? (totalDue - (totalDue / 1.12))}
+            vatExemptSales={activeOrder.vat_exempt_sales ?? 0}
+            change={Math.max(0, (activeOrder.cash_tendered || 0) - totalDue)}
+            cashTendered={activeOrder.cash_tendered ?? totalDue}
+            referenceNumber={activeOrder.reference_number ?? ""}
+            paymentMethod={(activeOrder.payment_method ?? 'online').toLowerCase()}
+            selectedDiscount={null}
+            selectedDiscounts={[]}
+            totalDiscountDisplay={Math.max(0, calculatedSubtotal - totalDue)}
+            itemDiscountTotal={itemDiscountTotal}
+            promoDiscount={activeOrder.discount_amount ?? 0}
+            itemPaxAssignments={{}}
+            customerName={activeOrder.customer_name ?? 'App Customer'}
+            seniorIds={activeOrder.senior_id ? activeOrder.senior_id.split(',') : []}
+            pwdIds={activeOrder.pwd_id ? activeOrder.pwd_id.split(',') : []}
+            paxSenior={activeOrder.pax_senior}
+            paxPwd={activeOrder.pax_pwd}
+            sc_discount_amount={activeOrder.sc_discount_amount}
+            pwd_discount_amount={activeOrder.pwd_discount_amount}
+            orderType={activeOrder.order_type === 'dine_in' ? 'dine-in' : activeOrder.order_type === 'delivery' ? 'delivery' : 'take-out'}
+            formattedDate={new Date(activeOrder.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+            formattedTime={new Date(activeOrder.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            isReprint={false}
+            showDoubleQueueStub={activeOrder.order_type === 'take-out'}
+            posFooter={posFooter}
+          />
+        );
+      })()}
+
+      <StickerPrint
+        onScreen={printJob?.type === 'stickers'}
+        cart={mapOrderToCart(lastPrintJob?.order || ({} as OnlineOrder))}
+        branchName={lastPrintJob?.order.branch_name ?? '—'}
+        orNumber={lastPrintJob ? orderInvoice(lastPrintJob.order) : ''}
+        queueNumber={lastPrintJob?.seqNumber ?? ''}
+        customerName={lastPrintJob?.order.customer_name ?? 'App Customer'}
+        orderType={lastPrintJob?.order.order_type === 'dine_in' ? 'dine-in' : lastPrintJob?.order.order_type === 'delivery' ? 'delivery' : 'take-out'}
+        formattedDate={lastPrintJob ? new Date(lastPrintJob.order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}
+        formattedTime={lastPrintJob ? new Date(lastPrintJob.order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
+        isOnline={true}
+      />
     </>
   );
 };

@@ -403,7 +403,7 @@ const BM_SalesDashboard: React.FC = () => {
             {loading ? <SkeletonBar h="h-[240px]" /> : chartData.length === 0 ? (
               <div className="h-60 flex items-center justify-center text-zinc-400 text-xs font-medium">No data for this period.</div>
             ) : (
-              <ResponsiveContainer width="100%" height={240}>
+              <ResponsiveContainer width="100%" height={240} minWidth={0}>
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="bmRevGrad" x1="0" y1="0" x2="0" y2="1">
@@ -429,7 +429,7 @@ const BM_SalesDashboard: React.FC = () => {
             {loading ? <SkeletonBar h="h-[240px]" /> : chartData.length === 0 ? (
               <div className="h-60 flex items-center justify-center text-zinc-400 text-xs">No data.</div>
             ) : (
-              <ResponsiveContainer width="100%" height={240}>
+              <ResponsiveContainer width="100%" height={240} minWidth={0}>
                 <BarChart data={chartData} barSize={12}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
@@ -574,7 +574,7 @@ const BM_SalesDashboard: React.FC = () => {
             {loading ? <SkeletonBar h="h-[200px]" /> : paymentChartData.length === 0 ? (
               <div className="h-48 flex items-center justify-center text-zinc-400 text-xs">No payment data for this period.</div>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200} minWidth={0}>
                 <BarChart data={paymentChartData} barSize={32}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                   <XAxis dataKey="method" tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />

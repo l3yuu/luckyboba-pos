@@ -26,6 +26,7 @@ import StaffPerformanceTab from "../components/NewSuperAdmin/Sidebar/Navigation/
 import MenuItemsTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab";
 import CategoriesTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/CategoriesTab";
 import SubCategoriesTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/SubCategoriesTab";
+import BranchAvailabilityTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/BranchAvailabilityTab";
 
 import InventoryOverview from "../components/NewSuperAdmin/Sidebar/Inventory/InventoryOverview";
 import RawMaterialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/RawMaterialsTab";
@@ -108,6 +109,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "menu_items": return <MenuItemsTab />;
       case "categories": return <CategoriesTab />;
       case "subcategories": return <SubCategoriesTab />;
+      case "branch_availability": return <BranchAvailabilityTab />;
 
       // ── Inventory ─────────────────────────────────────────────────────────
       case "inv_overview": return <InventoryOverview />;

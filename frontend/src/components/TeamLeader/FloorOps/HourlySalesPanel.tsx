@@ -161,7 +161,7 @@ const HourlySalesPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
           {/* Orders Chart */}
           <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-5">
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Orders by Hour</p>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={220} minWidth={0}>
               <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ordersGrad" x1="0" y1="0" x2="0" y2="1">
@@ -182,7 +182,7 @@ const HourlySalesPanel: React.FC<{ branchId: number | null }> = ({ branchId }) =
           {/* Sales Chart */}
           <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-5">
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Sales by Hour</p>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={220} minWidth={0}>
               <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">

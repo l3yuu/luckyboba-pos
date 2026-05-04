@@ -1,9 +1,9 @@
-// BM_Sub-Categories.tsx — Read-only SuperAdmin-style sub-category list for BM
 import { useState, useEffect, useCallback } from "react";
 import {
   RefreshCw, AlertCircle, Layers, Search,
   ToggleLeft, ToggleRight,
 } from "lucide-react";
+import { useToast } from "../../../context/ToastContext";
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 const getToken = () =>
@@ -48,6 +48,7 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const BM_SubCategories: React.FC = () => {
+  const { showToast } = useToast();
   const [subs,       setSubs]       = useState<SubCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -84,6 +85,31 @@ const BM_SubCategories: React.FC = () => {
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  const handleToggle = async (sub: SubCategory) => {
+    setTogglingId(sub.id);
+    try {
+      const res = await fetch("/api/branch/availability/toggle", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          entity_type: "sub_category",
+          entity_id: sub.id
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.is_available !== undefined) {
+        setSubs(prev =>
+          prev.map(s => s.id === sub.id ? { ...s, is_active: data.is_available } : s)
+        );
+      } else if (res.status === 403) {
+        showToast(data.message || "Admin deactivated this item", "warning");
+      }
+    } catch { /* silent */ }
+    finally { setTogglingId(null); }
+  };
 
   const filtered  = subs.filter(s => {
     const matchCat    = !filterCat || String(s.category_id) === filterCat;
@@ -198,9 +224,17 @@ const BM_SubCategories: React.FC = () => {
                         )}
                       </td>
                       <td className="px-5 py-3.5">
-                        {sub.is_active
-                          ? <ToggleRight size={22} className="text-[#6a12b8]" />
-                          : <ToggleLeft  size={22} className="text-zinc-300"  />}
+                        <button
+                          onClick={() => handleToggle(sub)}
+                          disabled={togglingId === sub.id}
+                          className="transition-colors disabled:opacity-40"
+                        >
+                          {togglingId === sub.id
+                            ? <RefreshCw size={18} className="animate-spin text-zinc-400" />
+                            : sub.is_active
+                              ? <ToggleRight size={22} className="text-[#6a12b8]" />
+                              : <ToggleLeft  size={22} className="text-zinc-300" />}
+                        </button>
                       </td>
                     </tr>
                   ))}
