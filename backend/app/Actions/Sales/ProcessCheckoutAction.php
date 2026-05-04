@@ -107,19 +107,8 @@ class ProcessCheckoutAction
             $branch = Branch::find($branchId);
             $isVat  = ($branch?->vat_type ?? 'vat') !== 'non_vat';
 
-<<<<<<< HEAD
-            $status = $data['status'] ?? 'completed';
-            // Force pos and kiosk orders to 'preparing' initially for the queue display
-            if (in_array($status, ['completed', 'pending']) && in_array($data['source'] ?? 'pos', ['kiosk', 'pos'])) {
-                $status = 'preparing';
-            }
-
-            // Extract queue number (last 3 digits of invoice, or fallback)
-            $queueNumber = $data['queue_number'] ?? substr($officialOR, -3);
-=======
             $source = $data['source'] ?? 'pos';
             $queueNumber = $this->generateQueueNumber((int)$branchId, $source);
->>>>>>> origin/main
 
             // 2. Create Sale header
             $sale = Sale::create([
@@ -127,12 +116,7 @@ class ProcessCheckoutAction
                 'branch_id'                => $branchId,
                 'total_amount'             => 0, // Placeholder
                 'invoice_number'           => $officialOR,
-                'queue_number'             => $queueNumber,
-<<<<<<< HEAD
-                'status'                   => $status,
-=======
                 'status'                   => $data['status'] ?? 'completed',
->>>>>>> origin/main
                 'payment_method'           => $data['payment_method'] ?? 'cash',
                 'reference_number'         => $data['reference_number'] ?? null,
                 'charge_type'              => $chargeType,
