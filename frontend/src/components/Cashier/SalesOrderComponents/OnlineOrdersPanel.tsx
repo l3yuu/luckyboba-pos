@@ -99,19 +99,11 @@ const STATUS_META: Record<Status, {
     icon: <ChefHat size={14} className="text-blue-500" />,
   },
   ready: {
-<<<<<<< HEAD
     label: 'Now Serving',
     color: 'text-violet-700',
     bg: 'bg-violet-50',
     border: 'border-violet-200',
     icon: <AlertCircle size={14} className="text-violet-500" />,
-=======
-    label: 'Ready',
-    color: 'text-violet-700',
-    bg: 'bg-violet-50',
-    border: 'border-violet-200',
-    icon: <CheckCircle2 size={14} className="text-violet-500" />,
->>>>>>> origin/main
   },
   completed: {
     label: 'Completed',
@@ -362,11 +354,7 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
               : next === 'preparing'
                 ? '→ Start Preparing'
                 : next === 'ready'
-<<<<<<< HEAD
                   ? '→ Now Serving'
-=======
-                  ? '→ Mark as Ready'
->>>>>>> origin/main
                   : '✓ Mark as Done'}
           </button>
         )}
@@ -391,11 +379,7 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, onPrintStickers, updati
   const COLUMN_LABELS: Record<Status, string> = {
     pending: 'New Orders',
     preparing: 'Preparing',
-<<<<<<< HEAD
     ready: 'Now Serving',
-=======
-    ready: 'Ready',
->>>>>>> origin/main
     completed: 'Completed',
   };
 

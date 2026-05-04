@@ -56,7 +56,7 @@ class BranchManagerAppController extends Controller
         }
 
         $sale = $query->firstOrFail();
-        $sale->update(['status' => $request->status]);
+        $sale->update(['status' => $request->input('status')]);
 
         return response()->json($this->formatOrder($sale->load('items')));
     }

@@ -22,7 +22,7 @@ class ItemSerialController extends Controller
 
             // Apply Search Filter
             if ($request->filled('search')) {
-                $searchTerm = '%' . $request->search . '%';
+                $searchTerm = '%' . $request->input('search') . '%';
                 $query->where(function($q) use ($searchTerm) {
                     $q->where('serial_number', 'LIKE', $searchTerm)
                       ->orWhere('item_name', 'LIKE', $searchTerm);
@@ -30,8 +30,8 @@ class ItemSerialController extends Controller
             }
 
             // Apply Status Filter
-            if ($request->filled('status') && $request->status !== 'All Status') {
-                $query->where('status', $request->status);
+            if ($request->filled('status') && $request->input('status') !== 'All Status') {
+                $query->where('status', $request->input('status'));
             }
 
             $serials = $query->get()->map(function ($serial) {

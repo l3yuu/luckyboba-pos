@@ -42,7 +42,6 @@ Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'check
 
 // ✅ PUBLIC MOBILE ROUTES
 Route::post('/kiosk-sales', [SalesController::class, 'store'])->middleware('throttle:kiosk'); // Allow kiosk orders without auth
-Route::get('/queue/active', [\App\Http\Controllers\Api\QueueController::class, 'active'])->middleware('throttle:api');
 Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:api');
 Route::get('/cards/image/{path}', [CardController::class, 'image'])
     ->where('path', '.*')
@@ -54,7 +53,7 @@ Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])
 Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:api');
 Route::get('/bundles',          [BundleController::class, 'index'])->middleware('throttle:api');
 Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence'])->middleware('throttle:kiosk');
-Route::get('/queue/active',     [QueueController::class, 'index'])->middleware('throttle:kiosk');
+Route::get('/queue/active', [QueueController::class, 'index'])->middleware('throttle:kiosk');
 
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────

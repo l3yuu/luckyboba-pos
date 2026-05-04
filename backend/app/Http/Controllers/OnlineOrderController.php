@@ -93,7 +93,7 @@ class OnlineOrderController extends Controller
         }
 
         $sale         = $query->firstOrFail();
-        $sale->status = $request->status;
+        $sale->status = $request->input('status');
 
         if ($request->filled('invoice_number')) {
             $newInvoice = $request->input('invoice_number');
