@@ -60,9 +60,9 @@ class BranchController extends Controller
         try {
             // Create the branch
             $branch = Branch::create([
-                'name' => $request->name,
-                'location' => $request->location,
-                'status' => $request->status,
+                'name' => $request->input('name'),
+                'location' => $request->input('location'),
+                'status' => $request->input('status'),
                 'total_sales' => 0.00,
                 'today_sales' => 0.00,
             ]);

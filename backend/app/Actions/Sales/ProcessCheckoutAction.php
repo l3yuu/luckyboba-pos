@@ -116,7 +116,6 @@ class ProcessCheckoutAction
                 'branch_id'                => $branchId,
                 'total_amount'             => 0, // Placeholder
                 'invoice_number'           => $officialOR,
-                'queue_number'             => $queueNumber,
                 'status'                   => $data['status'] ?? 'completed',
                 'payment_method'           => $data['payment_method'] ?? 'cash',
                 'reference_number'         => $data['reference_number'] ?? null,

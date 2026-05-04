@@ -99,11 +99,11 @@ const STATUS_META: Record<Status, {
     icon: <ChefHat size={14} className="text-blue-500" />,
   },
   ready: {
-    label: 'Ready',
+    label: 'Now Serving',
     color: 'text-violet-700',
     bg: 'bg-violet-50',
     border: 'border-violet-200',
-    icon: <CheckCircle2 size={14} className="text-violet-500" />,
+    icon: <AlertCircle size={14} className="text-violet-500" />,
   },
   completed: {
     label: 'Completed',
@@ -354,7 +354,7 @@ const OrderCard = ({ order, onMove, onPrint, onPrintStickers, updating }: OrderC
               : next === 'preparing'
                 ? '→ Start Preparing'
                 : next === 'ready'
-                  ? '→ Mark as Ready'
+                  ? '→ Now Serving'
                   : '✓ Mark as Done'}
           </button>
         )}
@@ -379,7 +379,7 @@ const KanbanColumn = ({ status, orders, onMove, onPrint, onPrintStickers, updati
   const COLUMN_LABELS: Record<Status, string> = {
     pending: 'New Orders',
     preparing: 'Preparing',
-    ready: 'Ready',
+    ready: 'Now Serving',
     completed: 'Completed',
   };
 
@@ -532,7 +532,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
       const raw: OnlineOrder[] = Array.isArray(res.data) ? res.data : res.data.data ?? [];
       const appOrders = raw.filter(o => {
         const inv = (o.invoice_number ?? o.si_number ?? '');
-        return inv.startsWith('APP-') || inv.startsWith('KSK-') || o.source === 'kiosk';
+        return inv.startsWith('APP-') || inv.startsWith('KSK-') || inv.startsWith('SI-') || ['kiosk', 'pos', 'online'].includes(o.source || '');
       });
       setOrders(appOrders);
       setError(null);

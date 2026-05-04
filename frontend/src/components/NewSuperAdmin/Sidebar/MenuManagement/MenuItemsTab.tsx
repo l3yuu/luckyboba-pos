@@ -1362,7 +1362,7 @@ export const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, cate
     };
 
     fetchAll();
-  }, [drinkItemId, bundleItemIds, isComboCategory, isBundleCategory, isEdit, item, allItems]);
+  }, [drinkItemId, bundleItemIds, isComboCategory, isBundleCategory, isEdit, item, slotOptions, slotSugarIds]);
 
   const mmDrinkCount = mmBundleItems !== null
     ? mmBundleItems.filter(i => i.size !== 'none').length

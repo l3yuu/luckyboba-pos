@@ -53,7 +53,7 @@ Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])
 Route::get('/sugar-levels',     [SugarLevelController::class, 'index'])->middleware('throttle:api');
 Route::get('/bundles',          [BundleController::class, 'index'])->middleware('throttle:api');
 Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence'])->middleware('throttle:kiosk');
-Route::get('/queue/active',     [QueueController::class, 'index'])->middleware('throttle:kiosk');
+Route::get('/queue/active', [QueueController::class, 'index'])->middleware('throttle:kiosk');
 
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────

@@ -57,13 +57,22 @@ const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   "z-reading":       { label: "Z-Reading",           desc: "End-of-day POS closing report"            },
   "inventory-list":  { label: "Stock Levels",        desc: "Current branch inventory status"          },
   "item-checker":    { label: "Item Checker",        desc: "Verify product details and availability"  },
+  "expenses":        { label: "Expenses",            desc: "Branch expense tracking and management"   },
+  "raw-materials":   { label: "Raw Materials",       desc: "Inventory levels and stock adjustments"   },
+  "recipes":         { label: "Recipes",             desc: "Standard recipe specifications"           },
+  "usage-report":    { label: "Usage Report",        desc: "Raw material consumption tracking"        },
+  "stock-transfer":  { label: "Stock Transfer",      desc: "Inter-branch stock movement records"      },
+  "purchase-order":  { label: "Purchase Order",      desc: "Procurement requests and order status"    },
+  "hourly-sales":    { label: "Hourly Sales",        desc: "Revenue breakdown by hour"                },
+  "tl-menu-categories":    { label: "Categories",    desc: "Product category management"              },
+  "tl-menu-subcategories": { label: "Subcategories", desc: "Product subcategory management"           },
+  "tl-menu-items":         { label: "Menu Items",    desc: "Product catalog and pricing"              },
 };
 
 // ── Animations ────────────────────────────────────────────────────────────────
 const STYLES = `
   @keyframes ops-topbar-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
   .ops-topbar-pulse { animation: ops-topbar-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-  .ops-topbar-header { background: #6a12b8; }
 `;
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -134,7 +143,7 @@ const OpsTopBar: React.FC<OpsTopBarProps> = ({
   return (
     <>
       <style>{STYLES}</style>
-      <div className="shrink-0 h-[72px] flex items-center justify-between px-8 ops-topbar-header border-b border-black/10 relative z-10">
+      <div className="shrink-0 h-[72px] flex items-center justify-between px-8 bg-[#6a12b8] border-b border-black/10 relative z-10">
         
         {/* ── Left: hamburger + title + date badge + branch pill ── */}
         <div className="flex items-center gap-5 min-w-0">

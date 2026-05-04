@@ -114,7 +114,7 @@ public function store(Request $request)
             'price'           => $request->sellingPrice,
             'cost'            => $request->unitCost ?? 0,
             'type'            => strtolower($request->type),
-            'status'          => strtolower($request->status),
+            'status'          => strtolower($request->input('status')),
             'cup_id'          => $cupId, // ← derived, not user-supplied
             'created_at'      => now(),
             'updated_at'      => now(),

@@ -20,7 +20,9 @@ class OnlineOrderController extends Controller
             ->where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
                   ->orWhere('invoice_number', 'like', 'KSK-%')
-                  ->orWhere('source', 'kiosk');
+                  ->orWhere('invoice_number', 'like', 'SI-%')
+                  ->orWhereIn('source', ['kiosk', 'pos', 'online'])
+                  ->orWhereNull('source');
             })
             ->whereNotIn('status', ['cancelled'])
             ->whereDate('created_at', now()->toDateString());
@@ -72,7 +74,9 @@ class OnlineOrderController extends Controller
             ->where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
                   ->orWhere('invoice_number', 'like', 'KSK-%')
-                  ->orWhere('source', 'kiosk');
+                  ->orWhere('invoice_number', 'like', 'SI-%')
+                  ->orWhereIn('source', ['kiosk', 'pos', 'online'])
+                  ->orWhereNull('source');
             });
 
         if (!empty($user->branch_id)) {
@@ -89,7 +93,7 @@ class OnlineOrderController extends Controller
         }
 
         $sale         = $query->firstOrFail();
-        $sale->status = $request->status;
+        $sale->status = $request->input('status');
 
         if ($request->filled('invoice_number')) {
             $newInvoice = $request->input('invoice_number');
@@ -346,7 +350,9 @@ class OnlineOrderController extends Controller
             $query = Sale::where(function ($q) {
                 $q->where('invoice_number', 'like', 'APP-%')
                   ->orWhere('invoice_number', 'like', 'KSK-%')
-                  ->orWhere('source', 'kiosk');
+                  ->orWhere('invoice_number', 'like', 'SI-%')
+                  ->orWhereIn('source', ['kiosk', 'pos', 'online'])
+                  ->orWhereNull('source');
             });
 
             // Branch scoping
